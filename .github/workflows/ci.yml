@@ -1,0 +1,22 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - develop
+      - 'feature/**'
+      - 'hotfix/**'
+      - 'release/**'
+  pull_request:
+    branches:
+      - develop
+      - main
+
+jobs:
+  ci:
+    uses: banua-coder/banua-coder-workflow/.github/workflows/ci-laravel.yml@main
+    with:
+      php-version: '8.5'
+      node-version: '20'
+      package-manager: 'pnpm'
+      run-coverage: false
