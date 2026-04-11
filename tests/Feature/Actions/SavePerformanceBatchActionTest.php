@@ -5,6 +5,7 @@ use App\Events\PerformanceBatchSubmitted;
 use App\Models\Employee;
 use App\Models\PerformanceReport;
 use App\Models\WorkItem;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Support\Facades\Event;
 
 it('saves multiple reports in a batch', function () {
@@ -45,7 +46,7 @@ it('rolls back all reports if one fails', function () {
         items: [
             ['work_item_id' => 99999, 'achievement_percentage' => 50.0, 'issues' => null, 'solutions' => null, 'action_plan' => null],
         ],
-    ))->toThrow(\Illuminate\Database\Eloquent\ModelNotFoundException::class);
+    ))->toThrow(ModelNotFoundException::class);
 
     expect(PerformanceReport::count())->toBe(0);
 });

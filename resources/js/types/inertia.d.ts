@@ -1,13 +1,19 @@
-import type { User } from '.';
-
-declare module '@inertiajs/vue3' {
-    interface PageProps {
-        auth: {
-            user: User;
-        };
-        flash?: {
-            success?: string;
-            error?: string;
+declare module '@inertiajs/core' {
+    interface InertiaConfig {
+        sharedPageProps: {
+            auth: {
+                user: {
+                    id: number;
+                    name: string;
+                    email: string;
+                    role: 'admin' | 'head' | 'staff';
+                    email_verified_at?: string;
+                };
+            };
+            flash?: {
+                success?: string;
+                error?: string;
+            };
         };
     }
 }

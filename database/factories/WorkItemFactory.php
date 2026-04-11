@@ -15,7 +15,7 @@ class WorkItemFactory extends Factory
     {
         return [
             'project_id' => Project::factory(),
-            'number' => $this->faker->numberBetween(1, 20),
+            'number' => $this->faker->unique()->numberBetween(1, 1000),
             'description' => $this->faker->sentence(),
         ];
     }

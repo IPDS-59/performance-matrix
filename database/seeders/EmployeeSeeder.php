@@ -58,7 +58,7 @@ class EmployeeSeeder extends Seeder
     {
         $parts = [];
         if ($degreeFront) {
-            $parts[] = $degreeFront . ' ' . $name;
+            $parts[] = $degreeFront.' '.$name;
         } else {
             $parts[] = $name;
         }
