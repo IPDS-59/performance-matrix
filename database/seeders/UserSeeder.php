@@ -39,5 +39,12 @@ class UserSeeder extends Seeder
             ]
         );
         $staff->syncRoles('staff');
+
+        // Link staff demo to a seeded employee so performance entry works
+        $employee = \App\Models\Employee::where('name', 'Sukma Nirmala Dewi')->first();
+        if ($employee && ! $employee->user_id) {
+            $employee->update(['user_id' => $staff->id]);
+            $staff->update(['name' => $employee->display_name ?? $employee->name]);
+        }
     }
 }

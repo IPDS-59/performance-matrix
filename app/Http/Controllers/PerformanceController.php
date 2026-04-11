@@ -23,14 +23,17 @@ class PerformanceController extends Controller
         $year = $request->integer('year', now()->year);
         $month = $request->integer('month', now()->month);
 
-        // Projects where this employee is a member
+        // Projects where this employee is a member, ordered by team then project name
         $projects = Project::with([
             'workItems.performanceReports' => fn ($q) => $q->where('period_year', $year)->where('period_month', $month),
             'team:id,name',
         ])
             ->whereHas('members', fn ($q) => $q->where('employees.id', $employee->id))
             ->where('year', $year)
-            ->orderBy('name')
+            ->join('teams', 'teams.id', '=', 'projects.team_id')
+            ->orderBy('teams.name')
+            ->orderBy('projects.name')
+            ->select('projects.*')
             ->get();
 
         return Inertia::render('Performance/Index', [
