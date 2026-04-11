@@ -1,0 +1,73 @@
+<script setup lang="ts">
+import AppLayout from '@/Layouts/AppLayout.vue';
+import { Head, Link, router } from '@inertiajs/vue3';
+import type { Employee } from '@/types';
+import { Button } from '@/Components/ui/button';
+import { Badge } from '@/Components/ui/badge';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/Components/ui/table';
+
+defineProps<{ employees: Employee[] }>();
+
+function confirmDelete(id: number, name: string) {
+    if (confirm(`Hapus pegawai "${name}"?`)) {
+        router.delete(route('employees.destroy', id));
+    }
+}
+</script>
+
+<template>
+    <Head title="Pegawai" />
+    <AppLayout>
+        <template #title>Data Pegawai</template>
+
+        <div class="mb-4 flex justify-end">
+            <Button as-child>
+                <Link :href="route('employees.create')">Tambah Pegawai</Link>
+            </Button>
+        </div>
+
+        <div class="rounded-md border bg-white">
+            <Table>
+                <TableHeader>
+                    <TableRow>
+                        <TableHead>Nama</TableHead>
+                        <TableHead>NIP</TableHead>
+                        <TableHead>Tim Kerja</TableHead>
+                        <TableHead>Jabatan</TableHead>
+                        <TableHead>Status</TableHead>
+                        <TableHead class="w-28 text-right">Aksi</TableHead>
+                    </TableRow>
+                </TableHeader>
+                <TableBody>
+                    <TableRow v-if="!employees.length">
+                        <TableCell colspan="6" class="text-center text-gray-400 py-8">Belum ada data.</TableCell>
+                    </TableRow>
+                    <TableRow v-for="emp in employees" :key="emp.id">
+                        <TableCell>
+                            <div class="font-medium">{{ emp.display_name || emp.name }}</div>
+                            <div v-if="emp.office" class="text-xs text-gray-500">{{ emp.office }}</div>
+                        </TableCell>
+                        <TableCell class="font-mono text-sm">{{ emp.employee_number ?? '—' }}</TableCell>
+                        <TableCell>{{ emp.team?.name ?? '—' }}</TableCell>
+                        <TableCell>{{ emp.position ?? '—' }}</TableCell>
+                        <TableCell>
+                            <Badge :variant="emp.is_active ? 'default' : 'secondary'">
+                                {{ emp.is_active ? 'Aktif' : 'Nonaktif' }}
+                            </Badge>
+                        </TableCell>
+                        <TableCell class="text-right">
+                            <div class="flex justify-end gap-2">
+                                <Button variant="outline" size="sm" as-child>
+                                    <Link :href="route('employees.edit', emp.id)">Edit</Link>
+                                </Button>
+                                <Button variant="destructive" size="sm" @click="confirmDelete(emp.id, emp.name)">
+                                    Hapus
+                                </Button>
+                            </div>
+                        </TableCell>
+                    </TableRow>
+                </TableBody>
+            </Table>
+        </div>
+    </AppLayout>
+</template>
