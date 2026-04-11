@@ -26,7 +26,6 @@ Thumbs.db
 
 # AI / Claude
 CLAUDE-LARAVEL-INERTIA.md
-seeder_data.json
 .claude/
 *.claude.md
 

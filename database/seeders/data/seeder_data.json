@@ -1,0 +1,5550 @@
+{
+  "teams": [
+    {
+      "name": "ANALISIS STATISTIK",
+      "code": "AS",
+      "is_active": true
+    },
+    {
+      "name": "BMN dan PBJ",
+      "code": "BMN",
+      "is_active": true
+    },
+    {
+      "name": "DISEMINASI DAN LAYANAN STATISTIK",
+      "code": "DLS",
+      "is_active": true
+    },
+    {
+      "name": "HUMAS DAN PROTOKOLER",
+      "code": "HDP",
+      "is_active": true
+    },
+    {
+      "name": "INDUSTRI DAN SDMK",
+      "code": "IDS",
+      "is_active": true
+    },
+    {
+      "name": "IVP IUP",
+      "code": "IVP",
+      "is_active": true
+    },
+    {
+      "name": "KETAHANAN SOSIAL",
+      "code": "KS",
+      "is_active": true
+    },
+    {
+      "name": "KEUANGAN",
+      "code": "KEU",
+      "is_active": true
+    },
+    {
+      "name": "METODOLOGI DAN TEKNOLOGI INFORMASI (MTI)",
+      "code": "MTI",
+      "is_active": true
+    },
+    {
+      "name": "MITIGASI RISIKO",
+      "code": "MR",
+      "is_active": true
+    },
+    {
+      "name": "PEMBINAAN DAN EVALUASI PENYELENGGARAAN STATISTIK SEKTORAL",
+      "code": "PEPSS",
+      "is_active": true
+    },
+    {
+      "name": "PENILAI INTERNAL",
+      "code": "PI",
+      "is_active": true
+    },
+    {
+      "name": "PERENCANAAN ANGGARAN",
+      "code": "PA",
+      "is_active": true
+    },
+    {
+      "name": "SENSUS EKONOMI",
+      "code": "SE",
+      "is_active": true
+    },
+    {
+      "name": "SSDH (STATISTIK SUMBER DAYA HAYATI)",
+      "code": "SSDH",
+      "is_active": true
+    },
+    {
+      "name": "STATISTIK DISTRIBUSI",
+      "code": "SD",
+      "is_active": true
+    },
+    {
+      "name": "STATISTIK HARGA",
+      "code": "SH",
+      "is_active": true
+    },
+    {
+      "name": "STATISTIK JASA",
+      "code": "SJ",
+      "is_active": true
+    },
+    {
+      "name": "UMUM",
+      "code": "UMM",
+      "is_active": true
+    }
+  ],
+  "employees": [
+    {
+      "name": "Hespri Yomeldi",
+      "team": "METODOLOGI DAN TEKNOLOGI INFORMASI (MTI)",
+      "degree_back": "SST, M.T"
+    },
+    {
+      "name": "Bayu Setyawan",
+      "team": "METODOLOGI DAN TEKNOLOGI INFORMASI (MTI)",
+      "degree_back": "SST, M.T."
+    },
+    {
+      "name": "Sukma Nirmala Dewi",
+      "team": "METODOLOGI DAN TEKNOLOGI INFORMASI (MTI)",
+      "degree_back": "S.Tr.Stat."
+    },
+    {
+      "name": "Ananto Yanuar",
+      "team": "ANALISIS STATISTIK",
+      "degree_back": "SST, M.P.W.P"
+    },
+    {
+      "name": "Aditya Saputra",
+      "team": "ANALISIS STATISTIK",
+      "degree_back": "SST, M.URP."
+    },
+    {
+      "name": "Apriliansyah",
+      "team": "ANALISIS STATISTIK",
+      "degree_back": "S.Tr.Stat."
+    },
+    {
+      "name": "Hasbiah",
+      "team": "ANALISIS STATISTIK",
+      "degree_back": "S.S."
+    },
+    {
+      "name": "Yudha Subakti",
+      "team": "ANALISIS STATISTIK",
+      "degree_back": "S.Si."
+    },
+    {
+      "name": "Ir. Jefrie Wahido",
+      "team": "KETAHANAN SOSIAL",
+      "degree_back": "M.Si"
+    },
+    {
+      "name": "Annisa Nur Kusuma",
+      "team": "KETAHANAN SOSIAL",
+      "degree_back": "SST"
+    },
+    {
+      "name": "Mayanti Meylisa Toding",
+      "team": "KETAHANAN SOSIAL",
+      "degree_back": "SST, M.Sc"
+    },
+    {
+      "name": "Muznah",
+      "team": "KETAHANAN SOSIAL",
+      "degree_back": "S.P"
+    },
+    {
+      "name": "Isna Aissatussiri Asshidiq",
+      "team": "KETAHANAN SOSIAL",
+      "degree_back": "S.Tr.Stat."
+    },
+    {
+      "name": "Imron Taufik J Musa",
+      "team": "HUMAS DAN PROTOKOLER",
+      "degree_back": "S.Si, M.Si"
+    },
+    {
+      "name": "Eka Nurliani",
+      "team": "HUMAS DAN PROTOKOLER",
+      "degree_back": "A.Md."
+    },
+    {
+      "name": "Bahtiar",
+      "team": "IVP IUP",
+      "degree_back": "SST, M.P.W.P."
+    },
+    {
+      "name": "Fima Anggadini",
+      "team": "IVP IUP",
+      "degree_back": "SST, M.P.W"
+    },
+    {
+      "name": "Henry Simanjuntak",
+      "team": "IVP IUP",
+      "degree_back": "SST, M.Si"
+    },
+    {
+      "name": "Irwan Kurniawan",
+      "team": "IVP IUP",
+      "degree_back": "SST"
+    },
+    {
+      "name": "Ahmad Risal",
+      "team": "KETAHANAN SOSIAL",
+      "degree_back": "S.Tr.Stat."
+    },
+    {
+      "name": "Frilia Zaskia",
+      "team": "STATISTIK HARGA",
+      "degree_back": "A.Md.Stat."
+    },
+    {
+      "name": "Iva Rizky Karim",
+      "team": "STATISTIK HARGA",
+      "degree_back": "S.P, M.Si."
+    },
+    {
+      "name": "Moh Room",
+      "team": "STATISTIK HARGA",
+      "degree_back": "SE"
+    },
+    {
+      "name": "Nurainun Fitriani",
+      "team": "STATISTIK HARGA",
+      "degree_back": "SST"
+    },
+    {
+      "name": "Nurhayati",
+      "team": "STATISTIK HARGA",
+      "degree_back": "S.I.Kom"
+    },
+    {
+      "name": "Akmal",
+      "team": "STATISTIK JASA",
+      "degree_back": "S.Si"
+    },
+    {
+      "name": "Fajrianto Manungki",
+      "team": "STATISTIK JASA",
+      "degree_back": "SST"
+    },
+    {
+      "name": "Reni Triani R Timumun",
+      "team": "STATISTIK JASA",
+      "degree_back": "S.Si"
+    },
+    {
+      "name": "A.A. Ngurah Gede Wasudewa",
+      "team": "STATISTIK DISTRIBUSI",
+      "degree_back": "SST, M.URP."
+    },
+    {
+      "name": "Winansibutet",
+      "team": "STATISTIK DISTRIBUSI",
+      "degree_back": "S.Si, M.P.W.P."
+    },
+    {
+      "name": "Candra",
+      "team": "METODOLOGI DAN TEKNOLOGI INFORMASI (MTI)",
+      "degree_back": "S.E, M.Ec.Dev"
+    },
+    {
+      "name": "Mohammad Syafrizal",
+      "team": "METODOLOGI DAN TEKNOLOGI INFORMASI (MTI)",
+      "degree_back": "S.Tr.Stat"
+    },
+    {
+      "name": "Nurul Solikha Nofiani",
+      "team": "METODOLOGI DAN TEKNOLOGI INFORMASI (MTI)",
+      "degree_back": "SST, M.Si."
+    },
+    {
+      "name": "Sepryati Matoory",
+      "team": "METODOLOGI DAN TEKNOLOGI INFORMASI (MTI)",
+      "degree_back": "S.P"
+    },
+    {
+      "name": "Catur Prihatin",
+      "team": "METODOLOGI DAN TEKNOLOGI INFORMASI (MTI)",
+      "degree_back": "A.Md"
+    },
+    {
+      "name": "Ince Mariyani",
+      "team": "METODOLOGI DAN TEKNOLOGI INFORMASI (MTI)",
+      "degree_back": "S.E., M.M."
+    },
+    {
+      "name": "Ni Luh Laksmi Devi",
+      "team": "METODOLOGI DAN TEKNOLOGI INFORMASI (MTI)",
+      "degree_back": "S.Tr.Stat"
+    },
+    {
+      "name": "Rudi Siswoyo",
+      "team": "METODOLOGI DAN TEKNOLOGI INFORMASI (MTI)",
+      "degree_back": "SE, M.M."
+    },
+    {
+      "name": "Lidya Rosselindo Pelima",
+      "team": "METODOLOGI DAN TEKNOLOGI INFORMASI (MTI)",
+      "degree_back": "S.T, M.T."
+    },
+    {
+      "name": "Muhammad Saiful",
+      "team": "METODOLOGI DAN TEKNOLOGI INFORMASI (MTI)",
+      "degree_back": null
+    },
+    {
+      "name": "Luhur Partomo Hudoyo",
+      "team": "PERENCANAAN ANGGARAN",
+      "degree_back": "S.Si, M.Stat"
+    },
+    {
+      "name": "Agus Herryanto",
+      "team": "METODOLOGI DAN TEKNOLOGI INFORMASI (MTI)",
+      "degree_back": "SST"
+    },
+    {
+      "name": "Asmawati",
+      "team": "METODOLOGI DAN TEKNOLOGI INFORMASI (MTI)",
+      "degree_back": "S.Si"
+    },
+    {
+      "name": "Daniel Kurnia Nugraha Sitorus",
+      "team": "METODOLOGI DAN TEKNOLOGI INFORMASI (MTI)",
+      "degree_back": "S.Tr.Stat."
+    },
+    {
+      "name": "Enos Rombe",
+      "team": "METODOLOGI DAN TEKNOLOGI INFORMASI (MTI)",
+      "degree_back": null
+    },
+    {
+      "name": "Fitra Aulia",
+      "team": "METODOLOGI DAN TEKNOLOGI INFORMASI (MTI)",
+      "degree_back": "SST"
+    },
+    {
+      "name": "Imam Santoso S.",
+      "team": "METODOLOGI DAN TEKNOLOGI INFORMASI (MTI)",
+      "degree_back": "A.Md."
+    },
+    {
+      "name": "Intan Fajria",
+      "team": "METODOLOGI DAN TEKNOLOGI INFORMASI (MTI)",
+      "degree_back": "S.Si"
+    },
+    {
+      "name": "Ir. Yaslin Hendrita Tansala",
+      "team": "METODOLOGI DAN TEKNOLOGI INFORMASI (MTI)",
+      "degree_back": "M.Si"
+    },
+    {
+      "name": "Larasati Widyaningrum",
+      "team": "METODOLOGI DAN TEKNOLOGI INFORMASI (MTI)",
+      "degree_back": "S.Tr.Stat."
+    },
+    {
+      "name": "Lustiawaty Achmad",
+      "team": "METODOLOGI DAN TEKNOLOGI INFORMASI (MTI)",
+      "degree_back": "SST, MPWP"
+    },
+    {
+      "name": "Masmah",
+      "team": "METODOLOGI DAN TEKNOLOGI INFORMASI (MTI)",
+      "degree_back": null
+    },
+    {
+      "name": "Maya Novita Sari",
+      "team": "METODOLOGI DAN TEKNOLOGI INFORMASI (MTI)",
+      "degree_back": "S.Tr.Stat."
+    },
+    {
+      "name": "Muhammad Fadhilah Akbar",
+      "team": "METODOLOGI DAN TEKNOLOGI INFORMASI (MTI)",
+      "degree_back": "S.Tr.Stat."
+    },
+    {
+      "name": "Muhammad Zein",
+      "team": "METODOLOGI DAN TEKNOLOGI INFORMASI (MTI)",
+      "degree_back": "SST, M.P.W.P"
+    },
+    {
+      "name": "Murni",
+      "team": "METODOLOGI DAN TEKNOLOGI INFORMASI (MTI)",
+      "degree_back": "S.Sos"
+    },
+    {
+      "name": "Mustakim",
+      "team": "METODOLOGI DAN TEKNOLOGI INFORMASI (MTI)",
+      "degree_back": null
+    },
+    {
+      "name": "Naima",
+      "team": "METODOLOGI DAN TEKNOLOGI INFORMASI (MTI)",
+      "degree_back": "S.P, M.Si"
+    },
+    {
+      "name": "Nur Zahra Saharia",
+      "team": "METODOLOGI DAN TEKNOLOGI INFORMASI (MTI)",
+      "degree_back": "A.Md.Stat."
+    },
+    {
+      "name": "Nurlaela Badjeber",
+      "team": "METODOLOGI DAN TEKNOLOGI INFORMASI (MTI)",
+      "degree_back": null
+    },
+    {
+      "name": "Rifka",
+      "team": "METODOLOGI DAN TEKNOLOGI INFORMASI (MTI)",
+      "degree_back": "SST"
+    },
+    {
+      "name": "Rika Ari Wulandari",
+      "team": "METODOLOGI DAN TEKNOLOGI INFORMASI (MTI)",
+      "degree_back": "S.Psi, M.AP."
+    },
+    {
+      "name": "Riska Fitriani",
+      "team": "METODOLOGI DAN TEKNOLOGI INFORMASI (MTI)",
+      "degree_back": "S.Tr.Stat."
+    },
+    {
+      "name": "Salahudin",
+      "team": "METODOLOGI DAN TEKNOLOGI INFORMASI (MTI)",
+      "degree_back": "SE, M.M."
+    },
+    {
+      "name": "Sandy Aji Mukarromsyah",
+      "team": "METODOLOGI DAN TEKNOLOGI INFORMASI (MTI)",
+      "degree_back": "SST"
+    },
+    {
+      "name": "Tuti Kadariah",
+      "team": "METODOLOGI DAN TEKNOLOGI INFORMASI (MTI)",
+      "degree_back": "S.Sos"
+    },
+    {
+      "name": "Wiwik Natalia",
+      "team": "METODOLOGI DAN TEKNOLOGI INFORMASI (MTI)",
+      "degree_back": "SST, M.P.W.P"
+    },
+    {
+      "name": "Mohammad Rifki Abdul Razak A.Md.Stat.",
+      "team": "BMN dan PBJ",
+      "degree_back": null
+    }
+  ],
+  "projects": [
+    {
+      "team": "METODOLOGI DAN TEKNOLOGI INFORMASI (MTI)",
+      "name": "Pengolahan Sakernas",
+      "objective": "Mewujudkan Perumusan Kebijakan dan Pengambilan Keputusan Berbasis Data Statistik Berkualitas dan Insight yang Relevan",
+      "kpi": "Persentase Publikasi/Laporan Statistik Kependudukan Dan Ketenagakerjaan Yang Berkualitas : 100 Persen",
+      "status": "active",
+      "year": 2026,
+      "leader": "Hespri Yomeldi",
+      "members": [
+        "Bayu Setyawan",
+        "Sukma Nirmala Dewi"
+      ],
+      "objectives": [
+        "Terwujudnya Penyediaan Data Dan Insight Statistik Kependudukan Dan Ketenagakerjaan Yang Berkualitas"
+      ]
+    },
+    {
+      "team": "ANALISIS STATISTIK",
+      "name": "Berita Resmi Statistik (BRS) Indeks Ketimpangan Gender (IKG)",
+      "objective": "Mewujudkan Perumusan Kebijakan dan Pengambilan Keputusan Berbasis Data Statistik Berkualitas dan Insight yang Relevan",
+      "kpi": "Persentase publikasi/laporan Analisis dan Pengembangan Statistik yang berkualitas : 100 Persen",
+      "status": "active",
+      "year": 2026,
+      "leader": "Ananto Yanuar",
+      "members": [
+        "Aditya Saputra",
+        "Apriliansyah",
+        "Hasbiah",
+        "Yudha Subakti"
+      ],
+      "objectives": [
+        "Terwujudnya Penyediaan Data Dan Insight Statistik Lintas Sektor Yang Berkualitas"
+      ]
+    },
+    {
+      "team": "ANALISIS STATISTIK",
+      "name": "Publikasi Indeks Pembangunan Manusia (IPM) Tahun 2025",
+      "objective": "Mewujudkan Perumusan Kebijakan dan Pengambilan Keputusan Berbasis Data Statistik Berkualitas dan Insight yang Relevan",
+      "kpi": "Persentase publikasi/laporan Analisis dan Pengembangan Statistik yang berkualitas : 100 Persen",
+      "status": "active",
+      "year": 2026,
+      "leader": "Ananto Yanuar",
+      "members": [
+        "Aditya Saputra",
+        "Apriliansyah",
+        "Hasbiah",
+        "Yudha Subakti"
+      ],
+      "objectives": [
+        "Terwujudnya Penyediaan Data Dan Insight Statistik Lintas Sektor Yang Berkualitas"
+      ]
+    },
+    {
+      "team": "ANALISIS STATISTIK",
+      "name": "Berita Resmi Statistik (BRS) Indeks Pembangunan Manusia (IPM) Tahun 2026",
+      "objective": "Mewujudkan Perumusan Kebijakan dan Pengambilan Keputusan Berbasis Data Statistik Berkualitas dan Insight yang Relevan",
+      "kpi": "Persentase publikasi/laporan Analisis dan Pengembangan Statistik yang berkualitas : 100 Persen",
+      "status": "active",
+      "year": 2026,
+      "leader": "Ananto Yanuar",
+      "members": [
+        "Aditya Saputra",
+        "Apriliansyah",
+        "Hasbiah",
+        "Yudha Subakti"
+      ],
+      "objectives": [
+        "Terwujudnya Penyediaan Data Dan Insight Statistik Lintas Sektor Yang Berkualitas"
+      ]
+    },
+    {
+      "team": "ANALISIS STATISTIK",
+      "name": "Publikasi Statistik Daerah Provinsi Sulawesi Tengah 2026",
+      "objective": "Mewujudkan Perumusan Kebijakan dan Pengambilan Keputusan Berbasis Data Statistik Berkualitas dan Insight yang Relevan",
+      "kpi": "Persentase publikasi/laporan Analisis dan Pengembangan Statistik yang berkualitas : 100 Persen",
+      "status": "active",
+      "year": 2026,
+      "leader": "Ananto Yanuar",
+      "members": [
+        "Aditya Saputra",
+        "Apriliansyah",
+        "Hasbiah",
+        "Yudha Subakti"
+      ],
+      "objectives": [
+        "Terwujudnya Penyediaan Data Dan Insight Statistik Lintas Sektor Yang Berkualitas"
+      ]
+    },
+    {
+      "team": "ANALISIS STATISTIK",
+      "name": "Publikasi Analisis Isu Terkini Provinsi Sulawesi Tengah 2026",
+      "objective": "Mewujudkan Perumusan Kebijakan dan Pengambilan Keputusan Berbasis Data Statistik Berkualitas dan Insight yang Relevan",
+      "kpi": "Persentase publikasi/laporan Analisis dan Pengembangan Statistik yang berkualitas : 100 Persen",
+      "status": "active",
+      "year": 2026,
+      "leader": "Ananto Yanuar",
+      "members": [
+        "Aditya Saputra",
+        "Apriliansyah",
+        "Hasbiah",
+        "Yudha Subakti"
+      ],
+      "objectives": [
+        "Terwujudnya Penyediaan Data Dan Insight Statistik Lintas Sektor Yang Berkualitas"
+      ]
+    },
+    {
+      "team": "ANALISIS STATISTIK",
+      "name": "Publikasi Indikator Kesejahteraan Rakyat 2026",
+      "objective": "Mewujudkan Perumusan Kebijakan dan Pengambilan Keputusan Berbasis Data Statistik Berkualitas dan Insight yang Relevan",
+      "kpi": "Persentase publikasi/laporan Analisis dan Pengembangan Statistik yang berkualitas : 100 Persen",
+      "status": "active",
+      "year": 2026,
+      "leader": "Ananto Yanuar",
+      "members": [
+        "Aditya Saputra",
+        "Apriliansyah",
+        "Hasbiah",
+        "Yudha Subakti"
+      ],
+      "objectives": [
+        "Terwujudnya Penyediaan Data Dan Insight Statistik Lintas Sektor Yang Berkualitas"
+      ]
+    },
+    {
+      "team": "KETAHANAN SOSIAL",
+      "name": "Pelaksanaan Kegiatan Desa Cinta Statistik (Desa Cantik)",
+      "objective": "Mewujudkan Penyelenggaraan Sistem Statistik Nasional yang Andal, Efektif, dan Efisien",
+      "kpi": "Persentase Kumulatif Desa Yang Berpredikat Desa Cinta Statistik :  2.97 Persen",
+      "status": "active",
+      "year": 2026,
+      "leader": "Ir. Jefrie Wahido",
+      "members": [
+        "Annisa Nur Kusuma",
+        "Mayanti Meylisa Toding",
+        "Muznah"
+      ],
+      "objectives": [
+        "Terwujudnya Kapasitas Tata Kelola Pemerintah Desa Untuk Menghasilkan Statistik Berkualitas"
+      ]
+    },
+    {
+      "team": "KETAHANAN SOSIAL",
+      "name": "Pelaksanaan Kegiatan Statistik Potensi Desa (PODES)",
+      "objective": "Mewujudkan Perumusan Kebijakan dan Pengambilan Keputusan Berbasis Data Statistik Berkualitas dan Insight yang Relevan",
+      "kpi": "Persentase Publikasi/Laporan Statistik Ketahanan Sosial Yang Berkualitas :100 Persen",
+      "status": "active",
+      "year": 2026,
+      "leader": "Ir. Jefrie Wahido",
+      "members": [
+        "Annisa Nur Kusuma",
+        "Isna Aissatussiri Asshidiq",
+        "Mayanti Meylisa Toding",
+        "Muznah"
+      ],
+      "objectives": [
+        "Terwujudnya Penyediaan Data Dan Insight Statistik Ketahanan Sosial Yang Berkualitas"
+      ]
+    },
+    {
+      "team": "HUMAS DAN PROTOKOLER",
+      "name": "Promosi Statistik",
+      "objective": "Mewujudkan Penyelenggaraan Sistem Statistik Nasional yang Andal, Efektif, dan Efisien",
+      "kpi": "Persentase Kegiatan Edukasi dan Promosi Statistik yang terselenggara dengan baik : 80 Persen",
+      "status": "active",
+      "year": 2026,
+      "leader": "Imron Taufik J Musa",
+      "members": [
+        "Aditya Saputra",
+        "Ananto Yanuar",
+        "Apriliansyah",
+        "Eka Nurliani",
+        "Hasbiah",
+        "Yudha Subakti"
+      ],
+      "objectives": [
+        "Terwujudnya Layanan Edukasi Dan Promosi Statistik Yang Prima"
+      ]
+    },
+    {
+      "team": "HUMAS DAN PROTOKOLER",
+      "name": "Laporan Protokoler",
+      "objective": "Mewujudkan Penyelenggaraan Sistem Statistik Nasional yang Andal, Efektif, dan Efisien",
+      "kpi": "Persentase Kegiatan Edukasi dan Promosi Statistik yang terselenggara dengan baik : 80 Persen",
+      "status": "active",
+      "year": 2026,
+      "leader": "Imron Taufik J Musa",
+      "members": [
+        "Aditya Saputra",
+        "Ananto Yanuar",
+        "Apriliansyah",
+        "Eka Nurliani",
+        "Hasbiah",
+        "Yudha Subakti"
+      ],
+      "objectives": [
+        "Terwujudnya Layanan Edukasi Dan Promosi Statistik Yang Prima"
+      ]
+    },
+    {
+      "team": "IVP IUP",
+      "name": "Indikator Sasaran Visi Indonesia Emas dan 45 Indikator Utama Pembangunan",
+      "objective": "Mewujudkan Perumusan Kebijakan dan Pengambilan Keputusan Berbasis Data Statistik Berkualitas dan Insight yang Relevan",
+      "kpi": "Indeks Keberhasilan Penyediaan Indikator Sasaran Visi Indonesia Emas dan 45 Indikator Utama Pembangunan : 56.1 Persen",
+      "status": "active",
+      "year": 2026,
+      "leader": "Ananto Yanuar",
+      "members": [
+        "Aditya Saputra",
+        "Apriliansyah",
+        "Bahtiar",
+        "Fima Anggadini",
+        "Hasbiah",
+        "Henry Simanjuntak",
+        "Imron Taufik J Musa",
+        "Ir. Jefrie Wahido",
+        "Irwan Kurniawan",
+        "Yudha Subakti"
+      ],
+      "objectives": [
+        "Tersedianya Data 5 Sasaran Visi Indonesia Emas dan 45 Indikator Utama Pembangunan"
+      ]
+    },
+    {
+      "team": "KETAHANAN SOSIAL",
+      "name": "Pelaksanaan Kegiatan Statistik Politik dan Keamanan (POLKAM)",
+      "objective": "Mewujudkan Perumusan Kebijakan dan Pengambilan Keputusan Berbasis Data Statistik Berkualitas dan Insight yang Relevan",
+      "kpi": "Persentase Publikasi/Laporan Statistik Ketahanan Sosial Yang Berkualitas :100 Persen",
+      "status": "active",
+      "year": 2026,
+      "leader": "Ir. Jefrie Wahido",
+      "members": [
+        "Annisa Nur Kusuma",
+        "Mayanti Meylisa Toding",
+        "Muznah"
+      ],
+      "objectives": [
+        "Terwujudnya Penyediaan Data Dan Insight Statistik Ketahanan Sosial Yang Berkualitas"
+      ]
+    },
+    {
+      "team": "IVP IUP",
+      "name": "Koordinasi Dinas dengan sekretariat ISV IUP dalam Penyediaan Indikator Sasaran Visi dan 45 Indikator Utama Pembangunan",
+      "objective": "Mewujudkan Perumusan Kebijakan dan Pengambilan Keputusan Berbasis Data Statistik Berkualitas dan Insight yang Relevan",
+      "kpi": "Indeks Keberhasilan Penyediaan Indikator Sasaran Visi Indonesia Emas dan 45 Indikator Utama Pembangunan : 56.1 Persen",
+      "status": "active",
+      "year": 2026,
+      "leader": "Ananto Yanuar",
+      "members": [
+        "Aditya Saputra",
+        "Apriliansyah",
+        "Bahtiar",
+        "Fima Anggadini",
+        "Hasbiah",
+        "Henry Simanjuntak",
+        "Imron Taufik J Musa",
+        "Ir. Jefrie Wahido",
+        "Irwan Kurniawan",
+        "Yudha Subakti"
+      ],
+      "objectives": [
+        "Tersedianya Data 5 Sasaran Visi Indonesia Emas dan 45 Indikator Utama Pembangunan"
+      ]
+    },
+    {
+      "team": "KETAHANAN SOSIAL",
+      "name": "Pelaksanaan Kegiatan Statistik Lingkungan Hidup Indonesia (SLHI) dan Sumber Daya Laut dan Pesisir (SDLP)",
+      "objective": "Mewujudkan Perumusan Kebijakan dan Pengambilan Keputusan Berbasis Data Statistik Berkualitas dan Insight yang Relevan",
+      "kpi": "Persentase Publikasi/Laporan Statistik Ketahanan Sosial Yang Berkualitas :100 Persen",
+      "status": "active",
+      "year": 2026,
+      "leader": "Ir. Jefrie Wahido",
+      "members": [
+        "Annisa Nur Kusuma",
+        "Mayanti Meylisa Toding",
+        "Muznah"
+      ],
+      "objectives": [
+        "Terwujudnya Penyediaan Data Dan Insight Statistik Ketahanan Sosial Yang Berkualitas"
+      ]
+    },
+    {
+      "team": "KETAHANAN SOSIAL",
+      "name": "Pelaksanaan Kegiatan Statistik Kemiskinan",
+      "objective": "Mewujudkan Perumusan Kebijakan dan Pengambilan Keputusan Berbasis Data Statistik Berkualitas dan Insight yang Relevan",
+      "kpi": "Persentase Publikasi/Laporan Statistik Ketahanan Sosial Yang Berkualitas :100 Persen",
+      "status": "active",
+      "year": 2026,
+      "leader": "Ir. Jefrie Wahido",
+      "members": [
+        "Ahmad Risal",
+        "Annisa Nur Kusuma",
+        "Isna Aissatussiri Asshidiq",
+        "Mayanti Meylisa Toding",
+        "Muznah"
+      ],
+      "objectives": [
+        "Terwujudnya Penyediaan Data Dan Insight Statistik Ketahanan Sosial Yang Berkualitas"
+      ]
+    },
+    {
+      "team": "STATISTIK HARGA",
+      "name": "Survey Survey Harga Produsen",
+      "objective": "Mewujudkan Tata Kelola Badan Pusat Statistik yang Berkualitas, Akuntabel, Efektif, dan Efisien dalam Menyelenggarakan Statistik",
+      "kpi": "Persentase Publikasi/Laporan Statistik Harga Yang Berkualitas : 100 Persen",
+      "status": "active",
+      "year": 2026,
+      "leader": "Henry Simanjuntak",
+      "members": [
+        "Apriliansyah",
+        "Frilia Zaskia",
+        "Iva Rizky Karim",
+        "Moh Room"
+      ],
+      "objectives": []
+    },
+    {
+      "team": "STATISTIK HARGA",
+      "name": "Survei Harga Konsumen",
+      "objective": "Mewujudkan Tata Kelola Badan Pusat Statistik yang Berkualitas, Akuntabel, Efektif, dan Efisien dalam Menyelenggarakan Statistik",
+      "kpi": "Persentase Publikasi/Laporan Statistik Harga Yang Berkualitas : 100 Persen",
+      "status": "active",
+      "year": 2026,
+      "leader": "Henry Simanjuntak",
+      "members": [
+        "Apriliansyah",
+        "Nurainun Fitriani",
+        "Nurhayati"
+      ],
+      "objectives": []
+    },
+    {
+      "team": "STATISTIK JASA",
+      "name": "1. PUBLIKASI/LAPORAN STATISTIK KEUANGAN, 2. PUBLIKASI/LAPORAN STATISTIK TEKNOLOGI INFORMASI, 3.PUBLIKASI/LAPORAN STATISTIK PARIWISATA ",
+      "objective": "Mewujudkan Perumusan Kebijakan dan Pengambilan Keputusan Berbasis Data Statistik Berkualitas dan Insight yang Relevan",
+      "kpi": "Persentase Publikasi/Laporan Statistik Keuangan, Teknologi Informasi, Dan Pariwisata Yang Berkualitas : 100 Persen",
+      "status": "active",
+      "year": 2026,
+      "leader": "Akmal",
+      "members": [
+        "Apriliansyah",
+        "Fajrianto Manungki",
+        "Reni Triani R Timumun"
+      ],
+      "objectives": [
+        "Terwujudnya Penyediaan Data Dan Insight Statistik Keuangan, Teknologi Informasi, Dan Pariwisata Yang Berkualitas"
+      ]
+    },
+    {
+      "team": "STATISTIK DISTRIBUSI",
+      "name": "Penyediaan data Statistik Transportasi",
+      "objective": "Mewujudkan Perumusan Kebijakan dan Pengambilan Keputusan Berbasis Data Statistik Berkualitas dan Insight yang Relevan",
+      "kpi": "Persentase Publikasi/Laporan Statistik Distribusi Yang Berkualitas : 100 Persen",
+      "status": "active",
+      "year": 2026,
+      "leader": "A.A. Ngurah Gede Wasudewa",
+      "members": [
+        "Frilia Zaskia",
+        "Winansibutet"
+      ],
+      "objectives": [
+        "Terwujudnya Penyediaan Data Dan Insight Statistik Distribusi Yang Berkualitas"
+      ]
+    },
+    {
+      "team": "STATISTIK DISTRIBUSI",
+      "name": "Penyediaan data Statistik Perdagangan Luar Negeri",
+      "objective": "Mewujudkan Perumusan Kebijakan dan Pengambilan Keputusan Berbasis Data Statistik Berkualitas dan Insight yang Relevan",
+      "kpi": "Persentase Publikasi/Laporan Statistik Distribusi Yang Berkualitas : 100 Persen",
+      "status": "active",
+      "year": 2026,
+      "leader": "A.A. Ngurah Gede Wasudewa",
+      "members": [
+        "Apriliansyah"
+      ],
+      "objectives": [
+        "Terwujudnya Penyediaan Data Dan Insight Statistik Distribusi Yang Berkualitas"
+      ]
+    },
+    {
+      "team": "METODOLOGI DAN TEKNOLOGI INFORMASI (MTI)",
+      "name": "Pengembangan Inovasi",
+      "objective": "Mewujudkan Penyelenggaraan Sistem Statistik Nasional yang Andal, Efektif, dan Efisien",
+      "kpi": "Indeks Pelayanan Publik - Penilaian Mandiri : 4.86 Poin",
+      "status": "active",
+      "year": 2026,
+      "leader": "Hespri Yomeldi",
+      "members": [
+        "Bayu Setyawan",
+        "Candra",
+        "Mohammad Syafrizal",
+        "Sukma Nirmala Dewi"
+      ],
+      "objectives": [
+        "Terwujudnya Kemudahan Akses Data Bps"
+      ]
+    },
+    {
+      "team": "STATISTIK DISTRIBUSI",
+      "name": "Penyediaan data Statistik Perdagangan Dalam Negeri",
+      "objective": "Mewujudkan Perumusan Kebijakan dan Pengambilan Keputusan Berbasis Data Statistik Berkualitas dan Insight yang Relevan",
+      "kpi": "Persentase Publikasi/Laporan Statistik Distribusi Yang Berkualitas : 100 Persen",
+      "status": "active",
+      "year": 2026,
+      "leader": "A.A. Ngurah Gede Wasudewa",
+      "members": [
+        "Apriliansyah",
+        "Frilia Zaskia",
+        "Reni Triani R Timumun",
+        "Winansibutet"
+      ],
+      "objectives": [
+        "Terwujudnya Penyediaan Data Dan Insight Statistik Distribusi Yang Berkualitas"
+      ]
+    },
+    {
+      "team": "STATISTIK DISTRIBUSI",
+      "name": "Penyediaan data Statistik Pola Usaha Non Pertanian",
+      "objective": "Mewujudkan Perumusan Kebijakan dan Pengambilan Keputusan Berbasis Data Statistik Berkualitas dan Insight yang Relevan",
+      "kpi": "Persentase Publikasi/Laporan Statistik Distribusi Yang Berkualitas : 100 Persen",
+      "status": "active",
+      "year": 2026,
+      "leader": "A.A. Ngurah Gede Wasudewa",
+      "members": [
+        "Apriliansyah",
+        "Frilia Zaskia"
+      ],
+      "objectives": [
+        "Terwujudnya Penyediaan Data Dan Insight Statistik Distribusi Yang Berkualitas"
+      ]
+    },
+    {
+      "team": "METODOLOGI DAN TEKNOLOGI INFORMASI (MTI)",
+      "name": "Metodologi dan Pengolahan Survei StatDukNaker",
+      "objective": "Mewujudkan Perumusan Kebijakan dan Pengambilan Keputusan Berbasis Data Statistik Berkualitas dan Insight yang Relevan",
+      "kpi": "Persentase Publikasi/Laporan Statistik Kependudukan Dan Ketenagakerjaan Yang Berkualitas : 100 Persen",
+      "status": "active",
+      "year": 2026,
+      "leader": "Hespri Yomeldi",
+      "members": [
+        "Bayu Setyawan",
+        "Nurul Solikha Nofiani",
+        "Sukma Nirmala Dewi"
+      ],
+      "objectives": [
+        "Terwujudnya Penyediaan Data Dan Insight Statistik Kependudukan Dan Ketenagakerjaan Yang Berkualitas"
+      ]
+    },
+    {
+      "team": "METODOLOGI DAN TEKNOLOGI INFORMASI (MTI)",
+      "name": "Metodologi dan Pengolahan Survei StatKesRa",
+      "objective": "Mewujudkan Perumusan Kebijakan dan Pengambilan Keputusan Berbasis Data Statistik Berkualitas dan Insight yang Relevan",
+      "kpi": "Persentase Publikasi/Laporan Statistik Kesejahteraan Rakyat Yang Berkualitas : 100 Persen",
+      "status": "active",
+      "year": 2026,
+      "leader": "Hespri Yomeldi",
+      "members": [
+        "Bayu Setyawan",
+        "Sepryati Matoory",
+        "Sukma Nirmala Dewi"
+      ],
+      "objectives": [
+        "Terwujudnya Penyediaan Data Dan Insight Statistik Kesejahteraan Rakyat Yang Berkualitas"
+      ]
+    },
+    {
+      "team": "METODOLOGI DAN TEKNOLOGI INFORMASI (MTI)",
+      "name": "Metodologi dan Pengolahan Survei StatHansos",
+      "objective": "Mewujudkan Perumusan Kebijakan dan Pengambilan Keputusan Berbasis Data Statistik Berkualitas dan Insight yang Relevan",
+      "kpi": "Persentase Publikasi/Laporan Statistik Ketahanan Sosial Yang Berkualitas :100 Persen",
+      "status": "active",
+      "year": 2026,
+      "leader": "Hespri Yomeldi",
+      "members": [
+        "Bayu Setyawan",
+        "Mayanti Meylisa Toding",
+        "Sukma Nirmala Dewi"
+      ],
+      "objectives": [
+        "Terwujudnya Penyediaan Data Dan Insight Statistik Ketahanan Sosial Yang Berkualitas"
+      ]
+    },
+    {
+      "team": "STATISTIK DISTRIBUSI",
+      "name": "Pendukung Kegiatan Statistik Distribusi",
+      "objective": "Mewujudkan Perumusan Kebijakan dan Pengambilan Keputusan Berbasis Data Statistik Berkualitas dan Insight yang Relevan",
+      "kpi": "Persentase Publikasi/Laporan Statistik Distribusi Yang Berkualitas : 100 Persen",
+      "status": "active",
+      "year": 2026,
+      "leader": "A.A. Ngurah Gede Wasudewa",
+      "members": [
+        "Apriliansyah",
+        "Frilia Zaskia",
+        "Nurhayati",
+        "Reni Triani R Timumun",
+        "Winansibutet"
+      ],
+      "objectives": [
+        "Terwujudnya Penyediaan Data Dan Insight Statistik Distribusi Yang Berkualitas"
+      ]
+    },
+    {
+      "team": "METODOLOGI DAN TEKNOLOGI INFORMASI (MTI)",
+      "name": "Metodologi dan Pengolahan Survei StatHayati",
+      "objective": "Mewujudkan Perumusan Kebijakan dan Pengambilan Keputusan Berbasis Data Statistik Berkualitas dan Insight yang Relevan",
+      "kpi": "Persentase Publikasi/Laporan Statistik Tanaman Pangan, Hortikultura, Dan Perkebunan Yang Berkualitas :100 Persen",
+      "status": "active",
+      "year": 2026,
+      "leader": "Hespri Yomeldi",
+      "members": [
+        "Candra",
+        "Mohammad Syafrizal"
+      ],
+      "objectives": [
+        "Terwujudnya Penyediaan Data Dan Insight Statistik Tanaman Pangan, Hortikultura, Dan Perkebunan Yang Berkualitas"
+      ]
+    },
+    {
+      "team": "METODOLOGI DAN TEKNOLOGI INFORMASI (MTI)",
+      "name": "Metodologi dan Pengolahan Survei StatIndustri",
+      "objective": "Mewujudkan Perumusan Kebijakan dan Pengambilan Keputusan Berbasis Data Statistik Berkualitas dan Insight yang Relevan",
+      "kpi": "Persentase Publikasi/Laporan Statistik Industri Yang Berkualitas : 100 Persen",
+      "status": "active",
+      "year": 2026,
+      "leader": "Hespri Yomeldi",
+      "members": [
+        "Candra",
+        "Mohammad Syafrizal"
+      ],
+      "objectives": [
+        "Terwujudnya Penyediaan Data Dan Insight Statistik Industri Yang Berkualitas"
+      ]
+    },
+    {
+      "team": "METODOLOGI DAN TEKNOLOGI INFORMASI (MTI)",
+      "name": "Metodologi dan Pengolahan Survei StatDistribusi",
+      "objective": "Mewujudkan Perumusan Kebijakan dan Pengambilan Keputusan Berbasis Data Statistik Berkualitas dan Insight yang Relevan",
+      "kpi": "Persentase Publikasi/Laporan Statistik Harga Yang Berkualitas : 100 Persen",
+      "status": "active",
+      "year": 2026,
+      "leader": "Hespri Yomeldi",
+      "members": [
+        "Bayu Setyawan",
+        "Sukma Nirmala Dewi"
+      ],
+      "objectives": [
+        "Terwujudnya Penyediaan Data Dan Insight Statistik Distribusi Yang Berkualitas"
+      ]
+    },
+    {
+      "team": "METODOLOGI DAN TEKNOLOGI INFORMASI (MTI)",
+      "name": "Metodologi dan Pengolahan Survei Neraca",
+      "objective": "Mewujudkan Perumusan Kebijakan dan Pengambilan Keputusan Berbasis Data Statistik Berkualitas dan Insight yang Relevan",
+      "kpi": "Persentase publikasi/laporan Analisis dan Pengembangan Statistik yang berkualitas : 100 Persen",
+      "status": "active",
+      "year": 2026,
+      "leader": "Hespri Yomeldi",
+      "members": [
+        "Bayu Setyawan",
+        "Sukma Nirmala Dewi"
+      ],
+      "objectives": [
+        "Terwujudnya Penyediaan Data Dan Insight Statistik Lintas Sektor Yang Berkualitas"
+      ]
+    },
+    {
+      "team": "STATISTIK DISTRIBUSI",
+      "name": "Penyediaan data Statistik Transportasi",
+      "objective": "Mewujudkan Perumusan Kebijakan dan Pengambilan Keputusan Berbasis Data Statistik Berkualitas dan Insight yang Relevan",
+      "kpi": "Persentase Publikasi/Laporan Statistik Distribusi Yang Berkualitas : 100 Persen",
+      "status": "active",
+      "year": 2026,
+      "leader": "A.A. Ngurah Gede Wasudewa",
+      "members": [
+        "Frilia Zaskia",
+        "Reni Triani R Timumun",
+        "Winansibutet"
+      ],
+      "objectives": [
+        "Terwujudnya Penyediaan Data Dan Insight Statistik Distribusi Yang Berkualitas"
+      ]
+    },
+    {
+      "team": "METODOLOGI DAN TEKNOLOGI INFORMASI (MTI)",
+      "name": "Manajemen Mitra",
+      "objective": "Mewujudkan Tata Kelola Badan Pusat Statistik yang Berkualitas, Akuntabel, Efektif, dan Efisien dalam Menyelenggarakan Statistik",
+      "kpi": "Nilai SAKIP oleh Inspektorat : 77.95 Poin",
+      "status": "active",
+      "year": 2026,
+      "leader": "Hespri Yomeldi",
+      "members": [
+        "Bayu Setyawan",
+        "Frilia Zaskia",
+        "Mohammad Syafrizal"
+      ],
+      "objectives": [
+        "Terwujudnya Dukungan Manajemen Pada Bps Provinsi Dan Bps Kabupaten/Kota"
+      ]
+    },
+    {
+      "team": "METODOLOGI DAN TEKNOLOGI INFORMASI (MTI)",
+      "name": "Pengembangan Kapasitas SDM TI",
+      "objective": "Mewujudkan Penyelenggaraan Sistem Statistik Nasional yang Andal, Efektif, dan Efisien",
+      "kpi": "Indeks Pelayanan Publik - Penilaian Mandiri : 4.86 Poin",
+      "status": "active",
+      "year": 2026,
+      "leader": "Hespri Yomeldi",
+      "members": [
+        "Bahtiar",
+        "Bayu Setyawan",
+        "Candra",
+        "Catur Prihatin",
+        "Ince Mariyani",
+        "Mohammad Syafrizal",
+        "Ni Luh Laksmi Devi",
+        "Nurhayati",
+        "Rudi Siswoyo",
+        "Sukma Nirmala Dewi",
+        "Lidya Rosselindo Pelima"
+      ],
+      "objectives": [
+        "Terwujudnya Kemudahan Akses Data Bps"
+      ]
+    },
+    {
+      "team": "METODOLOGI DAN TEKNOLOGI INFORMASI (MTI)",
+      "name": "Pengelolaan Hardware dan Software",
+      "objective": "Mewujudkan Penyelenggaraan Sistem Statistik Nasional yang Andal, Efektif, dan Efisien",
+      "kpi": "Indeks Pelayanan Publik - Penilaian Mandiri : 4.86 Poin",
+      "status": "active",
+      "year": 2026,
+      "leader": null,
+      "members": [
+        "Bayu Setyawan",
+        "Candra",
+        "Catur Prihatin",
+        "Mohammad Syafrizal",
+        "Muhammad Saiful",
+        "Rudi Siswoyo",
+        "Sukma Nirmala Dewi"
+      ],
+      "objectives": [
+        "Terwujudnya Kemudahan Akses Data Bps"
+      ]
+    },
+    {
+      "team": "METODOLOGI DAN TEKNOLOGI INFORMASI (MTI)",
+      "name": "Pengelolaan Jaringan dan Internet",
+      "objective": "Mewujudkan Penyelenggaraan Sistem Statistik Nasional yang Andal, Efektif, dan Efisien",
+      "kpi": "Indeks Pelayanan Publik - Penilaian Mandiri : 4.86 Poin",
+      "status": "active",
+      "year": 2026,
+      "leader": "Hespri Yomeldi",
+      "members": [
+        "Bayu Setyawan",
+        "Candra",
+        "Catur Prihatin",
+        "Rudi Siswoyo",
+        "Sukma Nirmala Dewi"
+      ],
+      "objectives": [
+        "Terwujudnya Kemudahan Akses Data Bps"
+      ]
+    },
+    {
+      "team": "STATISTIK DISTRIBUSI",
+      "name": "Penyediaan data Statistik Perdagangan Luar Negeri",
+      "objective": "Mewujudkan Perumusan Kebijakan dan Pengambilan Keputusan Berbasis Data Statistik Berkualitas dan Insight yang Relevan",
+      "kpi": "Persentase Publikasi/Laporan Statistik Distribusi Yang Berkualitas : 100 Persen",
+      "status": "active",
+      "year": 2026,
+      "leader": "A.A. Ngurah Gede Wasudewa",
+      "members": [
+        "Apriliansyah",
+        "Nurhayati"
+      ],
+      "objectives": [
+        "Terwujudnya Penyediaan Data Dan Insight Statistik Distribusi Yang Berkualitas"
+      ]
+    },
+    {
+      "team": "METODOLOGI DAN TEKNOLOGI INFORMASI (MTI)",
+      "name": "Penetapan Kerangka Geospasial dan Muatan Wilkerstat SE2026",
+      "objective": "Mewujudkan Perumusan Kebijakan dan Pengambilan Keputusan Berbasis Data Statistik Berkualitas dan Insight yang Relevan",
+      "kpi": "Persentase Publikasi/Laporan Statistik Distribusi Yang Berkualitas : 100 Persen",
+      "status": "active",
+      "year": 2026,
+      "leader": "Hespri Yomeldi",
+      "members": [
+        "Bayu Setyawan",
+        "Candra",
+        "Catur Prihatin",
+        "Rudi Siswoyo"
+      ],
+      "objectives": [
+        "Terwujudnya Penyediaan Data Dan Insight Statistik Distribusi Yang Berkualitas"
+      ]
+    },
+    {
+      "team": "PERENCANAAN ANGGARAN",
+      "name": "Revisi Anggaran",
+      "objective": "Mewujudkan Tata Kelola Badan Pusat Statistik yang Berkualitas, Akuntabel, Efektif, dan Efisien dalam Menyelenggarakan Statistik",
+      "kpi": "Nilai SAKIP oleh Inspektorat : 77.95 Poin",
+      "status": "active",
+      "year": 2026,
+      "leader": "Luhur Partomo Hudoyo",
+      "members": [
+        "Ahmad Risal"
+      ],
+      "objectives": [
+        "Terwujudnya Dukungan Manajemen Pada Bps Provinsi Dan Bps Kabupaten/Kota"
+      ]
+    },
+    {
+      "team": "METODOLOGI DAN TEKNOLOGI INFORMASI (MTI)",
+      "name": "Penyiapan Prelist SE2026",
+      "objective": "Mewujudkan Perumusan Kebijakan dan Pengambilan Keputusan Berbasis Data Statistik Berkualitas dan Insight yang Relevan",
+      "kpi": "Indeks Pelayanan Publik - Penilaian Mandiri : 4.86 Poin",
+      "status": "active",
+      "year": 2026,
+      "leader": "Hespri Yomeldi",
+      "members": [
+        "Aditya Saputra",
+        "Agus Herryanto",
+        "Ahmad Risal",
+        "Akmal",
+        "Ananto Yanuar",
+        "Annisa Nur Kusuma",
+        "Apriliansyah",
+        "Asmawati",
+        "Bahtiar",
+        "Bayu Setyawan",
+        "Candra",
+        "Catur Prihatin",
+        "Daniel Kurnia Nugraha Sitorus",
+        "Eka Nurliani",
+        "Enos Rombe",
+        "Fajrianto Manungki",
+        "Fima Anggadini",
+        "Fitra Aulia",
+        "Frilia Zaskia",
+        "Hasbiah",
+        "Henry Simanjuntak",
+        "Imam Santoso S.",
+        "Imron Taufik J Musa",
+        "Ince Mariyani",
+        "Intan Fajria",
+        "Ir. Jefrie Wahido",
+        "Ir. Yaslin Hendrita Tansala",
+        "Irwan Kurniawan",
+        "Isna Aissatussiri Asshidiq",
+        "Iva Rizky Karim",
+        "Larasati Widyaningrum",
+        "Lidya Rosselindo Pelima",
+        "Luhur Partomo Hudoyo",
+        "Lustiawaty Achmad",
+        "Masmah",
+        "Maya Novita Sari",
+        "Mayanti Meylisa Toding",
+        "Moh Room",
+        "Mohammad Syafrizal",
+        "Muhammad Fadhilah Akbar",
+        "Muhammad Saiful",
+        "Muhammad Zein",
+        "Murni",
+        "Mustakim",
+        "Muznah",
+        "Naima",
+        "Ni Luh Laksmi Devi",
+        "Nur Zahra Saharia",
+        "Nurainun Fitriani",
+        "Nurhayati",
+        "Nurlaela Badjeber",
+        "Nurul Solikha Nofiani",
+        "Reni Triani R Timumun",
+        "Rifka",
+        "Rika Ari Wulandari",
+        "Riska Fitriani",
+        "Rudi Siswoyo",
+        "Salahudin",
+        "Sandy Aji Mukarromsyah",
+        "Sepryati Matoory",
+        "Sukma Nirmala Dewi",
+        "Tuti Kadariah",
+        "Winansibutet",
+        "Wiwik Natalia",
+        "Yudha Subakti"
+      ],
+      "objectives": [
+        "Terwujudnya Penyediaan Data Dan Insight Statistik Distribusi Yang Berkualitas"
+      ]
+    },
+    {
+      "team": "PERENCANAAN ANGGARAN",
+      "name": "Perencanaan Anggaran",
+      "objective": "Mewujudkan Tata Kelola Badan Pusat Statistik yang Berkualitas, Akuntabel, Efektif, dan Efisien dalam Menyelenggarakan Statistik",
+      "kpi": "Nilai SAKIP oleh Inspektorat : 77.95 Poin",
+      "status": "active",
+      "year": 2026,
+      "leader": "Luhur Partomo Hudoyo",
+      "members": [
+        "Ahmad Risal"
+      ],
+      "objectives": [
+        "Terwujudnya Dukungan Manajemen Pada Bps Provinsi Dan Bps Kabupaten/Kota"
+      ]
+    },
+    {
+      "team": "METODOLOGI DAN TEKNOLOGI INFORMASI (MTI)",
+      "name": "PES SE2026",
+      "objective": "Mewujudkan Perumusan Kebijakan dan Pengambilan Keputusan Berbasis Data Statistik Berkualitas dan Insight yang Relevan",
+      "kpi": "Persentase Publikasi/Laporan Statistik Distribusi Yang Berkualitas : 100 Persen",
+      "status": "active",
+      "year": 2026,
+      "leader": "Hespri Yomeldi",
+      "members": [
+        "Bayu Setyawan",
+        "Candra",
+        "Catur Prihatin",
+        "Lidya Rosselindo Pelima",
+        "Mohammad Syafrizal",
+        "Rudi Siswoyo",
+        "Sukma Nirmala Dewi"
+      ],
+      "objectives": [
+        "Terwujudnya Penyediaan Data Dan Insight Statistik Distribusi Yang Berkualitas"
+      ]
+    },
+    {
+      "team": "PERENCANAAN ANGGARAN",
+      "name": "Monev Kinerja Anggaran",
+      "objective": "Mewujudkan Tata Kelola Badan Pusat Statistik yang Berkualitas, Akuntabel, Efektif, dan Efisien dalam Menyelenggarakan Statistik",
+      "kpi": "Nilai SAKIP oleh Inspektorat : 77.95 Poin",
+      "status": "active",
+      "year": 2026,
+      "leader": "Luhur Partomo Hudoyo",
+      "members": [
+        "Ahmad Risal"
+      ],
+      "objectives": [
+        "Terwujudnya Dukungan Manajemen Pada Bps Provinsi Dan Bps Kabupaten/Kota"
+      ]
+    },
+    {
+      "team": "METODOLOGI DAN TEKNOLOGI INFORMASI (MTI)",
+      "name": "Penyiapan Press Release",
+      "objective": "Mewujudkan Penyelenggaraan Sistem Statistik Nasional yang Andal, Efektif, dan Efisien",
+      "kpi": "Indeks Pelayanan Publik - Penilaian Mandiri : 4.86 Poin",
+      "status": "active",
+      "year": 2026,
+      "leader": "Hespri Yomeldi",
+      "members": [
+        "Bayu Setyawan",
+        "Candra",
+        "Catur Prihatin",
+        "Mohammad Syafrizal"
+      ],
+      "objectives": [
+        "Terwujudnya Kemudahan Akses Data Bps"
+      ]
+    },
+    {
+      "team": "PERENCANAAN ANGGARAN",
+      "name": "Masterplan Sarana dan Prasarana",
+      "objective": "Mewujudkan Tata Kelola Badan Pusat Statistik yang Berkualitas, Akuntabel, Efektif, dan Efisien dalam Menyelenggarakan Statistik",
+      "kpi": "Nilai SAKIP oleh Inspektorat : 77.95 Poin",
+      "status": "active",
+      "year": 2026,
+      "leader": "Luhur Partomo Hudoyo",
+      "members": [
+        "Ahmad Risal"
+      ],
+      "objectives": [
+        "Terwujudnya Dukungan Manajemen Pada Bps Provinsi Dan Bps Kabupaten/Kota"
+      ]
+    },
+    {
+      "team": "DISEMINASI DAN LAYANAN STATISTIK",
+      "name": "Penyusunan Publikasi Provinsi Sulawesi Tengah Dalam Angka 2026",
+      "objective": "Mewujudkan Penyelenggaraan Sistem Statistik Nasional yang Andal, Efektif, dan Efisien",
+      "kpi": "Indeks Pelayanan Publik - Penilaian Mandiri : 4.86 Poin",
+      "status": "active",
+      "year": 2026,
+      "leader": "Bahtiar",
+      "members": [
+        "Aditya Saputra",
+        "Agus Herryanto",
+        "Ahmad Risal",
+        "Annisa Nur Kusuma",
+        "Apriliansyah",
+        "Bahtiar",
+        "Daniel Kurnia Nugraha Sitorus",
+        "Fajrianto Manungki",
+        "Fitra Aulia",
+        "Frilia Zaskia",
+        "Ince Mariyani",
+        "Intan Fajria",
+        "Isna Aissatussiri Asshidiq",
+        "Larasati Widyaningrum",
+        "Lidya Rosselindo Pelima",
+        "Maya Novita Sari",
+        "Mayanti Meylisa Toding",
+        "Muhammad Zein",
+        "Naima",
+        "Ni Luh Laksmi Devi",
+        "Nurainun Fitriani",
+        "Nurhayati",
+        "Nurul Solikha Nofiani",
+        "Reni Triani R Timumun",
+        "Rifka",
+        "Riska Fitriani",
+        "Rudi Siswoyo",
+        "Sandy Aji Mukarromsyah",
+        "Sepryati Matoory",
+        "Winansibutet",
+        "Yudha Subakti"
+      ],
+      "objectives": [
+        "Terwujudnya Kemudahan Akses Data Bps"
+      ]
+    },
+    {
+      "team": "METODOLOGI DAN TEKNOLOGI INFORMASI (MTI)",
+      "name": "Pengelolaan MFD",
+      "objective": "Mewujudkan Tata Kelola Badan Pusat Statistik yang Berkualitas, Akuntabel, Efektif, dan Efisien dalam Menyelenggarakan Statistik",
+      "kpi": "Nilai SAKIP oleh Inspektorat : 77.95 Poin",
+      "status": "active",
+      "year": 2026,
+      "leader": "Hespri Yomeldi",
+      "members": [
+        "Candra",
+        "Mohammad Syafrizal"
+      ],
+      "objectives": [
+        "Terwujudnya Dukungan Manajemen Pada Bps Provinsi Dan Bps Kabupaten/Kota"
+      ]
+    },
+    {
+      "team": "PERENCANAAN ANGGARAN",
+      "name": "Survei Harga Barang dan Jasa",
+      "objective": "Mewujudkan Tata Kelola Badan Pusat Statistik yang Berkualitas, Akuntabel, Efektif, dan Efisien dalam Menyelenggarakan Statistik",
+      "kpi": "Nilai SAKIP oleh Inspektorat : 77.95 Poin",
+      "status": "active",
+      "year": 2026,
+      "leader": "Luhur Partomo Hudoyo",
+      "members": [
+        "Ahmad Risal"
+      ],
+      "objectives": [
+        "Terwujudnya Dukungan Manajemen Pada Bps Provinsi Dan Bps Kabupaten/Kota"
+      ]
+    },
+    {
+      "team": "PERENCANAAN ANGGARAN",
+      "name": "Administrasi Perencanaan Anggaran",
+      "objective": "Mewujudkan Tata Kelola Badan Pusat Statistik yang Berkualitas, Akuntabel, Efektif, dan Efisien dalam Menyelenggarakan Statistik",
+      "kpi": "Nilai SAKIP oleh Inspektorat : 77.95 Poin",
+      "status": "active",
+      "year": 2026,
+      "leader": "Luhur Partomo Hudoyo",
+      "members": [
+        "Ahmad Risal",
+        "Nur Zahra Saharia"
+      ],
+      "objectives": [
+        "Terwujudnya Dukungan Manajemen Pada Bps Provinsi Dan Bps Kabupaten/Kota"
+      ]
+    },
+    {
+      "team": "SENSUS EKONOMI",
+      "name": "Penyediaan Aspek Administrasi, Hubungan Masyarakat dan Manajemen Resiko",
+      "objective": "Mewujudkan Perumusan Kebijakan dan Pengambilan Keputusan Berbasis Data Statistik Berkualitas dan Insight yang Relevan",
+      "kpi": "Persentase Publikasi/Laporan Statistik Distribusi Yang Berkualitas : 100 Persen",
+      "status": "active",
+      "year": 2026,
+      "leader": "A.A. Ngurah Gede Wasudewa",
+      "members": [
+        "Aditya Saputra",
+        "Ahmad Risal",
+        "Catur Prihatin",
+        "Imam Santoso S.",
+        "Imron Taufik J Musa",
+        "Luhur Partomo Hudoyo",
+        "Lustiawaty Achmad",
+        "Muhammad Fadhilah Akbar",
+        "Murni",
+        "Mustakim",
+        "Nur Zahra Saharia",
+        "Rika Ari Wulandari",
+        "Tuti Kadariah",
+        "Wiwik Natalia"
+      ],
+      "objectives": [
+        "Terwujudnya Penyediaan Data Dan Insight Statistik Distribusi Yang Berkualitas"
+      ]
+    },
+    {
+      "team": "SENSUS EKONOMI",
+      "name": "Penyediaan aspek teknis pendataan dan manajemen lapangan",
+      "objective": "Mewujudkan Perumusan Kebijakan dan Pengambilan Keputusan Berbasis Data Statistik Berkualitas dan Insight yang Relevan",
+      "kpi": "Persentase Publikasi/Laporan Statistik Distribusi Yang Berkualitas : 100 Persen",
+      "status": "active",
+      "year": 2026,
+      "leader": "A.A. Ngurah Gede Wasudewa",
+      "members": [
+        "Akmal",
+        "Apriliansyah",
+        "Fajrianto Manungki",
+        "Frilia Zaskia",
+        "Henry Simanjuntak",
+        "Ir. Jefrie Wahido",
+        "Irwan Kurniawan",
+        "Iva Rizky Karim",
+        "Muhammad Zein",
+        "Naima",
+        "Nurainun Fitriani",
+        "Reni Triani R Timumun",
+        "Sepryati Matoory",
+        "Winansibutet"
+      ],
+      "objectives": [
+        "Terwujudnya Penyediaan Data Dan Insight Statistik Distribusi Yang Berkualitas"
+      ]
+    },
+    {
+      "team": "SENSUS EKONOMI",
+      "name": "Penyediaan aspek pengolahan, teknologi informasi dan diseminasi",
+      "objective": "Mewujudkan Perumusan Kebijakan dan Pengambilan Keputusan Berbasis Data Statistik Berkualitas dan Insight yang Relevan",
+      "kpi": "Persentase Publikasi/Laporan Statistik Distribusi Yang Berkualitas : 100 Persen",
+      "status": "active",
+      "year": 2026,
+      "leader": "A.A. Ngurah Gede Wasudewa",
+      "members": [
+        "Bahtiar",
+        "Bayu Setyawan",
+        "Candra",
+        "Hespri Yomeldi",
+        "Lidya Rosselindo Pelima",
+        "Mohammad Syafrizal",
+        "Nurhayati"
+      ],
+      "objectives": [
+        "Terwujudnya Penyediaan Data Dan Insight Statistik Distribusi Yang Berkualitas"
+      ]
+    },
+    {
+      "team": "SENSUS EKONOMI",
+      "name": "Penyediaan aspek analisis dan kualitas data",
+      "objective": "Mewujudkan Perumusan Kebijakan dan Pengambilan Keputusan Berbasis Data Statistik Berkualitas dan Insight yang Relevan",
+      "kpi": "Persentase Publikasi/Laporan Statistik Distribusi Yang Berkualitas : 100 Persen",
+      "status": "active",
+      "year": 2026,
+      "leader": "A.A. Ngurah Gede Wasudewa",
+      "members": [
+        "Agus Herryanto",
+        "Ananto Yanuar",
+        "Fima Anggadini",
+        "Ir. Yaslin Hendrita Tansala",
+        "Larasati Widyaningrum",
+        "Yudha Subakti"
+      ],
+      "objectives": [
+        "Terwujudnya Penyediaan Data Dan Insight Statistik Distribusi Yang Berkualitas"
+      ]
+    },
+    {
+      "team": "PEMBINAAN DAN EVALUASI PENYELENGGARAAN STATISTIK SEKTORAL",
+      "name": "Pembinaan Statistik Sektoral",
+      "objective": "Mewujudkan Penyelenggaraan Sistem Statistik Nasional yang Andal, Efektif, dan Efisien",
+      "kpi": "Tingkat Penyelenggaraan Pembinaan Statistik Sektoral sesuai standar : 120 Persen",
+      "status": "active",
+      "year": 2026,
+      "leader": "Bahtiar",
+      "members": [
+        "Apriliansyah",
+        "Bahtiar",
+        "Candra",
+        "Fitra Aulia",
+        "Ince Mariyani",
+        "Isna Aissatussiri Asshidiq",
+        "Larasati Widyaningrum",
+        "Lidya Rosselindo Pelima",
+        "Mohammad Syafrizal",
+        "Ni Luh Laksmi Devi",
+        "Nurhayati",
+        "Nurul Solikha Nofiani"
+      ],
+      "objectives": [
+        "Terwujudnya Penguatan Penyelenggaraan Pembinaan Statistik Sektoral Kementerian/Lembaga/Pemerintah Daerah"
+      ]
+    },
+    {
+      "team": "PEMBINAAN DAN EVALUASI PENYELENGGARAAN STATISTIK SEKTORAL",
+      "name": "Evaluasi Penyelenggaraan Statistik Sektoral (EPSS)",
+      "objective": "Mewujudkan Penyelenggaraan Sistem Statistik Nasional yang Andal, Efektif, dan Efisien",
+      "kpi": "Tingkat Penyelenggaraan Pembinaan Statistik Sektoral sesuai standar : 120 Persen",
+      "status": "active",
+      "year": 2026,
+      "leader": "Bahtiar",
+      "members": [
+        "Apriliansyah",
+        "Bahtiar",
+        "Candra",
+        "Fitra Aulia",
+        "Ince Mariyani",
+        "Isna Aissatussiri Asshidiq",
+        "Larasati Widyaningrum",
+        "Lidya Rosselindo Pelima",
+        "Mohammad Syafrizal",
+        "Ni Luh Laksmi Devi",
+        "Nurhayati",
+        "Nurul Solikha Nofiani"
+      ],
+      "objectives": [
+        "Terwujudnya Penguatan Penyelenggaraan Pembinaan Statistik Sektoral Kementerian/Lembaga/Pemerintah Daerah"
+      ]
+    },
+    {
+      "team": "SENSUS EKONOMI",
+      "name": "Penyelenggaraan aktivitas Sekretariat SE 2026 (GARDA SE)",
+      "objective": "Mewujudkan Perumusan Kebijakan dan Pengambilan Keputusan Berbasis Data Statistik Berkualitas dan Insight yang Relevan",
+      "kpi": "Persentase Publikasi/Laporan Statistik Distribusi Yang Berkualitas : 100 Persen",
+      "status": "active",
+      "year": 2026,
+      "leader": "A.A. Ngurah Gede Wasudewa",
+      "members": [
+        "Aditya Saputra",
+        "Ahmad Risal",
+        "Apriliansyah",
+        "Fajrianto Manungki",
+        "Frilia Zaskia",
+        "Larasati Widyaningrum",
+        "Lidya Rosselindo Pelima",
+        "Muhammad Fadhilah Akbar",
+        "Muhammad Zein",
+        "Murni",
+        "Naima",
+        "Nurainun Fitriani",
+        "Nurhayati",
+        "Nurul Solikha Nofiani",
+        "Reni Triani R Timumun",
+        "Rika Ari Wulandari",
+        "Sepryati Matoory",
+        "Winansibutet",
+        "Yudha Subakti"
+      ],
+      "objectives": [
+        "Terwujudnya Penyediaan Data Dan Insight Statistik Distribusi Yang Berkualitas"
+      ]
+    },
+    {
+      "team": "DISEMINASI DAN LAYANAN STATISTIK",
+      "name": "Pelaksanaan Survei Kebutuhan Data (SKD) 2026",
+      "objective": "Mewujudkan Penyelenggaraan Sistem Statistik Nasional yang Andal, Efektif, dan Efisien",
+      "kpi": "Indeks Pelayanan Publik - Penilaian Mandiri : 4.86 Poin",
+      "status": "active",
+      "year": 2026,
+      "leader": "Bahtiar",
+      "members": [
+        "Apriliansyah",
+        "Bahtiar",
+        "Ince Mariyani",
+        "Ni Luh Laksmi Devi",
+        "Nurhayati"
+      ],
+      "objectives": [
+        "Terwujudnya Kemudahan Akses Data Bps"
+      ]
+    },
+    {
+      "team": "PEMBINAAN DAN EVALUASI PENYELENGGARAAN STATISTIK SEKTORAL",
+      "name": "Metadata Statistik Sektoral",
+      "objective": "Mewujudkan Penyelenggaraan Sistem Statistik Nasional yang Andal, Efektif, dan Efisien",
+      "kpi": "Tingkat Penyelenggaraan Pembinaan Statistik Sektoral sesuai standar : 120 Persen",
+      "status": "active",
+      "year": 2026,
+      "leader": "Bahtiar",
+      "members": [
+        "Apriliansyah",
+        "Lidya Rosselindo Pelima",
+        "Ni Luh Laksmi Devi",
+        "Rudi Siswoyo"
+      ],
+      "objectives": [
+        "Terwujudnya Penguatan Penyelenggaraan Pembinaan Statistik Sektoral Kementerian/Lembaga/Pemerintah Daerah"
+      ]
+    },
+    {
+      "team": "PEMBINAAN DAN EVALUASI PENYELENGGARAAN STATISTIK SEKTORAL",
+      "name": "Rekomendasi Statistik",
+      "objective": "Mewujudkan Penyelenggaraan Sistem Statistik Nasional yang Andal, Efektif, dan Efisien",
+      "kpi": "Tingkat Penyelenggaraan Pembinaan Statistik Sektoral sesuai standar : 120 Persen",
+      "status": "active",
+      "year": 2026,
+      "leader": "Bahtiar",
+      "members": [
+        "Apriliansyah",
+        "Bahtiar",
+        "Lidya Rosselindo Pelima",
+        "Ni Luh Laksmi Devi"
+      ],
+      "objectives": [
+        "Terwujudnya Penguatan Penyelenggaraan Pembinaan Statistik Sektoral Kementerian/Lembaga/Pemerintah Daerah"
+      ]
+    },
+    {
+      "team": "DISEMINASI DAN LAYANAN STATISTIK",
+      "name": "Pelayanan Prima PST",
+      "objective": "Mewujudkan Penyelenggaraan Sistem Statistik Nasional yang Andal, Efektif, dan Efisien",
+      "kpi": "Indeks Pelayanan Publik - Penilaian Mandiri : 4.86 Poin",
+      "status": "active",
+      "year": 2026,
+      "leader": "Bahtiar",
+      "members": [
+        "Apriliansyah",
+        "Bahtiar",
+        "Ince Mariyani",
+        "Lidya Rosselindo Pelima",
+        "Ni Luh Laksmi Devi",
+        "Nurhayati",
+        "Rudi Siswoyo"
+      ],
+      "objectives": [
+        "Terwujudnya Kemudahan Akses Data Bps"
+      ]
+    },
+    {
+      "team": "DISEMINASI DAN LAYANAN STATISTIK",
+      "name": "Pengelolaan Website",
+      "objective": "Mewujudkan Penyelenggaraan Sistem Statistik Nasional yang Andal, Efektif, dan Efisien",
+      "kpi": "Indeks Pelayanan Publik - Penilaian Mandiri : 4.86 Poin",
+      "status": "active",
+      "year": 2026,
+      "leader": "Bahtiar",
+      "members": [
+        "Apriliansyah",
+        "Bahtiar",
+        "Ince Mariyani",
+        "Ni Luh Laksmi Devi",
+        "Nurhayati",
+        "Nurul Solikha Nofiani",
+        "Sukma Nirmala Dewi"
+      ],
+      "objectives": [
+        "Terwujudnya Kemudahan Akses Data Bps"
+      ]
+    },
+    {
+      "team": "DISEMINASI DAN LAYANAN STATISTIK",
+      "name": "Diseminasi Data",
+      "objective": "Mewujudkan Penyelenggaraan Sistem Statistik Nasional yang Andal, Efektif, dan Efisien",
+      "kpi": "Indeks Pelayanan Publik - Penilaian Mandiri : 4.86 Poin",
+      "status": "active",
+      "year": 2026,
+      "leader": "Bahtiar",
+      "members": [
+        "Apriliansyah",
+        "Bahtiar",
+        "Ince Mariyani",
+        "Lidya Rosselindo Pelima",
+        "Ni Luh Laksmi Devi",
+        "Nurhayati",
+        "Rudi Siswoyo"
+      ],
+      "objectives": [
+        "Terwujudnya Kemudahan Akses Data Bps"
+      ]
+    },
+    {
+      "team": "DISEMINASI DAN LAYANAN STATISTIK",
+      "name": "Pojok Statistik",
+      "objective": "Mewujudkan Penyelenggaraan Sistem Statistik Nasional yang Andal, Efektif, dan Efisien",
+      "kpi": "Persentase Kegiatan Edukasi dan Promosi Statistik yang terselenggara dengan baik : 80 Persen",
+      "status": "active",
+      "year": 2026,
+      "leader": "Bahtiar",
+      "members": [
+        "Apriliansyah",
+        "Bahtiar",
+        "Ince Mariyani",
+        "Lidya Rosselindo Pelima",
+        "Ni Luh Laksmi Devi",
+        "Nurhayati",
+        "Rudi Siswoyo"
+      ],
+      "objectives": [
+        "Terwujudnya Kemudahan Akses Data Bps"
+      ]
+    },
+    {
+      "team": "DISEMINASI DAN LAYANAN STATISTIK",
+      "name": "Pemantauan dan Evaluasi Kinerja Penyelenggaraan Pelayanan Publik (PEKPPP)",
+      "objective": "Mewujudkan Penyelenggaraan Sistem Statistik Nasional yang Andal, Efektif, dan Efisien",
+      "kpi": "Indeks Pelayanan Publik - Penilaian Mandiri : 4.86 Poin",
+      "status": "active",
+      "year": 2026,
+      "leader": "Bahtiar",
+      "members": [
+        "Apriliansyah",
+        "Bahtiar",
+        "Bayu Setyawan",
+        "Candra",
+        "Catur Prihatin",
+        "Hespri Yomeldi",
+        "Ince Mariyani",
+        "Lidya Rosselindo Pelima",
+        "Mohammad Syafrizal",
+        "Ni Luh Laksmi Devi",
+        "Nurhayati",
+        "Rudi Siswoyo"
+      ],
+      "objectives": [
+        "Terwujudnya Kemudahan Akses Data Bps"
+      ]
+    },
+    {
+      "team": "STATISTIK HARGA",
+      "name": "Survei Harga Pedesaan",
+      "objective": "Mewujudkan Perumusan Kebijakan dan Pengambilan Keputusan Berbasis Data Statistik Berkualitas dan Insight yang Relevan",
+      "kpi": null,
+      "status": "active",
+      "year": 2026,
+      "leader": null,
+      "members": [
+        "Apriliansyah",
+        "Frilia Zaskia",
+        "Iva Rizky Karim",
+        "Moh Room"
+      ],
+      "objectives": [
+        "Terwujudnya Penyediaan Data Dan Insight Statistik Harga Yang Berkualitas"
+      ]
+    },
+    {
+      "team": "STATISTIK HARGA",
+      "name": "Statistik Harga Konsumen",
+      "objective": "Mewujudkan Perumusan Kebijakan dan Pengambilan Keputusan Berbasis Data Statistik Berkualitas dan Insight yang Relevan",
+      "kpi": "Persentase Publikasi/Laporan Statistik Harga Yang Berkualitas : 100 Persen",
+      "status": "active",
+      "year": 2026,
+      "leader": "Henry Simanjuntak",
+      "members": [
+        "Apriliansyah",
+        "Nurainun Fitriani",
+        "Nurhayati"
+      ],
+      "objectives": [
+        "Terwujudnya Penyediaan Data Dan Insight Statistik Harga Yang Berkualitas"
+      ]
+    },
+    {
+      "team": "STATISTIK HARGA",
+      "name": "Survey Harga Perdagangan Besar",
+      "objective": "Mewujudkan Perumusan Kebijakan dan Pengambilan Keputusan Berbasis Data Statistik Berkualitas dan Insight yang Relevan",
+      "kpi": "Persentase Publikasi/Laporan Statistik Harga Yang Berkualitas : 100 Persen",
+      "status": "active",
+      "year": 2026,
+      "leader": "Henry Simanjuntak",
+      "members": [
+        "Apriliansyah",
+        "Frilia Zaskia",
+        "Nurainun Fitriani",
+        "Nurhayati"
+      ],
+      "objectives": [
+        "Terwujudnya Penyediaan Data Dan Insight Statistik Harga Yang Berkualitas"
+      ]
+    },
+    {
+      "team": "STATISTIK HARGA",
+      "name": "Survei Buaya Hidup",
+      "objective": "Mewujudkan Perumusan Kebijakan dan Pengambilan Keputusan Berbasis Data Statistik Berkualitas dan Insight yang Relevan",
+      "kpi": "Persentase Publikasi/Laporan Statistik Harga Yang Berkualitas : 100 Persen",
+      "status": "active",
+      "year": 2026,
+      "leader": "Henry Simanjuntak",
+      "members": [
+        "Akmal",
+        "Apriliansyah",
+        "Frilia Zaskia",
+        "Iva Rizky Karim",
+        "Moh Room",
+        "Nurainun Fitriani",
+        "Nurhayati",
+        "Reni Triani R Timumun",
+        "Winansibutet"
+      ],
+      "objectives": [
+        "Terwujudnya Penyediaan Data Dan Insight Statistik Harga Yang Berkualitas"
+      ]
+    },
+    {
+      "team": "DISEMINASI DAN LAYANAN STATISTIK",
+      "name": "Edukasi dan Promosi Statistik",
+      "objective": "Mewujudkan Penyelenggaraan Sistem Statistik Nasional yang Andal, Efektif, dan Efisien",
+      "kpi": "Persentase Kegiatan Edukasi dan Promosi Statistik yang terselenggara dengan baik : 80 Persen",
+      "status": "active",
+      "year": 2026,
+      "leader": "Bahtiar",
+      "members": [
+        "Apriliansyah",
+        "Bahtiar",
+        "Bayu Setyawan",
+        "Candra",
+        "Catur Prihatin",
+        "Hespri Yomeldi",
+        "Ince Mariyani",
+        "Lidya Rosselindo Pelima",
+        "Mohammad Syafrizal",
+        "Ni Luh Laksmi Devi",
+        "Nurhayati",
+        "Rudi Siswoyo",
+        "Sukma Nirmala Dewi"
+      ],
+      "objectives": [
+        "Terwujudnya Layanan Edukasi Dan Promosi Statistik Yang Prima"
+      ]
+    },
+    {
+      "team": "DISEMINASI DAN LAYANAN STATISTIK",
+      "name": "Audit Surveillance ISO 9001:2015",
+      "objective": "Mewujudkan Penyelenggaraan Sistem Statistik Nasional yang Andal, Efektif, dan Efisien",
+      "kpi": "Indeks Pelayanan Publik - Penilaian Mandiri : 4.86 Poin",
+      "status": "active",
+      "year": 2026,
+      "leader": "Bahtiar",
+      "members": [
+        "Apriliansyah",
+        "Bahtiar",
+        "Bayu Setyawan",
+        "Candra",
+        "Catur Prihatin",
+        "Hespri Yomeldi",
+        "Ince Mariyani",
+        "Isna Aissatussiri Asshidiq",
+        "Larasati Widyaningrum",
+        "Luhur Partomo Hudoyo",
+        "Lustiawaty Achmad",
+        "Mayanti Meylisa Toding",
+        "Mohammad Syafrizal",
+        "Muhammad Fadhilah Akbar",
+        "Muhammad Saiful",
+        "Muhammad Zein",
+        "Ni Luh Laksmi Devi",
+        "Nurainun Fitriani",
+        "Nurhayati",
+        "Nurul Solikha Nofiani",
+        "Rika Ari Wulandari",
+        "Rudi Siswoyo"
+      ],
+      "objectives": [
+        "Terwujudnya Kemudahan Akses Data Bps"
+      ]
+    },
+    {
+      "team": "SSDH (STATISTIK SUMBER DAYA HAYATI)",
+      "name": "Laporan Perusahaan Kehutanan Tahunan (PBPH)",
+      "objective": "Mewujudkan Perumusan Kebijakan dan Pengambilan Keputusan Berbasis Data Statistik Berkualitas dan Insight yang Relevan",
+      "kpi": "Persentase Publikasi/Laporan Statistik Peternakan, Perikanan, Dan Kehutanan Yang Berkualitas :100 Persen",
+      "status": "active",
+      "year": 2026,
+      "leader": "Ir. Yaslin Hendrita Tansala",
+      "members": [
+        "Daniel Kurnia Nugraha Sitorus"
+      ],
+      "objectives": [
+        "Terwujudnya Penyediaan Data Dan Insight Statistik Peternakan, Perikanan, Dan Kehutanan Yang Berkualitas"
+      ]
+    },
+    {
+      "team": "BMN dan PBJ",
+      "name": "Laporan BMN",
+      "objective": "Mewujudkan Tata Kelola Badan Pusat Statistik yang Berkualitas, Akuntabel, Efektif, dan Efisien dalam Menyelenggarakan Statistik",
+      "kpi": "Nilai SAKIP oleh Inspektorat : 77.95 Poin",
+      "status": "active",
+      "year": 2026,
+      "leader": "Wiwik Natalia",
+      "members": [
+        "Muhammad Saiful"
+      ],
+      "objectives": [
+        "Terwujudnya Dukungan Manajemen Pada Bps Provinsi Dan Bps Kabupaten/Kota"
+      ]
+    },
+    {
+      "team": "SSDH (STATISTIK SUMBER DAYA HAYATI)",
+      "name": "Survei Perkebunan Bulanan",
+      "objective": "Mewujudkan Perumusan Kebijakan dan Pengambilan Keputusan Berbasis Data Statistik Berkualitas dan Insight yang Relevan",
+      "kpi": "Persentase Publikasi/Laporan Statistik Tanaman Pangan, Hortikultura, Dan Perkebunan Yang Berkualitas :100 Persen",
+      "status": "active",
+      "year": 2026,
+      "leader": "Ir. Yaslin Hendrita Tansala",
+      "members": [
+        "Agus Herryanto"
+      ],
+      "objectives": [
+        "Terwujudnya Penyediaan Data Dan Insight Statistik Tanaman Pangan, Hortikultura, Dan Perkebunan Yang Berkualitas"
+      ]
+    },
+    {
+      "team": "INDUSTRI DAN SDMK",
+      "name": "Survei IMK Triwulanan",
+      "objective": "Mewujudkan Perumusan Kebijakan dan Pengambilan Keputusan Berbasis Data Statistik Berkualitas dan Insight yang Relevan",
+      "kpi": "Persentase Publikasi/Laporan Statistik Industri Yang Berkualitas : 100 Persen",
+      "status": "active",
+      "year": 2026,
+      "leader": "Muhammad Zein",
+      "members": [
+        "Larasati Widyaningrum",
+        "Naima",
+        "Nurlaela Badjeber"
+      ],
+      "objectives": [
+        "Terwujudnya Penyediaan Data Dan Insight Statistik Industri Yang Berkualitas"
+      ]
+    },
+    {
+      "team": "SSDH (STATISTIK SUMBER DAYA HAYATI)",
+      "name": "Survei Perkebunan Tahunan",
+      "objective": "Mewujudkan Perumusan Kebijakan dan Pengambilan Keputusan Berbasis Data Statistik Berkualitas dan Insight yang Relevan",
+      "kpi": "Persentase Publikasi/Laporan Statistik Tanaman Pangan, Hortikultura, Dan Perkebunan Yang Berkualitas :100 Persen",
+      "status": "active",
+      "year": 2026,
+      "leader": "Ir. Yaslin Hendrita Tansala",
+      "members": [
+        "Agus Herryanto"
+      ],
+      "objectives": [
+        "Terwujudnya Penyediaan Data Dan Insight Statistik Tanaman Pangan, Hortikultura, Dan Perkebunan Yang Berkualitas"
+      ]
+    },
+    {
+      "team": "SSDH (STATISTIK SUMBER DAYA HAYATI)",
+      "name": "Pengumpulan Data Kehutanan Triwulan",
+      "objective": "Mewujudkan Perumusan Kebijakan dan Pengambilan Keputusan Berbasis Data Statistik Berkualitas dan Insight yang Relevan",
+      "kpi": "Persentase Publikasi/Laporan Statistik Peternakan, Perikanan, Dan Kehutanan Yang Berkualitas :100 Persen",
+      "status": "active",
+      "year": 2026,
+      "leader": "Ir. Yaslin Hendrita Tansala",
+      "members": [
+        "Daniel Kurnia Nugraha Sitorus"
+      ],
+      "objectives": [
+        "Terwujudnya Penyediaan Data Dan Insight Statistik Peternakan, Perikanan, Dan Kehutanan Yang Berkualitas"
+      ]
+    },
+    {
+      "team": "SSDH (STATISTIK SUMBER DAYA HAYATI)",
+      "name": "Survey KSA Padi",
+      "objective": "Mewujudkan Perumusan Kebijakan dan Pengambilan Keputusan Berbasis Data Statistik Berkualitas dan Insight yang Relevan",
+      "kpi": "Persentase Publikasi/Laporan Statistik Tanaman Pangan, Hortikultura, Dan Perkebunan Yang Berkualitas :100 Persen",
+      "status": "active",
+      "year": 2026,
+      "leader": "Ir. Yaslin Hendrita Tansala",
+      "members": [
+        "Agus Herryanto"
+      ],
+      "objectives": [
+        "Terwujudnya Penyediaan Data Dan Insight Statistik Tanaman Pangan, Hortikultura, Dan Perkebunan Yang Berkualitas"
+      ]
+    },
+    {
+      "team": "SSDH (STATISTIK SUMBER DAYA HAYATI)",
+      "name": "Survei Usaha Non Rumah Tangga (NRT) Hortikultura",
+      "objective": "Mewujudkan Perumusan Kebijakan dan Pengambilan Keputusan Berbasis Data Statistik Berkualitas dan Insight yang Relevan",
+      "kpi": "Persentase Publikasi/Laporan Statistik Tanaman Pangan, Hortikultura, Dan Perkebunan Yang Berkualitas :100 Persen",
+      "status": "active",
+      "year": 2026,
+      "leader": "Ir. Yaslin Hendrita Tansala",
+      "members": [
+        "Daniel Kurnia Nugraha Sitorus"
+      ],
+      "objectives": [
+        "Terwujudnya Penyediaan Data Dan Insight Statistik Tanaman Pangan, Hortikultura, Dan Perkebunan Yang Berkualitas"
+      ]
+    },
+    {
+      "team": "SSDH (STATISTIK SUMBER DAYA HAYATI)",
+      "name": "Data Statistik Hortikultura Bulanan",
+      "objective": "Mewujudkan Perumusan Kebijakan dan Pengambilan Keputusan Berbasis Data Statistik Berkualitas dan Insight yang Relevan",
+      "kpi": "Persentase Publikasi/Laporan Statistik Tanaman Pangan, Hortikultura, Dan Perkebunan Yang Berkualitas :100 Persen",
+      "status": "active",
+      "year": 2026,
+      "leader": "Ir. Yaslin Hendrita Tansala",
+      "members": [
+        "Daniel Kurnia Nugraha Sitorus"
+      ],
+      "objectives": [
+        "Terwujudnya Penyediaan Data Dan Insight Statistik Tanaman Pangan, Hortikultura, Dan Perkebunan Yang Berkualitas"
+      ]
+    },
+    {
+      "team": "SSDH (STATISTIK SUMBER DAYA HAYATI)",
+      "name": "Survei KSA Jagung",
+      "objective": "Mewujudkan Perumusan Kebijakan dan Pengambilan Keputusan Berbasis Data Statistik Berkualitas dan Insight yang Relevan",
+      "kpi": "Persentase Publikasi/Laporan Statistik Tanaman Pangan, Hortikultura, Dan Perkebunan Yang Berkualitas :100 Persen",
+      "status": "active",
+      "year": 2026,
+      "leader": "Ir. Yaslin Hendrita Tansala",
+      "members": [
+        "Agus Herryanto"
+      ],
+      "objectives": [
+        "Terwujudnya Penyediaan Data Dan Insight Statistik Tanaman Pangan, Hortikultura, Dan Perkebunan Yang Berkualitas"
+      ]
+    },
+    {
+      "team": "SSDH (STATISTIK SUMBER DAYA HAYATI)",
+      "name": "Survei Perikanan Triwulanan",
+      "objective": "Mewujudkan Perumusan Kebijakan dan Pengambilan Keputusan Berbasis Data Statistik Berkualitas dan Insight yang Relevan",
+      "kpi": "Persentase Publikasi/Laporan Statistik Peternakan, Perikanan, Dan Kehutanan Yang Berkualitas :100 Persen",
+      "status": "active",
+      "year": 2026,
+      "leader": "Ir. Yaslin Hendrita Tansala",
+      "members": [
+        "Intan Fajria"
+      ],
+      "objectives": [
+        "Terwujudnya Penyediaan Data Dan Insight Statistik Peternakan, Perikanan, Dan Kehutanan Yang Berkualitas"
+      ]
+    },
+    {
+      "team": "SSDH (STATISTIK SUMBER DAYA HAYATI)",
+      "name": "Data Statistik Hortikultura Triwulanan",
+      "objective": "Mewujudkan Perumusan Kebijakan dan Pengambilan Keputusan Berbasis Data Statistik Berkualitas dan Insight yang Relevan",
+      "kpi": "Persentase Publikasi/Laporan Statistik Tanaman Pangan, Hortikultura, Dan Perkebunan Yang Berkualitas :100 Persen",
+      "status": "active",
+      "year": 2026,
+      "leader": "Ir. Yaslin Hendrita Tansala",
+      "members": [
+        "Daniel Kurnia Nugraha Sitorus"
+      ],
+      "objectives": [
+        "Terwujudnya Penyediaan Data Dan Insight Statistik Tanaman Pangan, Hortikultura, Dan Perkebunan Yang Berkualitas"
+      ]
+    },
+    {
+      "team": "SSDH (STATISTIK SUMBER DAYA HAYATI)",
+      "name": "Data Indeks Produksi Hortikultura",
+      "objective": "Mewujudkan Perumusan Kebijakan dan Pengambilan Keputusan Berbasis Data Statistik Berkualitas dan Insight yang Relevan",
+      "kpi": "Persentase Publikasi/Laporan Statistik Tanaman Pangan, Hortikultura, Dan Perkebunan Yang Berkualitas :100 Persen",
+      "status": "active",
+      "year": 2026,
+      "leader": "Ir. Yaslin Hendrita Tansala",
+      "members": [
+        "Daniel Kurnia Nugraha Sitorus"
+      ],
+      "objectives": [
+        "Terwujudnya Penyediaan Data Dan Insight Statistik Tanaman Pangan, Hortikultura, Dan Perkebunan Yang Berkualitas"
+      ]
+    },
+    {
+      "team": "SSDH (STATISTIK SUMBER DAYA HAYATI)",
+      "name": "Laporan Tahunan Perusahaan Peternakan Ternak Besar/Kecil",
+      "objective": "Mewujudkan Perumusan Kebijakan dan Pengambilan Keputusan Berbasis Data Statistik Berkualitas dan Insight yang Relevan",
+      "kpi": "Persentase Publikasi/Laporan Statistik Peternakan, Perikanan, Dan Kehutanan Yang Berkualitas :100 Persen",
+      "status": "active",
+      "year": 2026,
+      "leader": "Ir. Yaslin Hendrita Tansala",
+      "members": [
+        "Daniel Kurnia Nugraha Sitorus"
+      ],
+      "objectives": [
+        "Terwujudnya Penyediaan Data Dan Insight Statistik Peternakan, Perikanan, Dan Kehutanan Yang Berkualitas"
+      ]
+    },
+    {
+      "team": "SSDH (STATISTIK SUMBER DAYA HAYATI)",
+      "name": "Laporan Tahunan Perusahaan Peternakan Unggas",
+      "objective": "Mewujudkan Perumusan Kebijakan dan Pengambilan Keputusan Berbasis Data Statistik Berkualitas dan Insight yang Relevan",
+      "kpi": "Persentase Publikasi/Laporan Statistik Peternakan, Perikanan, Dan Kehutanan Yang Berkualitas :100 Persen",
+      "status": "active",
+      "year": 2026,
+      "leader": "Ir. Yaslin Hendrita Tansala",
+      "members": [
+        "Daniel Kurnia Nugraha Sitorus"
+      ],
+      "objectives": [
+        "Terwujudnya Penyediaan Data Dan Insight Statistik Peternakan, Perikanan, Dan Kehutanan Yang Berkualitas"
+      ]
+    },
+    {
+      "team": "SSDH (STATISTIK SUMBER DAYA HAYATI)",
+      "name": "Survey Statistik Tanaman Pangan Bulanan (SP Palawija)",
+      "objective": "Mewujudkan Perumusan Kebijakan dan Pengambilan Keputusan Berbasis Data Statistik Berkualitas dan Insight yang Relevan",
+      "kpi": "Persentase Publikasi/Laporan Statistik Tanaman Pangan, Hortikultura, Dan Perkebunan Yang Berkualitas :100 Persen",
+      "status": "active",
+      "year": 2026,
+      "leader": "Ir. Yaslin Hendrita Tansala",
+      "members": [
+        "Agus Herryanto"
+      ],
+      "objectives": [
+        "Terwujudnya Penyediaan Data Dan Insight Statistik Tanaman Pangan, Hortikultura, Dan Perkebunan Yang Berkualitas"
+      ]
+    },
+    {
+      "team": "SSDH (STATISTIK SUMBER DAYA HAYATI)",
+      "name": "Laporan Pemotongan Ternak Bulanan",
+      "objective": "Mewujudkan Perumusan Kebijakan dan Pengambilan Keputusan Berbasis Data Statistik Berkualitas dan Insight yang Relevan",
+      "kpi": "Persentase Publikasi/Laporan Statistik Peternakan, Perikanan, Dan Kehutanan Yang Berkualitas :100 Persen",
+      "status": "active",
+      "year": 2026,
+      "leader": "Ir. Yaslin Hendrita Tansala",
+      "members": [
+        "Daniel Kurnia Nugraha Sitorus"
+      ],
+      "objectives": [
+        "Terwujudnya Penyediaan Data Dan Insight Statistik Peternakan, Perikanan, Dan Kehutanan Yang Berkualitas"
+      ]
+    },
+    {
+      "team": "SSDH (STATISTIK SUMBER DAYA HAYATI)",
+      "name": "Laporan Tahunan Budiyaya Ikan (LTB)",
+      "objective": "Mewujudkan Perumusan Kebijakan dan Pengambilan Keputusan Berbasis Data Statistik Berkualitas dan Insight yang Relevan",
+      "kpi": "Persentase Publikasi/Laporan Statistik Peternakan, Perikanan, Dan Kehutanan Yang Berkualitas :100 Persen",
+      "status": "active",
+      "year": 2026,
+      "leader": "Ir. Yaslin Hendrita Tansala",
+      "members": [
+        "Intan Fajria"
+      ],
+      "objectives": [
+        "Terwujudnya Penyediaan Data Dan Insight Statistik Peternakan, Perikanan, Dan Kehutanan Yang Berkualitas"
+      ]
+    },
+    {
+      "team": "SSDH (STATISTIK SUMBER DAYA HAYATI)",
+      "name": "Penyusunan Publikasi Statistik Pertanian (Publikasi dan BRS)",
+      "objective": "Mewujudkan Perumusan Kebijakan dan Pengambilan Keputusan Berbasis Data Statistik Berkualitas dan Insight yang Relevan",
+      "kpi": "Persentase Publikasi/Laporan Statistik Tanaman Pangan, Hortikultura, Dan Perkebunan Yang Berkualitas :100 Persen",
+      "status": "active",
+      "year": 2026,
+      "leader": "Ir. Yaslin Hendrita Tansala",
+      "members": [
+        "Agus Herryanto",
+        "Daniel Kurnia Nugraha Sitorus",
+        "Intan Fajria"
+      ],
+      "objectives": [
+        "Terwujudnya Penyediaan Data Dan Insight Statistik Tanaman Pangan, Hortikultura, Dan Perkebunan Yang Berkualitas"
+      ]
+    },
+    {
+      "team": "SSDH (STATISTIK SUMBER DAYA HAYATI)",
+      "name": "Survey Statistik Tanaman Pangan Tahunan (SP Lahan, Alsintan, Benih)",
+      "objective": "Mewujudkan Perumusan Kebijakan dan Pengambilan Keputusan Berbasis Data Statistik Berkualitas dan Insight yang Relevan",
+      "kpi": "Persentase Publikasi/Laporan Statistik Tanaman Pangan, Hortikultura, Dan Perkebunan Yang Berkualitas :100 Persen",
+      "status": "active",
+      "year": 2026,
+      "leader": "Ir. Yaslin Hendrita Tansala",
+      "members": [
+        "Agus Herryanto"
+      ],
+      "objectives": [
+        "Terwujudnya Penyediaan Data Dan Insight Statistik Tanaman Pangan, Hortikultura, Dan Perkebunan Yang Berkualitas"
+      ]
+    },
+    {
+      "team": "INDUSTRI DAN SDMK",
+      "name": "Survei IMK Tahunan 2025",
+      "objective": "Mewujudkan Perumusan Kebijakan dan Pengambilan Keputusan Berbasis Data Statistik Berkualitas dan Insight yang Relevan",
+      "kpi": "Persentase Publikasi/Laporan Statistik Industri Yang Berkualitas : 100 Persen",
+      "status": "active",
+      "year": 2026,
+      "leader": "Muhammad Zein",
+      "members": [
+        "Larasati Widyaningrum",
+        "Muhammad Zein"
+      ],
+      "objectives": [
+        "Terwujudnya Penyediaan Data Dan Insight Statistik Industri Yang Berkualitas"
+      ]
+    },
+    {
+      "team": "INDUSTRI DAN SDMK",
+      "name": "Survei Konstruksi Tahunan",
+      "objective": "Mewujudkan Perumusan Kebijakan dan Pengambilan Keputusan Berbasis Data Statistik Berkualitas dan Insight yang Relevan",
+      "kpi": "Persentase Publikasi/Laporan Statistik Industri Yang Berkualitas : 80 Persen",
+      "status": "active",
+      "year": 2026,
+      "leader": "Muhammad Zein",
+      "members": [
+        "Larasati Widyaningrum",
+        "Naima",
+        "Nurlaela Badjeber"
+      ],
+      "objectives": [
+        "Terwujudnya Penyediaan Data Dan Insight Statistik Industri Yang Berkualitas"
+      ]
+    },
+    {
+      "team": "INDUSTRI DAN SDMK",
+      "name": "Survei Galian Berbadan Hukum (Galian-BH) Triwulanan",
+      "objective": "Mewujudkan Perumusan Kebijakan dan Pengambilan Keputusan Berbasis Data Statistik Berkualitas dan Insight yang Relevan",
+      "kpi": "Persentase Publikasi/Laporan Statistik Industri Yang Berkualitas : 80 Persen",
+      "status": "active",
+      "year": 2026,
+      "leader": "Muhammad Zein",
+      "members": [
+        "Larasati Widyaningrum",
+        "Naima",
+        "Nurlaela Badjeber"
+      ],
+      "objectives": [
+        "Terwujudnya Penyediaan Data Dan Insight Statistik Industri Yang Berkualitas"
+      ]
+    },
+    {
+      "team": "BMN dan PBJ",
+      "name": "Asuransi BMN",
+      "objective": "Mewujudkan Tata Kelola Badan Pusat Statistik yang Berkualitas, Akuntabel, Efektif, dan Efisien dalam Menyelenggarakan Statistik",
+      "kpi": "Nilai SAKIP oleh Inspektorat : 77.95 Poin",
+      "status": "active",
+      "year": 2026,
+      "leader": "Wiwik Natalia",
+      "members": [
+        "Mohammad Rifki Abdul Razak A.Md.Stat.",
+        "Muhammad Saiful"
+      ],
+      "objectives": [
+        "Terwujudnya Dukungan Manajemen Pada Bps Provinsi Dan Bps Kabupaten/Kota"
+      ]
+    },
+    {
+      "team": "INDUSTRI DAN SDMK",
+      "name": "Survei Air Bersih Triwulanan",
+      "objective": "Mewujudkan Perumusan Kebijakan dan Pengambilan Keputusan Berbasis Data Statistik Berkualitas dan Insight yang Relevan",
+      "kpi": "Persentase Publikasi/Laporan Statistik Industri Yang Berkualitas : 100 Persen",
+      "status": "active",
+      "year": 2026,
+      "leader": "Muhammad Zein",
+      "members": [
+        "Larasati Widyaningrum",
+        "Naima",
+        "Nurlaela Badjeber"
+      ],
+      "objectives": [
+        "Terwujudnya Penyediaan Data Dan Insight Statistik Industri Yang Berkualitas"
+      ]
+    },
+    {
+      "team": "BMN dan PBJ",
+      "name": "Rencana kebutuhan BMN",
+      "objective": "Mewujudkan Tata Kelola Badan Pusat Statistik yang Berkualitas, Akuntabel, Efektif, dan Efisien dalam Menyelenggarakan Statistik",
+      "kpi": "Nilai SAKIP oleh Inspektorat : 77.95 Poin",
+      "status": "active",
+      "year": 2026,
+      "leader": "Wiwik Natalia",
+      "members": [
+        "Mohammad Rifki Abdul Razak A.Md.Stat.",
+        "Muhammad Saiful"
+      ],
+      "objectives": [
+        "Terwujudnya Dukungan Manajemen Pada Bps Provinsi Dan Bps Kabupaten/Kota"
+      ]
+    },
+    {
+      "team": "BMN dan PBJ",
+      "name": "Monitoring Tindak Lanjut atas Laporan Hasil Pemeriksaan APIP/BPK",
+      "objective": "Mewujudkan Tata Kelola Badan Pusat Statistik yang Berkualitas, Akuntabel, Efektif, dan Efisien dalam Menyelenggarakan Statistik",
+      "kpi": "Nilai SAKIP oleh Inspektorat : 77.95 Poin",
+      "status": "active",
+      "year": 2026,
+      "leader": "Wiwik Natalia",
+      "members": [
+        "Mohammad Rifki Abdul Razak A.Md.Stat.",
+        "Muhammad Saiful"
+      ],
+      "objectives": [
+        "Terwujudnya Dukungan Manajemen Pada Bps Provinsi Dan Bps Kabupaten/Kota"
+      ]
+    },
+    {
+      "team": "INDUSTRI DAN SDMK",
+      "name": "Survei Konstruksi Triwulanan ",
+      "objective": "Mewujudkan Perumusan Kebijakan dan Pengambilan Keputusan Berbasis Data Statistik Berkualitas dan Insight yang Relevan",
+      "kpi": "Persentase Publikasi/Laporan Statistik Industri Yang Berkualitas : 100 Persen",
+      "status": "active",
+      "year": 2026,
+      "leader": "Muhammad Zein",
+      "members": [
+        "Larasati Widyaningrum",
+        "Naima",
+        "Nurlaela Badjeber"
+      ],
+      "objectives": [
+        "Terwujudnya Penyediaan Data Dan Insight Statistik Industri Yang Berkualitas"
+      ]
+    },
+    {
+      "team": "BMN dan PBJ",
+      "name": "Penyelesaian Penetapan Status Penggunaan Barang Milik Negara",
+      "objective": "Mewujudkan Tata Kelola Badan Pusat Statistik yang Berkualitas, Akuntabel, Efektif, dan Efisien dalam Menyelenggarakan Statistik",
+      "kpi": "Nilai SAKIP oleh Inspektorat : 77.95 Poin",
+      "status": "active",
+      "year": 2026,
+      "leader": "Wiwik Natalia",
+      "members": [
+        "Mohammad Rifki Abdul Razak A.Md.Stat.",
+        "Muhammad Saiful"
+      ],
+      "objectives": [
+        "Terwujudnya Dukungan Manajemen Pada Bps Provinsi Dan Bps Kabupaten/Kota"
+      ]
+    },
+    {
+      "team": "INDUSTRI DAN SDMK",
+      "name": "Laporan Tahunan Pertambangan dan Energi (PE)",
+      "objective": "Mewujudkan Perumusan Kebijakan dan Pengambilan Keputusan Berbasis Data Statistik Berkualitas dan Insight yang Relevan",
+      "kpi": "Persentase Publikasi/Laporan Statistik Industri Yang Berkualitas : 100 Persen",
+      "status": "active",
+      "year": 2026,
+      "leader": "Muhammad Zein",
+      "members": [
+        "Larasati Widyaningrum",
+        "Naima",
+        "Nurlaela Badjeber"
+      ],
+      "objectives": [
+        "Terwujudnya Penyediaan Data Dan Insight Statistik Industri Yang Berkualitas"
+      ]
+    },
+    {
+      "team": "BMN dan PBJ",
+      "name": "Laporan Pengawasan dan Pengendalian BMN",
+      "objective": "Mewujudkan Tata Kelola Badan Pusat Statistik yang Berkualitas, Akuntabel, Efektif, dan Efisien dalam Menyelenggarakan Statistik",
+      "kpi": "Nilai SAKIP oleh Inspektorat : 77.95 Poin",
+      "status": "active",
+      "year": 2026,
+      "leader": "Wiwik Natalia",
+      "members": [
+        "Mohammad Rifki Abdul Razak A.Md.Stat.",
+        "Muhammad Saiful",
+        "Nur Zahra Saharia"
+      ],
+      "objectives": [
+        "Terwujudnya Dukungan Manajemen Pada Bps Provinsi Dan Bps Kabupaten/Kota"
+      ]
+    },
+    {
+      "team": "INDUSTRI DAN SDMK",
+      "name": "Publikasi Statistik Air Bersih",
+      "objective": "Mewujudkan Perumusan Kebijakan dan Pengambilan Keputusan Berbasis Data Statistik Berkualitas dan Insight yang Relevan",
+      "kpi": "Persentase Publikasi/Laporan Statistik Industri Yang Berkualitas : 100 Persen",
+      "status": "active",
+      "year": 2026,
+      "leader": "Muhammad Zein",
+      "members": [
+        "Larasati Widyaningrum",
+        "Naima",
+        "Nurlaela Badjeber"
+      ],
+      "objectives": [
+        "Terwujudnya Penyediaan Data Dan Insight Statistik Industri Yang Berkualitas"
+      ]
+    },
+    {
+      "team": "BMN dan PBJ",
+      "name": "Pengelolaan rumah negara",
+      "objective": "Mewujudkan Tata Kelola Badan Pusat Statistik yang Berkualitas, Akuntabel, Efektif, dan Efisien dalam Menyelenggarakan Statistik",
+      "kpi": "Nilai SAKIP oleh Inspektorat : 77.95 Poin",
+      "status": "active",
+      "year": 2026,
+      "leader": "Wiwik Natalia",
+      "members": [
+        "Mohammad Rifki Abdul Razak A.Md.Stat.",
+        "Muhammad Saiful",
+        "Nur Zahra Saharia"
+      ],
+      "objectives": [
+        "Terwujudnya Dukungan Manajemen Pada Bps Provinsi Dan Bps Kabupaten/Kota"
+      ]
+    },
+    {
+      "team": "INDUSTRI DAN SDMK",
+      "name": "Laporan Tahunan Konstruksi",
+      "objective": "Mewujudkan Perumusan Kebijakan dan Pengambilan Keputusan Berbasis Data Statistik Berkualitas dan Insight yang Relevan",
+      "kpi": "Persentase Publikasi/Laporan Statistik Industri Yang Berkualitas : 100 Persen",
+      "status": "active",
+      "year": 2026,
+      "leader": "Muhammad Zein",
+      "members": [
+        "Larasati Widyaningrum",
+        "Naima",
+        "Nurlaela Badjeber"
+      ],
+      "objectives": [
+        "Terwujudnya Penyediaan Data Dan Insight Statistik Industri Yang Berkualitas"
+      ]
+    },
+    {
+      "team": "BMN dan PBJ",
+      "name": "Pengelolaan Tanah Negara",
+      "objective": "Mewujudkan Tata Kelola Badan Pusat Statistik yang Berkualitas, Akuntabel, Efektif, dan Efisien dalam Menyelenggarakan Statistik",
+      "kpi": "Nilai SAKIP oleh Inspektorat : 77.95 Poin",
+      "status": "active",
+      "year": 2026,
+      "leader": "Wiwik Natalia",
+      "members": [
+        "Mohammad Rifki Abdul Razak A.Md.Stat.",
+        "Muhammad Saiful"
+      ],
+      "objectives": [
+        "Terwujudnya Dukungan Manajemen Pada Bps Provinsi Dan Bps Kabupaten/Kota"
+      ]
+    },
+    {
+      "team": "INDUSTRI DAN SDMK",
+      "name": "Publikasi Direktori Perusahaan Konstruksi",
+      "objective": "Mewujudkan Perumusan Kebijakan dan Pengambilan Keputusan Berbasis Data Statistik Berkualitas dan Insight yang Relevan",
+      "kpi": "Persentase Publikasi/Laporan Statistik Industri Yang Berkualitas : 100 Persen",
+      "status": "active",
+      "year": 2026,
+      "leader": "Muhammad Zein",
+      "members": [
+        "Larasati Widyaningrum",
+        "Naima",
+        "Nurlaela Badjeber"
+      ],
+      "objectives": [
+        "Terwujudnya Penyediaan Data Dan Insight Statistik Industri Yang Berkualitas"
+      ]
+    },
+    {
+      "team": "SSDH (STATISTIK SUMBER DAYA HAYATI)",
+      "name": "Survei Pertanian Tanaman Pangan (Ubinan)",
+      "objective": "Mewujudkan Perumusan Kebijakan dan Pengambilan Keputusan Berbasis Data Statistik Berkualitas dan Insight yang Relevan",
+      "kpi": "Persentase Publikasi/Laporan Statistik Tanaman Pangan, Hortikultura, Dan Perkebunan Yang Berkualitas :100 Persen",
+      "status": "active",
+      "year": 2026,
+      "leader": "Ir. Yaslin Hendrita Tansala",
+      "members": [
+        "Intan Fajria"
+      ],
+      "objectives": [
+        "Terwujudnya Penyediaan Data Dan Insight Statistik Tanaman Pangan, Hortikultura, Dan Perkebunan Yang Berkualitas"
+      ]
+    },
+    {
+      "team": "INDUSTRI DAN SDMK",
+      "name": "Survei Captive Power",
+      "objective": "Mewujudkan Perumusan Kebijakan dan Pengambilan Keputusan Berbasis Data Statistik Berkualitas dan Insight yang Relevan",
+      "kpi": "Persentase Publikasi/Laporan Statistik Industri Yang Berkualitas : 100 Persen",
+      "status": "active",
+      "year": 2026,
+      "leader": "Muhammad Zein",
+      "members": [
+        "Larasati Widyaningrum",
+        "Naima",
+        "Nurlaela Badjeber"
+      ],
+      "objectives": [
+        "Terwujudnya Penyediaan Data Dan Insight Statistik Industri Yang Berkualitas"
+      ]
+    },
+    {
+      "team": "INDUSTRI DAN SDMK",
+      "name": "Survei Non Migas ",
+      "objective": "Mewujudkan Perumusan Kebijakan dan Pengambilan Keputusan Berbasis Data Statistik Berkualitas dan Insight yang Relevan",
+      "kpi": "Persentase Publikasi/Laporan Statistik Industri Yang Berkualitas : 100 Persen",
+      "status": "active",
+      "year": 2026,
+      "leader": "Muhammad Zein",
+      "members": [
+        "Larasati Widyaningrum",
+        "Naima",
+        "Nurlaela Badjeber"
+      ],
+      "objectives": [
+        "Terwujudnya Penyediaan Data Dan Insight Statistik Industri Yang Berkualitas"
+      ]
+    },
+    {
+      "team": "INDUSTRI DAN SDMK",
+      "name": "Survei Galian Berbadan Hukum Tahunan",
+      "objective": "Mewujudkan Perumusan Kebijakan dan Pengambilan Keputusan Berbasis Data Statistik Berkualitas dan Insight yang Relevan",
+      "kpi": "Persentase Publikasi/Laporan Statistik Industri Yang Berkualitas : 100 Persen",
+      "status": "active",
+      "year": 2026,
+      "leader": "Muhammad Zein",
+      "members": [
+        "Larasati Widyaningrum",
+        "Naima",
+        "Nurlaela Badjeber"
+      ],
+      "objectives": [
+        "Terwujudnya Penyediaan Data Dan Insight Statistik Industri Yang Berkualitas"
+      ]
+    },
+    {
+      "team": "INDUSTRI DAN SDMK",
+      "name": "Updating Perusahaan Pertambangan dan Energi",
+      "objective": "Mewujudkan Perumusan Kebijakan dan Pengambilan Keputusan Berbasis Data Statistik Berkualitas dan Insight yang Relevan",
+      "kpi": "Persentase Publikasi/Laporan Statistik Industri Yang Berkualitas : 100 Persen",
+      "status": "active",
+      "year": 2026,
+      "leader": "Muhammad Zein",
+      "members": [
+        "Larasati Widyaningrum",
+        "Naima",
+        "Nurlaela Badjeber"
+      ],
+      "objectives": [
+        "Terwujudnya Penyediaan Data Dan Insight Statistik Industri Yang Berkualitas"
+      ]
+    },
+    {
+      "team": "INDUSTRI DAN SDMK",
+      "name": "Pengutipan Perusahaan Pertambangan dan Energi",
+      "objective": "Mewujudkan Perumusan Kebijakan dan Pengambilan Keputusan Berbasis Data Statistik Berkualitas dan Insight yang Relevan",
+      "kpi": "Persentase Publikasi/Laporan Statistik Industri Yang Berkualitas : 100 Persen",
+      "status": "active",
+      "year": 2026,
+      "leader": "Muhammad Zein",
+      "members": [
+        "Larasati Widyaningrum",
+        "Naima",
+        "Nurlaela Badjeber"
+      ],
+      "objectives": [
+        "Terwujudnya Penyediaan Data Dan Insight Statistik Industri Yang Berkualitas"
+      ]
+    },
+    {
+      "team": "INDUSTRI DAN SDMK",
+      "name": "Survei Galian URT",
+      "objective": "Mewujudkan Perumusan Kebijakan dan Pengambilan Keputusan Berbasis Data Statistik Berkualitas dan Insight yang Relevan",
+      "kpi": "Persentase Publikasi/Laporan Statistik Industri Yang Berkualitas : 100 Persen",
+      "status": "active",
+      "year": 2026,
+      "leader": "Muhammad Zein",
+      "members": [
+        "Larasati Widyaningrum",
+        "Naima",
+        "Nurlaela Badjeber"
+      ],
+      "objectives": [
+        "Terwujudnya Penyediaan Data Dan Insight Statistik Industri Yang Berkualitas"
+      ]
+    },
+    {
+      "team": "INDUSTRI DAN SDMK",
+      "name": "Survei Air Bersih Tahunan",
+      "objective": "Mewujudkan Perumusan Kebijakan dan Pengambilan Keputusan Berbasis Data Statistik Berkualitas dan Insight yang Relevan",
+      "kpi": "Persentase Publikasi/Laporan Statistik Industri Yang Berkualitas : 100 Persen",
+      "status": "active",
+      "year": 2026,
+      "leader": "Muhammad Zein",
+      "members": [
+        "Larasati Widyaningrum",
+        "Naima",
+        "Nurlaela Badjeber"
+      ],
+      "objectives": [
+        "Terwujudnya Penyediaan Data Dan Insight Statistik Industri Yang Berkualitas"
+      ]
+    },
+    {
+      "team": "INDUSTRI DAN SDMK",
+      "name": "Survei Listrik Tahunan",
+      "objective": "Mewujudkan Perumusan Kebijakan dan Pengambilan Keputusan Berbasis Data Statistik Berkualitas dan Insight yang Relevan",
+      "kpi": "Persentase Publikasi/Laporan Statistik Industri Yang Berkualitas : 100 Persen",
+      "status": "active",
+      "year": 2026,
+      "leader": "Muhammad Zein",
+      "members": [
+        "Larasati Widyaningrum",
+        "Naima",
+        "Nurlaela Badjeber"
+      ],
+      "objectives": [
+        "Terwujudnya Penyediaan Data Dan Insight Statistik Industri Yang Berkualitas"
+      ]
+    },
+    {
+      "team": "INDUSTRI DAN SDMK",
+      "name": "Updating Perusahaan Konstruksi Tahunan",
+      "objective": "Mewujudkan Perumusan Kebijakan dan Pengambilan Keputusan Berbasis Data Statistik Berkualitas dan Insight yang Relevan",
+      "kpi": "Persentase Publikasi/Laporan Statistik Industri Yang Berkualitas : 100 Persen",
+      "status": "active",
+      "year": 2026,
+      "leader": "Muhammad Zein",
+      "members": [
+        "Larasati Widyaningrum",
+        "Naima",
+        "Nurlaela Badjeber"
+      ],
+      "objectives": [
+        "Terwujudnya Penyediaan Data Dan Insight Statistik Industri Yang Berkualitas"
+      ]
+    },
+    {
+      "team": "SSDH (STATISTIK SUMBER DAYA HAYATI)",
+      "name": "Survei Indeks Produksi Perkebunan",
+      "objective": "Mewujudkan Perumusan Kebijakan dan Pengambilan Keputusan Berbasis Data Statistik Berkualitas dan Insight yang Relevan",
+      "kpi": "Persentase Publikasi/Laporan Statistik Tanaman Pangan, Hortikultura, Dan Perkebunan Yang Berkualitas :100 Persen",
+      "status": "active",
+      "year": 2026,
+      "leader": "Ir. Yaslin Hendrita Tansala",
+      "members": [
+        "Agus Herryanto"
+      ],
+      "objectives": [
+        "Terwujudnya Penyediaan Data Dan Insight Statistik Tanaman Pangan, Hortikultura, Dan Perkebunan Yang Berkualitas"
+      ]
+    },
+    {
+      "team": "INDUSTRI DAN SDMK",
+      "name": "Survei IBS Triwulanan",
+      "objective": "Mewujudkan Perumusan Kebijakan dan Pengambilan Keputusan Berbasis Data Statistik Berkualitas dan Insight yang Relevan",
+      "kpi": "Persentase Publikasi/Laporan Statistik Industri Yang Berkualitas : 100 Persen",
+      "status": "active",
+      "year": 2026,
+      "leader": "Muhammad Zein",
+      "members": [
+        "Nurlaela Badjeber"
+      ],
+      "objectives": [
+        "Terwujudnya Penyediaan Data Dan Insight Statistik Industri Yang Berkualitas"
+      ]
+    },
+    {
+      "team": "INDUSTRI DAN SDMK",
+      "name": "Survei IBS Tahunan",
+      "objective": "Mewujudkan Perumusan Kebijakan dan Pengambilan Keputusan Berbasis Data Statistik Berkualitas dan Insight yang Relevan",
+      "kpi": "Persentase Publikasi/Laporan Statistik Industri Yang Berkualitas : 100 Persen",
+      "status": "active",
+      "year": 2026,
+      "leader": "Muhammad Zein",
+      "members": [
+        "Larasati Widyaningrum",
+        "Nurlaela Badjeber"
+      ],
+      "objectives": [
+        "Terwujudnya Penyediaan Data Dan Insight Statistik Industri Yang Berkualitas"
+      ]
+    },
+    {
+      "team": "INDUSTRI DAN SDMK",
+      "name": "Pemutakhiran Direktori Perusahaan Awal (DPA)",
+      "objective": "Mewujudkan Perumusan Kebijakan dan Pengambilan Keputusan Berbasis Data Statistik Berkualitas dan Insight yang Relevan",
+      "kpi": "Persentase Publikasi/Laporan Statistik Industri Yang Berkualitas : 100 Persen",
+      "status": "active",
+      "year": 2026,
+      "leader": "Muhammad Zein",
+      "members": [
+        "Nurlaela Badjeber"
+      ],
+      "objectives": [
+        "Terwujudnya Penyediaan Data Dan Insight Statistik Industri Yang Berkualitas"
+      ]
+    },
+    {
+      "team": "UMUM",
+      "name": "Pengembangan Kompetensi SDM yang Optimal",
+      "objective": "Mewujudkan Tata Kelola Badan Pusat Statistik yang Berkualitas, Akuntabel, Efektif, dan Efisien dalam Menyelenggarakan Statistik",
+      "kpi": "Nilai SAKIP oleh Inspektorat : 77.95 Poin",
+      "status": "active",
+      "year": 2026,
+      "leader": "Imron Taufik J Musa",
+      "members": [
+        "Asmawati",
+        "Catur Prihatin",
+        "Enos Rombe",
+        "Muhammad Fadhilah Akbar",
+        "Mustakim",
+        "Rika Ari Wulandari",
+        "Salahudin",
+        "Tuti Kadariah"
+      ],
+      "objectives": [
+        "Terwujudnya Dukungan Manajemen Pada Bps Provinsi Dan Bps Kabupaten/Kota"
+      ]
+    },
+    {
+      "team": "UMUM",
+      "name": "Monitoring Pengelolaan BMN sesuai SOP",
+      "objective": "Mewujudkan Tata Kelola Badan Pusat Statistik yang Berkualitas, Akuntabel, Efektif, dan Efisien dalam Menyelenggarakan Statistik",
+      "kpi": "Nilai SAKIP oleh Inspektorat : 77.95 Poin",
+      "status": "active",
+      "year": 2026,
+      "leader": null,
+      "members": [
+        "Catur Prihatin",
+        "Enos Rombe",
+        "Mohammad Rifki Abdul Razak A.Md.Stat.",
+        "Muhammad Saiful",
+        "Mustakim",
+        "Tuti Kadariah"
+      ],
+      "objectives": [
+        "Terwujudnya Dukungan Manajemen Pada Bps Provinsi Dan Bps Kabupaten/Kota"
+      ]
+    },
+    {
+      "team": "UMUM",
+      "name": "Pengelolaan Perlengkapan dan Rumah Tangga Kantor yang baik",
+      "objective": "Mewujudkan Tata Kelola Badan Pusat Statistik yang Berkualitas, Akuntabel, Efektif, dan Efisien dalam Menyelenggarakan Statistik",
+      "kpi": "Nilai SAKIP oleh Inspektorat : 77.95 Poin",
+      "status": "active",
+      "year": 2026,
+      "leader": "Imron Taufik J Musa",
+      "members": [
+        "Catur Prihatin",
+        "Enos Rombe",
+        "Mustakim"
+      ],
+      "objectives": [
+        "Terwujudnya Dukungan Manajemen Pada Bps Provinsi Dan Bps Kabupaten/Kota"
+      ]
+    },
+    {
+      "team": "UMUM",
+      "name": "Pengelolaan SDM yang Optimal",
+      "objective": "Mewujudkan Tata Kelola Badan Pusat Statistik yang Berkualitas, Akuntabel, Efektif, dan Efisien dalam Menyelenggarakan Statistik",
+      "kpi": "Tingkat Keberhasilan Pembangunan Zona Integritas : 100 Persen",
+      "status": "active",
+      "year": 2026,
+      "leader": "Imron Taufik J Musa",
+      "members": [
+        "Asmawati",
+        "Muhammad Fadhilah Akbar",
+        "Rika Ari Wulandari",
+        "Salahudin"
+      ],
+      "objectives": [
+        "Peningkatan Pembangunan Zona Integritas"
+      ]
+    },
+    {
+      "team": "UMUM",
+      "name": "Kegiatan BPS dan Sosialisasi yang terselenggara dengan baik dan tepat waktu",
+      "objective": "Mewujudkan Tata Kelola Badan Pusat Statistik yang Berkualitas, Akuntabel, Efektif, dan Efisien dalam Menyelenggarakan Statistik",
+      "kpi": "Tingkat Keberhasilan Pembangunan Zona Integritas : 100 Persen",
+      "status": "active",
+      "year": 2026,
+      "leader": "Imron Taufik J Musa",
+      "members": [
+        "Asmawati",
+        "Catur Prihatin",
+        "Muhammad Fadhilah Akbar",
+        "Muhammad Saiful",
+        "Mustakim",
+        "Rika Ari Wulandari",
+        "Salahudin",
+        "Tuti Kadariah"
+      ],
+      "objectives": [
+        "Peningkatan Pembangunan Zona Integritas"
+      ]
+    },
+    {
+      "team": "UMUM",
+      "name": "Pengelolaan Hukum dan Organisasi yang baik",
+      "objective": "Mewujudkan Tata Kelola Badan Pusat Statistik yang Berkualitas, Akuntabel, Efektif, dan Efisien dalam Menyelenggarakan Statistik",
+      "kpi": "Tingkat Keberhasilan Pembangunan Zona Integritas : 100 Persen",
+      "status": "active",
+      "year": 2026,
+      "leader": "Imron Taufik J Musa",
+      "members": [
+        "Asmawati",
+        "Muhammad Fadhilah Akbar",
+        "Rika Ari Wulandari",
+        "Salahudin"
+      ],
+      "objectives": [
+        "Peningkatan Pembangunan Zona Integritas"
+      ]
+    },
+    {
+      "team": "UMUM",
+      "name": "Pelaksanaan Kearsipan dan Persandian yang baik",
+      "objective": "Mewujudkan Tata Kelola Badan Pusat Statistik yang Berkualitas, Akuntabel, Efektif, dan Efisien dalam Menyelenggarakan Statistik",
+      "kpi": "Tingkat Keberhasilan Pembangunan Zona Integritas : 100 Persen",
+      "status": "active",
+      "year": 2026,
+      "leader": "Imron Taufik J Musa",
+      "members": [
+        "Muhammad Fadhilah Akbar",
+        "Tuti Kadariah"
+      ],
+      "objectives": [
+        "Peningkatan Pembangunan Zona Integritas"
+      ]
+    },
+    {
+      "team": "UMUM",
+      "name": "Tugas Belajar dalam Rangka Peningkatan Kinerja dan Kompetensi Secara Optimal",
+      "objective": "Mewujudkan Tata Kelola Badan Pusat Statistik yang Berkualitas, Akuntabel, Efektif, dan Efisien dalam Menyelenggarakan Statistik",
+      "kpi": "Tingkat Keberhasilan Pembangunan Zona Integritas : 100 Persen",
+      "status": "active",
+      "year": 2026,
+      "leader": "Imron Taufik J Musa",
+      "members": [
+        "Asmawati",
+        "Muhammad Fadhilah Akbar"
+      ],
+      "objectives": [
+        "Peningkatan Pembangunan Zona Integritas"
+      ]
+    },
+    {
+      "team": "KEUANGAN",
+      "name": "Rekonsiliasi Transaksi Keuangan Tingkat Satker dan Wilayah",
+      "objective": "Mewujudkan Tata Kelola Badan Pusat Statistik yang Berkualitas, Akuntabel, Efektif, dan Efisien dalam Menyelenggarakan Statistik",
+      "kpi": "Nilai SAKIP oleh Inspektorat : 77.95 Poin",
+      "status": "active",
+      "year": 2026,
+      "leader": "Lustiawaty Achmad",
+      "members": [
+        "Ahmad Risal",
+        "Imam Santoso S.",
+        "Masmah",
+        "Mohammad Rifki Abdul Razak A.Md.Stat.",
+        "Muhammad Saiful",
+        "Murni",
+        "Nur Zahra Saharia"
+      ],
+      "objectives": [
+        "Terwujudnya Dukungan Manajemen Pada Bps Provinsi Dan Bps Kabupaten/Kota"
+      ]
+    },
+    {
+      "team": "KEUANGAN",
+      "name": "Penyusunan Laporan Keuangan Tingkat Satker dan Wilayah",
+      "objective": "Mewujudkan Tata Kelola Badan Pusat Statistik yang Berkualitas, Akuntabel, Efektif, dan Efisien dalam Menyelenggarakan Statistik",
+      "kpi": "Nilai SAKIP oleh Inspektorat : 77.95 Poin",
+      "status": "active",
+      "year": 2026,
+      "leader": "Lustiawaty Achmad",
+      "members": [
+        "Imam Santoso S.",
+        "Mohammad Rifki Abdul Razak A.Md.Stat.",
+        "Muhammad Saiful",
+        "Murni",
+        "Nur Zahra Saharia"
+      ],
+      "objectives": [
+        "Terwujudnya Dukungan Manajemen Pada Bps Provinsi Dan Bps Kabupaten/Kota"
+      ]
+    },
+    {
+      "team": "KEUANGAN",
+      "name": "Kualitas Pelaporan LK Tingkat Satker dan Wilayah",
+      "objective": "Mewujudkan Tata Kelola Badan Pusat Statistik yang Berkualitas, Akuntabel, Efektif, dan Efisien dalam Menyelenggarakan Statistik",
+      "kpi": "Nilai SAKIP oleh Inspektorat : 77.95 Poin",
+      "status": "active",
+      "year": 2026,
+      "leader": "Lustiawaty Achmad",
+      "members": [
+        "Imam Santoso S.",
+        "Murni"
+      ],
+      "objectives": [
+        "Terwujudnya Dukungan Manajemen Pada Bps Provinsi Dan Bps Kabupaten/Kota"
+      ]
+    },
+    {
+      "team": "KEUANGAN",
+      "name": "Penerapan pengendalian intern atas pelaporan keuangan (PIPK)  Tingkat Satker dan Wilayah",
+      "objective": "Mewujudkan Tata Kelola Badan Pusat Statistik yang Berkualitas, Akuntabel, Efektif, dan Efisien dalam Menyelenggarakan Statistik",
+      "kpi": "Nilai SAKIP oleh Inspektorat : 77.95 Poin",
+      "status": "active",
+      "year": 2026,
+      "leader": "Lustiawaty Achmad",
+      "members": [
+        "Imam Santoso S.",
+        "Mohammad Rifki Abdul Razak A.Md.Stat.",
+        "Muhammad Saiful",
+        "Murni",
+        "Nur Zahra Saharia",
+        "Wiwik Natalia"
+      ],
+      "objectives": [
+        "Terwujudnya Dukungan Manajemen Pada Bps Provinsi Dan Bps Kabupaten/Kota"
+      ]
+    },
+    {
+      "team": "KEUANGAN",
+      "name": "Pengembangan pejabat fungsional dalam pengelolaan keuangan APBN",
+      "objective": "Mewujudkan Tata Kelola Badan Pusat Statistik yang Berkualitas, Akuntabel, Efektif, dan Efisien dalam Menyelenggarakan Statistik",
+      "kpi": null,
+      "status": "active",
+      "year": 2026,
+      "leader": null,
+      "members": [
+        "Imam Santoso S.",
+        "Lustiawaty Achmad",
+        "Masmah",
+        "Murni",
+        "Nur Zahra Saharia"
+      ],
+      "objectives": [
+        "Terwujudnya Dukungan Manajemen Pada Bps Provinsi Dan Bps Kabupaten/Kota"
+      ]
+    },
+    {
+      "team": "KEUANGAN",
+      "name": "Pelaporan SPIDER tingkat satuan kerja dan tingkat wilayah",
+      "objective": "Mewujudkan Tata Kelola Badan Pusat Statistik yang Berkualitas, Akuntabel, Efektif, dan Efisien dalam Menyelenggarakan Statistik",
+      "kpi": "Nilai SAKIP oleh Inspektorat : 77.95 Poin",
+      "status": "active",
+      "year": 2026,
+      "leader": "Lustiawaty Achmad",
+      "members": [
+        "Ahmad Risal",
+        "Imam Santoso S.",
+        "Luhur Partomo Hudoyo",
+        "Masmah",
+        "Mohammad Rifki Abdul Razak A.Md.Stat.",
+        "Muhammad Saiful",
+        "Murni",
+        "Nur Zahra Saharia",
+        "Wiwik Natalia"
+      ],
+      "objectives": [
+        "Terwujudnya Dukungan Manajemen Pada Bps Provinsi Dan Bps Kabupaten/Kota"
+      ]
+    },
+    {
+      "team": "PENILAI INTERNAL",
+      "name": "Penilaian SAKIP",
+      "objective": "Mewujudkan Tata Kelola Badan Pusat Statistik yang Berkualitas, Akuntabel, Efektif, dan Efisien dalam Menyelenggarakan Statistik",
+      "kpi": "Nilai SAKIP oleh Inspektorat : 77.95 Poin",
+      "status": "active",
+      "year": 2026,
+      "leader": "Luhur Partomo Hudoyo",
+      "members": [
+        "Ahmad Risal",
+        "Fima Anggadini",
+        "Isna Aissatussiri Asshidiq",
+        "Larasati Widyaningrum",
+        "Nurainun Fitriani"
+      ],
+      "objectives": [
+        "Terwujudnya Dukungan Manajemen Pada Bps Provinsi Dan Bps Kabupaten/Kota"
+      ]
+    },
+    {
+      "team": "PENILAI INTERNAL",
+      "name": "Penilaian Satker WBK/WBBM",
+      "objective": "Mewujudkan Tata Kelola Badan Pusat Statistik yang Berkualitas, Akuntabel, Efektif, dan Efisien dalam Menyelenggarakan Statistik",
+      "kpi": "Tingkat Keberhasilan Pembangunan Zona Integritas : 100 Persen",
+      "status": "active",
+      "year": 2026,
+      "leader": "Luhur Partomo Hudoyo",
+      "members": [
+        "Ahmad Risal",
+        "Fima Anggadini",
+        "Isna Aissatussiri Asshidiq",
+        "Larasati Widyaningrum",
+        "Nurainun Fitriani"
+      ],
+      "objectives": [
+        "Peningkatan Pembangunan Zona Integritas"
+      ]
+    },
+    {
+      "team": "PENILAI INTERNAL",
+      "name": "Penilaian Mandiri SPIP",
+      "objective": "Mewujudkan Tata Kelola Badan Pusat Statistik yang Berkualitas, Akuntabel, Efektif, dan Efisien dalam Menyelenggarakan Statistik",
+      "kpi": "Tingkat Keberhasilan Pembangunan Zona Integritas : 100 Persen",
+      "status": "active",
+      "year": 2026,
+      "leader": "Luhur Partomo Hudoyo",
+      "members": [
+        "Ahmad Risal",
+        "Fima Anggadini",
+        "Isna Aissatussiri Asshidiq",
+        "Larasati Widyaningrum",
+        "Nurainun Fitriani"
+      ],
+      "objectives": [
+        "Peningkatan Pembangunan Zona Integritas"
+      ]
+    },
+    {
+      "team": "MITIGASI RISIKO",
+      "name": "Penyusunan Daftar Risiko",
+      "objective": "Mewujudkan Tata Kelola Badan Pusat Statistik yang Berkualitas, Akuntabel, Efektif, dan Efisien dalam Menyelenggarakan Statistik",
+      "kpi": "Tingkat Keberhasilan Pembangunan Zona Integritas : 100 Persen",
+      "status": "active",
+      "year": 2026,
+      "leader": "Luhur Partomo Hudoyo",
+      "members": [
+        "Ahmad Risal",
+        "Annisa Nur Kusuma",
+        "Apriliansyah",
+        "Daniel Kurnia Nugraha Sitorus",
+        "Hasbiah",
+        "Isna Aissatussiri Asshidiq",
+        "Lidya Rosselindo Pelima",
+        "Mayanti Meylisa Toding",
+        "Muhammad Zein",
+        "Nurainun Fitriani",
+        "Sepryati Matoory",
+        "Winansibutet"
+      ],
+      "objectives": [
+        "Peningkatan Pembangunan Zona Integritas"
+      ]
+    }
+  ],
+  "work_items": [
+    {
+      "project": "Pengolahan Sakernas",
+      "year": 2026,
+      "number": 1,
+      "description": "Persiapan dan koordinasi pelaksanaan Pengolahan Sakernas"
+    },
+    {
+      "project": "Pengolahan Sakernas",
+      "year": 2026,
+      "number": 2,
+      "description": "Pelaksanaan kegiatan Pengolahan Sakernas"
+    },
+    {
+      "project": "Pengolahan Sakernas",
+      "year": 2026,
+      "number": 3,
+      "description": "Penyusunan laporan hasil Pengolahan Sakernas"
+    },
+    {
+      "project": "Berita Resmi Statistik (BRS) Indeks Ketimpangan Gender (IKG)",
+      "year": 2026,
+      "number": 1,
+      "description": "Persiapan dan koordinasi pelaksanaan Berita Resmi Statistik (BRS) Indeks Ketimpangan Gender (IKG)"
+    },
+    {
+      "project": "Berita Resmi Statistik (BRS) Indeks Ketimpangan Gender (IKG)",
+      "year": 2026,
+      "number": 2,
+      "description": "Pelaksanaan kegiatan Berita Resmi Statistik (BRS) Indeks Ketimpangan Gender (IKG)"
+    },
+    {
+      "project": "Berita Resmi Statistik (BRS) Indeks Ketimpangan Gender (IKG)",
+      "year": 2026,
+      "number": 3,
+      "description": "Penyusunan laporan hasil Berita Resmi Statistik (BRS) Indeks Ketimpangan Gender (IKG)"
+    },
+    {
+      "project": "Publikasi Indeks Pembangunan Manusia (IPM) Tahun 2025",
+      "year": 2026,
+      "number": 1,
+      "description": "Persiapan dan koordinasi pelaksanaan Publikasi Indeks Pembangunan Manusia (IPM) Tahun 2025"
+    },
+    {
+      "project": "Publikasi Indeks Pembangunan Manusia (IPM) Tahun 2025",
+      "year": 2026,
+      "number": 2,
+      "description": "Pelaksanaan kegiatan Publikasi Indeks Pembangunan Manusia (IPM) Tahun 2025"
+    },
+    {
+      "project": "Publikasi Indeks Pembangunan Manusia (IPM) Tahun 2025",
+      "year": 2026,
+      "number": 3,
+      "description": "Penyusunan laporan hasil Publikasi Indeks Pembangunan Manusia (IPM) Tahun 2025"
+    },
+    {
+      "project": "Berita Resmi Statistik (BRS) Indeks Pembangunan Manusia (IPM) Tahun 2026",
+      "year": 2026,
+      "number": 1,
+      "description": "Persiapan dan koordinasi pelaksanaan Berita Resmi Statistik (BRS) Indeks Pembangunan Manusia (IPM) Tahun 2026"
+    },
+    {
+      "project": "Berita Resmi Statistik (BRS) Indeks Pembangunan Manusia (IPM) Tahun 2026",
+      "year": 2026,
+      "number": 2,
+      "description": "Pelaksanaan kegiatan Berita Resmi Statistik (BRS) Indeks Pembangunan Manusia (IPM) Tahun 2026"
+    },
+    {
+      "project": "Berita Resmi Statistik (BRS) Indeks Pembangunan Manusia (IPM) Tahun 2026",
+      "year": 2026,
+      "number": 3,
+      "description": "Penyusunan laporan hasil Berita Resmi Statistik (BRS) Indeks Pembangunan Manusia (IPM) Tahun 2026"
+    },
+    {
+      "project": "Publikasi Statistik Daerah Provinsi Sulawesi Tengah 2026",
+      "year": 2026,
+      "number": 1,
+      "description": "Persiapan dan koordinasi pelaksanaan Publikasi Statistik Daerah Provinsi Sulawesi Tengah 2026"
+    },
+    {
+      "project": "Publikasi Statistik Daerah Provinsi Sulawesi Tengah 2026",
+      "year": 2026,
+      "number": 2,
+      "description": "Pelaksanaan kegiatan Publikasi Statistik Daerah Provinsi Sulawesi Tengah 2026"
+    },
+    {
+      "project": "Publikasi Statistik Daerah Provinsi Sulawesi Tengah 2026",
+      "year": 2026,
+      "number": 3,
+      "description": "Penyusunan laporan hasil Publikasi Statistik Daerah Provinsi Sulawesi Tengah 2026"
+    },
+    {
+      "project": "Publikasi Analisis Isu Terkini Provinsi Sulawesi Tengah 2026",
+      "year": 2026,
+      "number": 1,
+      "description": "Persiapan dan koordinasi pelaksanaan Publikasi Analisis Isu Terkini Provinsi Sulawesi Tengah 2026"
+    },
+    {
+      "project": "Publikasi Analisis Isu Terkini Provinsi Sulawesi Tengah 2026",
+      "year": 2026,
+      "number": 2,
+      "description": "Pelaksanaan kegiatan Publikasi Analisis Isu Terkini Provinsi Sulawesi Tengah 2026"
+    },
+    {
+      "project": "Publikasi Analisis Isu Terkini Provinsi Sulawesi Tengah 2026",
+      "year": 2026,
+      "number": 3,
+      "description": "Penyusunan laporan hasil Publikasi Analisis Isu Terkini Provinsi Sulawesi Tengah 2026"
+    },
+    {
+      "project": "Publikasi Indikator Kesejahteraan Rakyat 2026",
+      "year": 2026,
+      "number": 1,
+      "description": "Persiapan dan koordinasi pelaksanaan Publikasi Indikator Kesejahteraan Rakyat 2026"
+    },
+    {
+      "project": "Publikasi Indikator Kesejahteraan Rakyat 2026",
+      "year": 2026,
+      "number": 2,
+      "description": "Pelaksanaan kegiatan Publikasi Indikator Kesejahteraan Rakyat 2026"
+    },
+    {
+      "project": "Publikasi Indikator Kesejahteraan Rakyat 2026",
+      "year": 2026,
+      "number": 3,
+      "description": "Penyusunan laporan hasil Publikasi Indikator Kesejahteraan Rakyat 2026"
+    },
+    {
+      "project": "Pelaksanaan Kegiatan Desa Cinta Statistik (Desa Cantik)",
+      "year": 2026,
+      "number": 1,
+      "description": "Persiapan dan koordinasi pelaksanaan Pelaksanaan Kegiatan Desa Cinta Statistik (Desa Cantik)"
+    },
+    {
+      "project": "Pelaksanaan Kegiatan Desa Cinta Statistik (Desa Cantik)",
+      "year": 2026,
+      "number": 2,
+      "description": "Pelaksanaan kegiatan Pelaksanaan Kegiatan Desa Cinta Statistik (Desa Cantik)"
+    },
+    {
+      "project": "Pelaksanaan Kegiatan Desa Cinta Statistik (Desa Cantik)",
+      "year": 2026,
+      "number": 3,
+      "description": "Penyusunan laporan hasil Pelaksanaan Kegiatan Desa Cinta Statistik (Desa Cantik)"
+    },
+    {
+      "project": "Pelaksanaan Kegiatan Statistik Potensi Desa (PODES)",
+      "year": 2026,
+      "number": 1,
+      "description": "Persiapan dan koordinasi pelaksanaan Pelaksanaan Kegiatan Statistik Potensi Desa (PODES)"
+    },
+    {
+      "project": "Pelaksanaan Kegiatan Statistik Potensi Desa (PODES)",
+      "year": 2026,
+      "number": 2,
+      "description": "Pelaksanaan kegiatan Pelaksanaan Kegiatan Statistik Potensi Desa (PODES)"
+    },
+    {
+      "project": "Pelaksanaan Kegiatan Statistik Potensi Desa (PODES)",
+      "year": 2026,
+      "number": 3,
+      "description": "Penyusunan laporan hasil Pelaksanaan Kegiatan Statistik Potensi Desa (PODES)"
+    },
+    {
+      "project": "Promosi Statistik",
+      "year": 2026,
+      "number": 1,
+      "description": "Persiapan dan koordinasi pelaksanaan Promosi Statistik"
+    },
+    {
+      "project": "Promosi Statistik",
+      "year": 2026,
+      "number": 2,
+      "description": "Pelaksanaan kegiatan Promosi Statistik"
+    },
+    {
+      "project": "Promosi Statistik",
+      "year": 2026,
+      "number": 3,
+      "description": "Penyusunan laporan hasil Promosi Statistik"
+    },
+    {
+      "project": "Laporan Protokoler",
+      "year": 2026,
+      "number": 1,
+      "description": "Persiapan dan koordinasi pelaksanaan Laporan Protokoler"
+    },
+    {
+      "project": "Laporan Protokoler",
+      "year": 2026,
+      "number": 2,
+      "description": "Pelaksanaan kegiatan Laporan Protokoler"
+    },
+    {
+      "project": "Laporan Protokoler",
+      "year": 2026,
+      "number": 3,
+      "description": "Penyusunan laporan hasil Laporan Protokoler"
+    },
+    {
+      "project": "Indikator Sasaran Visi Indonesia Emas dan 45 Indikator Utama Pembangunan",
+      "year": 2026,
+      "number": 1,
+      "description": "Persiapan dan koordinasi pelaksanaan Indikator Sasaran Visi Indonesia Emas dan 45 Indikator Utama Pembangunan"
+    },
+    {
+      "project": "Indikator Sasaran Visi Indonesia Emas dan 45 Indikator Utama Pembangunan",
+      "year": 2026,
+      "number": 2,
+      "description": "Pelaksanaan kegiatan Indikator Sasaran Visi Indonesia Emas dan 45 Indikator Utama Pembangunan"
+    },
+    {
+      "project": "Indikator Sasaran Visi Indonesia Emas dan 45 Indikator Utama Pembangunan",
+      "year": 2026,
+      "number": 3,
+      "description": "Penyusunan laporan hasil Indikator Sasaran Visi Indonesia Emas dan 45 Indikator Utama Pembangunan"
+    },
+    {
+      "project": "Pelaksanaan Kegiatan Statistik Politik dan Keamanan (POLKAM)",
+      "year": 2026,
+      "number": 1,
+      "description": "Persiapan dan koordinasi pelaksanaan Pelaksanaan Kegiatan Statistik Politik dan Keamanan (POLKAM)"
+    },
+    {
+      "project": "Pelaksanaan Kegiatan Statistik Politik dan Keamanan (POLKAM)",
+      "year": 2026,
+      "number": 2,
+      "description": "Pelaksanaan kegiatan Pelaksanaan Kegiatan Statistik Politik dan Keamanan (POLKAM)"
+    },
+    {
+      "project": "Pelaksanaan Kegiatan Statistik Politik dan Keamanan (POLKAM)",
+      "year": 2026,
+      "number": 3,
+      "description": "Penyusunan laporan hasil Pelaksanaan Kegiatan Statistik Politik dan Keamanan (POLKAM)"
+    },
+    {
+      "project": "Koordinasi Dinas dengan sekretariat ISV IUP dalam Penyediaan Indikator Sasaran Visi dan 45 Indikator Utama Pembangunan",
+      "year": 2026,
+      "number": 1,
+      "description": "Persiapan dan koordinasi pelaksanaan Koordinasi Dinas dengan sekretariat ISV IUP dalam Penyediaan Indikator Sasaran Visi dan 45 Indikator Utama Pembangunan"
+    },
+    {
+      "project": "Koordinasi Dinas dengan sekretariat ISV IUP dalam Penyediaan Indikator Sasaran Visi dan 45 Indikator Utama Pembangunan",
+      "year": 2026,
+      "number": 2,
+      "description": "Pelaksanaan kegiatan Koordinasi Dinas dengan sekretariat ISV IUP dalam Penyediaan Indikator Sasaran Visi dan 45 Indikator Utama Pembangunan"
+    },
+    {
+      "project": "Koordinasi Dinas dengan sekretariat ISV IUP dalam Penyediaan Indikator Sasaran Visi dan 45 Indikator Utama Pembangunan",
+      "year": 2026,
+      "number": 3,
+      "description": "Penyusunan laporan hasil Koordinasi Dinas dengan sekretariat ISV IUP dalam Penyediaan Indikator Sasaran Visi dan 45 Indikator Utama Pembangunan"
+    },
+    {
+      "project": "Pelaksanaan Kegiatan Statistik Lingkungan Hidup Indonesia (SLHI) dan Sumber Daya Laut dan Pesisir (SDLP)",
+      "year": 2026,
+      "number": 1,
+      "description": "Persiapan dan koordinasi pelaksanaan Pelaksanaan Kegiatan Statistik Lingkungan Hidup Indonesia (SLHI) dan Sumber Daya Laut dan Pesisir (SDLP)"
+    },
+    {
+      "project": "Pelaksanaan Kegiatan Statistik Lingkungan Hidup Indonesia (SLHI) dan Sumber Daya Laut dan Pesisir (SDLP)",
+      "year": 2026,
+      "number": 2,
+      "description": "Pelaksanaan kegiatan Pelaksanaan Kegiatan Statistik Lingkungan Hidup Indonesia (SLHI) dan Sumber Daya Laut dan Pesisir (SDLP)"
+    },
+    {
+      "project": "Pelaksanaan Kegiatan Statistik Lingkungan Hidup Indonesia (SLHI) dan Sumber Daya Laut dan Pesisir (SDLP)",
+      "year": 2026,
+      "number": 3,
+      "description": "Penyusunan laporan hasil Pelaksanaan Kegiatan Statistik Lingkungan Hidup Indonesia (SLHI) dan Sumber Daya Laut dan Pesisir (SDLP)"
+    },
+    {
+      "project": "Pelaksanaan Kegiatan Statistik Kemiskinan",
+      "year": 2026,
+      "number": 1,
+      "description": "Persiapan dan koordinasi pelaksanaan Pelaksanaan Kegiatan Statistik Kemiskinan"
+    },
+    {
+      "project": "Pelaksanaan Kegiatan Statistik Kemiskinan",
+      "year": 2026,
+      "number": 2,
+      "description": "Pelaksanaan kegiatan Pelaksanaan Kegiatan Statistik Kemiskinan"
+    },
+    {
+      "project": "Pelaksanaan Kegiatan Statistik Kemiskinan",
+      "year": 2026,
+      "number": 3,
+      "description": "Penyusunan laporan hasil Pelaksanaan Kegiatan Statistik Kemiskinan"
+    },
+    {
+      "project": "Survey Survey Harga Produsen",
+      "year": 2026,
+      "number": 1,
+      "description": "Persiapan dan koordinasi pelaksanaan Survey Survey Harga Produsen"
+    },
+    {
+      "project": "Survey Survey Harga Produsen",
+      "year": 2026,
+      "number": 2,
+      "description": "Pelaksanaan kegiatan Survey Survey Harga Produsen"
+    },
+    {
+      "project": "Survey Survey Harga Produsen",
+      "year": 2026,
+      "number": 3,
+      "description": "Penyusunan laporan hasil Survey Survey Harga Produsen"
+    },
+    {
+      "project": "Survei Harga Konsumen",
+      "year": 2026,
+      "number": 1,
+      "description": "Persiapan dan koordinasi pelaksanaan Survei Harga Konsumen"
+    },
+    {
+      "project": "Survei Harga Konsumen",
+      "year": 2026,
+      "number": 2,
+      "description": "Pelaksanaan kegiatan Survei Harga Konsumen"
+    },
+    {
+      "project": "Survei Harga Konsumen",
+      "year": 2026,
+      "number": 3,
+      "description": "Penyusunan laporan hasil Survei Harga Konsumen"
+    },
+    {
+      "project": "1. PUBLIKASI/LAPORAN STATISTIK KEUANGAN, 2. PUBLIKASI/LAPORAN STATISTIK TEKNOLOGI INFORMASI, 3.PUBLIKASI/LAPORAN STATISTIK PARIWISATA ",
+      "year": 2026,
+      "number": 1,
+      "description": "Persiapan dan koordinasi pelaksanaan 1. PUBLIKASI/LAPORAN STATISTIK KEUANGAN, 2. PUBLIKASI/LAPORAN STATISTIK TEKNOLOGI INFORMASI, 3.PUBLIKASI/LAPORAN STATISTIK PARIWISATA "
+    },
+    {
+      "project": "1. PUBLIKASI/LAPORAN STATISTIK KEUANGAN, 2. PUBLIKASI/LAPORAN STATISTIK TEKNOLOGI INFORMASI, 3.PUBLIKASI/LAPORAN STATISTIK PARIWISATA ",
+      "year": 2026,
+      "number": 2,
+      "description": "Pelaksanaan kegiatan 1. PUBLIKASI/LAPORAN STATISTIK KEUANGAN, 2. PUBLIKASI/LAPORAN STATISTIK TEKNOLOGI INFORMASI, 3.PUBLIKASI/LAPORAN STATISTIK PARIWISATA "
+    },
+    {
+      "project": "1. PUBLIKASI/LAPORAN STATISTIK KEUANGAN, 2. PUBLIKASI/LAPORAN STATISTIK TEKNOLOGI INFORMASI, 3.PUBLIKASI/LAPORAN STATISTIK PARIWISATA ",
+      "year": 2026,
+      "number": 3,
+      "description": "Penyusunan laporan hasil 1. PUBLIKASI/LAPORAN STATISTIK KEUANGAN, 2. PUBLIKASI/LAPORAN STATISTIK TEKNOLOGI INFORMASI, 3.PUBLIKASI/LAPORAN STATISTIK PARIWISATA "
+    },
+    {
+      "project": "Penyediaan data Statistik Transportasi",
+      "year": 2026,
+      "number": 1,
+      "description": "Persiapan dan koordinasi pelaksanaan Penyediaan data Statistik Transportasi"
+    },
+    {
+      "project": "Penyediaan data Statistik Transportasi",
+      "year": 2026,
+      "number": 2,
+      "description": "Pelaksanaan kegiatan Penyediaan data Statistik Transportasi"
+    },
+    {
+      "project": "Penyediaan data Statistik Transportasi",
+      "year": 2026,
+      "number": 3,
+      "description": "Penyusunan laporan hasil Penyediaan data Statistik Transportasi"
+    },
+    {
+      "project": "Penyediaan data Statistik Perdagangan Luar Negeri",
+      "year": 2026,
+      "number": 1,
+      "description": "Persiapan dan koordinasi pelaksanaan Penyediaan data Statistik Perdagangan Luar Negeri"
+    },
+    {
+      "project": "Penyediaan data Statistik Perdagangan Luar Negeri",
+      "year": 2026,
+      "number": 2,
+      "description": "Pelaksanaan kegiatan Penyediaan data Statistik Perdagangan Luar Negeri"
+    },
+    {
+      "project": "Penyediaan data Statistik Perdagangan Luar Negeri",
+      "year": 2026,
+      "number": 3,
+      "description": "Penyusunan laporan hasil Penyediaan data Statistik Perdagangan Luar Negeri"
+    },
+    {
+      "project": "Pengembangan Inovasi",
+      "year": 2026,
+      "number": 1,
+      "description": "Persiapan dan koordinasi pelaksanaan Pengembangan Inovasi"
+    },
+    {
+      "project": "Pengembangan Inovasi",
+      "year": 2026,
+      "number": 2,
+      "description": "Pelaksanaan kegiatan Pengembangan Inovasi"
+    },
+    {
+      "project": "Pengembangan Inovasi",
+      "year": 2026,
+      "number": 3,
+      "description": "Penyusunan laporan hasil Pengembangan Inovasi"
+    },
+    {
+      "project": "Penyediaan data Statistik Perdagangan Dalam Negeri",
+      "year": 2026,
+      "number": 1,
+      "description": "Persiapan dan koordinasi pelaksanaan Penyediaan data Statistik Perdagangan Dalam Negeri"
+    },
+    {
+      "project": "Penyediaan data Statistik Perdagangan Dalam Negeri",
+      "year": 2026,
+      "number": 2,
+      "description": "Pelaksanaan kegiatan Penyediaan data Statistik Perdagangan Dalam Negeri"
+    },
+    {
+      "project": "Penyediaan data Statistik Perdagangan Dalam Negeri",
+      "year": 2026,
+      "number": 3,
+      "description": "Penyusunan laporan hasil Penyediaan data Statistik Perdagangan Dalam Negeri"
+    },
+    {
+      "project": "Penyediaan data Statistik Pola Usaha Non Pertanian",
+      "year": 2026,
+      "number": 1,
+      "description": "Persiapan dan koordinasi pelaksanaan Penyediaan data Statistik Pola Usaha Non Pertanian"
+    },
+    {
+      "project": "Penyediaan data Statistik Pola Usaha Non Pertanian",
+      "year": 2026,
+      "number": 2,
+      "description": "Pelaksanaan kegiatan Penyediaan data Statistik Pola Usaha Non Pertanian"
+    },
+    {
+      "project": "Penyediaan data Statistik Pola Usaha Non Pertanian",
+      "year": 2026,
+      "number": 3,
+      "description": "Penyusunan laporan hasil Penyediaan data Statistik Pola Usaha Non Pertanian"
+    },
+    {
+      "project": "Metodologi dan Pengolahan Survei StatDukNaker",
+      "year": 2026,
+      "number": 1,
+      "description": "Persiapan dan koordinasi pelaksanaan Metodologi dan Pengolahan Survei StatDukNaker"
+    },
+    {
+      "project": "Metodologi dan Pengolahan Survei StatDukNaker",
+      "year": 2026,
+      "number": 2,
+      "description": "Pelaksanaan kegiatan Metodologi dan Pengolahan Survei StatDukNaker"
+    },
+    {
+      "project": "Metodologi dan Pengolahan Survei StatDukNaker",
+      "year": 2026,
+      "number": 3,
+      "description": "Penyusunan laporan hasil Metodologi dan Pengolahan Survei StatDukNaker"
+    },
+    {
+      "project": "Metodologi dan Pengolahan Survei StatKesRa",
+      "year": 2026,
+      "number": 1,
+      "description": "Persiapan dan koordinasi pelaksanaan Metodologi dan Pengolahan Survei StatKesRa"
+    },
+    {
+      "project": "Metodologi dan Pengolahan Survei StatKesRa",
+      "year": 2026,
+      "number": 2,
+      "description": "Pelaksanaan kegiatan Metodologi dan Pengolahan Survei StatKesRa"
+    },
+    {
+      "project": "Metodologi dan Pengolahan Survei StatKesRa",
+      "year": 2026,
+      "number": 3,
+      "description": "Penyusunan laporan hasil Metodologi dan Pengolahan Survei StatKesRa"
+    },
+    {
+      "project": "Metodologi dan Pengolahan Survei StatHansos",
+      "year": 2026,
+      "number": 1,
+      "description": "Persiapan dan koordinasi pelaksanaan Metodologi dan Pengolahan Survei StatHansos"
+    },
+    {
+      "project": "Metodologi dan Pengolahan Survei StatHansos",
+      "year": 2026,
+      "number": 2,
+      "description": "Pelaksanaan kegiatan Metodologi dan Pengolahan Survei StatHansos"
+    },
+    {
+      "project": "Metodologi dan Pengolahan Survei StatHansos",
+      "year": 2026,
+      "number": 3,
+      "description": "Penyusunan laporan hasil Metodologi dan Pengolahan Survei StatHansos"
+    },
+    {
+      "project": "Pendukung Kegiatan Statistik Distribusi",
+      "year": 2026,
+      "number": 1,
+      "description": "Persiapan dan koordinasi pelaksanaan Pendukung Kegiatan Statistik Distribusi"
+    },
+    {
+      "project": "Pendukung Kegiatan Statistik Distribusi",
+      "year": 2026,
+      "number": 2,
+      "description": "Pelaksanaan kegiatan Pendukung Kegiatan Statistik Distribusi"
+    },
+    {
+      "project": "Pendukung Kegiatan Statistik Distribusi",
+      "year": 2026,
+      "number": 3,
+      "description": "Penyusunan laporan hasil Pendukung Kegiatan Statistik Distribusi"
+    },
+    {
+      "project": "Metodologi dan Pengolahan Survei StatHayati",
+      "year": 2026,
+      "number": 1,
+      "description": "Persiapan dan koordinasi pelaksanaan Metodologi dan Pengolahan Survei StatHayati"
+    },
+    {
+      "project": "Metodologi dan Pengolahan Survei StatHayati",
+      "year": 2026,
+      "number": 2,
+      "description": "Pelaksanaan kegiatan Metodologi dan Pengolahan Survei StatHayati"
+    },
+    {
+      "project": "Metodologi dan Pengolahan Survei StatHayati",
+      "year": 2026,
+      "number": 3,
+      "description": "Penyusunan laporan hasil Metodologi dan Pengolahan Survei StatHayati"
+    },
+    {
+      "project": "Metodologi dan Pengolahan Survei StatIndustri",
+      "year": 2026,
+      "number": 1,
+      "description": "Persiapan dan koordinasi pelaksanaan Metodologi dan Pengolahan Survei StatIndustri"
+    },
+    {
+      "project": "Metodologi dan Pengolahan Survei StatIndustri",
+      "year": 2026,
+      "number": 2,
+      "description": "Pelaksanaan kegiatan Metodologi dan Pengolahan Survei StatIndustri"
+    },
+    {
+      "project": "Metodologi dan Pengolahan Survei StatIndustri",
+      "year": 2026,
+      "number": 3,
+      "description": "Penyusunan laporan hasil Metodologi dan Pengolahan Survei StatIndustri"
+    },
+    {
+      "project": "Metodologi dan Pengolahan Survei StatDistribusi",
+      "year": 2026,
+      "number": 1,
+      "description": "Persiapan dan koordinasi pelaksanaan Metodologi dan Pengolahan Survei StatDistribusi"
+    },
+    {
+      "project": "Metodologi dan Pengolahan Survei StatDistribusi",
+      "year": 2026,
+      "number": 2,
+      "description": "Pelaksanaan kegiatan Metodologi dan Pengolahan Survei StatDistribusi"
+    },
+    {
+      "project": "Metodologi dan Pengolahan Survei StatDistribusi",
+      "year": 2026,
+      "number": 3,
+      "description": "Penyusunan laporan hasil Metodologi dan Pengolahan Survei StatDistribusi"
+    },
+    {
+      "project": "Metodologi dan Pengolahan Survei Neraca",
+      "year": 2026,
+      "number": 1,
+      "description": "Persiapan dan koordinasi pelaksanaan Metodologi dan Pengolahan Survei Neraca"
+    },
+    {
+      "project": "Metodologi dan Pengolahan Survei Neraca",
+      "year": 2026,
+      "number": 2,
+      "description": "Pelaksanaan kegiatan Metodologi dan Pengolahan Survei Neraca"
+    },
+    {
+      "project": "Metodologi dan Pengolahan Survei Neraca",
+      "year": 2026,
+      "number": 3,
+      "description": "Penyusunan laporan hasil Metodologi dan Pengolahan Survei Neraca"
+    },
+    {
+      "project": "Penyediaan data Statistik Transportasi",
+      "year": 2026,
+      "number": 1,
+      "description": "Persiapan dan koordinasi pelaksanaan Penyediaan data Statistik Transportasi"
+    },
+    {
+      "project": "Penyediaan data Statistik Transportasi",
+      "year": 2026,
+      "number": 2,
+      "description": "Pelaksanaan kegiatan Penyediaan data Statistik Transportasi"
+    },
+    {
+      "project": "Penyediaan data Statistik Transportasi",
+      "year": 2026,
+      "number": 3,
+      "description": "Penyusunan laporan hasil Penyediaan data Statistik Transportasi"
+    },
+    {
+      "project": "Manajemen Mitra",
+      "year": 2026,
+      "number": 1,
+      "description": "Persiapan dan koordinasi pelaksanaan Manajemen Mitra"
+    },
+    {
+      "project": "Manajemen Mitra",
+      "year": 2026,
+      "number": 2,
+      "description": "Pelaksanaan kegiatan Manajemen Mitra"
+    },
+    {
+      "project": "Manajemen Mitra",
+      "year": 2026,
+      "number": 3,
+      "description": "Penyusunan laporan hasil Manajemen Mitra"
+    },
+    {
+      "project": "Pengembangan Kapasitas SDM TI",
+      "year": 2026,
+      "number": 1,
+      "description": "Persiapan dan koordinasi pelaksanaan Pengembangan Kapasitas SDM TI"
+    },
+    {
+      "project": "Pengembangan Kapasitas SDM TI",
+      "year": 2026,
+      "number": 2,
+      "description": "Pelaksanaan kegiatan Pengembangan Kapasitas SDM TI"
+    },
+    {
+      "project": "Pengembangan Kapasitas SDM TI",
+      "year": 2026,
+      "number": 3,
+      "description": "Penyusunan laporan hasil Pengembangan Kapasitas SDM TI"
+    },
+    {
+      "project": "Pengelolaan Hardware dan Software",
+      "year": 2026,
+      "number": 1,
+      "description": "Persiapan dan koordinasi pelaksanaan Pengelolaan Hardware dan Software"
+    },
+    {
+      "project": "Pengelolaan Hardware dan Software",
+      "year": 2026,
+      "number": 2,
+      "description": "Pelaksanaan kegiatan Pengelolaan Hardware dan Software"
+    },
+    {
+      "project": "Pengelolaan Hardware dan Software",
+      "year": 2026,
+      "number": 3,
+      "description": "Penyusunan laporan hasil Pengelolaan Hardware dan Software"
+    },
+    {
+      "project": "Pengelolaan Jaringan dan Internet",
+      "year": 2026,
+      "number": 1,
+      "description": "Persiapan dan koordinasi pelaksanaan Pengelolaan Jaringan dan Internet"
+    },
+    {
+      "project": "Pengelolaan Jaringan dan Internet",
+      "year": 2026,
+      "number": 2,
+      "description": "Pelaksanaan kegiatan Pengelolaan Jaringan dan Internet"
+    },
+    {
+      "project": "Pengelolaan Jaringan dan Internet",
+      "year": 2026,
+      "number": 3,
+      "description": "Penyusunan laporan hasil Pengelolaan Jaringan dan Internet"
+    },
+    {
+      "project": "Penyediaan data Statistik Perdagangan Luar Negeri",
+      "year": 2026,
+      "number": 1,
+      "description": "Persiapan dan koordinasi pelaksanaan Penyediaan data Statistik Perdagangan Luar Negeri"
+    },
+    {
+      "project": "Penyediaan data Statistik Perdagangan Luar Negeri",
+      "year": 2026,
+      "number": 2,
+      "description": "Pelaksanaan kegiatan Penyediaan data Statistik Perdagangan Luar Negeri"
+    },
+    {
+      "project": "Penyediaan data Statistik Perdagangan Luar Negeri",
+      "year": 2026,
+      "number": 3,
+      "description": "Penyusunan laporan hasil Penyediaan data Statistik Perdagangan Luar Negeri"
+    },
+    {
+      "project": "Penetapan Kerangka Geospasial dan Muatan Wilkerstat SE2026",
+      "year": 2026,
+      "number": 1,
+      "description": "Persiapan dan koordinasi pelaksanaan Penetapan Kerangka Geospasial dan Muatan Wilkerstat SE2026"
+    },
+    {
+      "project": "Penetapan Kerangka Geospasial dan Muatan Wilkerstat SE2026",
+      "year": 2026,
+      "number": 2,
+      "description": "Pelaksanaan kegiatan Penetapan Kerangka Geospasial dan Muatan Wilkerstat SE2026"
+    },
+    {
+      "project": "Penetapan Kerangka Geospasial dan Muatan Wilkerstat SE2026",
+      "year": 2026,
+      "number": 3,
+      "description": "Penyusunan laporan hasil Penetapan Kerangka Geospasial dan Muatan Wilkerstat SE2026"
+    },
+    {
+      "project": "Revisi Anggaran",
+      "year": 2026,
+      "number": 1,
+      "description": "Persiapan dan koordinasi pelaksanaan Revisi Anggaran"
+    },
+    {
+      "project": "Revisi Anggaran",
+      "year": 2026,
+      "number": 2,
+      "description": "Pelaksanaan kegiatan Revisi Anggaran"
+    },
+    {
+      "project": "Revisi Anggaran",
+      "year": 2026,
+      "number": 3,
+      "description": "Penyusunan laporan hasil Revisi Anggaran"
+    },
+    {
+      "project": "Penyiapan Prelist SE2026",
+      "year": 2026,
+      "number": 1,
+      "description": "Persiapan dan koordinasi pelaksanaan Penyiapan Prelist SE2026"
+    },
+    {
+      "project": "Penyiapan Prelist SE2026",
+      "year": 2026,
+      "number": 2,
+      "description": "Pelaksanaan kegiatan Penyiapan Prelist SE2026"
+    },
+    {
+      "project": "Penyiapan Prelist SE2026",
+      "year": 2026,
+      "number": 3,
+      "description": "Penyusunan laporan hasil Penyiapan Prelist SE2026"
+    },
+    {
+      "project": "Perencanaan Anggaran",
+      "year": 2026,
+      "number": 1,
+      "description": "Persiapan dan koordinasi pelaksanaan Perencanaan Anggaran"
+    },
+    {
+      "project": "Perencanaan Anggaran",
+      "year": 2026,
+      "number": 2,
+      "description": "Pelaksanaan kegiatan Perencanaan Anggaran"
+    },
+    {
+      "project": "Perencanaan Anggaran",
+      "year": 2026,
+      "number": 3,
+      "description": "Penyusunan laporan hasil Perencanaan Anggaran"
+    },
+    {
+      "project": "PES SE2026",
+      "year": 2026,
+      "number": 1,
+      "description": "Persiapan dan koordinasi pelaksanaan PES SE2026"
+    },
+    {
+      "project": "PES SE2026",
+      "year": 2026,
+      "number": 2,
+      "description": "Pelaksanaan kegiatan PES SE2026"
+    },
+    {
+      "project": "PES SE2026",
+      "year": 2026,
+      "number": 3,
+      "description": "Penyusunan laporan hasil PES SE2026"
+    },
+    {
+      "project": "Monev Kinerja Anggaran",
+      "year": 2026,
+      "number": 1,
+      "description": "Persiapan dan koordinasi pelaksanaan Monev Kinerja Anggaran"
+    },
+    {
+      "project": "Monev Kinerja Anggaran",
+      "year": 2026,
+      "number": 2,
+      "description": "Pelaksanaan kegiatan Monev Kinerja Anggaran"
+    },
+    {
+      "project": "Monev Kinerja Anggaran",
+      "year": 2026,
+      "number": 3,
+      "description": "Penyusunan laporan hasil Monev Kinerja Anggaran"
+    },
+    {
+      "project": "Penyiapan Press Release",
+      "year": 2026,
+      "number": 1,
+      "description": "Persiapan dan koordinasi pelaksanaan Penyiapan Press Release"
+    },
+    {
+      "project": "Penyiapan Press Release",
+      "year": 2026,
+      "number": 2,
+      "description": "Pelaksanaan kegiatan Penyiapan Press Release"
+    },
+    {
+      "project": "Penyiapan Press Release",
+      "year": 2026,
+      "number": 3,
+      "description": "Penyusunan laporan hasil Penyiapan Press Release"
+    },
+    {
+      "project": "Masterplan Sarana dan Prasarana",
+      "year": 2026,
+      "number": 1,
+      "description": "Persiapan dan koordinasi pelaksanaan Masterplan Sarana dan Prasarana"
+    },
+    {
+      "project": "Masterplan Sarana dan Prasarana",
+      "year": 2026,
+      "number": 2,
+      "description": "Pelaksanaan kegiatan Masterplan Sarana dan Prasarana"
+    },
+    {
+      "project": "Masterplan Sarana dan Prasarana",
+      "year": 2026,
+      "number": 3,
+      "description": "Penyusunan laporan hasil Masterplan Sarana dan Prasarana"
+    },
+    {
+      "project": "Penyusunan Publikasi Provinsi Sulawesi Tengah Dalam Angka 2026",
+      "year": 2026,
+      "number": 1,
+      "description": "Persiapan dan koordinasi pelaksanaan Penyusunan Publikasi Provinsi Sulawesi Tengah Dalam Angka 2026"
+    },
+    {
+      "project": "Penyusunan Publikasi Provinsi Sulawesi Tengah Dalam Angka 2026",
+      "year": 2026,
+      "number": 2,
+      "description": "Pelaksanaan kegiatan Penyusunan Publikasi Provinsi Sulawesi Tengah Dalam Angka 2026"
+    },
+    {
+      "project": "Penyusunan Publikasi Provinsi Sulawesi Tengah Dalam Angka 2026",
+      "year": 2026,
+      "number": 3,
+      "description": "Penyusunan laporan hasil Penyusunan Publikasi Provinsi Sulawesi Tengah Dalam Angka 2026"
+    },
+    {
+      "project": "Pengelolaan MFD",
+      "year": 2026,
+      "number": 1,
+      "description": "Persiapan dan koordinasi pelaksanaan Pengelolaan MFD"
+    },
+    {
+      "project": "Pengelolaan MFD",
+      "year": 2026,
+      "number": 2,
+      "description": "Pelaksanaan kegiatan Pengelolaan MFD"
+    },
+    {
+      "project": "Pengelolaan MFD",
+      "year": 2026,
+      "number": 3,
+      "description": "Penyusunan laporan hasil Pengelolaan MFD"
+    },
+    {
+      "project": "Survei Harga Barang dan Jasa",
+      "year": 2026,
+      "number": 1,
+      "description": "Persiapan dan koordinasi pelaksanaan Survei Harga Barang dan Jasa"
+    },
+    {
+      "project": "Survei Harga Barang dan Jasa",
+      "year": 2026,
+      "number": 2,
+      "description": "Pelaksanaan kegiatan Survei Harga Barang dan Jasa"
+    },
+    {
+      "project": "Survei Harga Barang dan Jasa",
+      "year": 2026,
+      "number": 3,
+      "description": "Penyusunan laporan hasil Survei Harga Barang dan Jasa"
+    },
+    {
+      "project": "Administrasi Perencanaan Anggaran",
+      "year": 2026,
+      "number": 1,
+      "description": "Persiapan dan koordinasi pelaksanaan Administrasi Perencanaan Anggaran"
+    },
+    {
+      "project": "Administrasi Perencanaan Anggaran",
+      "year": 2026,
+      "number": 2,
+      "description": "Pelaksanaan kegiatan Administrasi Perencanaan Anggaran"
+    },
+    {
+      "project": "Administrasi Perencanaan Anggaran",
+      "year": 2026,
+      "number": 3,
+      "description": "Penyusunan laporan hasil Administrasi Perencanaan Anggaran"
+    },
+    {
+      "project": "Penyediaan Aspek Administrasi, Hubungan Masyarakat dan Manajemen Resiko",
+      "year": 2026,
+      "number": 1,
+      "description": "Persiapan dan koordinasi pelaksanaan Penyediaan Aspek Administrasi, Hubungan Masyarakat dan Manajemen Resiko"
+    },
+    {
+      "project": "Penyediaan Aspek Administrasi, Hubungan Masyarakat dan Manajemen Resiko",
+      "year": 2026,
+      "number": 2,
+      "description": "Pelaksanaan kegiatan Penyediaan Aspek Administrasi, Hubungan Masyarakat dan Manajemen Resiko"
+    },
+    {
+      "project": "Penyediaan Aspek Administrasi, Hubungan Masyarakat dan Manajemen Resiko",
+      "year": 2026,
+      "number": 3,
+      "description": "Penyusunan laporan hasil Penyediaan Aspek Administrasi, Hubungan Masyarakat dan Manajemen Resiko"
+    },
+    {
+      "project": "Penyediaan aspek teknis pendataan dan manajemen lapangan",
+      "year": 2026,
+      "number": 1,
+      "description": "Persiapan dan koordinasi pelaksanaan Penyediaan aspek teknis pendataan dan manajemen lapangan"
+    },
+    {
+      "project": "Penyediaan aspek teknis pendataan dan manajemen lapangan",
+      "year": 2026,
+      "number": 2,
+      "description": "Pelaksanaan kegiatan Penyediaan aspek teknis pendataan dan manajemen lapangan"
+    },
+    {
+      "project": "Penyediaan aspek teknis pendataan dan manajemen lapangan",
+      "year": 2026,
+      "number": 3,
+      "description": "Penyusunan laporan hasil Penyediaan aspek teknis pendataan dan manajemen lapangan"
+    },
+    {
+      "project": "Penyediaan aspek pengolahan, teknologi informasi dan diseminasi",
+      "year": 2026,
+      "number": 1,
+      "description": "Persiapan dan koordinasi pelaksanaan Penyediaan aspek pengolahan, teknologi informasi dan diseminasi"
+    },
+    {
+      "project": "Penyediaan aspek pengolahan, teknologi informasi dan diseminasi",
+      "year": 2026,
+      "number": 2,
+      "description": "Pelaksanaan kegiatan Penyediaan aspek pengolahan, teknologi informasi dan diseminasi"
+    },
+    {
+      "project": "Penyediaan aspek pengolahan, teknologi informasi dan diseminasi",
+      "year": 2026,
+      "number": 3,
+      "description": "Penyusunan laporan hasil Penyediaan aspek pengolahan, teknologi informasi dan diseminasi"
+    },
+    {
+      "project": "Penyediaan aspek analisis dan kualitas data",
+      "year": 2026,
+      "number": 1,
+      "description": "Persiapan dan koordinasi pelaksanaan Penyediaan aspek analisis dan kualitas data"
+    },
+    {
+      "project": "Penyediaan aspek analisis dan kualitas data",
+      "year": 2026,
+      "number": 2,
+      "description": "Pelaksanaan kegiatan Penyediaan aspek analisis dan kualitas data"
+    },
+    {
+      "project": "Penyediaan aspek analisis dan kualitas data",
+      "year": 2026,
+      "number": 3,
+      "description": "Penyusunan laporan hasil Penyediaan aspek analisis dan kualitas data"
+    },
+    {
+      "project": "Pembinaan Statistik Sektoral",
+      "year": 2026,
+      "number": 1,
+      "description": "Persiapan dan koordinasi pelaksanaan Pembinaan Statistik Sektoral"
+    },
+    {
+      "project": "Pembinaan Statistik Sektoral",
+      "year": 2026,
+      "number": 2,
+      "description": "Pelaksanaan kegiatan Pembinaan Statistik Sektoral"
+    },
+    {
+      "project": "Pembinaan Statistik Sektoral",
+      "year": 2026,
+      "number": 3,
+      "description": "Penyusunan laporan hasil Pembinaan Statistik Sektoral"
+    },
+    {
+      "project": "Evaluasi Penyelenggaraan Statistik Sektoral (EPSS)",
+      "year": 2026,
+      "number": 1,
+      "description": "Persiapan dan koordinasi pelaksanaan Evaluasi Penyelenggaraan Statistik Sektoral (EPSS)"
+    },
+    {
+      "project": "Evaluasi Penyelenggaraan Statistik Sektoral (EPSS)",
+      "year": 2026,
+      "number": 2,
+      "description": "Pelaksanaan kegiatan Evaluasi Penyelenggaraan Statistik Sektoral (EPSS)"
+    },
+    {
+      "project": "Evaluasi Penyelenggaraan Statistik Sektoral (EPSS)",
+      "year": 2026,
+      "number": 3,
+      "description": "Penyusunan laporan hasil Evaluasi Penyelenggaraan Statistik Sektoral (EPSS)"
+    },
+    {
+      "project": "Penyelenggaraan aktivitas Sekretariat SE 2026 (GARDA SE)",
+      "year": 2026,
+      "number": 1,
+      "description": "Persiapan dan koordinasi pelaksanaan Penyelenggaraan aktivitas Sekretariat SE 2026 (GARDA SE)"
+    },
+    {
+      "project": "Penyelenggaraan aktivitas Sekretariat SE 2026 (GARDA SE)",
+      "year": 2026,
+      "number": 2,
+      "description": "Pelaksanaan kegiatan Penyelenggaraan aktivitas Sekretariat SE 2026 (GARDA SE)"
+    },
+    {
+      "project": "Penyelenggaraan aktivitas Sekretariat SE 2026 (GARDA SE)",
+      "year": 2026,
+      "number": 3,
+      "description": "Penyusunan laporan hasil Penyelenggaraan aktivitas Sekretariat SE 2026 (GARDA SE)"
+    },
+    {
+      "project": "Pelaksanaan Survei Kebutuhan Data (SKD) 2026",
+      "year": 2026,
+      "number": 1,
+      "description": "Persiapan dan koordinasi pelaksanaan Pelaksanaan Survei Kebutuhan Data (SKD) 2026"
+    },
+    {
+      "project": "Pelaksanaan Survei Kebutuhan Data (SKD) 2026",
+      "year": 2026,
+      "number": 2,
+      "description": "Pelaksanaan kegiatan Pelaksanaan Survei Kebutuhan Data (SKD) 2026"
+    },
+    {
+      "project": "Pelaksanaan Survei Kebutuhan Data (SKD) 2026",
+      "year": 2026,
+      "number": 3,
+      "description": "Penyusunan laporan hasil Pelaksanaan Survei Kebutuhan Data (SKD) 2026"
+    },
+    {
+      "project": "Metadata Statistik Sektoral",
+      "year": 2026,
+      "number": 1,
+      "description": "Persiapan dan koordinasi pelaksanaan Metadata Statistik Sektoral"
+    },
+    {
+      "project": "Metadata Statistik Sektoral",
+      "year": 2026,
+      "number": 2,
+      "description": "Pelaksanaan kegiatan Metadata Statistik Sektoral"
+    },
+    {
+      "project": "Metadata Statistik Sektoral",
+      "year": 2026,
+      "number": 3,
+      "description": "Penyusunan laporan hasil Metadata Statistik Sektoral"
+    },
+    {
+      "project": "Rekomendasi Statistik",
+      "year": 2026,
+      "number": 1,
+      "description": "Persiapan dan koordinasi pelaksanaan Rekomendasi Statistik"
+    },
+    {
+      "project": "Rekomendasi Statistik",
+      "year": 2026,
+      "number": 2,
+      "description": "Pelaksanaan kegiatan Rekomendasi Statistik"
+    },
+    {
+      "project": "Rekomendasi Statistik",
+      "year": 2026,
+      "number": 3,
+      "description": "Penyusunan laporan hasil Rekomendasi Statistik"
+    },
+    {
+      "project": "Pelayanan Prima PST",
+      "year": 2026,
+      "number": 1,
+      "description": "Persiapan dan koordinasi pelaksanaan Pelayanan Prima PST"
+    },
+    {
+      "project": "Pelayanan Prima PST",
+      "year": 2026,
+      "number": 2,
+      "description": "Pelaksanaan kegiatan Pelayanan Prima PST"
+    },
+    {
+      "project": "Pelayanan Prima PST",
+      "year": 2026,
+      "number": 3,
+      "description": "Penyusunan laporan hasil Pelayanan Prima PST"
+    },
+    {
+      "project": "Pengelolaan Website",
+      "year": 2026,
+      "number": 1,
+      "description": "Persiapan dan koordinasi pelaksanaan Pengelolaan Website"
+    },
+    {
+      "project": "Pengelolaan Website",
+      "year": 2026,
+      "number": 2,
+      "description": "Pelaksanaan kegiatan Pengelolaan Website"
+    },
+    {
+      "project": "Pengelolaan Website",
+      "year": 2026,
+      "number": 3,
+      "description": "Penyusunan laporan hasil Pengelolaan Website"
+    },
+    {
+      "project": "Diseminasi Data",
+      "year": 2026,
+      "number": 1,
+      "description": "Persiapan dan koordinasi pelaksanaan Diseminasi Data"
+    },
+    {
+      "project": "Diseminasi Data",
+      "year": 2026,
+      "number": 2,
+      "description": "Pelaksanaan kegiatan Diseminasi Data"
+    },
+    {
+      "project": "Diseminasi Data",
+      "year": 2026,
+      "number": 3,
+      "description": "Penyusunan laporan hasil Diseminasi Data"
+    },
+    {
+      "project": "Pojok Statistik",
+      "year": 2026,
+      "number": 1,
+      "description": "Persiapan dan koordinasi pelaksanaan Pojok Statistik"
+    },
+    {
+      "project": "Pojok Statistik",
+      "year": 2026,
+      "number": 2,
+      "description": "Pelaksanaan kegiatan Pojok Statistik"
+    },
+    {
+      "project": "Pojok Statistik",
+      "year": 2026,
+      "number": 3,
+      "description": "Penyusunan laporan hasil Pojok Statistik"
+    },
+    {
+      "project": "Pemantauan dan Evaluasi Kinerja Penyelenggaraan Pelayanan Publik (PEKPPP)",
+      "year": 2026,
+      "number": 1,
+      "description": "Persiapan dan koordinasi pelaksanaan Pemantauan dan Evaluasi Kinerja Penyelenggaraan Pelayanan Publik (PEKPPP)"
+    },
+    {
+      "project": "Pemantauan dan Evaluasi Kinerja Penyelenggaraan Pelayanan Publik (PEKPPP)",
+      "year": 2026,
+      "number": 2,
+      "description": "Pelaksanaan kegiatan Pemantauan dan Evaluasi Kinerja Penyelenggaraan Pelayanan Publik (PEKPPP)"
+    },
+    {
+      "project": "Pemantauan dan Evaluasi Kinerja Penyelenggaraan Pelayanan Publik (PEKPPP)",
+      "year": 2026,
+      "number": 3,
+      "description": "Penyusunan laporan hasil Pemantauan dan Evaluasi Kinerja Penyelenggaraan Pelayanan Publik (PEKPPP)"
+    },
+    {
+      "project": "Survei Harga Pedesaan",
+      "year": 2026,
+      "number": 1,
+      "description": "Persiapan dan koordinasi pelaksanaan Survei Harga Pedesaan"
+    },
+    {
+      "project": "Survei Harga Pedesaan",
+      "year": 2026,
+      "number": 2,
+      "description": "Pelaksanaan kegiatan Survei Harga Pedesaan"
+    },
+    {
+      "project": "Survei Harga Pedesaan",
+      "year": 2026,
+      "number": 3,
+      "description": "Penyusunan laporan hasil Survei Harga Pedesaan"
+    },
+    {
+      "project": "Statistik Harga Konsumen",
+      "year": 2026,
+      "number": 1,
+      "description": "Persiapan dan koordinasi pelaksanaan Statistik Harga Konsumen"
+    },
+    {
+      "project": "Statistik Harga Konsumen",
+      "year": 2026,
+      "number": 2,
+      "description": "Pelaksanaan kegiatan Statistik Harga Konsumen"
+    },
+    {
+      "project": "Statistik Harga Konsumen",
+      "year": 2026,
+      "number": 3,
+      "description": "Penyusunan laporan hasil Statistik Harga Konsumen"
+    },
+    {
+      "project": "Survey Harga Perdagangan Besar",
+      "year": 2026,
+      "number": 1,
+      "description": "Persiapan dan koordinasi pelaksanaan Survey Harga Perdagangan Besar"
+    },
+    {
+      "project": "Survey Harga Perdagangan Besar",
+      "year": 2026,
+      "number": 2,
+      "description": "Pelaksanaan kegiatan Survey Harga Perdagangan Besar"
+    },
+    {
+      "project": "Survey Harga Perdagangan Besar",
+      "year": 2026,
+      "number": 3,
+      "description": "Penyusunan laporan hasil Survey Harga Perdagangan Besar"
+    },
+    {
+      "project": "Survei Buaya Hidup",
+      "year": 2026,
+      "number": 1,
+      "description": "Persiapan dan koordinasi pelaksanaan Survei Buaya Hidup"
+    },
+    {
+      "project": "Survei Buaya Hidup",
+      "year": 2026,
+      "number": 2,
+      "description": "Pelaksanaan kegiatan Survei Buaya Hidup"
+    },
+    {
+      "project": "Survei Buaya Hidup",
+      "year": 2026,
+      "number": 3,
+      "description": "Penyusunan laporan hasil Survei Buaya Hidup"
+    },
+    {
+      "project": "Edukasi dan Promosi Statistik",
+      "year": 2026,
+      "number": 1,
+      "description": "Persiapan dan koordinasi pelaksanaan Edukasi dan Promosi Statistik"
+    },
+    {
+      "project": "Edukasi dan Promosi Statistik",
+      "year": 2026,
+      "number": 2,
+      "description": "Pelaksanaan kegiatan Edukasi dan Promosi Statistik"
+    },
+    {
+      "project": "Edukasi dan Promosi Statistik",
+      "year": 2026,
+      "number": 3,
+      "description": "Penyusunan laporan hasil Edukasi dan Promosi Statistik"
+    },
+    {
+      "project": "Audit Surveillance ISO 9001:2015",
+      "year": 2026,
+      "number": 1,
+      "description": "Persiapan dan koordinasi pelaksanaan Audit Surveillance ISO 9001:2015"
+    },
+    {
+      "project": "Audit Surveillance ISO 9001:2015",
+      "year": 2026,
+      "number": 2,
+      "description": "Pelaksanaan kegiatan Audit Surveillance ISO 9001:2015"
+    },
+    {
+      "project": "Audit Surveillance ISO 9001:2015",
+      "year": 2026,
+      "number": 3,
+      "description": "Penyusunan laporan hasil Audit Surveillance ISO 9001:2015"
+    },
+    {
+      "project": "Laporan Perusahaan Kehutanan Tahunan (PBPH)",
+      "year": 2026,
+      "number": 1,
+      "description": "Persiapan dan koordinasi pelaksanaan Laporan Perusahaan Kehutanan Tahunan (PBPH)"
+    },
+    {
+      "project": "Laporan Perusahaan Kehutanan Tahunan (PBPH)",
+      "year": 2026,
+      "number": 2,
+      "description": "Pelaksanaan kegiatan Laporan Perusahaan Kehutanan Tahunan (PBPH)"
+    },
+    {
+      "project": "Laporan Perusahaan Kehutanan Tahunan (PBPH)",
+      "year": 2026,
+      "number": 3,
+      "description": "Penyusunan laporan hasil Laporan Perusahaan Kehutanan Tahunan (PBPH)"
+    },
+    {
+      "project": "Laporan BMN",
+      "year": 2026,
+      "number": 1,
+      "description": "Persiapan dan koordinasi pelaksanaan Laporan BMN"
+    },
+    {
+      "project": "Laporan BMN",
+      "year": 2026,
+      "number": 2,
+      "description": "Pelaksanaan kegiatan Laporan BMN"
+    },
+    {
+      "project": "Laporan BMN",
+      "year": 2026,
+      "number": 3,
+      "description": "Penyusunan laporan hasil Laporan BMN"
+    },
+    {
+      "project": "Survei Perkebunan Bulanan",
+      "year": 2026,
+      "number": 1,
+      "description": "Persiapan dan koordinasi pelaksanaan Survei Perkebunan Bulanan"
+    },
+    {
+      "project": "Survei Perkebunan Bulanan",
+      "year": 2026,
+      "number": 2,
+      "description": "Pelaksanaan kegiatan Survei Perkebunan Bulanan"
+    },
+    {
+      "project": "Survei Perkebunan Bulanan",
+      "year": 2026,
+      "number": 3,
+      "description": "Penyusunan laporan hasil Survei Perkebunan Bulanan"
+    },
+    {
+      "project": "Survei IMK Triwulanan",
+      "year": 2026,
+      "number": 1,
+      "description": "Persiapan dan koordinasi pelaksanaan Survei IMK Triwulanan"
+    },
+    {
+      "project": "Survei IMK Triwulanan",
+      "year": 2026,
+      "number": 2,
+      "description": "Pelaksanaan kegiatan Survei IMK Triwulanan"
+    },
+    {
+      "project": "Survei IMK Triwulanan",
+      "year": 2026,
+      "number": 3,
+      "description": "Penyusunan laporan hasil Survei IMK Triwulanan"
+    },
+    {
+      "project": "Survei Perkebunan Tahunan",
+      "year": 2026,
+      "number": 1,
+      "description": "Persiapan dan koordinasi pelaksanaan Survei Perkebunan Tahunan"
+    },
+    {
+      "project": "Survei Perkebunan Tahunan",
+      "year": 2026,
+      "number": 2,
+      "description": "Pelaksanaan kegiatan Survei Perkebunan Tahunan"
+    },
+    {
+      "project": "Survei Perkebunan Tahunan",
+      "year": 2026,
+      "number": 3,
+      "description": "Penyusunan laporan hasil Survei Perkebunan Tahunan"
+    },
+    {
+      "project": "Pengumpulan Data Kehutanan Triwulan",
+      "year": 2026,
+      "number": 1,
+      "description": "Persiapan dan koordinasi pelaksanaan Pengumpulan Data Kehutanan Triwulan"
+    },
+    {
+      "project": "Pengumpulan Data Kehutanan Triwulan",
+      "year": 2026,
+      "number": 2,
+      "description": "Pelaksanaan kegiatan Pengumpulan Data Kehutanan Triwulan"
+    },
+    {
+      "project": "Pengumpulan Data Kehutanan Triwulan",
+      "year": 2026,
+      "number": 3,
+      "description": "Penyusunan laporan hasil Pengumpulan Data Kehutanan Triwulan"
+    },
+    {
+      "project": "Survey KSA Padi",
+      "year": 2026,
+      "number": 1,
+      "description": "Persiapan dan koordinasi pelaksanaan Survey KSA Padi"
+    },
+    {
+      "project": "Survey KSA Padi",
+      "year": 2026,
+      "number": 2,
+      "description": "Pelaksanaan kegiatan Survey KSA Padi"
+    },
+    {
+      "project": "Survey KSA Padi",
+      "year": 2026,
+      "number": 3,
+      "description": "Penyusunan laporan hasil Survey KSA Padi"
+    },
+    {
+      "project": "Survei Usaha Non Rumah Tangga (NRT) Hortikultura",
+      "year": 2026,
+      "number": 1,
+      "description": "Persiapan dan koordinasi pelaksanaan Survei Usaha Non Rumah Tangga (NRT) Hortikultura"
+    },
+    {
+      "project": "Survei Usaha Non Rumah Tangga (NRT) Hortikultura",
+      "year": 2026,
+      "number": 2,
+      "description": "Pelaksanaan kegiatan Survei Usaha Non Rumah Tangga (NRT) Hortikultura"
+    },
+    {
+      "project": "Survei Usaha Non Rumah Tangga (NRT) Hortikultura",
+      "year": 2026,
+      "number": 3,
+      "description": "Penyusunan laporan hasil Survei Usaha Non Rumah Tangga (NRT) Hortikultura"
+    },
+    {
+      "project": "Data Statistik Hortikultura Bulanan",
+      "year": 2026,
+      "number": 1,
+      "description": "Persiapan dan koordinasi pelaksanaan Data Statistik Hortikultura Bulanan"
+    },
+    {
+      "project": "Data Statistik Hortikultura Bulanan",
+      "year": 2026,
+      "number": 2,
+      "description": "Pelaksanaan kegiatan Data Statistik Hortikultura Bulanan"
+    },
+    {
+      "project": "Data Statistik Hortikultura Bulanan",
+      "year": 2026,
+      "number": 3,
+      "description": "Penyusunan laporan hasil Data Statistik Hortikultura Bulanan"
+    },
+    {
+      "project": "Survei KSA Jagung",
+      "year": 2026,
+      "number": 1,
+      "description": "Persiapan dan koordinasi pelaksanaan Survei KSA Jagung"
+    },
+    {
+      "project": "Survei KSA Jagung",
+      "year": 2026,
+      "number": 2,
+      "description": "Pelaksanaan kegiatan Survei KSA Jagung"
+    },
+    {
+      "project": "Survei KSA Jagung",
+      "year": 2026,
+      "number": 3,
+      "description": "Penyusunan laporan hasil Survei KSA Jagung"
+    },
+    {
+      "project": "Survei Perikanan Triwulanan",
+      "year": 2026,
+      "number": 1,
+      "description": "Persiapan dan koordinasi pelaksanaan Survei Perikanan Triwulanan"
+    },
+    {
+      "project": "Survei Perikanan Triwulanan",
+      "year": 2026,
+      "number": 2,
+      "description": "Pelaksanaan kegiatan Survei Perikanan Triwulanan"
+    },
+    {
+      "project": "Survei Perikanan Triwulanan",
+      "year": 2026,
+      "number": 3,
+      "description": "Penyusunan laporan hasil Survei Perikanan Triwulanan"
+    },
+    {
+      "project": "Data Statistik Hortikultura Triwulanan",
+      "year": 2026,
+      "number": 1,
+      "description": "Persiapan dan koordinasi pelaksanaan Data Statistik Hortikultura Triwulanan"
+    },
+    {
+      "project": "Data Statistik Hortikultura Triwulanan",
+      "year": 2026,
+      "number": 2,
+      "description": "Pelaksanaan kegiatan Data Statistik Hortikultura Triwulanan"
+    },
+    {
+      "project": "Data Statistik Hortikultura Triwulanan",
+      "year": 2026,
+      "number": 3,
+      "description": "Penyusunan laporan hasil Data Statistik Hortikultura Triwulanan"
+    },
+    {
+      "project": "Data Indeks Produksi Hortikultura",
+      "year": 2026,
+      "number": 1,
+      "description": "Persiapan dan koordinasi pelaksanaan Data Indeks Produksi Hortikultura"
+    },
+    {
+      "project": "Data Indeks Produksi Hortikultura",
+      "year": 2026,
+      "number": 2,
+      "description": "Pelaksanaan kegiatan Data Indeks Produksi Hortikultura"
+    },
+    {
+      "project": "Data Indeks Produksi Hortikultura",
+      "year": 2026,
+      "number": 3,
+      "description": "Penyusunan laporan hasil Data Indeks Produksi Hortikultura"
+    },
+    {
+      "project": "Laporan Tahunan Perusahaan Peternakan Ternak Besar/Kecil",
+      "year": 2026,
+      "number": 1,
+      "description": "Persiapan dan koordinasi pelaksanaan Laporan Tahunan Perusahaan Peternakan Ternak Besar/Kecil"
+    },
+    {
+      "project": "Laporan Tahunan Perusahaan Peternakan Ternak Besar/Kecil",
+      "year": 2026,
+      "number": 2,
+      "description": "Pelaksanaan kegiatan Laporan Tahunan Perusahaan Peternakan Ternak Besar/Kecil"
+    },
+    {
+      "project": "Laporan Tahunan Perusahaan Peternakan Ternak Besar/Kecil",
+      "year": 2026,
+      "number": 3,
+      "description": "Penyusunan laporan hasil Laporan Tahunan Perusahaan Peternakan Ternak Besar/Kecil"
+    },
+    {
+      "project": "Laporan Tahunan Perusahaan Peternakan Unggas",
+      "year": 2026,
+      "number": 1,
+      "description": "Persiapan dan koordinasi pelaksanaan Laporan Tahunan Perusahaan Peternakan Unggas"
+    },
+    {
+      "project": "Laporan Tahunan Perusahaan Peternakan Unggas",
+      "year": 2026,
+      "number": 2,
+      "description": "Pelaksanaan kegiatan Laporan Tahunan Perusahaan Peternakan Unggas"
+    },
+    {
+      "project": "Laporan Tahunan Perusahaan Peternakan Unggas",
+      "year": 2026,
+      "number": 3,
+      "description": "Penyusunan laporan hasil Laporan Tahunan Perusahaan Peternakan Unggas"
+    },
+    {
+      "project": "Survey Statistik Tanaman Pangan Bulanan (SP Palawija)",
+      "year": 2026,
+      "number": 1,
+      "description": "Persiapan dan koordinasi pelaksanaan Survey Statistik Tanaman Pangan Bulanan (SP Palawija)"
+    },
+    {
+      "project": "Survey Statistik Tanaman Pangan Bulanan (SP Palawija)",
+      "year": 2026,
+      "number": 2,
+      "description": "Pelaksanaan kegiatan Survey Statistik Tanaman Pangan Bulanan (SP Palawija)"
+    },
+    {
+      "project": "Survey Statistik Tanaman Pangan Bulanan (SP Palawija)",
+      "year": 2026,
+      "number": 3,
+      "description": "Penyusunan laporan hasil Survey Statistik Tanaman Pangan Bulanan (SP Palawija)"
+    },
+    {
+      "project": "Laporan Pemotongan Ternak Bulanan",
+      "year": 2026,
+      "number": 1,
+      "description": "Persiapan dan koordinasi pelaksanaan Laporan Pemotongan Ternak Bulanan"
+    },
+    {
+      "project": "Laporan Pemotongan Ternak Bulanan",
+      "year": 2026,
+      "number": 2,
+      "description": "Pelaksanaan kegiatan Laporan Pemotongan Ternak Bulanan"
+    },
+    {
+      "project": "Laporan Pemotongan Ternak Bulanan",
+      "year": 2026,
+      "number": 3,
+      "description": "Penyusunan laporan hasil Laporan Pemotongan Ternak Bulanan"
+    },
+    {
+      "project": "Laporan Tahunan Budiyaya Ikan (LTB)",
+      "year": 2026,
+      "number": 1,
+      "description": "Persiapan dan koordinasi pelaksanaan Laporan Tahunan Budiyaya Ikan (LTB)"
+    },
+    {
+      "project": "Laporan Tahunan Budiyaya Ikan (LTB)",
+      "year": 2026,
+      "number": 2,
+      "description": "Pelaksanaan kegiatan Laporan Tahunan Budiyaya Ikan (LTB)"
+    },
+    {
+      "project": "Laporan Tahunan Budiyaya Ikan (LTB)",
+      "year": 2026,
+      "number": 3,
+      "description": "Penyusunan laporan hasil Laporan Tahunan Budiyaya Ikan (LTB)"
+    },
+    {
+      "project": "Penyusunan Publikasi Statistik Pertanian (Publikasi dan BRS)",
+      "year": 2026,
+      "number": 1,
+      "description": "Persiapan dan koordinasi pelaksanaan Penyusunan Publikasi Statistik Pertanian (Publikasi dan BRS)"
+    },
+    {
+      "project": "Penyusunan Publikasi Statistik Pertanian (Publikasi dan BRS)",
+      "year": 2026,
+      "number": 2,
+      "description": "Pelaksanaan kegiatan Penyusunan Publikasi Statistik Pertanian (Publikasi dan BRS)"
+    },
+    {
+      "project": "Penyusunan Publikasi Statistik Pertanian (Publikasi dan BRS)",
+      "year": 2026,
+      "number": 3,
+      "description": "Penyusunan laporan hasil Penyusunan Publikasi Statistik Pertanian (Publikasi dan BRS)"
+    },
+    {
+      "project": "Survey Statistik Tanaman Pangan Tahunan (SP Lahan, Alsintan, Benih)",
+      "year": 2026,
+      "number": 1,
+      "description": "Persiapan dan koordinasi pelaksanaan Survey Statistik Tanaman Pangan Tahunan (SP Lahan, Alsintan, Benih)"
+    },
+    {
+      "project": "Survey Statistik Tanaman Pangan Tahunan (SP Lahan, Alsintan, Benih)",
+      "year": 2026,
+      "number": 2,
+      "description": "Pelaksanaan kegiatan Survey Statistik Tanaman Pangan Tahunan (SP Lahan, Alsintan, Benih)"
+    },
+    {
+      "project": "Survey Statistik Tanaman Pangan Tahunan (SP Lahan, Alsintan, Benih)",
+      "year": 2026,
+      "number": 3,
+      "description": "Penyusunan laporan hasil Survey Statistik Tanaman Pangan Tahunan (SP Lahan, Alsintan, Benih)"
+    },
+    {
+      "project": "Survei IMK Tahunan 2025",
+      "year": 2026,
+      "number": 1,
+      "description": "Persiapan dan koordinasi pelaksanaan Survei IMK Tahunan 2025"
+    },
+    {
+      "project": "Survei IMK Tahunan 2025",
+      "year": 2026,
+      "number": 2,
+      "description": "Pelaksanaan kegiatan Survei IMK Tahunan 2025"
+    },
+    {
+      "project": "Survei IMK Tahunan 2025",
+      "year": 2026,
+      "number": 3,
+      "description": "Penyusunan laporan hasil Survei IMK Tahunan 2025"
+    },
+    {
+      "project": "Survei Konstruksi Tahunan",
+      "year": 2026,
+      "number": 1,
+      "description": "Persiapan dan koordinasi pelaksanaan Survei Konstruksi Tahunan"
+    },
+    {
+      "project": "Survei Konstruksi Tahunan",
+      "year": 2026,
+      "number": 2,
+      "description": "Pelaksanaan kegiatan Survei Konstruksi Tahunan"
+    },
+    {
+      "project": "Survei Konstruksi Tahunan",
+      "year": 2026,
+      "number": 3,
+      "description": "Penyusunan laporan hasil Survei Konstruksi Tahunan"
+    },
+    {
+      "project": "Survei Galian Berbadan Hukum (Galian-BH) Triwulanan",
+      "year": 2026,
+      "number": 1,
+      "description": "Persiapan dan koordinasi pelaksanaan Survei Galian Berbadan Hukum (Galian-BH) Triwulanan"
+    },
+    {
+      "project": "Survei Galian Berbadan Hukum (Galian-BH) Triwulanan",
+      "year": 2026,
+      "number": 2,
+      "description": "Pelaksanaan kegiatan Survei Galian Berbadan Hukum (Galian-BH) Triwulanan"
+    },
+    {
+      "project": "Survei Galian Berbadan Hukum (Galian-BH) Triwulanan",
+      "year": 2026,
+      "number": 3,
+      "description": "Penyusunan laporan hasil Survei Galian Berbadan Hukum (Galian-BH) Triwulanan"
+    },
+    {
+      "project": "Asuransi BMN",
+      "year": 2026,
+      "number": 1,
+      "description": "Persiapan dan koordinasi pelaksanaan Asuransi BMN"
+    },
+    {
+      "project": "Asuransi BMN",
+      "year": 2026,
+      "number": 2,
+      "description": "Pelaksanaan kegiatan Asuransi BMN"
+    },
+    {
+      "project": "Asuransi BMN",
+      "year": 2026,
+      "number": 3,
+      "description": "Penyusunan laporan hasil Asuransi BMN"
+    },
+    {
+      "project": "Survei Air Bersih Triwulanan",
+      "year": 2026,
+      "number": 1,
+      "description": "Persiapan dan koordinasi pelaksanaan Survei Air Bersih Triwulanan"
+    },
+    {
+      "project": "Survei Air Bersih Triwulanan",
+      "year": 2026,
+      "number": 2,
+      "description": "Pelaksanaan kegiatan Survei Air Bersih Triwulanan"
+    },
+    {
+      "project": "Survei Air Bersih Triwulanan",
+      "year": 2026,
+      "number": 3,
+      "description": "Penyusunan laporan hasil Survei Air Bersih Triwulanan"
+    },
+    {
+      "project": "Rencana kebutuhan BMN",
+      "year": 2026,
+      "number": 1,
+      "description": "Persiapan dan koordinasi pelaksanaan Rencana kebutuhan BMN"
+    },
+    {
+      "project": "Rencana kebutuhan BMN",
+      "year": 2026,
+      "number": 2,
+      "description": "Pelaksanaan kegiatan Rencana kebutuhan BMN"
+    },
+    {
+      "project": "Rencana kebutuhan BMN",
+      "year": 2026,
+      "number": 3,
+      "description": "Penyusunan laporan hasil Rencana kebutuhan BMN"
+    },
+    {
+      "project": "Monitoring Tindak Lanjut atas Laporan Hasil Pemeriksaan APIP/BPK",
+      "year": 2026,
+      "number": 1,
+      "description": "Persiapan dan koordinasi pelaksanaan Monitoring Tindak Lanjut atas Laporan Hasil Pemeriksaan APIP/BPK"
+    },
+    {
+      "project": "Monitoring Tindak Lanjut atas Laporan Hasil Pemeriksaan APIP/BPK",
+      "year": 2026,
+      "number": 2,
+      "description": "Pelaksanaan kegiatan Monitoring Tindak Lanjut atas Laporan Hasil Pemeriksaan APIP/BPK"
+    },
+    {
+      "project": "Monitoring Tindak Lanjut atas Laporan Hasil Pemeriksaan APIP/BPK",
+      "year": 2026,
+      "number": 3,
+      "description": "Penyusunan laporan hasil Monitoring Tindak Lanjut atas Laporan Hasil Pemeriksaan APIP/BPK"
+    },
+    {
+      "project": "Survei Konstruksi Triwulanan ",
+      "year": 2026,
+      "number": 1,
+      "description": "Persiapan dan koordinasi pelaksanaan Survei Konstruksi Triwulanan "
+    },
+    {
+      "project": "Survei Konstruksi Triwulanan ",
+      "year": 2026,
+      "number": 2,
+      "description": "Pelaksanaan kegiatan Survei Konstruksi Triwulanan "
+    },
+    {
+      "project": "Survei Konstruksi Triwulanan ",
+      "year": 2026,
+      "number": 3,
+      "description": "Penyusunan laporan hasil Survei Konstruksi Triwulanan "
+    },
+    {
+      "project": "Penyelesaian Penetapan Status Penggunaan Barang Milik Negara",
+      "year": 2026,
+      "number": 1,
+      "description": "Persiapan dan koordinasi pelaksanaan Penyelesaian Penetapan Status Penggunaan Barang Milik Negara"
+    },
+    {
+      "project": "Penyelesaian Penetapan Status Penggunaan Barang Milik Negara",
+      "year": 2026,
+      "number": 2,
+      "description": "Pelaksanaan kegiatan Penyelesaian Penetapan Status Penggunaan Barang Milik Negara"
+    },
+    {
+      "project": "Penyelesaian Penetapan Status Penggunaan Barang Milik Negara",
+      "year": 2026,
+      "number": 3,
+      "description": "Penyusunan laporan hasil Penyelesaian Penetapan Status Penggunaan Barang Milik Negara"
+    },
+    {
+      "project": "Laporan Tahunan Pertambangan dan Energi (PE)",
+      "year": 2026,
+      "number": 1,
+      "description": "Persiapan dan koordinasi pelaksanaan Laporan Tahunan Pertambangan dan Energi (PE)"
+    },
+    {
+      "project": "Laporan Tahunan Pertambangan dan Energi (PE)",
+      "year": 2026,
+      "number": 2,
+      "description": "Pelaksanaan kegiatan Laporan Tahunan Pertambangan dan Energi (PE)"
+    },
+    {
+      "project": "Laporan Tahunan Pertambangan dan Energi (PE)",
+      "year": 2026,
+      "number": 3,
+      "description": "Penyusunan laporan hasil Laporan Tahunan Pertambangan dan Energi (PE)"
+    },
+    {
+      "project": "Laporan Pengawasan dan Pengendalian BMN",
+      "year": 2026,
+      "number": 1,
+      "description": "Persiapan dan koordinasi pelaksanaan Laporan Pengawasan dan Pengendalian BMN"
+    },
+    {
+      "project": "Laporan Pengawasan dan Pengendalian BMN",
+      "year": 2026,
+      "number": 2,
+      "description": "Pelaksanaan kegiatan Laporan Pengawasan dan Pengendalian BMN"
+    },
+    {
+      "project": "Laporan Pengawasan dan Pengendalian BMN",
+      "year": 2026,
+      "number": 3,
+      "description": "Penyusunan laporan hasil Laporan Pengawasan dan Pengendalian BMN"
+    },
+    {
+      "project": "Publikasi Statistik Air Bersih",
+      "year": 2026,
+      "number": 1,
+      "description": "Persiapan dan koordinasi pelaksanaan Publikasi Statistik Air Bersih"
+    },
+    {
+      "project": "Publikasi Statistik Air Bersih",
+      "year": 2026,
+      "number": 2,
+      "description": "Pelaksanaan kegiatan Publikasi Statistik Air Bersih"
+    },
+    {
+      "project": "Publikasi Statistik Air Bersih",
+      "year": 2026,
+      "number": 3,
+      "description": "Penyusunan laporan hasil Publikasi Statistik Air Bersih"
+    },
+    {
+      "project": "Pengelolaan rumah negara",
+      "year": 2026,
+      "number": 1,
+      "description": "Persiapan dan koordinasi pelaksanaan Pengelolaan rumah negara"
+    },
+    {
+      "project": "Pengelolaan rumah negara",
+      "year": 2026,
+      "number": 2,
+      "description": "Pelaksanaan kegiatan Pengelolaan rumah negara"
+    },
+    {
+      "project": "Pengelolaan rumah negara",
+      "year": 2026,
+      "number": 3,
+      "description": "Penyusunan laporan hasil Pengelolaan rumah negara"
+    },
+    {
+      "project": "Laporan Tahunan Konstruksi",
+      "year": 2026,
+      "number": 1,
+      "description": "Persiapan dan koordinasi pelaksanaan Laporan Tahunan Konstruksi"
+    },
+    {
+      "project": "Laporan Tahunan Konstruksi",
+      "year": 2026,
+      "number": 2,
+      "description": "Pelaksanaan kegiatan Laporan Tahunan Konstruksi"
+    },
+    {
+      "project": "Laporan Tahunan Konstruksi",
+      "year": 2026,
+      "number": 3,
+      "description": "Penyusunan laporan hasil Laporan Tahunan Konstruksi"
+    },
+    {
+      "project": "Pengelolaan Tanah Negara",
+      "year": 2026,
+      "number": 1,
+      "description": "Persiapan dan koordinasi pelaksanaan Pengelolaan Tanah Negara"
+    },
+    {
+      "project": "Pengelolaan Tanah Negara",
+      "year": 2026,
+      "number": 2,
+      "description": "Pelaksanaan kegiatan Pengelolaan Tanah Negara"
+    },
+    {
+      "project": "Pengelolaan Tanah Negara",
+      "year": 2026,
+      "number": 3,
+      "description": "Penyusunan laporan hasil Pengelolaan Tanah Negara"
+    },
+    {
+      "project": "Publikasi Direktori Perusahaan Konstruksi",
+      "year": 2026,
+      "number": 1,
+      "description": "Persiapan dan koordinasi pelaksanaan Publikasi Direktori Perusahaan Konstruksi"
+    },
+    {
+      "project": "Publikasi Direktori Perusahaan Konstruksi",
+      "year": 2026,
+      "number": 2,
+      "description": "Pelaksanaan kegiatan Publikasi Direktori Perusahaan Konstruksi"
+    },
+    {
+      "project": "Publikasi Direktori Perusahaan Konstruksi",
+      "year": 2026,
+      "number": 3,
+      "description": "Penyusunan laporan hasil Publikasi Direktori Perusahaan Konstruksi"
+    },
+    {
+      "project": "Survei Pertanian Tanaman Pangan (Ubinan)",
+      "year": 2026,
+      "number": 1,
+      "description": "Persiapan dan koordinasi pelaksanaan Survei Pertanian Tanaman Pangan (Ubinan)"
+    },
+    {
+      "project": "Survei Pertanian Tanaman Pangan (Ubinan)",
+      "year": 2026,
+      "number": 2,
+      "description": "Pelaksanaan kegiatan Survei Pertanian Tanaman Pangan (Ubinan)"
+    },
+    {
+      "project": "Survei Pertanian Tanaman Pangan (Ubinan)",
+      "year": 2026,
+      "number": 3,
+      "description": "Penyusunan laporan hasil Survei Pertanian Tanaman Pangan (Ubinan)"
+    },
+    {
+      "project": "Survei Captive Power",
+      "year": 2026,
+      "number": 1,
+      "description": "Persiapan dan koordinasi pelaksanaan Survei Captive Power"
+    },
+    {
+      "project": "Survei Captive Power",
+      "year": 2026,
+      "number": 2,
+      "description": "Pelaksanaan kegiatan Survei Captive Power"
+    },
+    {
+      "project": "Survei Captive Power",
+      "year": 2026,
+      "number": 3,
+      "description": "Penyusunan laporan hasil Survei Captive Power"
+    },
+    {
+      "project": "Survei Non Migas ",
+      "year": 2026,
+      "number": 1,
+      "description": "Persiapan dan koordinasi pelaksanaan Survei Non Migas "
+    },
+    {
+      "project": "Survei Non Migas ",
+      "year": 2026,
+      "number": 2,
+      "description": "Pelaksanaan kegiatan Survei Non Migas "
+    },
+    {
+      "project": "Survei Non Migas ",
+      "year": 2026,
+      "number": 3,
+      "description": "Penyusunan laporan hasil Survei Non Migas "
+    },
+    {
+      "project": "Survei Galian Berbadan Hukum Tahunan",
+      "year": 2026,
+      "number": 1,
+      "description": "Persiapan dan koordinasi pelaksanaan Survei Galian Berbadan Hukum Tahunan"
+    },
+    {
+      "project": "Survei Galian Berbadan Hukum Tahunan",
+      "year": 2026,
+      "number": 2,
+      "description": "Pelaksanaan kegiatan Survei Galian Berbadan Hukum Tahunan"
+    },
+    {
+      "project": "Survei Galian Berbadan Hukum Tahunan",
+      "year": 2026,
+      "number": 3,
+      "description": "Penyusunan laporan hasil Survei Galian Berbadan Hukum Tahunan"
+    },
+    {
+      "project": "Updating Perusahaan Pertambangan dan Energi",
+      "year": 2026,
+      "number": 1,
+      "description": "Persiapan dan koordinasi pelaksanaan Updating Perusahaan Pertambangan dan Energi"
+    },
+    {
+      "project": "Updating Perusahaan Pertambangan dan Energi",
+      "year": 2026,
+      "number": 2,
+      "description": "Pelaksanaan kegiatan Updating Perusahaan Pertambangan dan Energi"
+    },
+    {
+      "project": "Updating Perusahaan Pertambangan dan Energi",
+      "year": 2026,
+      "number": 3,
+      "description": "Penyusunan laporan hasil Updating Perusahaan Pertambangan dan Energi"
+    },
+    {
+      "project": "Pengutipan Perusahaan Pertambangan dan Energi",
+      "year": 2026,
+      "number": 1,
+      "description": "Persiapan dan koordinasi pelaksanaan Pengutipan Perusahaan Pertambangan dan Energi"
+    },
+    {
+      "project": "Pengutipan Perusahaan Pertambangan dan Energi",
+      "year": 2026,
+      "number": 2,
+      "description": "Pelaksanaan kegiatan Pengutipan Perusahaan Pertambangan dan Energi"
+    },
+    {
+      "project": "Pengutipan Perusahaan Pertambangan dan Energi",
+      "year": 2026,
+      "number": 3,
+      "description": "Penyusunan laporan hasil Pengutipan Perusahaan Pertambangan dan Energi"
+    },
+    {
+      "project": "Survei Galian URT",
+      "year": 2026,
+      "number": 1,
+      "description": "Persiapan dan koordinasi pelaksanaan Survei Galian URT"
+    },
+    {
+      "project": "Survei Galian URT",
+      "year": 2026,
+      "number": 2,
+      "description": "Pelaksanaan kegiatan Survei Galian URT"
+    },
+    {
+      "project": "Survei Galian URT",
+      "year": 2026,
+      "number": 3,
+      "description": "Penyusunan laporan hasil Survei Galian URT"
+    },
+    {
+      "project": "Survei Air Bersih Tahunan",
+      "year": 2026,
+      "number": 1,
+      "description": "Persiapan dan koordinasi pelaksanaan Survei Air Bersih Tahunan"
+    },
+    {
+      "project": "Survei Air Bersih Tahunan",
+      "year": 2026,
+      "number": 2,
+      "description": "Pelaksanaan kegiatan Survei Air Bersih Tahunan"
+    },
+    {
+      "project": "Survei Air Bersih Tahunan",
+      "year": 2026,
+      "number": 3,
+      "description": "Penyusunan laporan hasil Survei Air Bersih Tahunan"
+    },
+    {
+      "project": "Survei Listrik Tahunan",
+      "year": 2026,
+      "number": 1,
+      "description": "Persiapan dan koordinasi pelaksanaan Survei Listrik Tahunan"
+    },
+    {
+      "project": "Survei Listrik Tahunan",
+      "year": 2026,
+      "number": 2,
+      "description": "Pelaksanaan kegiatan Survei Listrik Tahunan"
+    },
+    {
+      "project": "Survei Listrik Tahunan",
+      "year": 2026,
+      "number": 3,
+      "description": "Penyusunan laporan hasil Survei Listrik Tahunan"
+    },
+    {
+      "project": "Updating Perusahaan Konstruksi Tahunan",
+      "year": 2026,
+      "number": 1,
+      "description": "Persiapan dan koordinasi pelaksanaan Updating Perusahaan Konstruksi Tahunan"
+    },
+    {
+      "project": "Updating Perusahaan Konstruksi Tahunan",
+      "year": 2026,
+      "number": 2,
+      "description": "Pelaksanaan kegiatan Updating Perusahaan Konstruksi Tahunan"
+    },
+    {
+      "project": "Updating Perusahaan Konstruksi Tahunan",
+      "year": 2026,
+      "number": 3,
+      "description": "Penyusunan laporan hasil Updating Perusahaan Konstruksi Tahunan"
+    },
+    {
+      "project": "Survei Indeks Produksi Perkebunan",
+      "year": 2026,
+      "number": 1,
+      "description": "Persiapan dan koordinasi pelaksanaan Survei Indeks Produksi Perkebunan"
+    },
+    {
+      "project": "Survei Indeks Produksi Perkebunan",
+      "year": 2026,
+      "number": 2,
+      "description": "Pelaksanaan kegiatan Survei Indeks Produksi Perkebunan"
+    },
+    {
+      "project": "Survei Indeks Produksi Perkebunan",
+      "year": 2026,
+      "number": 3,
+      "description": "Penyusunan laporan hasil Survei Indeks Produksi Perkebunan"
+    },
+    {
+      "project": "Survei IBS Triwulanan",
+      "year": 2026,
+      "number": 1,
+      "description": "Persiapan dan koordinasi pelaksanaan Survei IBS Triwulanan"
+    },
+    {
+      "project": "Survei IBS Triwulanan",
+      "year": 2026,
+      "number": 2,
+      "description": "Pelaksanaan kegiatan Survei IBS Triwulanan"
+    },
+    {
+      "project": "Survei IBS Triwulanan",
+      "year": 2026,
+      "number": 3,
+      "description": "Penyusunan laporan hasil Survei IBS Triwulanan"
+    },
+    {
+      "project": "Survei IBS Tahunan",
+      "year": 2026,
+      "number": 1,
+      "description": "Persiapan dan koordinasi pelaksanaan Survei IBS Tahunan"
+    },
+    {
+      "project": "Survei IBS Tahunan",
+      "year": 2026,
+      "number": 2,
+      "description": "Pelaksanaan kegiatan Survei IBS Tahunan"
+    },
+    {
+      "project": "Survei IBS Tahunan",
+      "year": 2026,
+      "number": 3,
+      "description": "Penyusunan laporan hasil Survei IBS Tahunan"
+    },
+    {
+      "project": "Pemutakhiran Direktori Perusahaan Awal (DPA)",
+      "year": 2026,
+      "number": 1,
+      "description": "Persiapan dan koordinasi pelaksanaan Pemutakhiran Direktori Perusahaan Awal (DPA)"
+    },
+    {
+      "project": "Pemutakhiran Direktori Perusahaan Awal (DPA)",
+      "year": 2026,
+      "number": 2,
+      "description": "Pelaksanaan kegiatan Pemutakhiran Direktori Perusahaan Awal (DPA)"
+    },
+    {
+      "project": "Pemutakhiran Direktori Perusahaan Awal (DPA)",
+      "year": 2026,
+      "number": 3,
+      "description": "Penyusunan laporan hasil Pemutakhiran Direktori Perusahaan Awal (DPA)"
+    },
+    {
+      "project": "Pengembangan Kompetensi SDM yang Optimal",
+      "year": 2026,
+      "number": 1,
+      "description": "Persiapan dan koordinasi pelaksanaan Pengembangan Kompetensi SDM yang Optimal"
+    },
+    {
+      "project": "Pengembangan Kompetensi SDM yang Optimal",
+      "year": 2026,
+      "number": 2,
+      "description": "Pelaksanaan kegiatan Pengembangan Kompetensi SDM yang Optimal"
+    },
+    {
+      "project": "Pengembangan Kompetensi SDM yang Optimal",
+      "year": 2026,
+      "number": 3,
+      "description": "Penyusunan laporan hasil Pengembangan Kompetensi SDM yang Optimal"
+    },
+    {
+      "project": "Monitoring Pengelolaan BMN sesuai SOP",
+      "year": 2026,
+      "number": 1,
+      "description": "Persiapan dan koordinasi pelaksanaan Monitoring Pengelolaan BMN sesuai SOP"
+    },
+    {
+      "project": "Monitoring Pengelolaan BMN sesuai SOP",
+      "year": 2026,
+      "number": 2,
+      "description": "Pelaksanaan kegiatan Monitoring Pengelolaan BMN sesuai SOP"
+    },
+    {
+      "project": "Monitoring Pengelolaan BMN sesuai SOP",
+      "year": 2026,
+      "number": 3,
+      "description": "Penyusunan laporan hasil Monitoring Pengelolaan BMN sesuai SOP"
+    },
+    {
+      "project": "Pengelolaan Perlengkapan dan Rumah Tangga Kantor yang baik",
+      "year": 2026,
+      "number": 1,
+      "description": "Persiapan dan koordinasi pelaksanaan Pengelolaan Perlengkapan dan Rumah Tangga Kantor yang baik"
+    },
+    {
+      "project": "Pengelolaan Perlengkapan dan Rumah Tangga Kantor yang baik",
+      "year": 2026,
+      "number": 2,
+      "description": "Pelaksanaan kegiatan Pengelolaan Perlengkapan dan Rumah Tangga Kantor yang baik"
+    },
+    {
+      "project": "Pengelolaan Perlengkapan dan Rumah Tangga Kantor yang baik",
+      "year": 2026,
+      "number": 3,
+      "description": "Penyusunan laporan hasil Pengelolaan Perlengkapan dan Rumah Tangga Kantor yang baik"
+    },
+    {
+      "project": "Pengelolaan SDM yang Optimal",
+      "year": 2026,
+      "number": 1,
+      "description": "Persiapan dan koordinasi pelaksanaan Pengelolaan SDM yang Optimal"
+    },
+    {
+      "project": "Pengelolaan SDM yang Optimal",
+      "year": 2026,
+      "number": 2,
+      "description": "Pelaksanaan kegiatan Pengelolaan SDM yang Optimal"
+    },
+    {
+      "project": "Pengelolaan SDM yang Optimal",
+      "year": 2026,
+      "number": 3,
+      "description": "Penyusunan laporan hasil Pengelolaan SDM yang Optimal"
+    },
+    {
+      "project": "Kegiatan BPS dan Sosialisasi yang terselenggara dengan baik dan tepat waktu",
+      "year": 2026,
+      "number": 1,
+      "description": "Persiapan dan koordinasi pelaksanaan Kegiatan BPS dan Sosialisasi yang terselenggara dengan baik dan tepat waktu"
+    },
+    {
+      "project": "Kegiatan BPS dan Sosialisasi yang terselenggara dengan baik dan tepat waktu",
+      "year": 2026,
+      "number": 2,
+      "description": "Pelaksanaan kegiatan Kegiatan BPS dan Sosialisasi yang terselenggara dengan baik dan tepat waktu"
+    },
+    {
+      "project": "Kegiatan BPS dan Sosialisasi yang terselenggara dengan baik dan tepat waktu",
+      "year": 2026,
+      "number": 3,
+      "description": "Penyusunan laporan hasil Kegiatan BPS dan Sosialisasi yang terselenggara dengan baik dan tepat waktu"
+    },
+    {
+      "project": "Pengelolaan Hukum dan Organisasi yang baik",
+      "year": 2026,
+      "number": 1,
+      "description": "Persiapan dan koordinasi pelaksanaan Pengelolaan Hukum dan Organisasi yang baik"
+    },
+    {
+      "project": "Pengelolaan Hukum dan Organisasi yang baik",
+      "year": 2026,
+      "number": 2,
+      "description": "Pelaksanaan kegiatan Pengelolaan Hukum dan Organisasi yang baik"
+    },
+    {
+      "project": "Pengelolaan Hukum dan Organisasi yang baik",
+      "year": 2026,
+      "number": 3,
+      "description": "Penyusunan laporan hasil Pengelolaan Hukum dan Organisasi yang baik"
+    },
+    {
+      "project": "Pelaksanaan Kearsipan dan Persandian yang baik",
+      "year": 2026,
+      "number": 1,
+      "description": "Persiapan dan koordinasi pelaksanaan Pelaksanaan Kearsipan dan Persandian yang baik"
+    },
+    {
+      "project": "Pelaksanaan Kearsipan dan Persandian yang baik",
+      "year": 2026,
+      "number": 2,
+      "description": "Pelaksanaan kegiatan Pelaksanaan Kearsipan dan Persandian yang baik"
+    },
+    {
+      "project": "Pelaksanaan Kearsipan dan Persandian yang baik",
+      "year": 2026,
+      "number": 3,
+      "description": "Penyusunan laporan hasil Pelaksanaan Kearsipan dan Persandian yang baik"
+    },
+    {
+      "project": "Tugas Belajar dalam Rangka Peningkatan Kinerja dan Kompetensi Secara Optimal",
+      "year": 2026,
+      "number": 1,
+      "description": "Persiapan dan koordinasi pelaksanaan Tugas Belajar dalam Rangka Peningkatan Kinerja dan Kompetensi Secara Optimal"
+    },
+    {
+      "project": "Tugas Belajar dalam Rangka Peningkatan Kinerja dan Kompetensi Secara Optimal",
+      "year": 2026,
+      "number": 2,
+      "description": "Pelaksanaan kegiatan Tugas Belajar dalam Rangka Peningkatan Kinerja dan Kompetensi Secara Optimal"
+    },
+    {
+      "project": "Tugas Belajar dalam Rangka Peningkatan Kinerja dan Kompetensi Secara Optimal",
+      "year": 2026,
+      "number": 3,
+      "description": "Penyusunan laporan hasil Tugas Belajar dalam Rangka Peningkatan Kinerja dan Kompetensi Secara Optimal"
+    },
+    {
+      "project": "Rekonsiliasi Transaksi Keuangan Tingkat Satker dan Wilayah",
+      "year": 2026,
+      "number": 1,
+      "description": "Persiapan dan koordinasi pelaksanaan Rekonsiliasi Transaksi Keuangan Tingkat Satker dan Wilayah"
+    },
+    {
+      "project": "Rekonsiliasi Transaksi Keuangan Tingkat Satker dan Wilayah",
+      "year": 2026,
+      "number": 2,
+      "description": "Pelaksanaan kegiatan Rekonsiliasi Transaksi Keuangan Tingkat Satker dan Wilayah"
+    },
+    {
+      "project": "Rekonsiliasi Transaksi Keuangan Tingkat Satker dan Wilayah",
+      "year": 2026,
+      "number": 3,
+      "description": "Penyusunan laporan hasil Rekonsiliasi Transaksi Keuangan Tingkat Satker dan Wilayah"
+    },
+    {
+      "project": "Penyusunan Laporan Keuangan Tingkat Satker dan Wilayah",
+      "year": 2026,
+      "number": 1,
+      "description": "Persiapan dan koordinasi pelaksanaan Penyusunan Laporan Keuangan Tingkat Satker dan Wilayah"
+    },
+    {
+      "project": "Penyusunan Laporan Keuangan Tingkat Satker dan Wilayah",
+      "year": 2026,
+      "number": 2,
+      "description": "Pelaksanaan kegiatan Penyusunan Laporan Keuangan Tingkat Satker dan Wilayah"
+    },
+    {
+      "project": "Penyusunan Laporan Keuangan Tingkat Satker dan Wilayah",
+      "year": 2026,
+      "number": 3,
+      "description": "Penyusunan laporan hasil Penyusunan Laporan Keuangan Tingkat Satker dan Wilayah"
+    },
+    {
+      "project": "Kualitas Pelaporan LK Tingkat Satker dan Wilayah",
+      "year": 2026,
+      "number": 1,
+      "description": "Persiapan dan koordinasi pelaksanaan Kualitas Pelaporan LK Tingkat Satker dan Wilayah"
+    },
+    {
+      "project": "Kualitas Pelaporan LK Tingkat Satker dan Wilayah",
+      "year": 2026,
+      "number": 2,
+      "description": "Pelaksanaan kegiatan Kualitas Pelaporan LK Tingkat Satker dan Wilayah"
+    },
+    {
+      "project": "Kualitas Pelaporan LK Tingkat Satker dan Wilayah",
+      "year": 2026,
+      "number": 3,
+      "description": "Penyusunan laporan hasil Kualitas Pelaporan LK Tingkat Satker dan Wilayah"
+    },
+    {
+      "project": "Penerapan pengendalian intern atas pelaporan keuangan (PIPK)  Tingkat Satker dan Wilayah",
+      "year": 2026,
+      "number": 1,
+      "description": "Persiapan dan koordinasi pelaksanaan Penerapan pengendalian intern atas pelaporan keuangan (PIPK)  Tingkat Satker dan Wilayah"
+    },
+    {
+      "project": "Penerapan pengendalian intern atas pelaporan keuangan (PIPK)  Tingkat Satker dan Wilayah",
+      "year": 2026,
+      "number": 2,
+      "description": "Pelaksanaan kegiatan Penerapan pengendalian intern atas pelaporan keuangan (PIPK)  Tingkat Satker dan Wilayah"
+    },
+    {
+      "project": "Penerapan pengendalian intern atas pelaporan keuangan (PIPK)  Tingkat Satker dan Wilayah",
+      "year": 2026,
+      "number": 3,
+      "description": "Penyusunan laporan hasil Penerapan pengendalian intern atas pelaporan keuangan (PIPK)  Tingkat Satker dan Wilayah"
+    },
+    {
+      "project": "Pengembangan pejabat fungsional dalam pengelolaan keuangan APBN",
+      "year": 2026,
+      "number": 1,
+      "description": "Persiapan dan koordinasi pelaksanaan Pengembangan pejabat fungsional dalam pengelolaan keuangan APBN"
+    },
+    {
+      "project": "Pengembangan pejabat fungsional dalam pengelolaan keuangan APBN",
+      "year": 2026,
+      "number": 2,
+      "description": "Pelaksanaan kegiatan Pengembangan pejabat fungsional dalam pengelolaan keuangan APBN"
+    },
+    {
+      "project": "Pengembangan pejabat fungsional dalam pengelolaan keuangan APBN",
+      "year": 2026,
+      "number": 3,
+      "description": "Penyusunan laporan hasil Pengembangan pejabat fungsional dalam pengelolaan keuangan APBN"
+    },
+    {
+      "project": "Pelaporan SPIDER tingkat satuan kerja dan tingkat wilayah",
+      "year": 2026,
+      "number": 1,
+      "description": "Persiapan dan koordinasi pelaksanaan Pelaporan SPIDER tingkat satuan kerja dan tingkat wilayah"
+    },
+    {
+      "project": "Pelaporan SPIDER tingkat satuan kerja dan tingkat wilayah",
+      "year": 2026,
+      "number": 2,
+      "description": "Pelaksanaan kegiatan Pelaporan SPIDER tingkat satuan kerja dan tingkat wilayah"
+    },
+    {
+      "project": "Pelaporan SPIDER tingkat satuan kerja dan tingkat wilayah",
+      "year": 2026,
+      "number": 3,
+      "description": "Penyusunan laporan hasil Pelaporan SPIDER tingkat satuan kerja dan tingkat wilayah"
+    },
+    {
+      "project": "Penilaian SAKIP",
+      "year": 2026,
+      "number": 1,
+      "description": "Persiapan dan koordinasi pelaksanaan Penilaian SAKIP"
+    },
+    {
+      "project": "Penilaian SAKIP",
+      "year": 2026,
+      "number": 2,
+      "description": "Pelaksanaan kegiatan Penilaian SAKIP"
+    },
+    {
+      "project": "Penilaian SAKIP",
+      "year": 2026,
+      "number": 3,
+      "description": "Penyusunan laporan hasil Penilaian SAKIP"
+    },
+    {
+      "project": "Penilaian Satker WBK/WBBM",
+      "year": 2026,
+      "number": 1,
+      "description": "Persiapan dan koordinasi pelaksanaan Penilaian Satker WBK/WBBM"
+    },
+    {
+      "project": "Penilaian Satker WBK/WBBM",
+      "year": 2026,
+      "number": 2,
+      "description": "Pelaksanaan kegiatan Penilaian Satker WBK/WBBM"
+    },
+    {
+      "project": "Penilaian Satker WBK/WBBM",
+      "year": 2026,
+      "number": 3,
+      "description": "Penyusunan laporan hasil Penilaian Satker WBK/WBBM"
+    },
+    {
+      "project": "Penilaian Mandiri SPIP",
+      "year": 2026,
+      "number": 1,
+      "description": "Persiapan dan koordinasi pelaksanaan Penilaian Mandiri SPIP"
+    },
+    {
+      "project": "Penilaian Mandiri SPIP",
+      "year": 2026,
+      "number": 2,
+      "description": "Pelaksanaan kegiatan Penilaian Mandiri SPIP"
+    },
+    {
+      "project": "Penilaian Mandiri SPIP",
+      "year": 2026,
+      "number": 3,
+      "description": "Penyusunan laporan hasil Penilaian Mandiri SPIP"
+    },
+    {
+      "project": "Penyusunan Daftar Risiko",
+      "year": 2026,
+      "number": 1,
+      "description": "Persiapan dan koordinasi pelaksanaan Penyusunan Daftar Risiko"
+    },
+    {
+      "project": "Penyusunan Daftar Risiko",
+      "year": 2026,
+      "number": 2,
+      "description": "Pelaksanaan kegiatan Penyusunan Daftar Risiko"
+    },
+    {
+      "project": "Penyusunan Daftar Risiko",
+      "year": 2026,
+      "number": 3,
+      "description": "Penyusunan laporan hasil Penyusunan Daftar Risiko"
+    }
+  ]
+}
