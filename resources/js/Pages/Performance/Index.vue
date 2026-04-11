@@ -17,8 +17,11 @@ interface WorkItemWithReports {
     id: number;
     number: number;
     description: string;
+    target: number;
+    target_unit: string;
     performance_reports: Array<{
         id: number;
+        realization: number;
         achievement_percentage: number;
         issues: string | null;
         solutions: string | null;
@@ -69,7 +72,7 @@ const projectsByTeam = computed(() => {
 // Form state
 type ItemForm = {
     work_item_id: number;
-    achievement_percentage: number;
+    realization: number;
     issues: string;
     solutions: string;
     action_plan: string;
@@ -85,14 +88,12 @@ const form = useForm<{
     items: [],
 });
 
-// Seed form items from existing reports on first access
 const seededIds = new Set<number>();
 
 function getItem(workItemId: number): ItemForm {
     const existing = form.items.find(i => i.work_item_id === workItemId);
     if (existing) return existing;
 
-    // Find the work item across all projects to seed initial value
     if (!seededIds.has(workItemId)) {
         seededIds.add(workItemId);
         let report: WorkItemWithReports['performance_reports'][number] | undefined;
@@ -106,7 +107,7 @@ function getItem(workItemId: number): ItemForm {
         }
         form.items.push({
             work_item_id: workItemId,
-            achievement_percentage: report?.achievement_percentage ?? 0,
+            realization: report?.realization ?? 0,
             issues: report?.issues ?? '',
             solutions: report?.solutions ?? '',
             action_plan: report?.action_plan ?? '',
@@ -115,19 +116,36 @@ function getItem(workItemId: number): ItemForm {
     return form.items.find(i => i.work_item_id === workItemId)!;
 }
 
+function getWorkItem(workItemId: number): WorkItemWithReports | undefined {
+    for (const p of props.projects) {
+        const wi = p.work_items.find(w => w.id === workItemId);
+        if (wi) return wi;
+    }
+}
+
+function computePct(workItemId: number): number {
+    const wi = getWorkItem(workItemId);
+    if (!wi || !wi.target || Number(wi.target) <= 0) return 0;
+    const item = getItem(workItemId);
+    return Math.min(100, (Number(item.realization) / Number(wi.target)) * 100);
+}
+
 function progressColor(pct: number): string {
     if (pct >= 80) return '[&>div]:bg-green-500';
     if (pct >= 50) return '[&>div]:bg-yellow-500';
     return '[&>div]:bg-red-500';
 }
 
-function projectAvg(project: ProjectWithItems): number {
-    const pct = project.work_items.map(wi => {
-        const item = form.items.find(i => i.work_item_id === wi.id);
-        return item ? Number(item.achievement_percentage) : (wi.performance_reports[0]?.achievement_percentage ?? 0);
-    });
-    if (!pct.length) return 0;
-    return pct.reduce((s, v) => s + v, 0) / pct.length;
+function pctColor(pct: number): string {
+    if (pct >= 80) return 'text-green-600';
+    if (pct >= 50) return 'text-yellow-500';
+    return 'text-red-500';
+}
+
+function projectAvgPct(project: ProjectWithItems): number {
+    if (!project.work_items.length) return 0;
+    const pcts = project.work_items.map(wi => computePct(wi.id));
+    return pcts.reduce((s, v) => s + v, 0) / pcts.length;
 }
 
 function submit() {
@@ -175,10 +193,10 @@ function submit() {
             <div v-for="group in projectsByTeam" :key="group.teamId" class="space-y-3">
                 <!-- Team header -->
                 <div class="flex items-center gap-3">
-                    <h2 class="text-sm font-bold uppercase tracking-wide text-[#1B4B8A]">
+                    <h2 class="text-sm font-bold uppercase tracking-wide text-primary">
                         {{ group.teamName }}
                     </h2>
-                    <span class="h-px flex-1 bg-[#1B4B8A]/20"></span>
+                    <span class="h-px flex-1 bg-primary/20"></span>
                     <Badge variant="outline" class="text-xs">
                         {{ group.projects.length }} proyek
                     </Badge>
@@ -200,12 +218,12 @@ function submit() {
                                 <div class="flex shrink-0 items-center gap-2">
                                     <div class="hidden w-24 sm:block">
                                         <Progress
-                                            :model-value="projectAvg(project)"
-                                            :class="['h-1.5', progressColor(projectAvg(project))]"
+                                            :model-value="projectAvgPct(project)"
+                                            :class="['h-1.5', progressColor(projectAvgPct(project))]"
                                         />
                                     </div>
-                                    <span :class="['text-sm font-bold', projectAvg(project) >= 80 ? 'text-green-600' : projectAvg(project) >= 50 ? 'text-yellow-500' : 'text-red-500']">
-                                        {{ projectAvg(project).toFixed(0) }}%
+                                    <span :class="['text-sm font-bold', pctColor(projectAvgPct(project))]">
+                                        {{ projectAvgPct(project).toFixed(0) }}%
                                     </span>
                                 </div>
                             </div>
@@ -221,27 +239,47 @@ function submit() {
                                         {{ wi.number }}. {{ wi.description }}
                                     </p>
 
-                                    <!-- Achievement row -->
-                                    <div class="mb-4">
-                                        <Label class="text-xs text-gray-500">Capaian (%)</Label>
-                                        <div class="mt-1.5 flex items-center gap-3">
-                                            <Input
-                                                type="number"
-                                                min="0"
-                                                max="100"
-                                                step="0.01"
-                                                v-model="getItem(wi.id).achievement_percentage"
-                                                class="w-28"
-                                            />
-                                            <Progress
-                                                :model-value="Number(getItem(wi.id).achievement_percentage)"
-                                                :class="['flex-1 h-2', progressColor(Number(getItem(wi.id).achievement_percentage))]"
-                                            />
-                                            <span :class="['w-12 text-right text-sm font-bold shrink-0', Number(getItem(wi.id).achievement_percentage) >= 80 ? 'text-green-600' : Number(getItem(wi.id).achievement_percentage) >= 50 ? 'text-yellow-500' : 'text-red-500']">
-                                                {{ Number(getItem(wi.id).achievement_percentage).toFixed(0) }}%
+                                    <!-- Target + Realization -->
+                                    <div class="mb-4 rounded-md border border-gray-200 bg-white p-3">
+                                        <div class="mb-2 flex items-center justify-between">
+                                            <span class="text-xs font-medium uppercase tracking-wide text-gray-500">Progres Capaian</span>
+                                            <span :class="['text-base font-bold', pctColor(computePct(wi.id))]">
+                                                {{ computePct(wi.id).toFixed(1) }}%
                                             </span>
                                         </div>
-                                        <InputError :message="form.errors[`items.${form.items.findIndex(i => i.work_item_id === wi.id)}.achievement_percentage`]" />
+                                        <Progress
+                                            :model-value="computePct(wi.id)"
+                                            :class="['mb-3 h-2', progressColor(computePct(wi.id))]"
+                                        />
+                                        <div class="grid grid-cols-2 gap-4">
+                                            <div>
+                                                <Label class="text-xs text-gray-500">
+                                                    Target ({{ wi.target_unit }})
+                                                </Label>
+                                                <div class="mt-1 flex items-center gap-2">
+                                                    <span class="rounded bg-gray-100 px-2.5 py-1.5 text-sm font-semibold text-gray-700">
+                                                        {{ Number(wi.target).toLocaleString('id') }}
+                                                    </span>
+                                                    <span class="text-xs text-gray-400">{{ wi.target_unit }}</span>
+                                                </div>
+                                            </div>
+                                            <div>
+                                                <Label class="text-xs text-gray-500">
+                                                    Realisasi ({{ wi.target_unit }})
+                                                </Label>
+                                                <div class="mt-1 flex items-center gap-2">
+                                                    <Input
+                                                        type="number"
+                                                        min="0"
+                                                        step="0.01"
+                                                        v-model="getItem(wi.id).realization"
+                                                        class="w-28"
+                                                    />
+                                                    <span class="text-xs text-gray-400">{{ wi.target_unit }}</span>
+                                                </div>
+                                                <InputError :message="form.errors[`items.${form.items.findIndex(i => i.work_item_id === wi.id)}.realization`]" />
+                                            </div>
+                                        </div>
                                     </div>
 
                                     <!-- Notes grid -->
@@ -286,7 +324,7 @@ function submit() {
                 <Button
                     type="submit"
                     :disabled="form.processing"
-                    class="bg-[#1B4B8A] px-8 shadow-lg hover:bg-[#163d70]"
+                    class="px-8 shadow-lg"
                 >
                     {{ form.processing ? 'Menyimpan...' : 'Simpan Laporan Kinerja' }}
                 </Button>

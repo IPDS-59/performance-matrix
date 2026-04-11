@@ -12,7 +12,7 @@ it('saves multiple reports in a batch', function () {
     Event::fake();
 
     $employee = Employee::factory()->create();
-    $items = WorkItem::factory()->count(3)->create();
+    $items = WorkItem::factory()->count(3)->create(['target' => 1]);
     $action = app(SavePerformanceBatchAction::class);
 
     $reports = $action->execute(
@@ -21,7 +21,7 @@ it('saves multiple reports in a batch', function () {
         periodYear: 2026,
         items: $items->map(fn ($wi) => [
             'work_item_id' => $wi->id,
-            'achievement_percentage' => 75.0,
+            'realization' => 1.0,
             'issues' => null,
             'solutions' => null,
             'action_plan' => null,
@@ -44,7 +44,7 @@ it('rolls back all reports if one fails', function () {
         periodMonth: 4,
         periodYear: 2026,
         items: [
-            ['work_item_id' => 99999, 'achievement_percentage' => 50.0, 'issues' => null, 'solutions' => null, 'action_plan' => null],
+            ['work_item_id' => 99999, 'realization' => 1.0, 'issues' => null, 'solutions' => null, 'action_plan' => null],
         ],
     ))->toThrow(ModelNotFoundException::class);
 
@@ -55,7 +55,7 @@ it('dispatches batch event with correct reporter and period', function () {
     Event::fake();
 
     $employee = Employee::factory()->create();
-    $workItem = WorkItem::factory()->create();
+    $workItem = WorkItem::factory()->create(['target' => 1]);
     $action = app(SavePerformanceBatchAction::class);
 
     $action->execute(
@@ -63,7 +63,7 @@ it('dispatches batch event with correct reporter and period', function () {
         periodMonth: 5,
         periodYear: 2026,
         items: [
-            ['work_item_id' => $workItem->id, 'achievement_percentage' => 90.0, 'issues' => null, 'solutions' => null, 'action_plan' => null],
+            ['work_item_id' => $workItem->id, 'realization' => 1.0, 'issues' => null, 'solutions' => null, 'action_plan' => null],
         ],
     );
 

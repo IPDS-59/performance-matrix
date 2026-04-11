@@ -261,7 +261,7 @@ const lineChartOptions = {
                 <div class="mb-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
                     <Card class="sm:col-span-2 lg:col-span-2">
                         <CardContent class="flex items-center gap-4 pt-6">
-                            <div class="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-[#1B4B8A]/10 text-xl font-bold text-[#1B4B8A]">
+                            <div class="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-primary/10 text-xl font-bold text-primary">
                                 {{ (employee.display_name || employee.name).charAt(0).toUpperCase() }}
                             </div>
                             <div>
@@ -291,10 +291,10 @@ const lineChartOptions = {
                 <!-- Projects grouped by team -->
                 <div v-else class="space-y-6">
                     <div v-for="group in projectsByTeam" :key="group.teamName">
-                        <h2 class="mb-3 flex items-center gap-2 text-sm font-semibold text-[#1B4B8A] uppercase tracking-wide">
-                            <span class="h-px flex-1 bg-[#1B4B8A]/20"></span>
+                        <h2 class="mb-3 flex items-center gap-2 text-sm font-semibold text-primary uppercase tracking-wide">
+                            <span class="h-px flex-1 bg-primary/20"></span>
                             {{ group.teamName }}
-                            <span class="h-px flex-1 bg-[#1B4B8A]/20"></span>
+                            <span class="h-px flex-1 bg-primary/20"></span>
                         </h2>
                         <div class="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
                             <Card
@@ -396,8 +396,8 @@ const lineChartOptions = {
                         <CardHeader>
                             <CardTitle class="text-base">Peringkat Tim</CardTitle>
                         </CardHeader>
-                        <CardContent>
-                            <div class="space-y-3">
+                        <CardContent class="p-0">
+                            <div class="h-64 overflow-y-auto px-6 py-2 space-y-3">
                                 <div v-for="(team, idx) in teamList" :key="team.id" class="flex items-center gap-3">
                                     <span class="w-5 shrink-0 text-right text-xs font-bold text-gray-400">
                                         {{ idx + 1 }}

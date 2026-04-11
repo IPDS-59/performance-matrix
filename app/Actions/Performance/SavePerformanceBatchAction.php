@@ -16,7 +16,7 @@ class SavePerformanceBatchAction
     ) {}
 
     /**
-     * @param  array<array{work_item_id: int, achievement_percentage: float, issues: ?string, solutions: ?string, action_plan: ?string}>  $items
+     * @param  array<array{work_item_id: int, realization: float, issues: ?string, solutions: ?string, action_plan: ?string}>  $items
      * @return Collection<int, PerformanceReport>
      */
     public function execute(
@@ -33,7 +33,7 @@ class SavePerformanceBatchAction
                     workItem: $workItem,
                     periodMonth: $periodMonth,
                     periodYear: $periodYear,
-                    achievementPercentage: (float) $item['achievement_percentage'],
+                    realization: (float) $item['realization'],
                     reporter: $reporter,
                     issues: $item['issues'] ?? null,
                     solutions: $item['solutions'] ?? null,

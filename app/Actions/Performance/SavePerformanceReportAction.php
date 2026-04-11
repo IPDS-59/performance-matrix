@@ -13,12 +13,17 @@ class SavePerformanceReportAction
         WorkItem $workItem,
         int $periodMonth,
         int $periodYear,
-        float $achievementPercentage,
+        float $realization,
         ?Employee $reporter = null,
         ?string $issues = null,
         ?string $solutions = null,
         ?string $actionPlan = null,
     ): PerformanceReport {
+        $target = (float) $workItem->target;
+        $achievementPercentage = $target > 0
+            ? min(100, round(($realization / $target) * 100, 2))
+            : 0;
+
         $report = PerformanceReport::updateOrCreate(
             [
                 'work_item_id' => $workItem->id,
@@ -27,6 +32,7 @@ class SavePerformanceReportAction
             ],
             [
                 'reported_by' => $reporter?->id,
+                'realization' => $realization,
                 'achievement_percentage' => $achievementPercentage,
                 'issues' => $issues,
                 'solutions' => $solutions,
