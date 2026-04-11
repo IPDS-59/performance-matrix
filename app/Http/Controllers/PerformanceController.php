@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Actions\Performance\SavePerformanceBatchAction;
+use App\Models\PerformanceReport;
 use App\Models\Project;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -13,7 +14,7 @@ class PerformanceController extends Controller
 {
     public function index(Request $request): Response
     {
-        $this->authorize('create', \App\Models\PerformanceReport::class);
+        $this->authorize('create', PerformanceReport::class);
 
         $employee = $request->user()->employee;
 
@@ -41,7 +42,7 @@ class PerformanceController extends Controller
 
     public function storeBatch(Request $request, SavePerformanceBatchAction $action): RedirectResponse
     {
-        $this->authorize('create', \App\Models\PerformanceReport::class);
+        $this->authorize('create', PerformanceReport::class);
 
         $employee = $request->user()->employee;
 

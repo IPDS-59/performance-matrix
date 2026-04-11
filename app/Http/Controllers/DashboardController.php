@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Employee;
+use App\Models\PerformanceReport;
 use App\Models\Project;
 use App\Models\Team;
 use Illuminate\Http\Request;
@@ -32,7 +33,7 @@ class DashboardController extends Controller
 
     public function matrix(Request $request): Response
     {
-        $this->authorize('viewAny', \App\Models\PerformanceReport::class);
+        $this->authorize('viewAny', PerformanceReport::class);
 
         $year = $request->integer('year', now()->year);
         $month = $request->integer('month', now()->month);
