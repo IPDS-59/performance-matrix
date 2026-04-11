@@ -1,6 +1,10 @@
 <?php
 
+use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Spatie\Permission\Models\Permission;
+use Spatie\Permission\Models\Role;
+use Spatie\Permission\PermissionRegistrar;
 use Tests\TestCase;
 
 /*
@@ -44,7 +48,52 @@ expect()->extend('toBeOne', function () {
 |
 */
 
-function something()
+function seedRolesAndPermissions(): void
 {
-    // ..
+    app()[PermissionRegistrar::class]->forgetCachedPermissions();
+
+    $permissions = [
+        'manage-teams', 'manage-employees', 'manage-projects',
+        'manage-work-items', 'view-matrix', 'view-reports', 'enter-performance',
+    ];
+
+    foreach ($permissions as $perm) {
+        Permission::firstOrCreate(['name' => $perm, 'guard_name' => 'web']);
+    }
+
+    Role::firstOrCreate(['name' => 'admin', 'guard_name' => 'web'])
+        ->syncPermissions(['manage-teams', 'manage-employees', 'manage-projects', 'manage-work-items', 'view-matrix', 'view-reports']);
+
+    Role::firstOrCreate(['name' => 'head', 'guard_name' => 'web'])
+        ->syncPermissions(['view-matrix', 'view-reports']);
+
+    Role::firstOrCreate(['name' => 'staff', 'guard_name' => 'web'])
+        ->syncPermissions(['enter-performance']);
+}
+
+function adminUser(): User
+{
+    seedRolesAndPermissions();
+    $user = User::factory()->create();
+    $user->assignRole('admin');
+
+    return $user;
+}
+
+function headUser(): User
+{
+    seedRolesAndPermissions();
+    $user = User::factory()->create();
+    $user->assignRole('head');
+
+    return $user;
+}
+
+function staffUser(): User
+{
+    seedRolesAndPermissions();
+    $user = User::factory()->create();
+    $user->assignRole('staff');
+
+    return $user;
 }
