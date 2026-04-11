@@ -27,7 +27,7 @@ const isStaff = computed(() => user.value.role === 'staff');
                     class="flex items-center gap-2 font-semibold text-sm leading-tight"
                 >
                     <img
-                        src="/images/bps-sulteng-logo.png"
+                        src="/images/bps-sulteng-logo.svg"
                         alt="BPS Sulteng"
                         class="h-8 w-8 rounded object-contain bg-white p-0.5"
                     />

@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="100" height="100">
+  <!-- BPS placeholder logo - replace with official BPS Sulteng logo -->
+  <rect width="100" height="100" rx="8" fill="#1B4B8A"/>
+  <text x="50" y="38" text-anchor="middle" font-family="Arial, sans-serif" font-size="22" font-weight="bold" fill="white">BPS</text>
+  <line x1="15" y1="46" x2="85" y2="46" stroke="white" stroke-width="2"/>
+  <text x="50" y="60" text-anchor="middle" font-family="Arial, sans-serif" font-size="8" fill="white">SULTENG</text>
+  <text x="50" y="74" text-anchor="middle" font-family="Arial, sans-serif" font-size="6.5" fill="white" letter-spacing="0.5">STATISTICS INDONESIA</text>
+</svg>
