@@ -3,6 +3,7 @@ import './bootstrap';
 
 import { createInertiaApp } from '@inertiajs/vue3';
 import { resolvePageComponent } from 'laravel-vite-plugin/inertia-helpers';
+import { createPinia } from 'pinia';
 import { createApp, DefineComponent, h } from 'vue';
 import { ZiggyVue } from '../../vendor/tightenco/ziggy';
 
@@ -18,10 +19,11 @@ createInertiaApp({
     setup({ el, App, props, plugin }) {
         createApp({ render: () => h(App, props) })
             .use(plugin)
+            .use(createPinia())
             .use(ZiggyVue)
             .mount(el);
     },
     progress: {
-        color: '#4B5563',
+        color: '#1B4B8A',
     },
 });

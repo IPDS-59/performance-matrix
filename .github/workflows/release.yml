@@ -1,0 +1,14 @@
+name: Release
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  release:
+    uses: banua-coder/banua-coder-workflow/.github/workflows/release.yml@main
+    with:
+      php-version: '8.5'
+      node-version: '20'
+      package-manager: 'pnpm'
