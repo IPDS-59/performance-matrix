@@ -6,6 +6,10 @@ const props = defineProps<{
     status: number;
 }>();
 
+function goBack() {
+    window.history.back();
+}
+
 const title = computed(() => {
     const titles: Record<number, string> = {
         401: 'Tidak Terautentikasi',
@@ -57,7 +61,7 @@ const description = computed(() => {
                 </Link>
                 <button
                     type="button"
-                    @click="() => window.history.back()"
+                    @click="goBack"
                     class="inline-flex items-center rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
                 >
                     Kembali
