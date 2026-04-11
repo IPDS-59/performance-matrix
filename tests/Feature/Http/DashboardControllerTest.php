@@ -41,7 +41,7 @@ it('renders admin dashboard for admin user', function () {
         );
 });
 
-it('renders staff dashboard with null data when not linked to employee', function () {
+it('renders staff dashboard with no employee when not linked', function () {
     $user = staffUser();
 
     $this->actingAs($user)
@@ -49,7 +49,8 @@ it('renders staff dashboard with null data when not linked to employee', functio
         ->assertInertia(fn ($page) => $page
             ->component('Dashboard')
             ->where('role', 'staff')
-            ->where('data', null)
+            ->missing('employee')
+            ->has('filters')
         );
 });
 

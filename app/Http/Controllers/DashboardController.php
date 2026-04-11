@@ -79,7 +79,10 @@ class DashboardController extends Controller
         $employee = $user->employee;
 
         if (! $employee) {
-            return Inertia::render('Dashboard', ['role' => 'staff', 'data' => null]);
+            return Inertia::render('Dashboard', [
+                'role' => 'staff',
+                'filters' => compact('year', 'month'),
+            ]);
         }
 
         $projects = Project::with([
