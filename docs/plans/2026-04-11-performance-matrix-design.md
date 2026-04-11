@@ -41,7 +41,26 @@ teams
 employees
   id, user_id (FK→users, nullable), team_id (FK→teams)
   name, full_name, employee_number (unique, nullable)
-  position, degree_front, degree_back, is_active, timestamps
+  position, office (nullable)   ← office = district office name for kepala satker kabupaten
+  display_name (varchar, nullable)  ← write-through cache: "Dr. Name, M.Si"
+  is_active, timestamps
+
+employee_educations
+  id, employee_id (FK→employees)
+  degree_front (varchar, nullable)  ← e.g. "Dr."
+  degree_back (varchar, nullable)   ← e.g. "M.Si"
+  institution (varchar, nullable)
+  field_of_study (varchar, nullable)
+  graduated_year (year, nullable)
+  is_highest (boolean, default false)
+  timestamps
+
+employee_team_histories
+  id, employee_id (FK→employees), team_id (FK→teams)
+  started_at (date), ended_at (date, nullable)  ← null = current assignment
+  notes (text, nullable)
+  timestamps
+  INDEX(employee_id), INDEX(team_id)
 
 projects
   id, team_id (FK→teams), leader_id (FK→employees, nullable)
@@ -53,6 +72,16 @@ project_members
   id, project_id (FK→projects), employee_id (FK→employees)
   role (leader|member), timestamps
   UNIQUE(project_id, employee_id)
+
+team_annual_plans
+  id, team_id (FK→teams), year
+  kpi (text, nullable)           ← team's Indikator Kinerja Utama for the year
+  annual_plan (text, nullable)   ← team's Rencana Kinerja Tahunan
+  objective_1 (text, nullable)   ← Sasaran 1
+  objective_2 (text, nullable)   ← Sasaran 2
+  objective_3 (text, nullable)   ← Sasaran 3
+  timestamps
+  UNIQUE(team_id, year)
 
 work_items
   id, project_id (FK→projects), number (smallint)
@@ -75,6 +104,8 @@ users (Breeze default + additions)
 
 ```
 Team (19)
+├── TeamAnnualPlan (year-scoped: kpi + annual_plan + objective_1/2/3 per year)
+├── EmployeeTeamHistory (tracks all current + past members with date ranges)
 └── Project (139, scoped by year)
     ├── leader_id → Employee
     ├── project_members (810 records, role: leader|member)
@@ -84,7 +115,20 @@ Team (19)
             ├── issues
             ├── solutions
             └── action_plan
+
+Employee
+├── team_id (FK→teams) — current team (denormalized for fast lookup)
+├── EmployeeTeamHistory — full history of team assignments
+└── EmployeeEducation[] — degree records; display_name cached on employees
 ```
+
+### Year-Scoped Design Notes
+
+- `projects.year` scopes projects to a fiscal year (e.g. 2026)
+- `team_annual_plans` is UNIQUE(team_id, year) — one plan per team per year
+- `employee_team_histories` records all team transfers; `employees.team_id` always reflects **current** assignment
+- When a staff user looks up their data, the system queries both `project_members` for the current team and `employee_team_histories` to surface records from previous teams in the same year
+- `employees.office` is used for "kepala satker kabupaten" to record their home district office name (e.g. "BPS Kab. Poso")
 
 ---
 
@@ -165,6 +209,7 @@ app/
 │   └── PerformanceController.php
 ├── Models/
 │   ├── Team.php
+│   ├── TeamAnnualPlan.php
 │   ├── Employee.php
 │   ├── Project.php
 │   ├── WorkItem.php
