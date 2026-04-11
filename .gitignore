@@ -29,3 +29,8 @@ CLAUDE-LARAVEL-INERTIA.md
 seeder_data.json
 .claude/
 *.claude.md
+
+# Beads / Dolt files (added by bd init)
+.dolt/
+*.db
+.beads-credential-key
