@@ -56,7 +56,7 @@ class PerformanceController extends Controller
             'period_year' => ['required', 'integer', 'min:2020'],
             'items' => ['required', 'array', 'min:1'],
             'items.*.work_item_id' => ['required', 'exists:work_items,id'],
-            'items.*.achievement_percentage' => ['required', 'numeric', 'min:0', 'max:100'],
+            'items.*.realization' => ['required', 'numeric', 'min:0'],
             'items.*.issues' => ['nullable', 'string'],
             'items.*.solutions' => ['nullable', 'string'],
             'items.*.action_plan' => ['nullable', 'string'],

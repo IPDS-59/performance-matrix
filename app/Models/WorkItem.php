@@ -15,10 +15,13 @@ class WorkItem extends Model
         'project_id',
         'number',
         'description',
+        'target',
+        'target_unit',
     ];
 
     protected $casts = [
         'number' => 'integer',
+        'target' => 'decimal:2',
     ];
 
     public function project(): BelongsTo

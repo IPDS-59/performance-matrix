@@ -52,7 +52,7 @@ it('stores a batch of performance reports', function () {
             'items' => [
                 [
                     'work_item_id' => $workItem->id,
-                    'achievement_percentage' => 80,
+                    'realization' => 1,
                     'issues' => null,
                     'solutions' => null,
                     'action_plan' => null,
@@ -71,4 +71,5 @@ it('validates required fields on batch store', function () {
     $this->actingAs($user)
         ->post(route('performance.batch'), [])
         ->assertSessionHasErrors(['period_month', 'period_year', 'items']);
+
 });

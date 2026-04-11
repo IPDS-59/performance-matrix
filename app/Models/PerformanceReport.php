@@ -15,6 +15,7 @@ class PerformanceReport extends Model
         'reported_by',
         'period_month',
         'period_year',
+        'realization',
         'achievement_percentage',
         'issues',
         'solutions',
@@ -24,6 +25,7 @@ class PerformanceReport extends Model
     protected $casts = [
         'period_month' => 'integer',
         'period_year' => 'integer',
+        'realization' => 'decimal:2',
         'achievement_percentage' => 'decimal:2',
     ];
 

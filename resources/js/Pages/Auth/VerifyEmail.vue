@@ -42,7 +42,7 @@ const verificationLinkSent = computed(
         <div class="flex items-center justify-between gap-4">
             <Button
                 type="button"
-                class="bg-[#1B4B8A] hover:bg-[#163d73]"
+                class=""
                 :disabled="form.processing"
                 @click="submit"
             >
