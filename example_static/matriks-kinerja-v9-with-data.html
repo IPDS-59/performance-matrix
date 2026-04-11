@@ -1,0 +1,1307 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Matriks Kinerja Pegawai</title>
+    <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'system-ui', 'sans-serif'],
+                        mono: ['JetBrains Mono', 'monospace'],
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body { background: #0a0a0b; }
+        .scrollbar-thin::-webkit-scrollbar { width: 5px; height: 5px; }
+        .scrollbar-thin::-webkit-scrollbar-track { background: transparent; }
+        .scrollbar-thin::-webkit-scrollbar-thumb { background: #3f3f46; border-radius: 3px; }
+        .matrix-table { border-collapse: separate; border-spacing: 0; }
+        .matrix-table th, .matrix-table td { border-bottom: 1px solid #27272a; }
+        .sticky-col-1 { position: sticky; left: 0; z-index: 10; background: #18181b; }
+        .sticky-col-2 { position: sticky; left: 200px; z-index: 10; background: #18181b; }
+        .sticky-header { position: sticky; top: 0; z-index: 20; background: #27272a; }
+        .sticky-col-1.sticky-header, .sticky-col-2.sticky-header { z-index: 30; background: #27272a; }
+        textarea { resize: vertical; }
+    </style>
+</head>
+<body class="font-sans text-zinc-300 min-h-screen">
+    <div id="app" class="max-w-7xl mx-auto px-6 py-8">
+        <!-- Header -->
+        <header class="flex items-center justify-between mb-8">
+            <div>
+                <h1 class="text-2xl font-semibold text-white">Matriks Kinerja Pegawai</h1>
+                <p class="text-zinc-500">Dashboard keterlibatan pegawai dalam proyek</p>
+            </div>
+            <div v-if="dataLoaded" class="flex items-center gap-2">
+                <button @click="resetData" class="text-zinc-400 hover:text-white px-4 py-2 rounded-lg hover:bg-zinc-800 transition-colors">
+                    Ganti File
+                </button>
+                <button @click="exportToExcel" class="bg-emerald-600 hover:bg-emerald-500 text-white px-5 py-2 rounded-lg font-medium transition-colors">
+                    Export
+                </button>
+            </div>
+        </header>
+
+        <!-- Upload Zone -->
+        <div v-if="!dataLoaded" 
+             @click="$refs.fileInput.click()"
+             @dragover.prevent="isDragging = true"
+             @dragleave="isDragging = false"
+             @drop.prevent="handleDrop"
+             :class="['border border-dashed rounded-xl p-20 text-center cursor-pointer transition-all', isDragging ? 'border-emerald-500 bg-emerald-500/5' : 'border-zinc-800 hover:border-zinc-600']">
+            <div class="w-14 h-14 mx-auto mb-4 rounded-xl bg-zinc-800 flex items-center justify-center">
+                <svg class="w-7 h-7 text-zinc-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/>
+                </svg>
+            </div>
+            <p class="text-white text-lg font-medium mb-1">Upload File Excel</p>
+            <p class="text-zinc-500">Drag & drop atau klik untuk memilih</p>
+            <input type="file" ref="fileInput" @change="handleFileSelect" accept=".xlsx,.xls" class="hidden">
+        </div>
+
+        <!-- Dashboard -->
+        <div v-if="dataLoaded">
+            <!-- Stats -->
+            <div class="grid grid-cols-5 gap-4 mb-6">
+                <div class="bg-zinc-900 border border-zinc-800 rounded-lg px-5 py-4">
+                    <div class="text-zinc-500 text-sm mb-1">Pegawai</div>
+                    <div class="text-2xl font-semibold text-white font-mono">{{ filteredStats.totalEmployees }}</div>
+                </div>
+                <div class="bg-zinc-900 border border-zinc-800 rounded-lg px-5 py-4">
+                    <div class="text-zinc-500 text-sm mb-1">Proyek</div>
+                    <div class="text-2xl font-semibold text-white font-mono">{{ filteredStats.totalProjects }}</div>
+                </div>
+                <div class="bg-zinc-900 border border-zinc-800 rounded-lg px-5 py-4">
+                    <div class="text-zinc-500 text-sm mb-1">Uraian</div>
+                    <div class="text-2xl font-semibold text-white font-mono">{{ filteredStats.totalUraians }}</div>
+                </div>
+                <div class="bg-zinc-900 border border-zinc-800 rounded-lg px-5 py-4">
+                    <div class="text-zinc-500 text-sm mb-1">Tim</div>
+                    <div class="text-2xl font-semibold text-white font-mono">{{ filteredStats.totalTeams }}</div>
+                </div>
+                <div class="bg-zinc-900 border border-zinc-800 rounded-lg px-5 py-4">
+                    <div class="text-zinc-500 text-sm mb-1">Proyek/Pegawai</div>
+                    <div class="text-2xl font-semibold text-white font-mono">{{ filteredStats.avgProjects }}</div>
+                </div>
+            </div>
+
+            <!-- Controls -->
+            <div class="flex gap-3 mb-5">
+                <div class="flex-1 relative">
+                    <svg class="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-zinc-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+                    </svg>
+                    <input type="text" v-model="searchQuery" placeholder="Cari..." class="w-full bg-zinc-900 border border-zinc-800 rounded-lg py-2.5 pl-12 pr-4 text-white placeholder-zinc-500 focus:outline-none focus:border-zinc-600">
+                </div>
+                <select v-model="selectedTeam" class="bg-zinc-900 border border-zinc-800 rounded-lg py-2.5 px-4 text-white min-w-[220px] focus:outline-none focus:border-zinc-600">
+                    <option value="">Semua Tim</option>
+                    <option v-for="team in sortedTeams" :key="team" :value="team">{{ team }}</option>
+                </select>
+            </div>
+
+            <!-- Active Filters -->
+            <div v-if="selectedTeam || searchQuery" class="flex items-center gap-2 mb-5">
+                <span v-if="selectedTeam" class="bg-zinc-800 text-zinc-300 px-3 py-1.5 rounded text-sm flex items-center gap-2">
+                    {{ selectedTeam }}
+                    <button @click="selectedTeam = ''" class="text-zinc-500 hover:text-white">×</button>
+                </span>
+                <span v-if="searchQuery" class="bg-zinc-800 text-zinc-300 px-3 py-1.5 rounded text-sm flex items-center gap-2">
+                    "{{ searchQuery }}"
+                    <button @click="searchQuery = ''" class="text-zinc-500 hover:text-white">×</button>
+                </span>
+            </div>
+
+            <!-- Tabs -->
+            <div class="flex gap-1 mb-6 border-b border-zinc-800 overflow-x-auto">
+                <button v-for="tab in tabs" :key="tab.id" @click="activeTab = tab.id"
+                        :class="['px-5 py-3 font-medium transition-colors relative whitespace-nowrap', activeTab === tab.id ? 'text-white' : 'text-zinc-500 hover:text-zinc-300']">
+                    {{ tab.label }}
+                    <span v-if="tab.id === 'capaian' && hasUnsavedChanges" class="absolute top-2 right-1 w-2 h-2 bg-amber-400 rounded-full"></span>
+                    <div v-if="activeTab === tab.id" class="absolute bottom-0 left-0 right-0 h-0.5 bg-white"></div>
+                </button>
+            </div>
+
+            <!-- Charts Tab -->
+            <div v-show="activeTab === 'charts'">
+                <div class="grid md:grid-cols-2 gap-5">
+                    <div class="bg-zinc-900 border border-zinc-800 rounded-lg p-5">
+                        <h3 class="text-zinc-400 font-medium mb-4">Distribusi Proyek per Tim</h3>
+                        <div class="h-64"><canvas ref="teamChart"></canvas></div>
+                    </div>
+                    <div class="bg-zinc-900 border border-zinc-800 rounded-lg p-5">
+                        <h3 class="text-zinc-400 font-medium mb-4">Top 10 Pegawai</h3>
+                        <div class="h-64"><canvas ref="employeeChart"></canvas></div>
+                    </div>
+                    <div class="bg-zinc-900 border border-zinc-800 rounded-lg p-5">
+                        <h3 class="text-zinc-400 font-medium mb-4">Distribusi Peran</h3>
+                        <div class="h-64"><canvas ref="roleChart"></canvas></div>
+                    </div>
+                    <div class="bg-zinc-900 border border-zinc-800 rounded-lg p-5">
+                        <h3 class="text-zinc-400 font-medium mb-4">Ukuran Tim per Proyek</h3>
+                        <div class="h-64"><canvas ref="memberDistChart"></canvas></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Capaian Tab - URAIAN LEVEL -->
+            <div v-show="activeTab === 'capaian'">
+                <!-- Capaian Charts -->
+                <div class="grid md:grid-cols-3 gap-4 mb-6">
+                    <div class="bg-zinc-900 border border-zinc-800 rounded-lg p-4">
+                        <h3 class="text-zinc-400 text-sm font-medium mb-3">Rata-rata Capaian per Tim</h3>
+                        <div class="h-48"><canvas ref="capaianTeamChart"></canvas></div>
+                    </div>
+                    <div class="bg-zinc-900 border border-zinc-800 rounded-lg p-4">
+                        <h3 class="text-zinc-400 text-sm font-medium mb-3">Distribusi Capaian Uraian</h3>
+                        <div class="h-48"><canvas ref="capaianDistChart"></canvas></div>
+                    </div>
+                    <div class="bg-zinc-900 border border-zinc-800 rounded-lg p-4">
+                        <h3 class="text-zinc-400 text-sm font-medium mb-3">Progress Pengisian</h3>
+                        <div class="h-48"><canvas ref="capaianProgressChart"></canvas></div>
+                    </div>
+                </div>
+
+                <!-- Summary Stats -->
+                <div class="grid grid-cols-5 gap-4 mb-6">
+                    <div class="bg-zinc-900 border border-zinc-800 rounded-lg px-4 py-3">
+                        <div class="text-zinc-500 text-xs mb-1">Total Uraian</div>
+                        <div class="text-xl font-semibold text-white font-mono">{{ capaianSummary.totalUraian }}</div>
+                    </div>
+                    <div class="bg-zinc-900 border border-zinc-800 rounded-lg px-4 py-3">
+                        <div class="text-zinc-500 text-xs mb-1">Rata-rata Capaian</div>
+                        <div class="text-xl font-semibold text-white font-mono">{{ capaianSummary.avgCapaian }}%</div>
+                    </div>
+                    <div class="bg-zinc-900 border border-zinc-800 rounded-lg px-4 py-3">
+                        <div class="text-zinc-500 text-xs mb-1">Uraian Terisi</div>
+                        <div class="text-xl font-semibold text-emerald-400 font-mono">{{ capaianSummary.filled }}/{{ capaianSummary.totalUraian }}</div>
+                    </div>
+                    <div class="bg-zinc-900 border border-zinc-800 rounded-lg px-4 py-3">
+                        <div class="text-zinc-500 text-xs mb-1">Selesai (100%)</div>
+                        <div class="text-xl font-semibold text-blue-400 font-mono">{{ capaianSummary.completed }}</div>
+                    </div>
+                    <div class="bg-zinc-900 border border-zinc-800 rounded-lg px-4 py-3">
+                        <div class="text-zinc-500 text-xs mb-1">Ada Kendala</div>
+                        <div class="text-xl font-semibold text-amber-400 font-mono">{{ capaianSummary.hasKendala }}</div>
+                    </div>
+                </div>
+
+                <div class="mb-4 flex items-center justify-between">
+                    <div class="text-zinc-400 text-sm">
+                        <span v-if="hasUnsavedChanges" class="text-amber-400">● Ada perubahan belum disimpan</span>
+                        <span v-else class="text-emerald-400">✓ Semua perubahan tersimpan</span>
+                    </div>
+                    <div class="flex gap-2">
+                        <button @click="saveCapaianToIndexedDB" 
+                                :class="['px-4 py-2 rounded-lg text-sm font-medium transition-colors', hasUnsavedChanges ? 'bg-amber-500 hover:bg-amber-400 text-black' : 'bg-zinc-700 text-zinc-400 cursor-not-allowed']"
+                                :disabled="!hasUnsavedChanges">
+                            Simpan
+                        </button>
+                        <button @click="clearAllCapaian" class="px-4 py-2 rounded-lg text-sm font-medium bg-zinc-800 text-zinc-400 hover:bg-zinc-700 hover:text-white transition-colors">
+                            Reset Semua
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- Project Accordion with Uraians -->
+                <div v-for="[teamName, teamProjects] in filteredTeamsList" :key="teamName" class="bg-zinc-900 border border-zinc-800 rounded-lg mb-3 overflow-hidden">
+                    <div @click="toggleCapaianTeam(teamName)" class="px-5 py-4 flex items-center justify-between cursor-pointer hover:bg-zinc-800/50">
+                        <div class="flex items-center gap-3">
+                            <span class="text-white font-medium">{{ teamName }}</span>
+                            <span class="text-zinc-500 text-sm">{{ teamProjects.length }} proyek</span>
+                            <span v-if="getTeamCapaianProgress(teamName).filled > 0" class="text-emerald-400 text-sm">
+                                {{ getTeamCapaianProgress(teamName).filled }}/{{ getTeamCapaianProgress(teamName).total }} uraian terisi
+                            </span>
+                            <span v-if="getTeamCapaianProgress(teamName).avg > 0" class="text-blue-400 text-sm">
+                                ({{ getTeamCapaianProgress(teamName).avg }}% avg)
+                            </span>
+                        </div>
+                        <svg :class="['w-5 h-5 text-zinc-500 transition-transform', expandedCapaianTeams.has(teamName) ? 'rotate-180' : '']" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                        </svg>
+                    </div>
+                    <div v-show="expandedCapaianTeams.has(teamName)" class="border-t border-zinc-800">
+                        <div v-for="project in teamProjects" :key="project.proyek" class="border-b border-zinc-800 last:border-b-0">
+                            <!-- Project Header -->
+                            <div @click="toggleCapaianProject(project.proyek)" class="px-5 py-3 flex items-center justify-between cursor-pointer hover:bg-zinc-800/30 bg-zinc-800/20">
+                                <div class="flex items-center gap-3">
+                                    <svg :class="['w-4 h-4 text-zinc-500 transition-transform', expandedCapaianProjects.has(project.proyek) ? 'rotate-90' : '']" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+                                    </svg>
+                                    <span class="text-white">{{ project.proyek }}</span>
+                                    <span class="text-zinc-500 text-sm">{{ getProjectUraians(project.proyek).length }} uraian</span>
+                                    <span v-if="getProjectAvgCapaian(project.proyek) !== null" class="text-blue-400 text-sm">
+                                        ({{ getProjectAvgCapaian(project.proyek) }}% avg)
+                                    </span>
+                                </div>
+                                <button @click.stop="addUraian(project.proyek)" class="text-emerald-400 hover:text-emerald-300 text-sm px-2 py-1 rounded hover:bg-emerald-400/10">
+                                    + Tambah Uraian
+                                </button>
+                            </div>
+                            
+                            <!-- Uraians List -->
+                            <div v-show="expandedCapaianProjects.has(project.proyek)" class="bg-zinc-950/50">
+                                <div v-if="getProjectUraians(project.proyek).length === 0" class="px-8 py-6 text-center text-zinc-500">
+                                    Belum ada uraian. <button @click="addUraian(project.proyek)" class="text-emerald-400 hover:underline">Tambah uraian pertama</button>
+                                </div>
+                                
+                                <div v-for="(uraian, idx) in getProjectUraians(project.proyek)" :key="uraian.id" class="px-5 py-4 border-t border-zinc-800/50">
+                                    <div class="flex items-start gap-4 mb-3">
+                                        <span class="bg-zinc-800 text-zinc-400 text-sm px-2 py-0.5 rounded font-mono">{{ idx + 1 }}</span>
+                                        <div class="flex-1">
+                                            <input type="text" 
+                                                   :value="uraian.description"
+                                                   @input="updateUraianDescription(uraian.id, $event.target.value)"
+                                                   class="w-full bg-zinc-800 border border-zinc-700 rounded px-3 py-2 text-white text-sm focus:outline-none focus:border-zinc-500"
+                                                   placeholder="Deskripsi uraian kegiatan...">
+                                        </div>
+                                        <div class="flex items-center gap-2">
+                                            <span class="text-zinc-500 text-sm">Capaian:</span>
+                                            <input type="number" min="0" max="100" 
+                                                   :value="getUraianCapaian(uraian.id, 'capaian')"
+                                                   @input="updateUraianCapaian(uraian.id, 'capaian', $event.target.value)"
+                                                   class="w-20 bg-zinc-800 border border-zinc-700 rounded px-3 py-1.5 text-white text-center focus:outline-none focus:border-zinc-500"
+                                                   placeholder="0">
+                                            <span class="text-zinc-500">%</span>
+                                            <button @click="removeUraian(uraian.id)" class="text-red-400 hover:text-red-300 p-1 rounded hover:bg-red-400/10">
+                                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                                                </svg>
+                                            </button>
+                                        </div>
+                                    </div>
+                                    <div class="grid md:grid-cols-3 gap-4 pl-10">
+                                        <div>
+                                            <label class="block text-zinc-500 text-xs mb-1.5">Kendala / Permasalahan</label>
+                                            <textarea :value="getUraianCapaian(uraian.id, 'kendala')"
+                                                      @input="updateUraianCapaian(uraian.id, 'kendala', $event.target.value)"
+                                                      rows="2"
+                                                      class="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-zinc-500"
+                                                      placeholder="Tulis kendala..."></textarea>
+                                        </div>
+                                        <div>
+                                            <label class="block text-zinc-500 text-xs mb-1.5">Solusi</label>
+                                            <textarea :value="getUraianCapaian(uraian.id, 'solusi')"
+                                                      @input="updateUraianCapaian(uraian.id, 'solusi', $event.target.value)"
+                                                      rows="2"
+                                                      class="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-zinc-500"
+                                                      placeholder="Tulis solusi..."></textarea>
+                                        </div>
+                                        <div>
+                                            <label class="block text-zinc-500 text-xs mb-1.5">Rencana Tindak Lanjut</label>
+                                            <textarea :value="getUraianCapaian(uraian.id, 'rencana')"
+                                                      @input="updateUraianCapaian(uraian.id, 'rencana', $event.target.value)"
+                                                      rows="2"
+                                                      class="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-zinc-500"
+                                                      placeholder="Tulis rencana..."></textarea>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Matrix Tab -->
+            <div v-show="activeTab === 'matrix'">
+                <div v-for="[teamName, teamData] in filteredTeamsMatrix" :key="teamName" class="bg-zinc-900 border border-zinc-800 rounded-lg mb-3 overflow-hidden">
+                    <div @click="toggleMatrixTeam(teamName)" class="px-5 py-4 flex items-center justify-between cursor-pointer hover:bg-zinc-800/50">
+                        <div class="flex items-center gap-3">
+                            <span class="text-white font-medium">{{ teamName }}</span>
+                            <span class="text-zinc-500 text-sm">{{ teamData.projects.length }} proyek · {{ teamData.members.size }} orang</span>
+                        </div>
+                        <svg :class="['w-5 h-5 text-zinc-500 transition-transform', expandedMatrixTeams.has(teamName) ? 'rotate-180' : '']" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                        </svg>
+                    </div>
+                    <div v-show="expandedMatrixTeams.has(teamName)" class="border-t border-zinc-800 overflow-x-auto scrollbar-thin max-h-[500px]">
+                        <table class="matrix-table w-full text-sm">
+                            <thead>
+                                <tr>
+                                    <th class="sticky-col-1 sticky-header px-4 py-3 text-left text-zinc-400 font-medium min-w-[200px]">Proyek</th>
+                                    <th class="sticky-col-2 sticky-header px-4 py-3 text-left text-zinc-400 font-medium min-w-[180px]">Ketua</th>
+                                    <th v-for="member in getSortedTeamMembers(teamData.members)" :key="member" 
+                                        class="sticky-header px-3 py-3 text-center text-zinc-400 font-medium whitespace-nowrap" :title="member">
+                                        {{ getShortName(member) }}
+                                    </th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr v-for="project in teamData.projects" :key="project.proyek" class="hover:bg-zinc-800/30">
+                                    <td class="sticky-col-1 px-4 py-3 text-zinc-200">{{ project.proyek }}</td>
+                                    <td class="sticky-col-2 px-4 py-3 text-zinc-400">{{ getShortName(project.ketuaFull) }}</td>
+                                    <td v-for="member in getSortedTeamMembers(teamData.members)" :key="member" class="px-3 py-3 text-center">
+                                        <span v-if="project.ketuaFull === member" class="text-amber-400 text-base">●</span>
+                                        <span v-else-if="project.allMembers.includes(member)" class="text-emerald-400 text-base">●</span>
+                                        <span v-else class="text-zinc-700">·</span>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Employees Tab -->
+            <div v-show="activeTab === 'employees'">
+                <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    <div v-for="[fullName, data] in filteredEmployeesListWithCounts" :key="fullName" class="bg-zinc-900 border border-zinc-800 rounded-lg p-5 hover:border-zinc-700 transition-colors">
+                        <div class="flex items-center gap-3 mb-4">
+                            <div class="w-10 h-10 rounded-lg bg-zinc-800 flex items-center justify-center text-sm font-medium text-zinc-400">{{ getInitials(fullName) }}</div>
+                            <div class="text-white font-medium">{{ fullName }}</div>
+                        </div>
+                        <div class="grid grid-cols-4 gap-2 mb-4 pb-4 border-b border-zinc-800">
+                            <div class="text-center">
+                                <div class="text-xl font-semibold text-white font-mono">{{ data.filteredTotal }}</div>
+                                <div class="text-xs text-zinc-600">Total</div>
+                            </div>
+                            <div class="text-center">
+                                <div class="text-xl font-semibold text-amber-400 font-mono">{{ data.filteredAsLeader }}</div>
+                                <div class="text-xs text-zinc-600">Ketua</div>
+                            </div>
+                            <div class="text-center">
+                                <div class="text-xl font-semibold text-emerald-400 font-mono">{{ data.filteredAsMember }}</div>
+                                <div class="text-xs text-zinc-600">Anggota</div>
+                            </div>
+                            <div class="text-center">
+                                <div class="text-xl font-semibold text-zinc-400 font-mono">{{ data.filteredTeams }}</div>
+                                <div class="text-xs text-zinc-600">Tim</div>
+                            </div>
+                        </div>
+                        <div class="space-y-1.5 max-h-48 overflow-y-auto scrollbar-thin">
+                            <div v-for="p in data.leaderProjects" :key="'l-'+p.proyek" class="flex items-start gap-2 text-sm">
+                                <span class="w-2 h-2 rounded-full bg-amber-400 mt-1.5 flex-shrink-0"></span>
+                                <span class="text-zinc-400">{{ p.proyek }}</span>
+                            </div>
+                            <div v-for="p in data.memberProjects" :key="'m-'+p.proyek" class="flex items-start gap-2 text-sm">
+                                <span class="w-2 h-2 rounded-full bg-emerald-400 mt-1.5 flex-shrink-0"></span>
+                                <span class="text-zinc-400">{{ p.proyek }}</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Teams Tab -->
+            <div v-show="activeTab === 'teams'">
+                <div v-for="[teamName, projects] in filteredTeamsList" :key="teamName" class="bg-zinc-900 border border-zinc-800 rounded-lg mb-3 overflow-hidden">
+                    <div @click="toggleTeam(teamName)" class="px-5 py-4 flex items-center justify-between cursor-pointer hover:bg-zinc-800/50">
+                        <div class="flex items-center gap-3">
+                            <span class="text-white font-medium">{{ teamName }}</span>
+                            <span class="text-zinc-500 text-sm">{{ projects.length }} proyek</span>
+                        </div>
+                        <svg :class="['w-5 h-5 text-zinc-500 transition-transform', expandedTeams.has(teamName) ? 'rotate-180' : '']" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                        </svg>
+                    </div>
+                    <div v-show="expandedTeams.has(teamName)" class="border-t border-zinc-800 p-4 space-y-3">
+                        <div v-for="project in projects" :key="project.proyek" class="bg-zinc-800/50 rounded-lg p-4">
+                            <div class="text-white font-medium mb-2">{{ project.proyek }}</div>
+                            <div class="text-zinc-500 text-sm mb-3">Ketua: {{ project.ketuaFull || '-' }}</div>
+                            <div class="flex flex-wrap gap-1.5">
+                                <span v-for="member in project.allMembers" :key="member" :class="['px-2.5 py-1 rounded text-sm', member === project.ketuaFull ? 'bg-amber-400/10 text-amber-400' : 'bg-zinc-700 text-zinc-400']">
+                                    {{ member }}
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Summary Tab -->
+            <div v-show="activeTab === 'summary'">
+                <div class="bg-zinc-900 border border-zinc-800 rounded-lg overflow-hidden">
+                    <div class="overflow-x-auto scrollbar-thin max-h-[65vh]">
+                        <table class="w-full">
+                            <thead>
+                                <tr class="bg-zinc-800/50">
+                                    <th class="px-5 py-3 text-left text-zinc-500 font-medium text-sm">Nama Pegawai</th>
+                                    <th class="px-5 py-3 text-center text-zinc-500 font-medium text-sm">Total</th>
+                                    <th class="px-5 py-3 text-center text-zinc-500 font-medium text-sm">Ketua</th>
+                                    <th class="px-5 py-3 text-center text-zinc-500 font-medium text-sm">Anggota</th>
+                                    <th class="px-5 py-3 text-center text-zinc-500 font-medium text-sm">Tim</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr v-for="[fullName, data] in filteredEmployeesListWithCounts" :key="fullName" @click="openEmployeeModal(fullName, data)" class="border-t border-zinc-800 hover:bg-zinc-800/30 cursor-pointer">
+                                    <td class="px-5 py-3 text-white">{{ fullName }}</td>
+                                    <td class="px-5 py-3 text-center font-mono text-white">{{ data.filteredTotal }}</td>
+                                    <td class="px-5 py-3 text-center font-mono text-amber-400">{{ data.filteredAsLeader }}</td>
+                                    <td class="px-5 py-3 text-center font-mono text-emerald-400">{{ data.filteredAsMember }}</td>
+                                    <td class="px-5 py-3 text-center font-mono text-zinc-400">{{ data.filteredTeams }}</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Modal -->
+        <div v-if="modalEmployee" @click.self="modalEmployee = null" class="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4">
+            <div class="bg-zinc-900 border border-zinc-800 rounded-lg max-w-xl w-full max-h-[80vh] flex flex-col">
+                <div class="px-5 py-4 flex items-center justify-between border-b border-zinc-800">
+                    <h2 class="text-white font-medium">{{ modalEmployee.name }}</h2>
+                    <button @click="modalEmployee = null" class="text-zinc-500 hover:text-white text-xl">×</button>
+                </div>
+                <div class="p-5 overflow-y-auto flex-1 scrollbar-thin">
+                    <div class="grid grid-cols-4 gap-3 mb-5">
+                        <div class="bg-zinc-800 p-4 rounded-lg text-center">
+                            <div class="text-2xl font-semibold text-white font-mono">{{ modalEmployee.data.filteredTotal }}</div>
+                            <div class="text-xs text-zinc-500">Total</div>
+                        </div>
+                        <div class="bg-zinc-800 p-4 rounded-lg text-center">
+                            <div class="text-2xl font-semibold text-amber-400 font-mono">{{ modalEmployee.data.filteredAsLeader }}</div>
+                            <div class="text-xs text-zinc-500">Ketua</div>
+                        </div>
+                        <div class="bg-zinc-800 p-4 rounded-lg text-center">
+                            <div class="text-2xl font-semibold text-emerald-400 font-mono">{{ modalEmployee.data.filteredAsMember }}</div>
+                            <div class="text-xs text-zinc-500">Anggota</div>
+                        </div>
+                        <div class="bg-zinc-800 p-4 rounded-lg text-center">
+                            <div class="text-2xl font-semibold text-zinc-400 font-mono">{{ modalEmployee.data.filteredTeams }}</div>
+                            <div class="text-xs text-zinc-500">Tim</div>
+                        </div>
+                    </div>
+                    <div class="space-y-2">
+                        <div v-for="p in modalEmployee.data.leaderProjects" :key="p.proyek" class="flex items-start gap-3 bg-zinc-800 px-4 py-3 rounded-lg">
+                            <span class="w-2 h-2 rounded-full bg-amber-400 mt-2 flex-shrink-0"></span>
+                            <div>
+                                <div class="text-white">{{ p.proyek }}</div>
+                                <div class="text-zinc-500 text-sm">{{ p.tim }}</div>
+                            </div>
+                        </div>
+                        <div v-for="p in modalEmployee.data.memberProjects" :key="p.proyek" class="flex items-start gap-3 bg-zinc-800 px-4 py-3 rounded-lg">
+                            <span class="w-2 h-2 rounded-full bg-emerald-400 mt-2 flex-shrink-0"></span>
+                            <div>
+                                <div class="text-white">{{ p.proyek }}</div>
+                                <div class="text-zinc-500 text-sm">{{ p.tim }}</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const { createApp, ref, computed, watch, onMounted, nextTick } = Vue;
+
+        // IndexedDB helper
+        const DB_NAME = 'MatriksKinerjaDB_v2';
+        const DB_VERSION = 2;
+
+        function openDB() {
+            return new Promise((resolve, reject) => {
+                const request = indexedDB.open(DB_NAME, DB_VERSION);
+                request.onerror = () => reject(request.error);
+                request.onsuccess = () => resolve(request.result);
+                request.onupgradeneeded = (e) => {
+                    const db = e.target.result;
+                    if (!db.objectStoreNames.contains('uraians')) {
+                        db.createObjectStore('uraians', { keyPath: 'id' });
+                    }
+                    if (!db.objectStoreNames.contains('capaian')) {
+                        db.createObjectStore('capaian', { keyPath: 'uraianId' });
+                    }
+                };
+            });
+        }
+
+        async function getAllFromStore(storeName) {
+            const db = await openDB();
+            return new Promise((resolve, reject) => {
+                const tx = db.transaction(storeName, 'readonly');
+                const store = tx.objectStore(storeName);
+                const request = store.getAll();
+                request.onsuccess = () => resolve(request.result);
+                request.onerror = () => reject(request.error);
+            });
+        }
+
+        async function saveToStore(storeName, data) {
+            const db = await openDB();
+            return new Promise((resolve, reject) => {
+                const tx = db.transaction(storeName, 'readwrite');
+                const store = tx.objectStore(storeName);
+                data.forEach(item => {
+                    const plainObj = JSON.parse(JSON.stringify(item));
+                    store.put(plainObj);
+                });
+                tx.oncomplete = () => resolve();
+                tx.onerror = () => reject(tx.error);
+            });
+        }
+
+        async function deleteFromStore(storeName, id) {
+            const db = await openDB();
+            return new Promise((resolve, reject) => {
+                const tx = db.transaction(storeName, 'readwrite');
+                const store = tx.objectStore(storeName);
+                store.delete(id);
+                tx.oncomplete = () => resolve();
+                tx.onerror = () => reject(tx.error);
+            });
+        }
+
+        async function clearStore(storeName) {
+            const db = await openDB();
+            return new Promise((resolve, reject) => {
+                const tx = db.transaction(storeName, 'readwrite');
+                const store = tx.objectStore(storeName);
+                store.clear();
+                tx.oncomplete = () => resolve();
+                tx.onerror = () => reject(tx.error);
+            });
+        }
+
+        const DEGREE_PATTERNS = [
+            /^SST$/i, /^S\.?Tr\.?Stat\.?$/i, /^A\.?Md\.?$/i, /^A\.?Md\.?Stat\.?$/i,
+            /^S\.?Si\.?$/i, /^S\.?E\.?$/i, /^S\.?P\.?$/i, /^S\.?T\.?$/i, /^S\.?Sos\.?$/i,
+            /^S\.?Psi\.?$/i, /^S\.?S\.?$/i, /^S\.?I\.?Kom\.?$/i, /^SE$/i, /^ST$/i,
+            /^M\.?Si\.?$/i, /^M\.?T\.?$/i, /^M\.?URP\.?$/i, /^M\.?P\.?W\.?P?\.?$/i,
+            /^M\.?Stat\.?$/i, /^M\.?M\.?$/i, /^M\.?Ec\.?Dev\.?$/i, /^M\.?Sc\.?$/i, 
+            /^M\.?AP\.?$/i, /^MPWP$/i, /^MPW$/i, /^MM$/i, /^MT$/i,
+            /^Ir\.?$/i, /^Dr\.?$/i, /^Prof\.?$/i, /^Drs\.?$/i, /^Dra\.?$/i
+        ];
+
+        function isDegree(str) { return DEGREE_PATTERNS.some(p => p.test(str.trim())); }
+
+        function parseMembersToFullNames(str) {
+            if (!str) return [];
+            const parts = str.split(',').map(p => p.trim()).filter(p => p);
+            const results = [];
+            let current = [];
+            for (const part of parts) {
+                if (isDegree(part)) current.push(part);
+                else { if (current.length) results.push(current.join(', ')); current = [part]; }
+            }
+            if (current.length) results.push(current.join(', '));
+            return results;
+        }
+
+        function extractNameOnly(name) { return name ? name.split(',')[0].trim() : ''; }
+
+        function generateId() { return Date.now().toString(36) + Math.random().toString(36).substr(2); }
+
+        createApp({
+            setup() {
+                const dataLoaded = ref(false);
+                const isDragging = ref(false);
+                const activeTab = ref('charts');
+                const searchQuery = ref('');
+                const selectedTeam = ref('');
+                const expandedTeams = ref(new Set());
+                const expandedMatrixTeams = ref(new Set());
+                const expandedCapaianTeams = ref(new Set());
+                const expandedCapaianProjects = ref(new Set());
+                const modalEmployee = ref(null);
+
+                const projects = ref([]);
+                const employees = ref(new Map());
+                const teams = ref(new Set());
+                const teamProjects = ref(new Map());
+                const top10FullNames = ref([]);
+
+                // Uraian data - { id, projectName, description, number }
+                const uraians = ref([]);
+                // Capaian data - { uraianId, capaian, kendala, solusi, rencana }
+                const capaianData = ref({});
+                const savedSnapshot = ref('{}');
+                const hasUnsavedChanges = ref(false);
+
+                const teamChart = ref(null);
+                const employeeChart = ref(null);
+                const roleChart = ref(null);
+                const memberDistChart = ref(null);
+                const capaianTeamChart = ref(null);
+                const capaianDistChart = ref(null);
+                const capaianProgressChart = ref(null);
+                let chartInstances = {};
+
+                const tabs = [
+                    { id: 'charts', label: 'Charts' },
+                    { id: 'capaian', label: 'Capaian Kinerja' },
+                    { id: 'matrix', label: 'Matriks' },
+                    { id: 'employees', label: 'Pegawai' },
+                    { id: 'teams', label: 'Tim' },
+                    { id: 'summary', label: 'Ringkasan' }
+                ];
+
+                const colors = ['#10b981', '#f59e0b', '#6366f1', '#ec4899', '#8b5cf6', '#14b8a6', '#f97316', '#06b6d4'];
+
+                const sortedTeams = computed(() => [...teams.value].sort());
+
+                const filteredProjects = computed(() => {
+                    let result = projects.value;
+                    if (selectedTeam.value) result = result.filter(p => p.tim === selectedTeam.value);
+                    if (searchQuery.value) {
+                        const q = searchQuery.value.toLowerCase();
+                        result = result.filter(p => p.proyek.toLowerCase().includes(q) || p.tim.toLowerCase().includes(q) || p.ketuaFull.toLowerCase().includes(q) || p.allMembers.some(m => m.toLowerCase().includes(q)));
+                    }
+                    return result;
+                });
+
+                const filteredEmployeesListWithCounts = computed(() => {
+                    const stats = new Map();
+                    filteredProjects.value.forEach(p => {
+                        p.allMembers.forEach(name => {
+                            if (!stats.has(name)) stats.set(name, { leaderProjects: [], memberProjects: [], teamsSet: new Set(), filteredAsLeader: 0, filteredAsMember: 0, filteredTotal: 0, filteredTeams: 0 });
+                            const s = stats.get(name);
+                            s.teamsSet.add(p.tim);
+                            if (name === p.ketuaFull) { s.leaderProjects.push(p); s.filteredAsLeader++; }
+                            else { s.memberProjects.push(p); s.filteredAsMember++; }
+                        });
+                    });
+                    stats.forEach(s => { s.filteredTotal = s.filteredAsLeader + s.filteredAsMember; s.filteredTeams = s.teamsSet.size; });
+                    return [...stats.entries()].sort((a, b) => b[1].filteredTotal - a[1].filteredTotal);
+                });
+
+                const filteredStats = computed(() => {
+                    const emp = filteredEmployeesListWithCounts.value.length;
+                    let total = 0;
+                    filteredEmployeesListWithCounts.value.forEach(([_, d]) => total += d.filteredTotal);
+                    const t = new Set();
+                    filteredProjects.value.forEach(p => t.add(p.tim));
+                    
+                    // Count uraians for filtered projects
+                    const filteredProjectNames = new Set(filteredProjects.value.map(p => p.proyek));
+                    const totalUraians = uraians.value.filter(u => filteredProjectNames.has(u.projectName)).length;
+                    
+                    
+                onMounted(() => {
+                    if (typeof preloadedData !== 'undefined' && preloadedData.length > 0) {
+                        parseData(preloadedData);
+                        dataLoaded.value = true;
+                        loadFromIndexedDB();
+                        nextTick(() => renderCharts());
+                    }
+                });
+
+                return { 
+                        totalEmployees: emp, 
+                        totalProjects: filteredProjects.value.length, 
+                        totalUraians,
+                        totalTeams: t.size, 
+                        avgProjects: emp ? (total / emp).toFixed(1) : 0 
+                    };
+                });
+
+                const filteredTeamsMatrix = computed(() => {
+                    const m = new Map();
+                    filteredProjects.value.forEach(p => {
+                        if (!m.has(p.tim)) m.set(p.tim, { projects: [], members: new Set() });
+                        m.get(p.tim).projects.push(p);
+                        p.allMembers.forEach(n => m.get(p.tim).members.add(n));
+                    });
+                    return [...m.entries()].sort((a, b) => a[0].localeCompare(b[0]));
+                });
+
+                const filteredTeamsList = computed(() => {
+                    const m = new Map();
+                    filteredProjects.value.forEach(p => { if (!m.has(p.tim)) m.set(p.tim, []); m.get(p.tim).push(p); });
+                    return [...m.entries()].sort((a, b) => a[0].localeCompare(b[0]));
+                });
+
+                // Capaian summary stats - now at URAIAN level
+                const capaianSummary = computed(() => {
+                    const filteredProjectNames = new Set(filteredProjects.value.map(p => p.proyek));
+                    const filteredUraians = uraians.value.filter(u => filteredProjectNames.has(u.projectName));
+                    const totalUraian = filteredUraians.length;
+                    
+                    let filled = 0, sumCapaian = 0, completed = 0, hasKendala = 0;
+                    filteredUraians.forEach(u => {
+                        const c = capaianData.value[u.id];
+                        if (c && c.capaian) {
+                            filled++;
+                            const val = parseFloat(c.capaian) || 0;
+                            sumCapaian += val;
+                            if (val >= 100) completed++;
+                        }
+                        if (c && c.kendala && c.kendala.trim()) hasKendala++;
+                    });
+                    
+                    
+                onMounted(() => {
+                    if (typeof preloadedData !== 'undefined' && preloadedData.length > 0) {
+                        parseData(preloadedData);
+                        dataLoaded.value = true;
+                        loadFromIndexedDB();
+                        nextTick(() => renderCharts());
+                    }
+                });
+
+                return {
+                        totalUraian,
+                        filled,
+                        avgCapaian: filled > 0 ? (sumCapaian / filled).toFixed(1) : '0',
+                        completed,
+                        hasKendala
+                    };
+                });
+
+                watch([selectedTeam, searchQuery], () => { 
+                    if (dataLoaded.value && activeTab.value === 'charts') nextTick(() => renderCharts()); 
+                    if (dataLoaded.value && activeTab.value === 'capaian') nextTick(() => renderCapaianCharts());
+                });
+                watch(activeTab, t => { 
+                    if (t === 'charts' && dataLoaded.value) nextTick(() => renderCharts()); 
+                    if (t === 'capaian' && dataLoaded.value) nextTick(() => renderCapaianCharts());
+                });
+
+                // Uraian functions
+                function getProjectUraians(projectName) {
+                    return uraians.value
+                        .filter(u => u.projectName === projectName)
+                        .sort((a, b) => a.number - b.number);
+                }
+
+                function addUraian(projectName) {
+                    const existing = getProjectUraians(projectName);
+                    const newNumber = existing.length > 0 ? Math.max(...existing.map(u => u.number)) + 1 : 1;
+                    const newUraian = {
+                        id: generateId(),
+                        projectName,
+                        number: newNumber,
+                        description: ''
+                    };
+                    uraians.value.push(newUraian);
+                    expandedCapaianProjects.value.add(projectName);
+                    checkUnsavedChanges();
+                }
+
+                function removeUraian(uraianId) {
+                    if (!confirm('Hapus uraian ini beserta data capaiannya?')) return;
+                    uraians.value = uraians.value.filter(u => u.id !== uraianId);
+                    delete capaianData.value[uraianId];
+                    checkUnsavedChanges();
+                }
+
+                function updateUraianDescription(uraianId, value) {
+                    const u = uraians.value.find(u => u.id === uraianId);
+                    if (u) {
+                        u.description = value;
+                        checkUnsavedChanges();
+                    }
+                }
+
+                // Capaian functions - now at URAIAN level
+                function getUraianCapaian(uraianId, field) {
+                    const c = capaianData.value[uraianId];
+                    return c ? (c[field] || '') : '';
+                }
+
+                function updateUraianCapaian(uraianId, field, value) {
+                    if (!capaianData.value[uraianId]) {
+                        capaianData.value[uraianId] = { uraianId, capaian: '', kendala: '', solusi: '', rencana: '' };
+                    }
+                    capaianData.value[uraianId][field] = value;
+                    checkUnsavedChanges();
+                    
+                    // Debounced chart update
+                    if (activeTab.value === 'capaian') {
+                        clearTimeout(window._capaianChartTimeout);
+                        window._capaianChartTimeout = setTimeout(() => renderCapaianCharts(), 500);
+                    }
+                }
+
+                function getProjectAvgCapaian(projectName) {
+                    const projectUraians = getProjectUraians(projectName);
+                    if (projectUraians.length === 0) return null;
+                    
+                    let sum = 0, count = 0;
+                    projectUraians.forEach(u => {
+                        const c = capaianData.value[u.id];
+                        if (c && c.capaian) {
+                            sum += parseFloat(c.capaian) || 0;
+                            count++;
+                        }
+                    });
+                    return count > 0 ? Math.round(sum / count) : null;
+                }
+
+                function checkUnsavedChanges() {
+                    const current = JSON.stringify({ uraians: uraians.value, capaian: capaianData.value });
+                    hasUnsavedChanges.value = current !== savedSnapshot.value;
+                }
+
+                async function saveCapaianToIndexedDB() {
+                    try {
+                        // Save uraians
+                        const uraiansToSave = uraians.value.map(u => ({
+                            id: String(u.id),
+                            projectName: String(u.projectName),
+                            number: Number(u.number),
+                            description: String(u.description || '')
+                        }));
+                        await clearStore('uraians');
+                        await saveToStore('uraians', uraiansToSave);
+
+                        // Save capaian
+                        const capaianToSave = Object.values(capaianData.value)
+                            .filter(c => c.capaian || c.kendala || c.solusi || c.rencana)
+                            .map(c => ({
+                                uraianId: String(c.uraianId),
+                                capaian: String(c.capaian || ''),
+                                kendala: String(c.kendala || ''),
+                                solusi: String(c.solusi || ''),
+                                rencana: String(c.rencana || '')
+                            }));
+                        await clearStore('capaian');
+                        await saveToStore('capaian', capaianToSave);
+
+                        savedSnapshot.value = JSON.stringify({ uraians: uraians.value, capaian: capaianData.value });
+                        hasUnsavedChanges.value = false;
+                        alert('Data berhasil disimpan!');
+                    } catch (e) {
+                        console.error('Error saving:', e);
+                        alert('Gagal menyimpan data: ' + e.message);
+                    }
+                }
+
+                async function loadFromIndexedDB() {
+                    try {
+                        const savedUraians = await getAllFromStore('uraians');
+                        uraians.value = savedUraians;
+
+                        const savedCapaian = await getAllFromStore('capaian');
+                        const capaianObj = {};
+                        savedCapaian.forEach(c => { capaianObj[c.uraianId] = c; });
+                        capaianData.value = capaianObj;
+
+                        savedSnapshot.value = JSON.stringify({ uraians: uraians.value, capaian: capaianData.value });
+                    } catch (e) {
+                        console.error('Error loading:', e);
+                    }
+                }
+
+                async function clearAllCapaian() {
+                    if (confirm('Hapus semua data uraian dan capaian? Tindakan ini tidak dapat dibatalkan.')) {
+                        await clearStore('uraians');
+                        await clearStore('capaian');
+                        uraians.value = [];
+                        capaianData.value = {};
+                        savedSnapshot.value = '{}';
+                        hasUnsavedChanges.value = false;
+                        renderCapaianCharts();
+                    }
+                }
+
+                function getTeamCapaianProgress(teamName) {
+                    const teamProjs = filteredTeamsList.value.find(([t]) => t === teamName)?.[1] || [];
+                    const projectNames = teamProjs.map(p => p.proyek);
+                    const teamUraians = uraians.value.filter(u => projectNames.includes(u.projectName));
+                    
+                    let filled = 0, sum = 0;
+                    teamUraians.forEach(u => {
+                        const c = capaianData.value[u.id];
+                        if (c && c.capaian) {
+                            filled++;
+                            sum += parseFloat(c.capaian) || 0;
+                        }
+                    });
+                    
+                onMounted(() => {
+                    if (typeof preloadedData !== 'undefined' && preloadedData.length > 0) {
+                        parseData(preloadedData);
+                        dataLoaded.value = true;
+                        loadFromIndexedDB();
+                        nextTick(() => renderCharts());
+                    }
+                });
+
+                return { filled, total: teamUraians.length, avg: filled > 0 ? Math.round(sum / filled) : 0 };
+                }
+
+                function toggleCapaianTeam(n) { 
+                    const s = new Set(expandedCapaianTeams.value); 
+                    s.has(n) ? s.delete(n) : s.add(n); 
+                    expandedCapaianTeams.value = s; 
+                }
+
+                function toggleCapaianProject(n) {
+                    const s = new Set(expandedCapaianProjects.value);
+                    s.has(n) ? s.delete(n) : s.add(n);
+                    expandedCapaianProjects.value = s;
+                }
+
+                function handleFileSelect(e) { const f = e.target.files[0]; if (f) processFile(f); }
+                function handleDrop(e) { isDragging.value = false; const f = e.dataTransfer.files[0]; if (f) processFile(f); }
+
+                function handleMateriFileSelect(e) {
+                    const f = e.target.files[0];
+                    if (f) processMateriFile(f);
+                }
+
+                function processMateriFile(file) {
+                    const reader = new FileReader();
+                    reader.onload = e => {
+                        try {
+                            const wb = XLSX.read(new Uint8Array(e.target.result), { type: 'array' });
+                            
+                            // Find Materi sheet
+                            const materiSheet = wb.SheetNames.find(n => n.toLowerCase().includes('materi'));
+                            if (!materiSheet) {
+                                alert('Sheet "Materi" tidak ditemukan');
+                                return;
+                            }
+                            
+                            // Parse Materi sheet
+                            const data = XLSX.utils.sheet_to_json(wb.Sheets[materiSheet], { header: 1 });
+                            parseMateriData(data);
+                            
+                            // Also parse project data if available
+                            const proyekSheet = wb.SheetNames.find(n => n.toLowerCase().includes('proyek') || n.toLowerCase().includes('form'));
+                            if (proyekSheet || wb.SheetNames[0]) {
+                                const sheet = proyekSheet || wb.SheetNames[0];
+                                parseData(XLSX.utils.sheet_to_json(wb.Sheets[sheet]));
+                            }
+                            
+                            dataLoaded.value = true;
+                            loadFromIndexedDB();
+                            nextTick(() => renderCharts());
+                        } catch (err) { 
+                            console.error(err); 
+                            alert('Error memproses file: ' + err.message); 
+                        }
+                    };
+                    reader.readAsArrayBuffer(file);
+                }
+
+                function parseMateriData(rows) {
+                    // Parse Materi sheet structure
+                    // Row 2: Headers (No, Tim PJK, Projek, Uraian, Capaian Kinerja (%), Permasalahan, Solusi, Rencana Tindak lanjut)
+                    // Row 3: Column numbers
+                    // Row 4+: Data
+                    
+                    let currentTeam = '';
+                    let currentProject = '';
+                    
+                    for (let i = 4; i < rows.length; i++) {
+                        const row = rows[i];
+                        if (!row) continue;
+                        
+                        // Column indices: 1=No, 2=Tim, 3=Projek, 4=Uraian number, 5=Uraian desc, 6=Capaian, 7/8=Permasalahan, 9/10=Solusi, 11/12=Rencana
+                        const tim = row[2] ? String(row[2]).trim() : '';
+                        const projek = row[3] ? String(row[3]).trim() : '';
+                        const uraianNum = row[4] ? parseInt(row[4]) : null;
+                        const uraianDesc = row[5] ? String(row[5]).trim() : '';
+                        const capaian = row[6] ? String(row[6]).trim() : '';
+                        const permasalahan = row[7] || row[8] ? String(row[7] || row[8]).trim() : '';
+                        const solusi = row[9] || row[10] ? String(row[9] || row[10]).trim() : '';
+                        const rencana = row[11] || row[12] ? String(row[11] || row[12]).trim() : '';
+                        
+                        if (tim) currentTeam = tim;
+                        if (projek) currentProject = projek;
+                        
+                        if (currentProject && (uraianNum || uraianDesc)) {
+                            // Check if uraian exists
+                            let existing = uraians.value.find(u => 
+                                u.projectName === currentProject && u.number === uraianNum
+                            );
+                            
+                            if (!existing && uraianNum) {
+                                // Create new uraian
+                                existing = {
+                                    id: generateId(),
+                                    projectName: currentProject,
+                                    number: uraianNum,
+                                    description: uraianDesc
+                                };
+                                uraians.value.push(existing);
+                            }
+                            
+                            // Add capaian data if exists
+                            if (existing && (capaian || permasalahan || solusi || rencana)) {
+                                capaianData.value[existing.id] = {
+                                    uraianId: existing.id,
+                                    capaian: capaian.replace('%', '').trim(),
+                                    kendala: permasalahan,
+                                    solusi: solusi,
+                                    rencana: rencana
+                                };
+                            }
+                        }
+                    }
+                }
+
+                function resetData() {
+                    if (hasUnsavedChanges.value && !confirm('Ada perubahan belum disimpan. Lanjutkan?')) return;
+                    dataLoaded.value = false;
+                    projects.value = [];
+                    employees.value = new Map();
+                    teams.value = new Set();
+                    teamProjects.value = new Map();
+                    selectedTeam.value = '';
+                    searchQuery.value = '';
+                    top10FullNames.value = [];
+                    Object.values(chartInstances).forEach(c => c?.destroy());
+                    chartInstances = {};
+                }
+
+                function processFile(file) {
+                    const reader = new FileReader();
+                    reader.onload = e => {
+                        try {
+                            const wb = XLSX.read(new Uint8Array(e.target.result), { type: 'array' });
+                            const sheet = wb.SheetNames.find(n => n.toLowerCase().includes('form') || n.toLowerCase().includes('response')) || wb.SheetNames[0];
+                            parseData(XLSX.utils.sheet_to_json(wb.Sheets[sheet]));
+                            dataLoaded.value = true;
+                            loadFromIndexedDB();
+                            nextTick(() => renderCharts());
+                        } catch (err) { console.error(err); alert('Error memproses file'); }
+                    };
+                    reader.readAsArrayBuffer(file);
+                }
+
+                function parseData(json) {
+                    const _p = [], _e = new Map(), _t = new Set(), _tp = new Map();
+                    json.forEach((row, i) => {
+                        const tim = (row['Tim Kerja'] || row['Tim'] || row['Nama Tim'] || '').toString().trim();
+                        const proyek = (row['Proyek'] || row['Nama Proyek'] || '').toString().trim();
+                        const ketua = (row['Ketua Tim'] || row['Ketua'] || row['Nama Ketua Tim'] || '').toString().trim();
+                        const anggota = (row['Anggota'] || row['Anggota Tim'] || row['Nama Anggota'] || '').toString().trim();
+                        if (!proyek || !tim) return;
+                        const members = ketua ? [ketua, ...parseMembersToFullNames(anggota)] : parseMembersToFullNames(anggota);
+                        const p = { id: i, tim, proyek, ketuaFull: ketua, allMembers: members };
+                        _p.push(p); _t.add(tim);
+                        if (!_tp.has(tim)) _tp.set(tim, []); _tp.get(tim).push(p);
+                        members.forEach(n => {
+                            if (!n) return;
+                            if (!_e.has(n)) _e.set(n, { asLeader: [], asMember: [], teams: new Set() });
+                            const d = _e.get(n);
+                            n === ketua ? d.asLeader.push(p) : d.asMember.push(p);
+                            d.teams.add(tim);
+                        });
+                    });
+                    projects.value = _p; employees.value = _e; teams.value = _t; teamProjects.value = _tp;
+                }
+
+                function renderCapaianCharts() {
+                    ['capaianTeam', 'capaianDist', 'capaianProgress'].forEach(k => chartInstances[k]?.destroy());
+                    
+                    const filteredProjectNames = new Set(filteredProjects.value.map(p => p.proyek));
+                    const filteredUraians = uraians.value.filter(u => filteredProjectNames.has(u.projectName));
+                    
+                    // 1. Average capaian per team
+                    const teamAvgs = [];
+                    filteredTeamsList.value.forEach(([teamName, projs]) => {
+                        const projectNames = projs.map(p => p.proyek);
+                        const teamUraians = filteredUraians.filter(u => projectNames.includes(u.projectName));
+                        
+                        let sum = 0, count = 0;
+                        teamUraians.forEach(u => {
+                            const c = capaianData.value[u.id];
+                            if (c && c.capaian) { sum += parseFloat(c.capaian) || 0; count++; }
+                        });
+                        if (count > 0) teamAvgs.push({ team: teamName, avg: Math.round(sum / count) });
+                    });
+                    teamAvgs.sort((a, b) => b.avg - a.avg);
+                    
+                    if (capaianTeamChart.value && teamAvgs.length > 0) {
+                        chartInstances.capaianTeam = new Chart(capaianTeamChart.value, {
+                            type: 'bar',
+                            data: {
+                                labels: teamAvgs.slice(0, 10).map(t => t.team.length > 15 ? t.team.slice(0, 15) + '…' : t.team),
+                                datasets: [{ data: teamAvgs.slice(0, 10).map(t => t.avg), backgroundColor: colors[0], borderRadius: 4 }]
+                            },
+                            options: {
+                                indexAxis: 'y', responsive: true, maintainAspectRatio: false,
+                                plugins: { legend: { display: false }, tooltip: { callbacks: { label: ctx => `${ctx.raw}%` } } },
+                                scales: { x: { max: 100, grid: { color: '#27272a' }, ticks: { color: '#a1a1aa' } }, y: { grid: { display: false }, ticks: { color: '#d4d4d8', font: { size: 10 } } } }
+                            }
+                        });
+                    }
+
+                    // 2. Distribution of capaian values (URAIAN level)
+                    const dist = { '0%': 0, '1-25%': 0, '26-50%': 0, '51-75%': 0, '76-99%': 0, '100%': 0 };
+                    filteredUraians.forEach(u => {
+                        const c = capaianData.value[u.id];
+                        const val = c && c.capaian ? parseFloat(c.capaian) || 0 : 0;
+                        if (val === 0) dist['0%']++;
+                        else if (val <= 25) dist['1-25%']++;
+                        else if (val <= 50) dist['26-50%']++;
+                        else if (val <= 75) dist['51-75%']++;
+                        else if (val < 100) dist['76-99%']++;
+                        else dist['100%']++;
+                    });
+
+                    if (capaianDistChart.value) {
+                        chartInstances.capaianDist = new Chart(capaianDistChart.value, {
+                            type: 'doughnut',
+                            data: {
+                                labels: Object.keys(dist),
+                                datasets: [{ data: Object.values(dist), backgroundColor: ['#71717a', '#ef4444', '#f59e0b', '#eab308', '#84cc16', '#10b981'], borderWidth: 0 }]
+                            },
+                            options: {
+                                responsive: true, maintainAspectRatio: false, cutout: '50%',
+                                plugins: { legend: { position: 'right', labels: { color: '#a1a1aa', font: { size: 10 }, boxWidth: 10, padding: 6 } } }
+                            }
+                        });
+                    }
+
+                    // 3. Progress filled vs not filled (URAIAN level)
+                    let filled = 0;
+                    filteredUraians.forEach(u => {
+                        const c = capaianData.value[u.id];
+                        if (c && c.capaian) filled++;
+                    });
+                    const notFilled = filteredUraians.length - filled;
+
+                    if (capaianProgressChart.value) {
+                        chartInstances.capaianProgress = new Chart(capaianProgressChart.value, {
+                            type: 'pie',
+                            data: {
+                                labels: ['Terisi', 'Belum Terisi'],
+                                datasets: [{ data: [filled, notFilled], backgroundColor: [colors[0], '#3f3f46'], borderWidth: 0 }]
+                            },
+                            options: {
+                                responsive: true, maintainAspectRatio: false,
+                                plugins: { legend: { position: 'bottom', labels: { color: '#a1a1aa', padding: 12 } } }
+                            }
+                        });
+                    }
+                }
+
+                function renderCharts() {
+                    Object.values(chartInstances).forEach(c => c?.destroy());
+                    const fp = filteredProjects.value, emp = filteredEmployeesListWithCounts.value;
+
+                    const tc = new Map(); fp.forEach(p => tc.set(p.tim, (tc.get(p.tim) || 0) + 1));
+                    const td = [...tc.entries()].sort((a, b) => b[1] - a[1]);
+                    if (teamChart.value) {
+                        chartInstances.team = new Chart(teamChart.value, {
+                            type: 'doughnut',
+                            data: { labels: td.map(t => t[0]), datasets: [{ data: td.map(t => t[1]), backgroundColor: colors, borderWidth: 0 }] },
+                            options: { responsive: true, maintainAspectRatio: false, cutout: '60%', plugins: { legend: { position: 'right', labels: { color: '#a1a1aa', font: { size: 11 }, boxWidth: 12, padding: 8 } }, tooltip: { callbacks: { title: ctx => ctx[0]?.label || '', label: ctx => `${ctx.raw} proyek` } } } }
+                        });
+                    }
+
+                    const top10 = emp.slice(0, 10);
+                    top10FullNames.value = top10.map(([n]) => n);
+                    
+                    if (employeeChart.value) {
+                        chartInstances.employee = new Chart(employeeChart.value, {
+                            type: 'bar',
+                            data: { labels: top10.map(([n]) => extractNameOnly(n)), datasets: [{ data: top10.map(([_, d]) => d.filteredTotal), backgroundColor: colors[0], borderRadius: 4 }] },
+                            options: {
+                                indexAxis: 'y', responsive: true, maintainAspectRatio: false,
+                                plugins: { legend: { display: false }, tooltip: { callbacks: { title: ctx => top10FullNames.value[ctx[0]?.dataIndex] || '', label: ctx => `Jumlah Proyek: ${ctx.raw}` } } },
+                                scales: { x: { grid: { color: '#27272a' }, ticks: { color: '#a1a1aa' } }, y: { grid: { display: false }, ticks: { color: '#d4d4d8', font: { size: 12 } } } }
+                            }
+                        });
+                    }
+
+                    let tl = 0, tm = 0; emp.forEach(([_, d]) => { tl += d.filteredAsLeader; tm += d.filteredAsMember; });
+                    if (roleChart.value) {
+                        chartInstances.role = new Chart(roleChart.value, {
+                            type: 'pie',
+                            data: { labels: ['Ketua', 'Anggota'], datasets: [{ data: [tl, tm], backgroundColor: [colors[1], colors[0]], borderWidth: 0 }] },
+                            options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom', labels: { color: '#a1a1aa', padding: 16, font: { size: 12 } } }, tooltip: { callbacks: { label: ctx => `${ctx.label}: ${ctx.raw} (${((ctx.raw / (tl + tm)) * 100).toFixed(1)}%)` } } } }
+                        });
+                    }
+
+                    const mc = { '1-3': 0, '4-5': 0, '6-7': 0, '8+': 0 };
+                    fp.forEach(p => { const c = p.allMembers.length; if (c <= 3) mc['1-3']++; else if (c <= 5) mc['4-5']++; else if (c <= 7) mc['6-7']++; else mc['8+']++; });
+                    if (memberDistChart.value) {
+                        chartInstances.memberDist = new Chart(memberDistChart.value, {
+                            type: 'bar',
+                            data: { labels: Object.keys(mc), datasets: [{ data: Object.values(mc), backgroundColor: colors.slice(0, 4), borderRadius: 4 }] },
+                            options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false }, tooltip: { callbacks: { title: ctx => `${ctx[0]?.label} orang`, label: ctx => `${ctx.raw} proyek` } } }, scales: { x: { grid: { display: false }, ticks: { color: '#a1a1aa' } }, y: { grid: { color: '#27272a' }, ticks: { color: '#a1a1aa' } } } }
+                        });
+                    }
+                }
+
+                function getInitials(n) { return extractNameOnly(n).split(' ').map(w => w[0]).slice(0, 2).join('').toUpperCase(); }
+                function getShortName(n) { const p = extractNameOnly(n).split(' '); return p.length > 2 ? p.slice(0, 2).join(' ') : p.join(' '); }
+                function getSortedTeamMembers(s) { return [...s].sort((a, b) => extractNameOnly(a).localeCompare(extractNameOnly(b))); }
+                function toggleTeam(n) { const s = new Set(expandedTeams.value); s.has(n) ? s.delete(n) : s.add(n); expandedTeams.value = s; }
+                function toggleMatrixTeam(n) { const s = new Set(expandedMatrixTeams.value); s.has(n) ? s.delete(n) : s.add(n); expandedMatrixTeams.value = s; }
+                function openEmployeeModal(n, d) { modalEmployee.value = { name: n, data: d }; }
+
+                function exportToExcel() {
+                    const wb = XLSX.utils.book_new();
+                    
+                    // Sheet 1: Matriks
+                    const list = [...employees.value.keys()].sort((a, b) => extractNameOnly(a).localeCompare(extractNameOnly(b)));
+                    const mx = [['No', 'Tim', 'Proyek', 'Ketua Tim', 'Jumlah', ...list]];
+                    projects.value.forEach((p, i) => mx.push([i + 1, p.tim, p.proyek, p.ketuaFull, p.allMembers.length, ...list.map(e => p.ketuaFull === e ? 'KETUA' : p.allMembers.includes(e) ? 'ANGGOTA' : '')]));
+                    XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(mx), 'Matriks');
+                    
+                    // Sheet 2: Ringkasan Pegawai
+                    const sm = [['No', 'Nama Lengkap', 'Total', 'Ketua', 'Anggota', 'Tim']];
+                    [...employees.value.entries()].sort((a, b) => (b[1].asLeader.length + b[1].asMember.length) - (a[1].asLeader.length + a[1].asMember.length)).forEach(([n, d], i) => sm.push([i + 1, n, d.asLeader.length + d.asMember.length, d.asLeader.length, d.asMember.length, [...d.teams].join(', ')]));
+                    XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(sm), 'Ringkasan Pegawai');
+                    
+                    // Sheet 3: Capaian Kinerja (URAIAN LEVEL)
+                    const cp = [['No', 'Tim', 'Proyek', 'No Uraian', 'Deskripsi Uraian', 'Capaian (%)', 'Kendala', 'Solusi', 'Rencana Tindak Lanjut']];
+                    let rowNum = 1;
+                    projects.value.forEach(p => {
+                        const projectUraians = getProjectUraians(p.proyek);
+                        if (projectUraians.length === 0) {
+                            // Project without uraians
+                            cp.push([rowNum++, p.tim, p.proyek, '', '', '', '', '', '']);
+                        } else {
+                            projectUraians.forEach(u => {
+                                const c = capaianData.value[u.id] || {};
+                                cp.push([rowNum++, p.tim, p.proyek, u.number, u.description, c.capaian || '', c.kendala || '', c.solusi || '', c.rencana || '']);
+                            });
+                        }
+                    });
+                    XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(cp), 'Capaian Kinerja');
+                    
+                    XLSX.writeFile(wb, 'Matriks_Kinerja_Pegawai.xlsx');
+                }
+
+                // Auto-save warning on page unload
+                window.addEventListener('beforeunload', (e) => {
+                    if (hasUnsavedChanges.value) {
+                        e.preventDefault();
+                        e.returnValue = '';
+                    }
+                });
+
+                
+                onMounted(() => {
+                    if (typeof preloadedData !== 'undefined' && preloadedData.length > 0) {
+                        parseData(preloadedData);
+                        dataLoaded.value = true;
+                        loadFromIndexedDB();
+                        nextTick(() => renderCharts());
+                    }
+                });
+
+                return { 
+                    dataLoaded, isDragging, activeTab, searchQuery, selectedTeam, expandedTeams, expandedMatrixTeams, 
+                    expandedCapaianTeams, expandedCapaianProjects, modalEmployee, tabs, sortedTeams, filteredStats, filteredProjects, 
+                    filteredTeamsMatrix, filteredEmployeesListWithCounts, filteredTeamsList, teamChart, employeeChart, 
+                    roleChart, memberDistChart, capaianTeamChart, capaianDistChart, capaianProgressChart,
+                    handleFileSelect, handleDrop, handleMateriFileSelect, resetData, getInitials, getShortName, 
+                    getSortedTeamMembers, toggleTeam, toggleMatrixTeam, toggleCapaianTeam, toggleCapaianProject, 
+                    openEmployeeModal, exportToExcel, parseData, renderCharts, 
+                    uraians, capaianData, hasUnsavedChanges, 
+                    getProjectUraians, addUraian, removeUraian, updateUraianDescription,
+                    getUraianCapaian, updateUraianCapaian, getProjectAvgCapaian,
+                    saveCapaianToIndexedDB, clearAllCapaian, getTeamCapaianProgress, capaianSummary
+                };
+            }
+        }).mount('#app');
+    </script>
+
+    <script>
+        const preloadedData = [{"Timestamp": "2026-01-28T13:08:02.863000", "Tim Kerja": "METODOLOGI DAN TEKNOLOGI INFORMASI (MTI)", "Proyek": "Pengolahan Sakernas", "Tujuan Organisasi": "Mewujudkan Perumusan Kebijakan dan Pengambilan Keputusan Berbasis Data Statistik Berkualitas dan Insight yang Relevan", "Sasaran": "Terwujudnya Penyediaan Data Dan Insight Statistik Kependudukan Dan Ketenagakerjaan Yang Berkualitas", "Sasaran 2": "", "Sasaran 3": "", "IKU": "Persentase Publikasi/Laporan Statistik Kependudukan Dan Ketenagakerjaan Yang Berkualitas : 100 Persen", "Ketua Tim": "Hespri Yomeldi, SST, M.T", "Anggota": "Bayu Setyawan, SST, M.T., Sukma Nirmala Dewi, S.Tr.Stat."}, {"Timestamp": "2026-01-28T14:43:26.939000", "Tim Kerja": "ANALISIS STATISTIK", "Proyek": "Berita Resmi Statistik (BRS) Indeks Ketimpangan Gender (IKG)", "Tujuan Organisasi": "Mewujudkan Perumusan Kebijakan dan Pengambilan Keputusan Berbasis Data Statistik Berkualitas dan Insight yang Relevan", "Sasaran": "Terwujudnya Penyediaan Data Dan Insight Statistik Lintas Sektor Yang Berkualitas", "Sasaran 2": "", "Sasaran 3": "", "IKU": "Persentase publikasi/laporan Analisis dan Pengembangan Statistik yang berkualitas : 100 Persen", "Ketua Tim": "Ananto Yanuar, SST, M.P.W.P", "Anggota": "Aditya Saputra, SST, M.URP., Apriliansyah, S.Tr.Stat., Hasbiah, S.S., Yudha Subakti, S.Si."}, {"Timestamp": "2026-01-28T14:48:16.032000", "Tim Kerja": "ANALISIS STATISTIK", "Proyek": "Publikasi Indeks Pembangunan Manusia (IPM) Tahun 2025", "Tujuan Organisasi": "Mewujudkan Perumusan Kebijakan dan Pengambilan Keputusan Berbasis Data Statistik Berkualitas dan Insight yang Relevan", "Sasaran": "Terwujudnya Penyediaan Data Dan Insight Statistik Lintas Sektor Yang Berkualitas", "Sasaran 2": "", "Sasaran 3": "", "IKU": "Persentase publikasi/laporan Analisis dan Pengembangan Statistik yang berkualitas : 100 Persen", "Ketua Tim": "Ananto Yanuar, SST, M.P.W.P", "Anggota": "Aditya Saputra, SST, M.URP., Apriliansyah, S.Tr.Stat., Hasbiah, S.S., Yudha Subakti, S.Si."}, {"Timestamp": "2026-01-28T14:50:20.918000", "Tim Kerja": "ANALISIS STATISTIK", "Proyek": "Berita Resmi Statistik (BRS) Indeks Pembangunan Manusia (IPM) Tahun 2026", "Tujuan Organisasi": "Mewujudkan Perumusan Kebijakan dan Pengambilan Keputusan Berbasis Data Statistik Berkualitas dan Insight yang Relevan", "Sasaran": "Terwujudnya Penyediaan Data Dan Insight Statistik Lintas Sektor Yang Berkualitas", "Sasaran 2": "", "Sasaran 3": "", "IKU": "Persentase publikasi/laporan Analisis dan Pengembangan Statistik yang berkualitas : 100 Persen", "Ketua Tim": "Ananto Yanuar, SST, M.P.W.P", "Anggota": "Aditya Saputra, SST, M.URP., Apriliansyah, S.Tr.Stat., Hasbiah, S.S., Yudha Subakti, S.Si."}, {"Timestamp": "2026-01-28T14:51:58.949000", "Tim Kerja": "ANALISIS STATISTIK", "Proyek": "Publikasi Statistik Daerah Provinsi Sulawesi Tengah 2026", "Tujuan Organisasi": "Mewujudkan Perumusan Kebijakan dan Pengambilan Keputusan Berbasis Data Statistik Berkualitas dan Insight yang Relevan", "Sasaran": "Terwujudnya Penyediaan Data Dan Insight Statistik Lintas Sektor Yang Berkualitas", "Sasaran 2": "", "Sasaran 3": "", "IKU": "Persentase publikasi/laporan Analisis dan Pengembangan Statistik yang berkualitas : 100 Persen", "Ketua Tim": "Ananto Yanuar, SST, M.P.W.P", "Anggota": "Aditya Saputra, SST, M.URP., Apriliansyah, S.Tr.Stat., Hasbiah, S.S., Yudha Subakti, S.Si."}, {"Timestamp": "2026-01-28T14:53:19.620000", "Tim Kerja": "ANALISIS STATISTIK", "Proyek": "Publikasi Analisis Isu Terkini Provinsi Sulawesi Tengah 2026", "Tujuan Organisasi": "Mewujudkan Perumusan Kebijakan dan Pengambilan Keputusan Berbasis Data Statistik Berkualitas dan Insight yang Relevan", "Sasaran": "Terwujudnya Penyediaan Data Dan Insight Statistik Lintas Sektor Yang Berkualitas", "Sasaran 2": "", "Sasaran 3": "", "IKU": "Persentase publikasi/laporan Analisis dan Pengembangan Statistik yang berkualitas : 100 Persen", "Ketua Tim": "Ananto Yanuar, SST, M.P.W.P", "Anggota": "Aditya Saputra, SST, M.URP., Apriliansyah, S.Tr.Stat., Hasbiah, S.S., Yudha Subakti, S.Si."}, {"Timestamp": "2026-01-28T14:54:29.256000", "Tim Kerja": "ANALISIS STATISTIK", "Proyek": "Publikasi Indikator Kesejahteraan Rakyat 2026", "Tujuan Organisasi": "Mewujudkan Perumusan Kebijakan dan Pengambilan Keputusan Berbasis Data Statistik Berkualitas dan Insight yang Relevan", "Sasaran": "Terwujudnya Penyediaan Data Dan Insight Statistik Lintas Sektor Yang Berkualitas", "Sasaran 2": "", "Sasaran 3": "", "IKU": "Persentase publikasi/laporan Analisis dan Pengembangan Statistik yang berkualitas : 100 Persen", "Ketua Tim": "Ananto Yanuar, SST, M.P.W.P", "Anggota": "Aditya Saputra, SST, M.URP., Apriliansyah, S.Tr.Stat., Hasbiah, S.S., Yudha Subakti, S.Si."}, {"Timestamp": "2026-01-28T14:54:43.382000", "Tim Kerja": "KETAHANAN SOSIAL", "Proyek": "Pelaksanaan Kegiatan Desa Cinta Statistik (Desa Cantik)", "Tujuan Organisasi": "Mewujudkan Penyelenggaraan Sistem Statistik Nasional yang Andal, Efektif, dan Efisien", "Sasaran": "", "Sasaran 2": "Terwujudnya Kapasitas Tata Kelola Pemerintah Desa Untuk Menghasilkan Statistik Berkualitas", "Sasaran 3": "", "IKU": "Persentase Kumulatif Desa Yang Berpredikat Desa Cinta Statistik :  2.97 Persen", "Ketua Tim": "Ir. Jefrie Wahido, M.Si", "Anggota": "Annisa Nur Kusuma, SST, Mayanti Meylisa Toding, SST, M.Sc, Muznah, S.P"}, {"Timestamp": "2026-01-28T14:57:08.738000", "Tim Kerja": "KETAHANAN SOSIAL", "Proyek": "Pelaksanaan Kegiatan Statistik Potensi Desa (PODES)", "Tujuan Organisasi": "Mewujudkan Perumusan Kebijakan dan Pengambilan Keputusan Berbasis Data Statistik Berkualitas dan Insight yang Relevan", "Sasaran": "Terwujudnya Penyediaan Data Dan Insight Statistik Ketahanan Sosial Yang Berkualitas", "Sasaran 2": "", "Sasaran 3": "", "IKU": "Persentase Publikasi/Laporan Statistik Ketahanan Sosial Yang Berkualitas :100 Persen", "Ketua Tim": "Ir. Jefrie Wahido, M.Si", "Anggota": "Annisa Nur Kusuma, SST, Isna Aissatussiri Asshidiq, S.Tr.Stat., Mayanti Meylisa Toding, SST, M.Sc, Muznah, S.P"}, {"Timestamp": "2026-01-28T15:02:16.302000", "Tim Kerja": "HUMAS DAN PROTOKOLER", "Proyek": "Promosi Statistik", "Tujuan Organisasi": "Mewujudkan Penyelenggaraan Sistem Statistik Nasional yang Andal, Efektif, dan Efisien", "Sasaran": "", "Sasaran 2": "Terwujudnya Layanan Edukasi Dan Promosi Statistik Yang Prima", "Sasaran 3": "", "IKU": "Persentase Kegiatan Edukasi dan Promosi Statistik yang terselenggara dengan baik : 80 Persen", "Ketua Tim": "Imron Taufik J Musa, S.Si, M.Si", "Anggota": "Aditya Saputra, SST, M.URP., Ananto Yanuar, SST, M.P.W.P, Apriliansyah, S.Tr.Stat., Eka Nurliani, A.Md., Hasbiah, S.S., Yudha Subakti, S.Si."}, {"Timestamp": "2026-01-28T15:09:13.262000", "Tim Kerja": "HUMAS DAN PROTOKOLER", "Proyek": "Laporan Protokoler", "Tujuan Organisasi": "Mewujudkan Penyelenggaraan Sistem Statistik Nasional yang Andal, Efektif, dan Efisien", "Sasaran": "", "Sasaran 2": "Terwujudnya Layanan Edukasi Dan Promosi Statistik Yang Prima", "Sasaran 3": "", "IKU": "Persentase Kegiatan Edukasi dan Promosi Statistik yang terselenggara dengan baik : 80 Persen", "Ketua Tim": "Imron Taufik J Musa, S.Si, M.Si", "Anggota": "Aditya Saputra, SST, M.URP., Ananto Yanuar, SST, M.P.W.P, Apriliansyah, S.Tr.Stat., Eka Nurliani, A.Md., Hasbiah, S.S., Yudha Subakti, S.Si."}, {"Timestamp": "2026-01-28T15:18:52.195000", "Tim Kerja": "IVP IUP", "Proyek": "Indikator Sasaran Visi Indonesia Emas dan 45 Indikator Utama Pembangunan", "Tujuan Organisasi": "Mewujudkan Perumusan Kebijakan dan Pengambilan Keputusan Berbasis Data Statistik Berkualitas dan Insight yang Relevan", "Sasaran": "Tersedianya Data 5 Sasaran Visi Indonesia Emas dan 45 Indikator Utama Pembangunan", "Sasaran 2": "", "Sasaran 3": "", "IKU": "Indeks Keberhasilan Penyediaan Indikator Sasaran Visi Indonesia Emas dan 45 Indikator Utama Pembangunan : 56.1 Persen", "Ketua Tim": "Ananto Yanuar, SST, M.P.W.P", "Anggota": "A.A. Ngurah Gede Wasudewa, SST, M.URP., Aditya Saputra, SST, M.URP., Apriliansyah, S.Tr.Stat., Bahtiar, SST, M.P.W.P., Fima Anggadini, SST, M.P.W, Hasbiah, S.S., Henry Simanjuntak, SST, M.Si, Imron Taufik J Musa, S.Si, M.Si, Ir. Jefrie Wahido, M.Si, Irwan Kurniawan, SST, Yudha Subakti, S.Si."}, {"Timestamp": "2026-01-28T15:20:49.618000", "Tim Kerja": "KETAHANAN SOSIAL", "Proyek": "Pelaksanaan Kegiatan Statistik Politik dan Keamanan (POLKAM)", "Tujuan Organisasi": "Mewujudkan Perumusan Kebijakan dan Pengambilan Keputusan Berbasis Data Statistik Berkualitas dan Insight yang Relevan", "Sasaran": "Terwujudnya Penyediaan Data Dan Insight Statistik Ketahanan Sosial Yang Berkualitas", "Sasaran 2": "", "Sasaran 3": "", "IKU": "Persentase Publikasi/Laporan Statistik Ketahanan Sosial Yang Berkualitas :100 Persen", "Ketua Tim": "Ir. Jefrie Wahido, M.Si", "Anggota": "Annisa Nur Kusuma, SST, Mayanti Meylisa Toding, SST, M.Sc, Muznah, S.P"}, {"Timestamp": "2026-01-28T15:21:16.393000", "Tim Kerja": "IVP IUP", "Proyek": "Koordinasi Dinas dengan sekretariat ISV IUP dalam Penyediaan Indikator Sasaran Visi dan 45 Indikator Utama Pembangunan", "Tujuan Organisasi": "Mewujudkan Perumusan Kebijakan dan Pengambilan Keputusan Berbasis Data Statistik Berkualitas dan Insight yang Relevan", "Sasaran": "Tersedianya Data 5 Sasaran Visi Indonesia Emas dan 45 Indikator Utama Pembangunan", "Sasaran 2": "", "Sasaran 3": "", "IKU": "Indeks Keberhasilan Penyediaan Indikator Sasaran Visi Indonesia Emas dan 45 Indikator Utama Pembangunan : 56.1 Persen", "Ketua Tim": "Ananto Yanuar, SST, M.P.W.P", "Anggota": "A.A. Ngurah Gede Wasudewa, SST, M.URP., Aditya Saputra, SST, M.URP., Apriliansyah, S.Tr.Stat., Bahtiar, SST, M.P.W.P., Fima Anggadini, SST, M.P.W, Hasbiah, S.S., Henry Simanjuntak, SST, M.Si, Imron Taufik J Musa, S.Si, M.Si, Ir. Jefrie Wahido, M.Si, Irwan Kurniawan, SST, Yudha Subakti, S.Si."}, {"Timestamp": "2026-01-28T15:21:44.559000", "Tim Kerja": "KETAHANAN SOSIAL", "Proyek": "Pelaksanaan Kegiatan Statistik Lingkungan Hidup Indonesia (SLHI) dan Sumber Daya Laut dan Pesisir (SDLP)", "Tujuan Organisasi": "Mewujudkan Perumusan Kebijakan dan Pengambilan Keputusan Berbasis Data Statistik Berkualitas dan Insight yang Relevan", "Sasaran": "Terwujudnya Penyediaan Data Dan Insight Statistik Ketahanan Sosial Yang Berkualitas", "Sasaran 2": "", "Sasaran 3": "", "IKU": "Persentase Publikasi/Laporan Statistik Ketahanan Sosial Yang Berkualitas :100 Persen", "Ketua Tim": "Ir. Jefrie Wahido, M.Si", "Anggota": "Annisa Nur Kusuma, SST, Mayanti Meylisa Toding, SST, M.Sc, Muznah, S.P"}, {"Timestamp": "2026-01-28T15:22:51.861000", "Tim Kerja": "KETAHANAN SOSIAL", "Proyek": "Pelaksanaan Kegiatan Statistik Kemiskinan", "Tujuan Organisasi": "Mewujudkan Perumusan Kebijakan dan Pengambilan Keputusan Berbasis Data Statistik Berkualitas dan Insight yang Relevan", "Sasaran": "Terwujudnya Penyediaan Data Dan Insight Statistik Ketahanan Sosial Yang Berkualitas", "Sasaran 2": "", "Sasaran 3": "", "IKU": "Persentase Publikasi/Laporan Statistik Ketahanan Sosial Yang Berkualitas :100 Persen", "Ketua Tim": "Ir. Jefrie Wahido, M.Si", "Anggota": "Ahmad Risal, S.Tr.Stat., Annisa Nur Kusuma, SST, Isna Aissatussiri Asshidiq, S.Tr.Stat., Mayanti Meylisa Toding, SST, M.Sc, Muznah, S.P"}, {"Timestamp": "2026-01-29T09:50:15.709000", "Tim Kerja": "STATISTIK HARGA", "Proyek": "Survey Survey Harga Produsen", "Tujuan Organisasi": "Mewujudkan Tata Kelola Badan Pusat Statistik yang Berkualitas, Akuntabel, Efektif, dan Efisien dalam Menyelenggarakan Statistik", "Sasaran": "", "Sasaran 2": "", "Sasaran 3": "", "IKU": "Persentase Publikasi/Laporan Statistik Harga Yang Berkualitas : 100 Persen", "Ketua Tim": "Henry Simanjuntak, SST, M.Si", "Anggota": "Apriliansyah, S.Tr.Stat., Frilia Zaskia, A.Md.Stat., Iva Rizky Karim, S.P, M.Si., Moh Room, SE"}, {"Timestamp": "2026-01-29T09:53:44.180000", "Tim Kerja": "STATISTIK HARGA", "Proyek": "Survei Harga Konsumen", "Tujuan Organisasi": "Mewujudkan Tata Kelola Badan Pusat Statistik yang Berkualitas, Akuntabel, Efektif, dan Efisien dalam Menyelenggarakan Statistik", "Sasaran": "", "Sasaran 2": "", "Sasaran 3": "", "IKU": "Persentase Publikasi/Laporan Statistik Harga Yang Berkualitas : 100 Persen", "Ketua Tim": "Henry Simanjuntak, SST, M.Si", "Anggota": "Apriliansyah, S.Tr.Stat., Nurainun Fitriani, SST, Nurhayati, S.I.Kom"}, {"Timestamp": "2026-01-29T10:15:08.601000", "Tim Kerja": "STATISTIK JASA", "Proyek": "1. PUBLIKASI/LAPORAN STATISTIK KEUANGAN, 2. PUBLIKASI/LAPORAN STATISTIK TEKNOLOGI INFORMASI, 3.PUBLIKASI/LAPORAN STATISTIK PARIWISATA ", "Tujuan Organisasi": "Mewujudkan Perumusan Kebijakan dan Pengambilan Keputusan Berbasis Data Statistik Berkualitas dan Insight yang Relevan", "Sasaran": "Terwujudnya Penyediaan Data Dan Insight Statistik Keuangan, Teknologi Informasi, Dan Pariwisata Yang Berkualitas", "Sasaran 2": "", "Sasaran 3": "", "IKU": "Persentase Publikasi/Laporan Statistik Keuangan, Teknologi Informasi, Dan Pariwisata Yang Berkualitas : 100 Persen", "Ketua Tim": "Akmal, S.Si", "Anggota": "Apriliansyah, S.Tr.Stat., Fajrianto Manungki, SST, Reni Triani R Timumun, S.Si"}, {"Timestamp": "2026-01-29T10:30:11.694000", "Tim Kerja": "STATISTIK DISTRIBUSI", "Proyek": "Penyediaan data Statistik Transportasi", "Tujuan Organisasi": "Mewujudkan Perumusan Kebijakan dan Pengambilan Keputusan Berbasis Data Statistik Berkualitas dan Insight yang Relevan", "Sasaran": "Terwujudnya Penyediaan Data Dan Insight Statistik Distribusi Yang Berkualitas", "Sasaran 2": "", "Sasaran 3": "", "IKU": "Persentase Publikasi/Laporan Statistik Distribusi Yang Berkualitas : 100 Persen", "Ketua Tim": "A.A. Ngurah Gede Wasudewa, SST, M.URP.", "Anggota": "Frilia Zaskia, A.Md.Stat., Winansibutet, S.Si, M.P.W.P."}, {"Timestamp": "2026-01-29T10:31:40.190000", "Tim Kerja": "STATISTIK DISTRIBUSI", "Proyek": "Penyediaan data Statistik Perdagangan Luar Negeri", "Tujuan Organisasi": "Mewujudkan Perumusan Kebijakan dan Pengambilan Keputusan Berbasis Data Statistik Berkualitas dan Insight yang Relevan", "Sasaran": "Terwujudnya Penyediaan Data Dan Insight Statistik Distribusi Yang Berkualitas", "Sasaran 2": "", "Sasaran 3": "", "IKU": "Persentase Publikasi/Laporan Statistik Distribusi Yang Berkualitas : 100 Persen", "Ketua Tim": "A.A. Ngurah Gede Wasudewa, SST, M.URP.", "Anggota": "Apriliansyah, S.Tr.Stat."}, {"Timestamp": "2026-01-29T10:33:52.563000", "Tim Kerja": "METODOLOGI DAN TEKNOLOGI INFORMASI (MTI)", "Proyek": "Pengembangan Inovasi", "Tujuan Organisasi": "Mewujudkan Penyelenggaraan Sistem Statistik Nasional yang Andal, Efektif, dan Efisien", "Sasaran": "", "Sasaran 2": "Terwujudnya Kemudahan Akses Data Bps", "Sasaran 3": "", "IKU": "Indeks Pelayanan Publik - Penilaian Mandiri : 4.86 Poin", "Ketua Tim": "Hespri Yomeldi, SST, M.T", "Anggota": "Bayu Setyawan, SST, M.T., Candra, S.E, M.Ec.Dev, Mohammad Syafrizal, S.Tr.Stat, Sukma Nirmala Dewi, S.Tr.Stat."}, {"Timestamp": "2026-01-29T10:35:27.306000", "Tim Kerja": "STATISTIK DISTRIBUSI", "Proyek": "Penyediaan data Statistik Perdagangan Dalam Negeri", "Tujuan Organisasi": "Mewujudkan Perumusan Kebijakan dan Pengambilan Keputusan Berbasis Data Statistik Berkualitas dan Insight yang Relevan", "Sasaran": "Terwujudnya Penyediaan Data Dan Insight Statistik Distribusi Yang Berkualitas", "Sasaran 2": "", "Sasaran 3": "", "IKU": "Persentase Publikasi/Laporan Statistik Distribusi Yang Berkualitas : 100 Persen", "Ketua Tim": "A.A. Ngurah Gede Wasudewa, SST, M.URP.", "Anggota": "Apriliansyah, S.Tr.Stat., Frilia Zaskia, A.Md.Stat., Reni Triani R Timumun, S.Si, Winansibutet, S.Si, M.P.W.P."}, {"Timestamp": "2026-01-29T10:37:23.138000", "Tim Kerja": "STATISTIK DISTRIBUSI", "Proyek": "Penyediaan data Statistik Pola Usaha Non Pertanian", "Tujuan Organisasi": "Mewujudkan Perumusan Kebijakan dan Pengambilan Keputusan Berbasis Data Statistik Berkualitas dan Insight yang Relevan", "Sasaran": "Terwujudnya Penyediaan Data Dan Insight Statistik Distribusi Yang Berkualitas", "Sasaran 2": "", "Sasaran 3": "", "IKU": "Persentase Publikasi/Laporan Statistik Distribusi Yang Berkualitas : 100 Persen", "Ketua Tim": "A.A. Ngurah Gede Wasudewa, SST, M.URP.", "Anggota": "Apriliansyah, S.Tr.Stat., Frilia Zaskia, A.Md.Stat."}, {"Timestamp": "2026-01-29T10:38:48.892000", "Tim Kerja": "METODOLOGI DAN TEKNOLOGI INFORMASI (MTI)", "Proyek": "Metodologi dan Pengolahan Survei StatDukNaker", "Tujuan Organisasi": "Mewujudkan Perumusan Kebijakan dan Pengambilan Keputusan Berbasis Data Statistik Berkualitas dan Insight yang Relevan", "Sasaran": "Terwujudnya Penyediaan Data Dan Insight Statistik Kependudukan Dan Ketenagakerjaan Yang Berkualitas", "Sasaran 2": "", "Sasaran 3": "", "IKU": "Persentase Publikasi/Laporan Statistik Kependudukan Dan Ketenagakerjaan Yang Berkualitas : 100 Persen", "Ketua Tim": "Hespri Yomeldi, SST, M.T", "Anggota": "Bayu Setyawan, SST, M.T., Nurul Solikha Nofiani, SST, M.Si., Sukma Nirmala Dewi, S.Tr.Stat."}, {"Timestamp": "2026-01-29T10:40:32.035000", "Tim Kerja": "METODOLOGI DAN TEKNOLOGI INFORMASI (MTI)", "Proyek": "Metodologi dan Pengolahan Survei StatKesRa", "Tujuan Organisasi": "Mewujudkan Perumusan Kebijakan dan Pengambilan Keputusan Berbasis Data Statistik Berkualitas dan Insight yang Relevan", "Sasaran": "Terwujudnya Penyediaan Data Dan Insight Statistik Kesejahteraan Rakyat Yang Berkualitas", "Sasaran 2": "", "Sasaran 3": "", "IKU": "Persentase Publikasi/Laporan Statistik Kesejahteraan Rakyat Yang Berkualitas : 100 Persen", "Ketua Tim": "Hespri Yomeldi, SST, M.T", "Anggota": "Bayu Setyawan, SST, M.T., Sepryati Matoory, S.P, Sukma Nirmala Dewi, S.Tr.Stat."}, {"Timestamp": "2026-01-29T10:41:37.351000", "Tim Kerja": "METODOLOGI DAN TEKNOLOGI INFORMASI (MTI)", "Proyek": "Metodologi dan Pengolahan Survei StatHansos", "Tujuan Organisasi": "Mewujudkan Perumusan Kebijakan dan Pengambilan Keputusan Berbasis Data Statistik Berkualitas dan Insight yang Relevan", "Sasaran": "Terwujudnya Penyediaan Data Dan Insight Statistik Ketahanan Sosial Yang Berkualitas", "Sasaran 2": "", "Sasaran 3": "", "IKU": "Persentase Publikasi/Laporan Statistik Ketahanan Sosial Yang Berkualitas :100 Persen", "Ketua Tim": "Hespri Yomeldi, SST, M.T", "Anggota": "Bayu Setyawan, SST, M.T., Mayanti Meylisa Toding, SST, M.Sc, Sukma Nirmala Dewi, S.Tr.Stat."}, {"Timestamp": "2026-01-29T10:42:22.591000", "Tim Kerja": "STATISTIK DISTRIBUSI", "Proyek": "Pendukung Kegiatan Statistik Distribusi", "Tujuan Organisasi": "Mewujudkan Perumusan Kebijakan dan Pengambilan Keputusan Berbasis Data Statistik Berkualitas dan Insight yang Relevan", "Sasaran": "Terwujudnya Penyediaan Data Dan Insight Statistik Distribusi Yang Berkualitas", "Sasaran 2": "", "Sasaran 3": "", "IKU": "Persentase Publikasi/Laporan Statistik Distribusi Yang Berkualitas : 100 Persen", "Ketua Tim": "A.A. Ngurah Gede Wasudewa, SST, M.URP.", "Anggota": "Apriliansyah, S.Tr.Stat., Frilia Zaskia, A.Md.Stat., Nurhayati, S.I.Kom, Reni Triani R Timumun, S.Si, Winansibutet, S.Si, M.P.W.P."}, {"Timestamp": "2026-01-29T10:42:58.745000", "Tim Kerja": "METODOLOGI DAN TEKNOLOGI INFORMASI (MTI)", "Proyek": "Metodologi dan Pengolahan Survei StatHayati", "Tujuan Organisasi": "Mewujudkan Perumusan Kebijakan dan Pengambilan Keputusan Berbasis Data Statistik Berkualitas dan Insight yang Relevan", "Sasaran": "Terwujudnya Penyediaan Data Dan Insight Statistik Tanaman Pangan, Hortikultura, Dan Perkebunan Yang Berkualitas", "Sasaran 2": "", "Sasaran 3": "", "IKU": "Persentase Publikasi/Laporan Statistik Tanaman Pangan, Hortikultura, Dan Perkebunan Yang Berkualitas :100 Persen", "Ketua Tim": "Hespri Yomeldi, SST, M.T", "Anggota": "Candra, S.E, M.Ec.Dev, Mohammad Syafrizal, S.Tr.Stat"}, {"Timestamp": "2026-01-29T10:43:34.607000", "Tim Kerja": "METODOLOGI DAN TEKNOLOGI INFORMASI (MTI)", "Proyek": "Metodologi dan Pengolahan Survei StatIndustri", "Tujuan Organisasi": "Mewujudkan Perumusan Kebijakan dan Pengambilan Keputusan Berbasis Data Statistik Berkualitas dan Insight yang Relevan", "Sasaran": "Terwujudnya Penyediaan Data Dan Insight Statistik Industri Yang Berkualitas", "Sasaran 2": "", "Sasaran 3": "", "IKU": "Persentase Publikasi/Laporan Statistik Industri Yang Berkualitas : 100 Persen", "Ketua Tim": "Hespri Yomeldi, SST, M.T", "Anggota": "Candra, S.E, M.Ec.Dev, Mohammad Syafrizal, S.Tr.Stat"}, {"Timestamp": "2026-01-29T10:44:17.573000", "Tim Kerja": "METODOLOGI DAN TEKNOLOGI INFORMASI (MTI)", "Proyek": "Metodologi dan Pengolahan Survei StatDistribusi", "Tujuan Organisasi": "Mewujudkan Perumusan Kebijakan dan Pengambilan Keputusan Berbasis Data Statistik Berkualitas dan Insight yang Relevan", "Sasaran": "Terwujudnya Penyediaan Data Dan Insight Statistik Distribusi Yang Berkualitas", "Sasaran 2": "", "Sasaran 3": "", "IKU": "Persentase Publikasi/Laporan Statistik Harga Yang Berkualitas : 100 Persen", "Ketua Tim": "Hespri Yomeldi, SST, M.T", "Anggota": "Bayu Setyawan, SST, M.T., Sukma Nirmala Dewi, S.Tr.Stat."}, {"Timestamp": "2026-01-29T10:47:15.547000", "Tim Kerja": "METODOLOGI DAN TEKNOLOGI INFORMASI (MTI)", "Proyek": "Metodologi dan Pengolahan Survei Neraca", "Tujuan Organisasi": "Mewujudkan Perumusan Kebijakan dan Pengambilan Keputusan Berbasis Data Statistik Berkualitas dan Insight yang Relevan", "Sasaran": "Terwujudnya Penyediaan Data Dan Insight Statistik Lintas Sektor Yang Berkualitas", "Sasaran 2": "", "Sasaran 3": "", "IKU": "Persentase publikasi/laporan Analisis dan Pengembangan Statistik yang berkualitas : 100 Persen", "Ketua Tim": "Hespri Yomeldi, SST, M.T", "Anggota": "Bayu Setyawan, SST, M.T., Sukma Nirmala Dewi, S.Tr.Stat."}, {"Timestamp": "2026-01-29T10:49:31.046000", "Tim Kerja": "STATISTIK DISTRIBUSI", "Proyek": "Penyediaan data Statistik Transportasi", "Tujuan Organisasi": "Mewujudkan Perumusan Kebijakan dan Pengambilan Keputusan Berbasis Data Statistik Berkualitas dan Insight yang Relevan", "Sasaran": "Terwujudnya Penyediaan Data Dan Insight Statistik Distribusi Yang Berkualitas", "Sasaran 2": "", "Sasaran 3": "", "IKU": "Persentase Publikasi/Laporan Statistik Distribusi Yang Berkualitas : 100 Persen", "Ketua Tim": "A.A. Ngurah Gede Wasudewa, SST, M.URP.", "Anggota": "Frilia Zaskia, A.Md.Stat., Reni Triani R Timumun, S.Si, Winansibutet, S.Si, M.P.W.P."}, {"Timestamp": "2026-01-29T10:49:35.608000", "Tim Kerja": "METODOLOGI DAN TEKNOLOGI INFORMASI (MTI)", "Proyek": "Manajemen Mitra", "Tujuan Organisasi": "Mewujudkan Tata Kelola Badan Pusat Statistik yang Berkualitas, Akuntabel, Efektif, dan Efisien dalam Menyelenggarakan Statistik", "Sasaran": "", "Sasaran 2": "", "Sasaran 3": "Terwujudnya Dukungan Manajemen Pada Bps Provinsi Dan Bps Kabupaten/Kota", "IKU": "Nilai SAKIP oleh Inspektorat : 77.95 Poin", "Ketua Tim": "Hespri Yomeldi, SST, M.T", "Anggota": "Bayu Setyawan, SST, M.T., Frilia Zaskia, A.Md.Stat., Mohammad Syafrizal, S.Tr.Stat"}, {"Timestamp": "2026-01-29T10:51:20.456000", "Tim Kerja": "METODOLOGI DAN TEKNOLOGI INFORMASI (MTI)", "Proyek": "Pengembangan Kapasitas SDM TI", "Tujuan Organisasi": "Mewujudkan Penyelenggaraan Sistem Statistik Nasional yang Andal, Efektif, dan Efisien", "Sasaran": "", "Sasaran 2": "Terwujudnya Kemudahan Akses Data Bps", "Sasaran 3": "", "IKU": "Indeks Pelayanan Publik - Penilaian Mandiri : 4.86 Poin", "Ketua Tim": "Hespri Yomeldi, SST, M.T", "Anggota": "Bahtiar, SST, M.P.W.P., Bayu Setyawan, SST, M.T., Candra, S.E, M.Ec.Dev, Catur Prihatin, A.Md, Ince Mariyani, S.E., M.M., Mohammad Syafrizal, S.Tr.Stat, Ni Luh Laksmi Devi, S.Tr.Stat, Nurhayati, S.I.Kom, Rudi Siswoyo, SE, M.M., Sukma Nirmala Dewi, S.Tr.Stat., Lidya Rosselindo Pelima, S.T, M.T."}, {"Timestamp": "2026-01-29T10:52:23.612000", "Tim Kerja": "METODOLOGI DAN TEKNOLOGI INFORMASI (MTI)", "Proyek": "Pengelolaan Hardware dan Software", "Tujuan Organisasi": "Mewujudkan Penyelenggaraan Sistem Statistik Nasional yang Andal, Efektif, dan Efisien", "Sasaran": "", "Sasaran 2": "Terwujudnya Kemudahan Akses Data Bps", "Sasaran 3": "", "IKU": "Indeks Pelayanan Publik - Penilaian Mandiri : 4.86 Poin", "Ketua Tim": "", "Anggota": "Bayu Setyawan, SST, M.T., Candra, S.E, M.Ec.Dev, Catur Prihatin, A.Md, Mohammad Syafrizal, S.Tr.Stat, Muhammad Saiful, Rudi Siswoyo, SE, M.M., Sukma Nirmala Dewi, S.Tr.Stat."}, {"Timestamp": "2026-01-29T10:53:58.764000", "Tim Kerja": "METODOLOGI DAN TEKNOLOGI INFORMASI (MTI)", "Proyek": "Pengelolaan Jaringan dan Internet", "Tujuan Organisasi": "Mewujudkan Penyelenggaraan Sistem Statistik Nasional yang Andal, Efektif, dan Efisien", "Sasaran": "", "Sasaran 2": "Terwujudnya Kemudahan Akses Data Bps", "Sasaran 3": "", "IKU": "Indeks Pelayanan Publik - Penilaian Mandiri : 4.86 Poin", "Ketua Tim": "Hespri Yomeldi, SST, M.T", "Anggota": "Bayu Setyawan, SST, M.T., Candra, S.E, M.Ec.Dev, Catur Prihatin, A.Md, Rudi Siswoyo, SE, M.M., Sukma Nirmala Dewi, S.Tr.Stat."}, {"Timestamp": "2026-01-29T10:55:23.625000", "Tim Kerja": "STATISTIK DISTRIBUSI", "Proyek": "Penyediaan data Statistik Perdagangan Luar Negeri", "Tujuan Organisasi": "Mewujudkan Perumusan Kebijakan dan Pengambilan Keputusan Berbasis Data Statistik Berkualitas dan Insight yang Relevan", "Sasaran": "Terwujudnya Penyediaan Data Dan Insight Statistik Distribusi Yang Berkualitas", "Sasaran 2": "", "Sasaran 3": "", "IKU": "Persentase Publikasi/Laporan Statistik Distribusi Yang Berkualitas : 100 Persen", "Ketua Tim": "A.A. Ngurah Gede Wasudewa, SST, M.URP.", "Anggota": "Apriliansyah, S.Tr.Stat., Nurhayati, S.I.Kom"}, {"Timestamp": "2026-01-29T10:56:00.790000", "Tim Kerja": "METODOLOGI DAN TEKNOLOGI INFORMASI (MTI)", "Proyek": "Penetapan Kerangka Geospasial dan Muatan Wilkerstat SE2026", "Tujuan Organisasi": "Mewujudkan Perumusan Kebijakan dan Pengambilan Keputusan Berbasis Data Statistik Berkualitas dan Insight yang Relevan", "Sasaran": "Terwujudnya Penyediaan Data Dan Insight Statistik Distribusi Yang Berkualitas", "Sasaran 2": "", "Sasaran 3": "", "IKU": "Persentase Publikasi/Laporan Statistik Distribusi Yang Berkualitas : 100 Persen", "Ketua Tim": "Hespri Yomeldi, SST, M.T", "Anggota": "Bayu Setyawan, SST, M.T., Candra, S.E, M.Ec.Dev, Catur Prihatin, A.Md, Rudi Siswoyo, SE, M.M."}, {"Timestamp": "2026-01-29T11:11:39.069000", "Tim Kerja": "PERENCANAAN ANGGARAN", "Proyek": "Revisi Anggaran", "Tujuan Organisasi": "Mewujudkan Tata Kelola Badan Pusat Statistik yang Berkualitas, Akuntabel, Efektif, dan Efisien dalam Menyelenggarakan Statistik", "Sasaran": "", "Sasaran 2": "", "Sasaran 3": "Terwujudnya Dukungan Manajemen Pada Bps Provinsi Dan Bps Kabupaten/Kota", "IKU": "Nilai SAKIP oleh Inspektorat : 77.95 Poin", "Ketua Tim": "Luhur Partomo Hudoyo, S.Si, M.Stat", "Anggota": "Ahmad Risal, S.Tr.Stat."}, {"Timestamp": "2026-01-29T11:12:11.617000", "Tim Kerja": "METODOLOGI DAN TEKNOLOGI INFORMASI (MTI)", "Proyek": "Penyiapan Prelist SE2026", "Tujuan Organisasi": "Mewujudkan Perumusan Kebijakan dan Pengambilan Keputusan Berbasis Data Statistik Berkualitas dan Insight yang Relevan", "Sasaran": "Terwujudnya Penyediaan Data Dan Insight Statistik Distribusi Yang Berkualitas", "Sasaran 2": "", "Sasaran 3": "", "IKU": "Indeks Pelayanan Publik - Penilaian Mandiri : 4.86 Poin", "Ketua Tim": "Hespri Yomeldi, SST, M.T", "Anggota": "A.A. Ngurah Gede Wasudewa, SST, M.URP., Aditya Saputra, SST, M.URP., Agus Herryanto, SST, Ahmad Risal, S.Tr.Stat., Akmal, S.Si, Ananto Yanuar, SST, M.P.W.P, Annisa Nur Kusuma, SST, Apriliansyah, S.Tr.Stat., Asmawati, S.Si, Bahtiar, SST, M.P.W.P., Bayu Setyawan, SST, M.T., Candra, S.E, M.Ec.Dev, Catur Prihatin, A.Md, Daniel Kurnia Nugraha Sitorus, S.Tr.Stat., Eka Nurliani, A.Md., Enos Rombe, Fajrianto Manungki, SST, Fima Anggadini, SST, M.P.W, Fitra Aulia, SST, Frilia Zaskia, A.Md.Stat., Hasbiah, S.S., Henry Simanjuntak, SST, M.Si, I Made Budi Hartawan, S.Si, Imam Santoso S., A.Md., Imron Taufik J Musa, S.Si, M.Si, Ince Mariyani, S.E., M.M., Intan Fajria, S.Si, Ir. Jefrie Wahido, M.Si, Ir. Yaslin Hendrita Tansala, M.Si, Irwan Kurniawan, SST, Isna Aissatussiri Asshidiq, S.Tr.Stat., Iva Rizky Karim, S.P, M.Si., L. Vennasa Virginia Saraswati, S.E., Larasati Widyaningrum, S.Tr.Stat., Lidya Rosselindo Pelima, S.T, M.T., Luhur Partomo Hudoyo, S.Si, M.Stat, Lustiawaty Achmad, SST, MPWP, Masmah, Maya Novita Sari, S.Tr.Stat., Mayanti Meylisa Toding, SST, M.Sc, Moh Room, SE, Mohammad Syafrizal, S.Tr.Stat, Muhammad Fadhilah Akbar, S.Tr.Stat., Muhammad Saiful, Muhammad Zein, SST, M.P.W.P, Murni, S.Sos, Mustakim, Muznah, S.P, Naima, S.P, M.Si, Ni Luh Laksmi Devi, S.Tr.Stat, Nur Zahra Saharia, A.Md.Stat., Nurainun Fitriani, SST, Nurhayati, S.I.Kom, Nurlaela Badjeber, Nurul Solikha Nofiani, SST, M.Si., Reni Triani R Timumun, S.Si, Rifka, SST, Rika Ari Wulandari, S.Psi, M.AP., Riska Fitriani, S.Tr.Stat., Rudi Siswoyo, SE, M.M., Salahudin, SE, M.M., Sandy Aji Mukarromsyah, SST, Sepryati Matoory, S.P, Sukma Nirmala Dewi, S.Tr.Stat., Tuti Kadariah, S.Sos, Winansibutet, S.Si, M.P.W.P., Wiwik Natalia, SST, M.P.W.P, Yudha Subakti, S.Si."}, {"Timestamp": "2026-01-29T11:12:54.428000", "Tim Kerja": "PERENCANAAN ANGGARAN", "Proyek": "Perencanaan Anggaran", "Tujuan Organisasi": "Mewujudkan Tata Kelola Badan Pusat Statistik yang Berkualitas, Akuntabel, Efektif, dan Efisien dalam Menyelenggarakan Statistik", "Sasaran": "", "Sasaran 2": "", "Sasaran 3": "Terwujudnya Dukungan Manajemen Pada Bps Provinsi Dan Bps Kabupaten/Kota", "IKU": "Nilai SAKIP oleh Inspektorat : 77.95 Poin", "Ketua Tim": "Luhur Partomo Hudoyo, S.Si, M.Stat", "Anggota": "Ahmad Risal, S.Tr.Stat."}, {"Timestamp": "2026-01-29T11:13:16.492000", "Tim Kerja": "METODOLOGI DAN TEKNOLOGI INFORMASI (MTI)", "Proyek": "PES SE2026", "Tujuan Organisasi": "Mewujudkan Perumusan Kebijakan dan Pengambilan Keputusan Berbasis Data Statistik Berkualitas dan Insight yang Relevan", "Sasaran": "Terwujudnya Penyediaan Data Dan Insight Statistik Distribusi Yang Berkualitas", "Sasaran 2": "", "Sasaran 3": "", "IKU": "Persentase Publikasi/Laporan Statistik Distribusi Yang Berkualitas : 100 Persen", "Ketua Tim": "Hespri Yomeldi, SST, M.T", "Anggota": "A.A. Ngurah Gede Wasudewa, SST, M.URP., Bayu Setyawan, SST, M.T., Candra, S.E, M.Ec.Dev, Catur Prihatin, A.Md, Lidya Rosselindo Pelima, S.T, M.T., Mohammad Syafrizal, S.Tr.Stat, Rudi Siswoyo, SE, M.M., Sukma Nirmala Dewi, S.Tr.Stat."}, {"Timestamp": "2026-01-29T11:13:53.669000", "Tim Kerja": "PERENCANAAN ANGGARAN", "Proyek": "Monev Kinerja Anggaran", "Tujuan Organisasi": "Mewujudkan Tata Kelola Badan Pusat Statistik yang Berkualitas, Akuntabel, Efektif, dan Efisien dalam Menyelenggarakan Statistik", "Sasaran": "", "Sasaran 2": "", "Sasaran 3": "Terwujudnya Dukungan Manajemen Pada Bps Provinsi Dan Bps Kabupaten/Kota", "IKU": "Nilai SAKIP oleh Inspektorat : 77.95 Poin", "Ketua Tim": "Luhur Partomo Hudoyo, S.Si, M.Stat", "Anggota": "Ahmad Risal, S.Tr.Stat."}, {"Timestamp": "2026-01-29T11:14:06.656000", "Tim Kerja": "METODOLOGI DAN TEKNOLOGI INFORMASI (MTI)", "Proyek": "Penyiapan Press Release", "Tujuan Organisasi": "Mewujudkan Penyelenggaraan Sistem Statistik Nasional yang Andal, Efektif, dan Efisien", "Sasaran": "", "Sasaran 2": "Terwujudnya Kemudahan Akses Data Bps", "Sasaran 3": "", "IKU": "Indeks Pelayanan Publik - Penilaian Mandiri : 4.86 Poin", "Ketua Tim": "Hespri Yomeldi, SST, M.T", "Anggota": "Bayu Setyawan, SST, M.T., Candra, S.E, M.Ec.Dev, Catur Prihatin, A.Md, Mohammad Syafrizal, S.Tr.Stat"}, {"Timestamp": "2026-01-29T11:14:49.803000", "Tim Kerja": "PERENCANAAN ANGGARAN", "Proyek": "Masterplan Sarana dan Prasarana", "Tujuan Organisasi": "Mewujudkan Tata Kelola Badan Pusat Statistik yang Berkualitas, Akuntabel, Efektif, dan Efisien dalam Menyelenggarakan Statistik", "Sasaran": "", "Sasaran 2": "", "Sasaran 3": "Terwujudnya Dukungan Manajemen Pada Bps Provinsi Dan Bps Kabupaten/Kota", "IKU": "Nilai SAKIP oleh Inspektorat : 77.95 Poin", "Ketua Tim": "Luhur Partomo Hudoyo, S.Si, M.Stat", "Anggota": "Ahmad Risal, S.Tr.Stat."}, {"Timestamp": "2026-01-29T11:15:13.027000", "Tim Kerja": "DISEMINASI DAN LAYANAN STATISTIK", "Proyek": "Penyusunan Publikasi Provinsi Sulawesi Tengah Dalam Angka 2026", "Tujuan Organisasi": "Mewujudkan Penyelenggaraan Sistem Statistik Nasional yang Andal, Efektif, dan Efisien", "Sasaran": "", "Sasaran 2": "Terwujudnya Kemudahan Akses Data Bps", "Sasaran 3": "", "IKU": "Indeks Pelayanan Publik - Penilaian Mandiri : 4.86 Poin", "Ketua Tim": "Bahtiar, SST, M.P.W.P.", "Anggota": "Aditya Saputra, SST, M.URP., Agus Herryanto, SST, Ahmad Risal, S.Tr.Stat., Annisa Nur Kusuma, SST, Apriliansyah, S.Tr.Stat., Bahtiar, SST, M.P.W.P., Daniel Kurnia Nugraha Sitorus, S.Tr.Stat., Fajrianto Manungki, SST, Fitra Aulia, SST, Frilia Zaskia, A.Md.Stat., Ince Mariyani, S.E., M.M., Intan Fajria, S.Si, Isna Aissatussiri Asshidiq, S.Tr.Stat., Larasati Widyaningrum, S.Tr.Stat., Lidya Rosselindo Pelima, S.T, M.T., Maya Novita Sari, S.Tr.Stat., Mayanti Meylisa Toding, SST, M.Sc, Muhammad Zein, SST, M.P.W.P, Naima, S.P, M.Si, Ni Luh Laksmi Devi, S.Tr.Stat, Nurainun Fitriani, SST, Nurhayati, S.I.Kom, Nurul Solikha Nofiani, SST, M.Si., Reni Triani R Timumun, S.Si, Rifka, SST, Riska Fitriani, S.Tr.Stat., Rudi Siswoyo, SE, M.M., Sandy Aji Mukarromsyah, SST, Sepryati Matoory, S.P, Winansibutet, S.Si, M.P.W.P., Yudha Subakti, S.Si."}, {"Timestamp": "2026-01-29T11:15:30.884000", "Tim Kerja": "METODOLOGI DAN TEKNOLOGI INFORMASI (MTI)", "Proyek": "Pengelolaan MFD", "Tujuan Organisasi": "Mewujudkan Tata Kelola Badan Pusat Statistik yang Berkualitas, Akuntabel, Efektif, dan Efisien dalam Menyelenggarakan Statistik", "Sasaran": "", "Sasaran 2": "", "Sasaran 3": "Terwujudnya Dukungan Manajemen Pada Bps Provinsi Dan Bps Kabupaten/Kota", "IKU": "Nilai SAKIP oleh Inspektorat : 77.95 Poin", "Ketua Tim": "Hespri Yomeldi, SST, M.T", "Anggota": "Candra, S.E, M.Ec.Dev, Mohammad Syafrizal, S.Tr.Stat"}, {"Timestamp": "2026-01-29T11:16:22.255000", "Tim Kerja": "PERENCANAAN ANGGARAN", "Proyek": "Survei Harga Barang dan Jasa", "Tujuan Organisasi": "Mewujudkan Tata Kelola Badan Pusat Statistik yang Berkualitas, Akuntabel, Efektif, dan Efisien dalam Menyelenggarakan Statistik", "Sasaran": "", "Sasaran 2": "", "Sasaran 3": "Terwujudnya Dukungan Manajemen Pada Bps Provinsi Dan Bps Kabupaten/Kota", "IKU": "Nilai SAKIP oleh Inspektorat : 77.95 Poin", "Ketua Tim": "Luhur Partomo Hudoyo, S.Si, M.Stat", "Anggota": "Ahmad Risal, S.Tr.Stat."}, {"Timestamp": "2026-01-29T11:19:46.652000", "Tim Kerja": "PERENCANAAN ANGGARAN", "Proyek": "Administrasi Perencanaan Anggaran", "Tujuan Organisasi": "Mewujudkan Tata Kelola Badan Pusat Statistik yang Berkualitas, Akuntabel, Efektif, dan Efisien dalam Menyelenggarakan Statistik", "Sasaran": "", "Sasaran 2": "", "Sasaran 3": "Terwujudnya Dukungan Manajemen Pada Bps Provinsi Dan Bps Kabupaten/Kota", "IKU": "Nilai SAKIP oleh Inspektorat : 77.95 Poin", "Ketua Tim": "Luhur Partomo Hudoyo, S.Si, M.Stat", "Anggota": "Ahmad Risal, S.Tr.Stat., Nur Zahra Saharia, A.Md.Stat."}, {"Timestamp": "2026-01-29T11:26:10.022000", "Tim Kerja": "SENSUS EKONOMI", "Proyek": "Penyediaan Aspek Administrasi, Hubungan Masyarakat dan Manajemen Resiko", "Tujuan Organisasi": "Mewujudkan Perumusan Kebijakan dan Pengambilan Keputusan Berbasis Data Statistik Berkualitas dan Insight yang Relevan", "Sasaran": "Terwujudnya Penyediaan Data Dan Insight Statistik Distribusi Yang Berkualitas", "Sasaran 2": "", "Sasaran 3": "", "IKU": "Persentase Publikasi/Laporan Statistik Distribusi Yang Berkualitas : 100 Persen", "Ketua Tim": "A.A. Ngurah Gede Wasudewa, SST, M.URP.", "Anggota": "Aditya Saputra, SST, M.URP., Ahmad Risal, S.Tr.Stat., Catur Prihatin, A.Md, Imam Santoso S., A.Md., Imron Taufik J Musa, S.Si, M.Si, L. Vennasa Virginia Saraswati, S.E., Luhur Partomo Hudoyo, S.Si, M.Stat, Lustiawaty Achmad, SST, MPWP, Muhammad Fadhilah Akbar, S.Tr.Stat., Murni, S.Sos, Mustakim, Nur Zahra Saharia, A.Md.Stat., Rika Ari Wulandari, S.Psi, M.AP., Tuti Kadariah, S.Sos, Wiwik Natalia, SST, M.P.W.P"}, {"Timestamp": "2026-01-29T11:29:04.277000", "Tim Kerja": "SENSUS EKONOMI", "Proyek": "Penyediaan aspek teknis pendataan dan manajemen lapangan", "Tujuan Organisasi": "Mewujudkan Perumusan Kebijakan dan Pengambilan Keputusan Berbasis Data Statistik Berkualitas dan Insight yang Relevan", "Sasaran": "Terwujudnya Penyediaan Data Dan Insight Statistik Distribusi Yang Berkualitas", "Sasaran 2": "", "Sasaran 3": "", "IKU": "Persentase Publikasi/Laporan Statistik Distribusi Yang Berkualitas : 100 Persen", "Ketua Tim": "A.A. Ngurah Gede Wasudewa, SST, M.URP.", "Anggota": "Akmal, S.Si, Apriliansyah, S.Tr.Stat., Fajrianto Manungki, SST, Frilia Zaskia, A.Md.Stat., Henry Simanjuntak, SST, M.Si, Ir. Jefrie Wahido, M.Si, Irwan Kurniawan, SST, Iva Rizky Karim, S.P, M.Si., Muhammad Zein, SST, M.P.W.P, Naima, S.P, M.Si, Nurainun Fitriani, SST, Reni Triani R Timumun, S.Si, Sepryati Matoory, S.P, Winansibutet, S.Si, M.P.W.P."}, {"Timestamp": "2026-01-29T11:31:01.952000", "Tim Kerja": "SENSUS EKONOMI", "Proyek": "Penyediaan aspek pengolahan, teknologi informasi dan diseminasi", "Tujuan Organisasi": "Mewujudkan Perumusan Kebijakan dan Pengambilan Keputusan Berbasis Data Statistik Berkualitas dan Insight yang Relevan", "Sasaran": "Terwujudnya Penyediaan Data Dan Insight Statistik Distribusi Yang Berkualitas", "Sasaran 2": "", "Sasaran 3": "", "IKU": "Persentase Publikasi/Laporan Statistik Distribusi Yang Berkualitas : 100 Persen", "Ketua Tim": "A.A. Ngurah Gede Wasudewa, SST, M.URP.", "Anggota": "Bahtiar, SST, M.P.W.P., Bayu Setyawan, SST, M.T., Candra, S.E, M.Ec.Dev, Hespri Yomeldi, SST, M.T, Lidya Rosselindo Pelima, S.T, M.T., Mohammad Syafrizal, S.Tr.Stat, Nurhayati, S.I.Kom"}, {"Timestamp": "2026-01-29T11:32:23.600000", "Tim Kerja": "SENSUS EKONOMI", "Proyek": "Penyediaan aspek analisis dan kualitas data", "Tujuan Organisasi": "Mewujudkan Perumusan Kebijakan dan Pengambilan Keputusan Berbasis Data Statistik Berkualitas dan Insight yang Relevan", "Sasaran": "Terwujudnya Penyediaan Data Dan Insight Statistik Distribusi Yang Berkualitas", "Sasaran 2": "", "Sasaran 3": "", "IKU": "Persentase Publikasi/Laporan Statistik Distribusi Yang Berkualitas : 100 Persen", "Ketua Tim": "A.A. Ngurah Gede Wasudewa, SST, M.URP.", "Anggota": "Agus Herryanto, SST, Ananto Yanuar, SST, M.P.W.P, Fima Anggadini, SST, M.P.W, Ir. Yaslin Hendrita Tansala, M.Si, Larasati Widyaningrum, S.Tr.Stat., Yudha Subakti, S.Si."}, {"Timestamp": "2026-01-29T11:33:52.437000", "Tim Kerja": "PEMBINAAN DAN EVALUASI PENYELENGGARAAN  STATISTIK SEKTORAL", "Proyek": "Pembinaan Statistik Sektoral", "Tujuan Organisasi": "Mewujudkan Penyelenggaraan Sistem Statistik Nasional yang Andal, Efektif, dan Efisien", "Sasaran": "", "Sasaran 2": "Terwujudnya Penguatan Penyelenggaraan Pembinaan Statistik Sektoral Kementerian/Lembaga/Pemerintah Daerah", "Sasaran 3": "", "IKU": "Tingkat Penyelenggaraan Pembinaan Statistik Sektoral sesuai standar : 120 Persen", "Ketua Tim": "Bahtiar, SST, M.P.W.P.", "Anggota": "Apriliansyah, S.Tr.Stat., Bahtiar, SST, M.P.W.P., Candra, S.E, M.Ec.Dev, Fitra Aulia, SST, Ince Mariyani, S.E., M.M., Isna Aissatussiri Asshidiq, S.Tr.Stat., Larasati Widyaningrum, S.Tr.Stat., Lidya Rosselindo Pelima, S.T, M.T., Mohammad Syafrizal, S.Tr.Stat, Ni Luh Laksmi Devi, S.Tr.Stat, Nurhayati, S.I.Kom, Nurul Solikha Nofiani, SST, M.Si."}, {"Timestamp": "2026-01-29T11:37:18.460000", "Tim Kerja": "PEMBINAAN DAN EVALUASI PENYELENGGARAAN  STATISTIK SEKTORAL", "Proyek": "Evaluasi Penyelenggaraan Statistik Sektoral (EPSS)", "Tujuan Organisasi": "Mewujudkan Penyelenggaraan Sistem Statistik Nasional yang Andal, Efektif, dan Efisien", "Sasaran": "", "Sasaran 2": "Terwujudnya Penguatan Penyelenggaraan Pembinaan Statistik Sektoral Kementerian/Lembaga/Pemerintah Daerah", "Sasaran 3": "", "IKU": "Tingkat Penyelenggaraan Pembinaan Statistik Sektoral sesuai standar : 120 Persen", "Ketua Tim": "Bahtiar, SST, M.P.W.P.", "Anggota": "Apriliansyah, S.Tr.Stat., Bahtiar, SST, M.P.W.P., Candra, S.E, M.Ec.Dev, Fitra Aulia, SST, Ince Mariyani, S.E., M.M., Isna Aissatussiri Asshidiq, S.Tr.Stat., Larasati Widyaningrum, S.Tr.Stat., Lidya Rosselindo Pelima, S.T, M.T., Mohammad Syafrizal, S.Tr.Stat, Ni Luh Laksmi Devi, S.Tr.Stat, Nurhayati, S.I.Kom, Nurul Solikha Nofiani, SST, M.Si."}, {"Timestamp": "2026-01-29T11:39:38.033000", "Tim Kerja": "SENSUS EKONOMI", "Proyek": "Penyelenggaraan aktivitas Sekretariat SE 2026 (GARDA SE)", "Tujuan Organisasi": "Mewujudkan Perumusan Kebijakan dan Pengambilan Keputusan Berbasis Data Statistik Berkualitas dan Insight yang Relevan", "Sasaran": "Terwujudnya Penyediaan Data Dan Insight Statistik Distribusi Yang Berkualitas", "Sasaran 2": "", "Sasaran 3": "", "IKU": "Persentase Publikasi/Laporan Statistik Distribusi Yang Berkualitas : 100 Persen", "Ketua Tim": "A.A. Ngurah Gede Wasudewa, SST, M.URP.", "Anggota": "Aditya Saputra, SST, M.URP., Ahmad Risal, S.Tr.Stat., Apriliansyah, S.Tr.Stat., Fajrianto Manungki, SST, Frilia Zaskia, A.Md.Stat., L. Vennasa Virginia Saraswati, S.E., Larasati Widyaningrum, S.Tr.Stat., Lidya Rosselindo Pelima, S.T, M.T., Muhammad Fadhilah Akbar, S.Tr.Stat., Muhammad Zein, SST, M.P.W.P, Murni, S.Sos, Naima, S.P, M.Si, Nurainun Fitriani, SST, Nurhayati, S.I.Kom, Nurul Solikha Nofiani, SST, M.Si., Reni Triani R Timumun, S.Si, Rika Ari Wulandari, S.Psi, M.AP., Sepryati Matoory, S.P, Winansibutet, S.Si, M.P.W.P., Yudha Subakti, S.Si."}, {"Timestamp": "2026-01-29T11:44:19.198000", "Tim Kerja": "DISEMINASI DAN LAYANAN STATISTIK", "Proyek": "Pelaksanaan Survei Kebutuhan Data (SKD) 2026", "Tujuan Organisasi": "Mewujudkan Penyelenggaraan Sistem Statistik Nasional yang Andal, Efektif, dan Efisien", "Sasaran": "", "Sasaran 2": "Terwujudnya Kemudahan Akses Data Bps", "Sasaran 3": "", "IKU": "Indeks Pelayanan Publik - Penilaian Mandiri : 4.86 Poin", "Ketua Tim": "Bahtiar, SST, M.P.W.P.", "Anggota": "Apriliansyah, S.Tr.Stat., Bahtiar, SST, M.P.W.P., Ince Mariyani, S.E., M.M., Ni Luh Laksmi Devi, S.Tr.Stat, Nurhayati, S.I.Kom"}, {"Timestamp": "2026-01-29T11:50:06.953000", "Tim Kerja": "PEMBINAAN DAN EVALUASI PENYELENGGARAAN  STATISTIK SEKTORAL", "Proyek": "Metadata Statistik Sektoral", "Tujuan Organisasi": "Mewujudkan Penyelenggaraan Sistem Statistik Nasional yang Andal, Efektif, dan Efisien", "Sasaran": "", "Sasaran 2": "Terwujudnya Penguatan Penyelenggaraan Pembinaan Statistik Sektoral Kementerian/Lembaga/Pemerintah Daerah", "Sasaran 3": "", "IKU": "Tingkat Penyelenggaraan Pembinaan Statistik Sektoral sesuai standar : 120 Persen", "Ketua Tim": "Bahtiar, SST, M.P.W.P.", "Anggota": "Apriliansyah, S.Tr.Stat., Lidya Rosselindo Pelima, S.T, M.T., Ni Luh Laksmi Devi, S.Tr.Stat, Rudi Siswoyo, SE, M.M."}, {"Timestamp": "2026-01-29T11:55:44.431000", "Tim Kerja": "PEMBINAAN DAN EVALUASI PENYELENGGARAAN  STATISTIK SEKTORAL", "Proyek": "Rekomendasi Statistik", "Tujuan Organisasi": "Mewujudkan Penyelenggaraan Sistem Statistik Nasional yang Andal, Efektif, dan Efisien", "Sasaran": "", "Sasaran 2": "Terwujudnya Penguatan Penyelenggaraan Pembinaan Statistik Sektoral Kementerian/Lembaga/Pemerintah Daerah", "Sasaran 3": "", "IKU": "Tingkat Penyelenggaraan Pembinaan Statistik Sektoral sesuai standar : 120 Persen", "Ketua Tim": "Bahtiar, SST, M.P.W.P.", "Anggota": "Apriliansyah, S.Tr.Stat., Bahtiar, SST, M.P.W.P., Lidya Rosselindo Pelima, S.T, M.T., Ni Luh Laksmi Devi, S.Tr.Stat"}, {"Timestamp": "2026-01-29T12:00:47.303000", "Tim Kerja": "DISEMINASI DAN LAYANAN STATISTIK", "Proyek": "Pelayanan Prima PST", "Tujuan Organisasi": "Mewujudkan Penyelenggaraan Sistem Statistik Nasional yang Andal, Efektif, dan Efisien", "Sasaran": "", "Sasaran 2": "Terwujudnya Kemudahan Akses Data Bps", "Sasaran 3": "", "IKU": "Indeks Pelayanan Publik - Penilaian Mandiri : 4.86 Poin", "Ketua Tim": "Bahtiar, SST, M.P.W.P.", "Anggota": "Apriliansyah, S.Tr.Stat., Bahtiar, SST, M.P.W.P., Ince Mariyani, S.E., M.M., Lidya Rosselindo Pelima, S.T, M.T., Ni Luh Laksmi Devi, S.Tr.Stat, Nurhayati, S.I.Kom, Rudi Siswoyo, SE, M.M."}, {"Timestamp": "2026-01-29T12:12:12.773000", "Tim Kerja": "DISEMINASI DAN LAYANAN STATISTIK", "Proyek": "Pengelolaan Website", "Tujuan Organisasi": "Mewujudkan Penyelenggaraan Sistem Statistik Nasional yang Andal, Efektif, dan Efisien", "Sasaran": "", "Sasaran 2": "Terwujudnya Kemudahan Akses Data Bps", "Sasaran 3": "", "IKU": "Indeks Pelayanan Publik - Penilaian Mandiri : 4.86 Poin", "Ketua Tim": "Bahtiar, SST, M.P.W.P.", "Anggota": "Apriliansyah, S.Tr.Stat., Bahtiar, SST, M.P.W.P., Ince Mariyani, S.E., M.M., Ni Luh Laksmi Devi, S.Tr.Stat, Nurhayati, S.I.Kom, Nurul Solikha Nofiani, SST, M.Si., Sukma Nirmala Dewi, S.Tr.Stat."}, {"Timestamp": "2026-01-29T12:19:32.320000", "Tim Kerja": "DISEMINASI DAN LAYANAN STATISTIK", "Proyek": "Diseminasi Data", "Tujuan Organisasi": "Mewujudkan Penyelenggaraan Sistem Statistik Nasional yang Andal, Efektif, dan Efisien", "Sasaran": "", "Sasaran 2": "Terwujudnya Kemudahan Akses Data Bps", "Sasaran 3": "", "IKU": "Indeks Pelayanan Publik - Penilaian Mandiri : 4.86 Poin", "Ketua Tim": "Bahtiar, SST, M.P.W.P.", "Anggota": "Apriliansyah, S.Tr.Stat., Bahtiar, SST, M.P.W.P., Ince Mariyani, S.E., M.M., Lidya Rosselindo Pelima, S.T, M.T., Ni Luh Laksmi Devi, S.Tr.Stat, Nurhayati, S.I.Kom, Rudi Siswoyo, SE, M.M."}, {"Timestamp": "2026-01-29T12:23:59.408000", "Tim Kerja": "DISEMINASI DAN LAYANAN STATISTIK", "Proyek": "Pojok Statistik", "Tujuan Organisasi": "Mewujudkan Penyelenggaraan Sistem Statistik Nasional yang Andal, Efektif, dan Efisien", "Sasaran": "", "Sasaran 2": "Terwujudnya Kemudahan Akses Data Bps", "Sasaran 3": "", "IKU": "Persentase Kegiatan Edukasi dan Promosi Statistik yang terselenggara dengan baik : 80 Persen", "Ketua Tim": "Bahtiar, SST, M.P.W.P.", "Anggota": "Apriliansyah, S.Tr.Stat., Bahtiar, SST, M.P.W.P., Ince Mariyani, S.E., M.M., Lidya Rosselindo Pelima, S.T, M.T., Ni Luh Laksmi Devi, S.Tr.Stat, Nurhayati, S.I.Kom, Rudi Siswoyo, SE, M.M."}, {"Timestamp": "2026-01-29T12:27:15.382000", "Tim Kerja": "DISEMINASI DAN LAYANAN STATISTIK", "Proyek": "Pemantauan dan Evaluasi Kinerja Penyelenggaraan Pelayanan Publik (PEKPPP)", "Tujuan Organisasi": "Mewujudkan Penyelenggaraan Sistem Statistik Nasional yang Andal, Efektif, dan Efisien", "Sasaran": "", "Sasaran 2": "Terwujudnya Kemudahan Akses Data Bps", "Sasaran 3": "", "IKU": "Indeks Pelayanan Publik - Penilaian Mandiri : 4.86 Poin", "Ketua Tim": "Bahtiar, SST, M.P.W.P.", "Anggota": "Apriliansyah, S.Tr.Stat., Bahtiar, SST, M.P.W.P., Bayu Setyawan, SST, M.T., Candra, S.E, M.Ec.Dev, Catur Prihatin, A.Md, Hespri Yomeldi, SST, M.T, Ince Mariyani, S.E., M.M., Lidya Rosselindo Pelima, S.T, M.T., Mohammad Syafrizal, S.Tr.Stat, Ni Luh Laksmi Devi, S.Tr.Stat, Nurhayati, S.I.Kom, Rudi Siswoyo, SE, M.M."}, {"Timestamp": "2026-01-29T14:00:41.706000", "Tim Kerja": "STATISTIK HARGA", "Proyek": "Survei Harga Pedesaan", "Tujuan Organisasi": "Mewujudkan Perumusan Kebijakan dan Pengambilan Keputusan Berbasis Data Statistik Berkualitas dan Insight yang Relevan", "Sasaran": "Terwujudnya Penyediaan Data Dan Insight Statistik Harga Yang Berkualitas", "Sasaran 2": "", "Sasaran 3": "", "IKU": "", "Ketua Tim": "", "Anggota": "Apriliansyah, S.Tr.Stat., Frilia Zaskia, A.Md.Stat., Iva Rizky Karim, S.P, M.Si., Moh Room, SE"}, {"Timestamp": "2026-01-29T14:02:26.229000", "Tim Kerja": "STATISTIK HARGA", "Proyek": "Statistik Harga Konsumen", "Tujuan Organisasi": "Mewujudkan Perumusan Kebijakan dan Pengambilan Keputusan Berbasis Data Statistik Berkualitas dan Insight yang Relevan", "Sasaran": "Terwujudnya Penyediaan Data Dan Insight Statistik Harga Yang Berkualitas", "Sasaran 2": "", "Sasaran 3": "", "IKU": "Persentase Publikasi/Laporan Statistik Harga Yang Berkualitas : 100 Persen", "Ketua Tim": "Henry Simanjuntak, SST, M.Si", "Anggota": "Apriliansyah, S.Tr.Stat., Nurainun Fitriani, SST, Nurhayati, S.I.Kom"}, {"Timestamp": "2026-01-29T14:03:52.096000", "Tim Kerja": "STATISTIK HARGA", "Proyek": "Survey Harga Perdagangan Besar", "Tujuan Organisasi": "Mewujudkan Perumusan Kebijakan dan Pengambilan Keputusan Berbasis Data Statistik Berkualitas dan Insight yang Relevan", "Sasaran": "Terwujudnya Penyediaan Data Dan Insight Statistik Harga Yang Berkualitas", "Sasaran 2": "", "Sasaran 3": "", "IKU": "Persentase Publikasi/Laporan Statistik Harga Yang Berkualitas : 100 Persen", "Ketua Tim": "Henry Simanjuntak, SST, M.Si", "Anggota": "Apriliansyah, S.Tr.Stat., Frilia Zaskia, A.Md.Stat., Nurainun Fitriani, SST, Nurhayati, S.I.Kom"}, {"Timestamp": "2026-01-29T14:06:03.058000", "Tim Kerja": "STATISTIK HARGA", "Proyek": "Survei Buaya Hidup", "Tujuan Organisasi": "Mewujudkan Perumusan Kebijakan dan Pengambilan Keputusan Berbasis Data Statistik Berkualitas dan Insight yang Relevan", "Sasaran": "Terwujudnya Penyediaan Data Dan Insight Statistik Harga Yang Berkualitas", "Sasaran 2": "", "Sasaran 3": "", "IKU": "Persentase Publikasi/Laporan Statistik Harga Yang Berkualitas : 100 Persen", "Ketua Tim": "Henry Simanjuntak, SST, M.Si", "Anggota": "A.A. Ngurah Gede Wasudewa, SST, M.URP., Akmal, S.Si, Apriliansyah, S.Tr.Stat., Frilia Zaskia, A.Md.Stat., Iva Rizky Karim, S.P, M.Si., Moh Room, SE, Nurainun Fitriani, SST, Nurhayati, S.I.Kom, Reni Triani R Timumun, S.Si, Winansibutet, S.Si, M.P.W.P."}, {"Timestamp": "2026-01-29T14:50:27.593000", "Tim Kerja": "DISEMINASI DAN LAYANAN STATISTIK", "Proyek": "Edukasi dan Promosi Statistik", "Tujuan Organisasi": "Mewujudkan Penyelenggaraan Sistem Statistik Nasional yang Andal, Efektif, dan Efisien", "Sasaran": "", "Sasaran 2": "Terwujudnya Layanan Edukasi Dan Promosi Statistik Yang Prima", "Sasaran 3": "", "IKU": "Persentase Kegiatan Edukasi dan Promosi Statistik yang terselenggara dengan baik : 80 Persen", "Ketua Tim": "Bahtiar, SST, M.P.W.P.", "Anggota": "Apriliansyah, S.Tr.Stat., Bahtiar, SST, M.P.W.P., Bayu Setyawan, SST, M.T., Candra, S.E, M.Ec.Dev, Catur Prihatin, A.Md, Hespri Yomeldi, SST, M.T, Ince Mariyani, S.E., M.M., Lidya Rosselindo Pelima, S.T, M.T., Mohammad Syafrizal, S.Tr.Stat, Ni Luh Laksmi Devi, S.Tr.Stat, Nurhayati, S.I.Kom, Rudi Siswoyo, SE, M.M., Sukma Nirmala Dewi, S.Tr.Stat."}, {"Timestamp": "2026-01-29T14:56:34.472000", "Tim Kerja": "DISEMINASI DAN LAYANAN STATISTIK", "Proyek": "Audit Surveillance ISO 9001:2015", "Tujuan Organisasi": "Mewujudkan Penyelenggaraan Sistem Statistik Nasional yang Andal, Efektif, dan Efisien", "Sasaran": "", "Sasaran 2": "Terwujudnya Kemudahan Akses Data Bps", "Sasaran 3": "", "IKU": "Indeks Pelayanan Publik - Penilaian Mandiri : 4.86 Poin", "Ketua Tim": "Bahtiar, SST, M.P.W.P.", "Anggota": "Apriliansyah, S.Tr.Stat., Bahtiar, SST, M.P.W.P., Bayu Setyawan, SST, M.T., Candra, S.E, M.Ec.Dev, Catur Prihatin, A.Md, Hespri Yomeldi, SST, M.T, Ince Mariyani, S.E., M.M., Isna Aissatussiri Asshidiq, S.Tr.Stat., L. Vennasa Virginia Saraswati, S.E., Larasati Widyaningrum, S.Tr.Stat., Luhur Partomo Hudoyo, S.Si, M.Stat, Lustiawaty Achmad, SST, MPWP, Mayanti Meylisa Toding, SST, M.Sc, Mohammad Syafrizal, S.Tr.Stat, Muhammad Fadhilah Akbar, S.Tr.Stat., Muhammad Saiful, Muhammad Zein, SST, M.P.W.P, Ni Luh Laksmi Devi, S.Tr.Stat, Nurainun Fitriani, SST, Nurhayati, S.I.Kom, Nurul Solikha Nofiani, SST, M.Si., Rika Ari Wulandari, S.Psi, M.AP., Rudi Siswoyo, SE, M.M."}, {"Timestamp": "2026-01-29T15:23:41.665000", "Tim Kerja": "SSDH (STATISTIK SUMBER DAYA HAYATI)", "Proyek": "Laporan Perusahaan Kehutanan Tahunan (PBPH)", "Tujuan Organisasi": "Mewujudkan Perumusan Kebijakan dan Pengambilan Keputusan Berbasis Data Statistik Berkualitas dan Insight yang Relevan", "Sasaran": "Terwujudnya Penyediaan Data Dan Insight Statistik Peternakan, Perikanan, Dan Kehutanan Yang Berkualitas", "Sasaran 2": "", "Sasaran 3": "", "IKU": "Persentase Publikasi/Laporan Statistik Peternakan, Perikanan, Dan Kehutanan Yang Berkualitas :100 Persen", "Ketua Tim": "Ir. Yaslin Hendrita Tansala, M.Si", "Anggota": "Daniel Kurnia Nugraha Sitorus, S.Tr.Stat."}, {"Timestamp": "2026-01-29T15:28:57.453000", "Tim Kerja": "BMN dan PBJ", "Proyek": "Laporan BMN", "Tujuan Organisasi": "Mewujudkan Tata Kelola Badan Pusat Statistik yang Berkualitas, Akuntabel, Efektif, dan Efisien dalam Menyelenggarakan Statistik", "Sasaran": "", "Sasaran 2": "", "Sasaran 3": "Terwujudnya Dukungan Manajemen Pada Bps Provinsi Dan Bps Kabupaten/Kota", "IKU": "Nilai SAKIP oleh Inspektorat : 77.95 Poin", "Ketua Tim": "Wiwik Natalia, SST, M.P.W.P", "Anggota": "Muhammad Saiful"}, {"Timestamp": "2026-01-29T15:32:41.860000", "Tim Kerja": "SSDH (STATISTIK SUMBER DAYA HAYATI)", "Proyek": "Survei Perkebunan Bulanan", "Tujuan Organisasi": "Mewujudkan Perumusan Kebijakan dan Pengambilan Keputusan Berbasis Data Statistik Berkualitas dan Insight yang Relevan", "Sasaran": "Terwujudnya Penyediaan Data Dan Insight Statistik Tanaman Pangan, Hortikultura, Dan Perkebunan Yang Berkualitas", "Sasaran 2": "", "Sasaran 3": "", "IKU": "Persentase Publikasi/Laporan Statistik Tanaman Pangan, Hortikultura, Dan Perkebunan Yang Berkualitas :100 Persen", "Ketua Tim": "Ir. Yaslin Hendrita Tansala, M.Si", "Anggota": "Agus Herryanto, SST"}, {"Timestamp": "2026-01-29T15:35:46.560000", "Tim Kerja": "INDUSTRI DAN SDMK", "Proyek": "Survei IMK Triwulanan", "Tujuan Organisasi": "Mewujudkan Perumusan Kebijakan dan Pengambilan Keputusan Berbasis Data Statistik Berkualitas dan Insight yang Relevan", "Sasaran": "Terwujudnya Penyediaan Data Dan Insight Statistik Industri Yang Berkualitas", "Sasaran 2": "", "Sasaran 3": "", "IKU": "Persentase Publikasi/Laporan Statistik Industri Yang Berkualitas : 100 Persen", "Ketua Tim": "Muhammad Zein, SST, M.P.W.P", "Anggota": "Larasati Widyaningrum, S.Tr.Stat., Naima, S.P, M.Si, Nurlaela Badjeber"}, {"Timestamp": "2026-01-29T15:39:17.050000", "Tim Kerja": "SSDH (STATISTIK SUMBER DAYA HAYATI)", "Proyek": "Survei Perkebunan Tahunan", "Tujuan Organisasi": "Mewujudkan Perumusan Kebijakan dan Pengambilan Keputusan Berbasis Data Statistik Berkualitas dan Insight yang Relevan", "Sasaran": "Terwujudnya Penyediaan Data Dan Insight Statistik Tanaman Pangan, Hortikultura, Dan Perkebunan Yang Berkualitas", "Sasaran 2": "", "Sasaran 3": "", "IKU": "Persentase Publikasi/Laporan Statistik Tanaman Pangan, Hortikultura, Dan Perkebunan Yang Berkualitas :100 Persen", "Ketua Tim": "Ir. Yaslin Hendrita Tansala, M.Si", "Anggota": "Agus Herryanto, SST"}, {"Timestamp": "2026-01-29T15:39:25.868000", "Tim Kerja": "SSDH (STATISTIK SUMBER DAYA HAYATI)", "Proyek": "Pengumpulan Data Kehutanan Triwulan", "Tujuan Organisasi": "Mewujudkan Perumusan Kebijakan dan Pengambilan Keputusan Berbasis Data Statistik Berkualitas dan Insight yang Relevan", "Sasaran": "Terwujudnya Penyediaan Data Dan Insight Statistik Peternakan, Perikanan, Dan Kehutanan Yang Berkualitas", "Sasaran 2": "", "Sasaran 3": "", "IKU": "Persentase Publikasi/Laporan Statistik Peternakan, Perikanan, Dan Kehutanan Yang Berkualitas :100 Persen", "Ketua Tim": "Ir. Yaslin Hendrita Tansala, M.Si", "Anggota": "Daniel Kurnia Nugraha Sitorus, S.Tr.Stat."}, {"Timestamp": "2026-01-29T15:40:20.197000", "Tim Kerja": "SSDH (STATISTIK SUMBER DAYA HAYATI)", "Proyek": "Survey KSA Padi", "Tujuan Organisasi": "Mewujudkan Perumusan Kebijakan dan Pengambilan Keputusan Berbasis Data Statistik Berkualitas dan Insight yang Relevan", "Sasaran": "Terwujudnya Penyediaan Data Dan Insight Statistik Tanaman Pangan, Hortikultura, Dan Perkebunan Yang Berkualitas", "Sasaran 2": "", "Sasaran 3": "", "IKU": "Persentase Publikasi/Laporan Statistik Tanaman Pangan, Hortikultura, Dan Perkebunan Yang Berkualitas :100 Persen", "Ketua Tim": "Ir. Yaslin Hendrita Tansala, M.Si", "Anggota": "Agus Herryanto, SST"}, {"Timestamp": "2026-01-29T15:40:22.519000", "Tim Kerja": "SSDH (STATISTIK SUMBER DAYA HAYATI)", "Proyek": "Survei Usaha Non Rumah Tangga (NRT) Hortikultura", "Tujuan Organisasi": "Mewujudkan Perumusan Kebijakan dan Pengambilan Keputusan Berbasis Data Statistik Berkualitas dan Insight yang Relevan", "Sasaran": "Terwujudnya Penyediaan Data Dan Insight Statistik Tanaman Pangan, Hortikultura, Dan Perkebunan Yang Berkualitas", "Sasaran 2": "", "Sasaran 3": "", "IKU": "Persentase Publikasi/Laporan Statistik Tanaman Pangan, Hortikultura, Dan Perkebunan Yang Berkualitas :100 Persen", "Ketua Tim": "Ir. Yaslin Hendrita Tansala, M.Si", "Anggota": "Daniel Kurnia Nugraha Sitorus, S.Tr.Stat."}, {"Timestamp": "2026-01-29T15:41:01.375000", "Tim Kerja": "SSDH (STATISTIK SUMBER DAYA HAYATI)", "Proyek": "Data Statistik Hortikultura Bulanan", "Tujuan Organisasi": "Mewujudkan Perumusan Kebijakan dan Pengambilan Keputusan Berbasis Data Statistik Berkualitas dan Insight yang Relevan", "Sasaran": "Terwujudnya Penyediaan Data Dan Insight Statistik Tanaman Pangan, Hortikultura, Dan Perkebunan Yang Berkualitas", "Sasaran 2": "", "Sasaran 3": "", "IKU": "Persentase Publikasi/Laporan Statistik Tanaman Pangan, Hortikultura, Dan Perkebunan Yang Berkualitas :100 Persen", "Ketua Tim": "Ir. Yaslin Hendrita Tansala, M.Si", "Anggota": "Daniel Kurnia Nugraha Sitorus, S.Tr.Stat."}, {"Timestamp": "2026-01-29T15:41:22.849000", "Tim Kerja": "SSDH (STATISTIK SUMBER DAYA HAYATI)", "Proyek": "Survei KSA Jagung", "Tujuan Organisasi": "Mewujudkan Perumusan Kebijakan dan Pengambilan Keputusan Berbasis Data Statistik Berkualitas dan Insight yang Relevan", "Sasaran": "Terwujudnya Penyediaan Data Dan Insight Statistik Tanaman Pangan, Hortikultura, Dan Perkebunan Yang Berkualitas", "Sasaran 2": "", "Sasaran 3": "", "IKU": "Persentase Publikasi/Laporan Statistik Tanaman Pangan, Hortikultura, Dan Perkebunan Yang Berkualitas :100 Persen", "Ketua Tim": "Ir. Yaslin Hendrita Tansala, M.Si", "Anggota": "Agus Herryanto, SST"}, {"Timestamp": "2026-01-29T15:41:34.645000", "Tim Kerja": "SSDH (STATISTIK SUMBER DAYA HAYATI)", "Proyek": "Survei Perikanan Triwulanan", "Tujuan Organisasi": "Mewujudkan Perumusan Kebijakan dan Pengambilan Keputusan Berbasis Data Statistik Berkualitas dan Insight yang Relevan", "Sasaran": "Terwujudnya Penyediaan Data Dan Insight Statistik Peternakan, Perikanan, Dan Kehutanan Yang Berkualitas", "Sasaran 2": "", "Sasaran 3": "", "IKU": "Persentase Publikasi/Laporan Statistik Peternakan, Perikanan, Dan Kehutanan Yang Berkualitas :100 Persen", "Ketua Tim": "Ir. Yaslin Hendrita Tansala, M.Si", "Anggota": "Intan Fajria, S.Si"}, {"Timestamp": "2026-01-29T15:41:34.672000", "Tim Kerja": "SSDH (STATISTIK SUMBER DAYA HAYATI)", "Proyek": "Data Statistik Hortikultura Triwulanan", "Tujuan Organisasi": "Mewujudkan Perumusan Kebijakan dan Pengambilan Keputusan Berbasis Data Statistik Berkualitas dan Insight yang Relevan", "Sasaran": "Terwujudnya Penyediaan Data Dan Insight Statistik Tanaman Pangan, Hortikultura, Dan Perkebunan Yang Berkualitas", "Sasaran 2": "", "Sasaran 3": "", "IKU": "Persentase Publikasi/Laporan Statistik Tanaman Pangan, Hortikultura, Dan Perkebunan Yang Berkualitas :100 Persen", "Ketua Tim": "Ir. Yaslin Hendrita Tansala, M.Si", "Anggota": "Daniel Kurnia Nugraha Sitorus, S.Tr.Stat."}, {"Timestamp": "2026-01-29T15:42:15.699000", "Tim Kerja": "SSDH (STATISTIK SUMBER DAYA HAYATI)", "Proyek": "Data Indeks Produksi Hortikultura", "Tujuan Organisasi": "Mewujudkan Perumusan Kebijakan dan Pengambilan Keputusan Berbasis Data Statistik Berkualitas dan Insight yang Relevan", "Sasaran": "Terwujudnya Penyediaan Data Dan Insight Statistik Tanaman Pangan, Hortikultura, Dan Perkebunan Yang Berkualitas", "Sasaran 2": "", "Sasaran 3": "", "IKU": "Persentase Publikasi/Laporan Statistik Tanaman Pangan, Hortikultura, Dan Perkebunan Yang Berkualitas :100 Persen", "Ketua Tim": "Ir. Yaslin Hendrita Tansala, M.Si", "Anggota": "Daniel Kurnia Nugraha Sitorus, S.Tr.Stat."}, {"Timestamp": "2026-01-29T15:42:50.235000", "Tim Kerja": "SSDH (STATISTIK SUMBER DAYA HAYATI)", "Proyek": "Laporan Tahunan Perusahaan Peternakan Ternak Besar/Kecil", "Tujuan Organisasi": "Mewujudkan Perumusan Kebijakan dan Pengambilan Keputusan Berbasis Data Statistik Berkualitas dan Insight yang Relevan", "Sasaran": "Terwujudnya Penyediaan Data Dan Insight Statistik Peternakan, Perikanan, Dan Kehutanan Yang Berkualitas", "Sasaran 2": "", "Sasaran 3": "", "IKU": "Persentase Publikasi/Laporan Statistik Peternakan, Perikanan, Dan Kehutanan Yang Berkualitas :100 Persen", "Ketua Tim": "Ir. Yaslin Hendrita Tansala, M.Si", "Anggota": "Daniel Kurnia Nugraha Sitorus, S.Tr.Stat."}, {"Timestamp": "2026-01-29T15:43:19.556000", "Tim Kerja": "SSDH (STATISTIK SUMBER DAYA HAYATI)", "Proyek": "Laporan Tahunan Perusahaan Peternakan Unggas", "Tujuan Organisasi": "Mewujudkan Perumusan Kebijakan dan Pengambilan Keputusan Berbasis Data Statistik Berkualitas dan Insight yang Relevan", "Sasaran": "Terwujudnya Penyediaan Data Dan Insight Statistik Peternakan, Perikanan, Dan Kehutanan Yang Berkualitas", "Sasaran 2": "", "Sasaran 3": "", "IKU": "Persentase Publikasi/Laporan Statistik Peternakan, Perikanan, Dan Kehutanan Yang Berkualitas :100 Persen", "Ketua Tim": "Ir. Yaslin Hendrita Tansala, M.Si", "Anggota": "Daniel Kurnia Nugraha Sitorus, S.Tr.Stat."}, {"Timestamp": "2026-01-29T15:43:34.528000", "Tim Kerja": "SSDH (STATISTIK SUMBER DAYA HAYATI)", "Proyek": "Survey Statistik Tanaman Pangan Bulanan (SP Palawija)", "Tujuan Organisasi": "Mewujudkan Perumusan Kebijakan dan Pengambilan Keputusan Berbasis Data Statistik Berkualitas dan Insight yang Relevan", "Sasaran": "Terwujudnya Penyediaan Data Dan Insight Statistik Tanaman Pangan, Hortikultura, Dan Perkebunan Yang Berkualitas", "Sasaran 2": "", "Sasaran 3": "", "IKU": "Persentase Publikasi/Laporan Statistik Tanaman Pangan, Hortikultura, Dan Perkebunan Yang Berkualitas :100 Persen", "Ketua Tim": "Ir. Yaslin Hendrita Tansala, M.Si", "Anggota": "Agus Herryanto, SST"}, {"Timestamp": "2026-01-29T15:43:53.321000", "Tim Kerja": "SSDH (STATISTIK SUMBER DAYA HAYATI)", "Proyek": "Laporan Pemotongan Ternak Bulanan", "Tujuan Organisasi": "Mewujudkan Perumusan Kebijakan dan Pengambilan Keputusan Berbasis Data Statistik Berkualitas dan Insight yang Relevan", "Sasaran": "Terwujudnya Penyediaan Data Dan Insight Statistik Peternakan, Perikanan, Dan Kehutanan Yang Berkualitas", "Sasaran 2": "", "Sasaran 3": "", "IKU": "Persentase Publikasi/Laporan Statistik Peternakan, Perikanan, Dan Kehutanan Yang Berkualitas :100 Persen", "Ketua Tim": "Ir. Yaslin Hendrita Tansala, M.Si", "Anggota": "Daniel Kurnia Nugraha Sitorus, S.Tr.Stat."}, {"Timestamp": "2026-01-29T15:44:20.793000", "Tim Kerja": "SSDH (STATISTIK SUMBER DAYA HAYATI)", "Proyek": "Laporan Tahunan Budiyaya Ikan (LTB)", "Tujuan Organisasi": "Mewujudkan Perumusan Kebijakan dan Pengambilan Keputusan Berbasis Data Statistik Berkualitas dan Insight yang Relevan", "Sasaran": "Terwujudnya Penyediaan Data Dan Insight Statistik Peternakan, Perikanan, Dan Kehutanan Yang Berkualitas", "Sasaran 2": "", "Sasaran 3": "", "IKU": "Persentase Publikasi/Laporan Statistik Peternakan, Perikanan, Dan Kehutanan Yang Berkualitas :100 Persen", "Ketua Tim": "Ir. Yaslin Hendrita Tansala, M.Si", "Anggota": "Intan Fajria, S.Si"}, {"Timestamp": "2026-01-29T15:45:28.065000", "Tim Kerja": "SSDH (STATISTIK SUMBER DAYA HAYATI)", "Proyek": "Penyusunan Publikasi Statistik Pertanian (Publikasi dan BRS)", "Tujuan Organisasi": "Mewujudkan Perumusan Kebijakan dan Pengambilan Keputusan Berbasis Data Statistik Berkualitas dan Insight yang Relevan", "Sasaran": "Terwujudnya Penyediaan Data Dan Insight Statistik Tanaman Pangan, Hortikultura, Dan Perkebunan Yang Berkualitas", "Sasaran 2": "", "Sasaran 3": "", "IKU": "Persentase Publikasi/Laporan Statistik Tanaman Pangan, Hortikultura, Dan Perkebunan Yang Berkualitas :100 Persen", "Ketua Tim": "Ir. Yaslin Hendrita Tansala, M.Si", "Anggota": "Agus Herryanto, SST, Daniel Kurnia Nugraha Sitorus, S.Tr.Stat., Intan Fajria, S.Si"}, {"Timestamp": "2026-01-29T15:47:55.732000", "Tim Kerja": "SSDH (STATISTIK SUMBER DAYA HAYATI)", "Proyek": "Survey Statistik Tanaman Pangan Tahunan (SP Lahan, Alsintan, Benih)", "Tujuan Organisasi": "Mewujudkan Perumusan Kebijakan dan Pengambilan Keputusan Berbasis Data Statistik Berkualitas dan Insight yang Relevan", "Sasaran": "Terwujudnya Penyediaan Data Dan Insight Statistik Tanaman Pangan, Hortikultura, Dan Perkebunan Yang Berkualitas", "Sasaran 2": "", "Sasaran 3": "", "IKU": "Persentase Publikasi/Laporan Statistik Tanaman Pangan, Hortikultura, Dan Perkebunan Yang Berkualitas :100 Persen", "Ketua Tim": "Ir. Yaslin Hendrita Tansala, M.Si", "Anggota": "Agus Herryanto, SST"}, {"Timestamp": "2026-01-29T15:49:11.671000", "Tim Kerja": "INDUSTRI DAN SDMK", "Proyek": "Survei IMK Tahunan 2025", "Tujuan Organisasi": "Mewujudkan Perumusan Kebijakan dan Pengambilan Keputusan Berbasis Data Statistik Berkualitas dan Insight yang Relevan", "Sasaran": "Terwujudnya Penyediaan Data Dan Insight Statistik Industri Yang Berkualitas", "Sasaran 2": "", "Sasaran 3": "", "IKU": "Persentase Publikasi/Laporan Statistik Industri Yang Berkualitas : 100 Persen", "Ketua Tim": "Muhammad Zein, SST, M.P.W.P", "Anggota": "Larasati Widyaningrum, S.Tr.Stat., Muhammad Zein, SST, M.P.W.P"}, {"Timestamp": "2026-01-29T15:52:50.619000", "Tim Kerja": "INDUSTRI DAN SDMK", "Proyek": "Survei Konstruksi Tahunan", "Tujuan Organisasi": "Mewujudkan Perumusan Kebijakan dan Pengambilan Keputusan Berbasis Data Statistik Berkualitas dan Insight yang Relevan", "Sasaran": "Terwujudnya Penyediaan Data Dan Insight Statistik Industri Yang Berkualitas", "Sasaran 2": "", "Sasaran 3": "", "IKU": "Persentase Publikasi/Laporan Statistik Industri Yang Berkualitas : 80 Persen", "Ketua Tim": "Muhammad Zein, SST, M.P.W.P", "Anggota": "Larasati Widyaningrum, S.Tr.Stat., Naima, S.P, M.Si, Nurlaela Badjeber"}, {"Timestamp": "2026-01-29T15:54:10.589000", "Tim Kerja": "INDUSTRI DAN SDMK", "Proyek": "Survei Galian Berbadan Hukum (Galian-BH) Triwulanan", "Tujuan Organisasi": "Mewujudkan Perumusan Kebijakan dan Pengambilan Keputusan Berbasis Data Statistik Berkualitas dan Insight yang Relevan", "Sasaran": "Terwujudnya Penyediaan Data Dan Insight Statistik Industri Yang Berkualitas", "Sasaran 2": "", "Sasaran 3": "", "IKU": "Persentase Publikasi/Laporan Statistik Industri Yang Berkualitas : 80 Persen", "Ketua Tim": "Muhammad Zein, SST, M.P.W.P", "Anggota": "Larasati Widyaningrum, S.Tr.Stat., Naima, S.P, M.Si, Nurlaela Badjeber"}, {"Timestamp": "2026-01-29T15:54:50.332000", "Tim Kerja": "BMN dan PBJ", "Proyek": "Asuransi BMN", "Tujuan Organisasi": "Mewujudkan Tata Kelola Badan Pusat Statistik yang Berkualitas, Akuntabel, Efektif, dan Efisien dalam Menyelenggarakan Statistik", "Sasaran": "", "Sasaran 2": "", "Sasaran 3": "Terwujudnya Dukungan Manajemen Pada Bps Provinsi Dan Bps Kabupaten/Kota", "IKU": "Nilai SAKIP oleh Inspektorat : 77.95 Poin", "Ketua Tim": "Wiwik Natalia, SST, M.P.W.P", "Anggota": "Mohammad Rifki Abdul Razak A.Md.Stat., Muhammad Saiful"}, {"Timestamp": "2026-01-29T15:55:12.460000", "Tim Kerja": "INDUSTRI DAN SDMK", "Proyek": "Survei Air Bersih Triwulanan", "Tujuan Organisasi": "Mewujudkan Perumusan Kebijakan dan Pengambilan Keputusan Berbasis Data Statistik Berkualitas dan Insight yang Relevan", "Sasaran": "Terwujudnya Penyediaan Data Dan Insight Statistik Industri Yang Berkualitas", "Sasaran 2": "", "Sasaran 3": "", "IKU": "Persentase Publikasi/Laporan Statistik Industri Yang Berkualitas : 100 Persen", "Ketua Tim": "Muhammad Zein, SST, M.P.W.P", "Anggota": "Larasati Widyaningrum, S.Tr.Stat., Naima, S.P, M.Si, Nurlaela Badjeber"}, {"Timestamp": "2026-01-29T15:55:32.889000", "Tim Kerja": "BMN dan PBJ", "Proyek": "Rencana kebutuhan BMN", "Tujuan Organisasi": "Mewujudkan Tata Kelola Badan Pusat Statistik yang Berkualitas, Akuntabel, Efektif, dan Efisien dalam Menyelenggarakan Statistik", "Sasaran": "", "Sasaran 2": "", "Sasaran 3": "Terwujudnya Dukungan Manajemen Pada Bps Provinsi Dan Bps Kabupaten/Kota", "IKU": "Nilai SAKIP oleh Inspektorat : 77.95 Poin", "Ketua Tim": "Wiwik Natalia, SST, M.P.W.P", "Anggota": "Mohammad Rifki Abdul Razak A.Md.Stat., Muhammad Saiful"}, {"Timestamp": "2026-01-29T15:56:08.932000", "Tim Kerja": "BMN dan PBJ", "Proyek": "Monitoring Tindak Lanjut atas Laporan Hasil Pemeriksaan APIP/BPK", "Tujuan Organisasi": "Mewujudkan Tata Kelola Badan Pusat Statistik yang Berkualitas, Akuntabel, Efektif, dan Efisien dalam Menyelenggarakan Statistik", "Sasaran": "", "Sasaran 2": "", "Sasaran 3": "Terwujudnya Dukungan Manajemen Pada Bps Provinsi Dan Bps Kabupaten/Kota", "IKU": "Nilai SAKIP oleh Inspektorat : 77.95 Poin", "Ketua Tim": "Wiwik Natalia, SST, M.P.W.P", "Anggota": "Mohammad Rifki Abdul Razak A.Md.Stat., Muhammad Saiful"}, {"Timestamp": "2026-01-29T15:57:01.336000", "Tim Kerja": "INDUSTRI DAN SDMK", "Proyek": "Survei Konstruksi Triwulanan ", "Tujuan Organisasi": "Mewujudkan Perumusan Kebijakan dan Pengambilan Keputusan Berbasis Data Statistik Berkualitas dan Insight yang Relevan", "Sasaran": "Terwujudnya Penyediaan Data Dan Insight Statistik Industri Yang Berkualitas", "Sasaran 2": "", "Sasaran 3": "", "IKU": "Persentase Publikasi/Laporan Statistik Industri Yang Berkualitas : 100 Persen", "Ketua Tim": "Muhammad Zein, SST, M.P.W.P", "Anggota": "Larasati Widyaningrum, S.Tr.Stat., Naima, S.P, M.Si, Nurlaela Badjeber"}, {"Timestamp": "2026-01-29T15:57:36.023000", "Tim Kerja": "BMN dan PBJ", "Proyek": "Penyelesaian Penetapan Status Penggunaan Barang Milik Negara", "Tujuan Organisasi": "Mewujudkan Tata Kelola Badan Pusat Statistik yang Berkualitas, Akuntabel, Efektif, dan Efisien dalam Menyelenggarakan Statistik", "Sasaran": "", "Sasaran 2": "", "Sasaran 3": "Terwujudnya Dukungan Manajemen Pada Bps Provinsi Dan Bps Kabupaten/Kota", "IKU": "Nilai SAKIP oleh Inspektorat : 77.95 Poin", "Ketua Tim": "Wiwik Natalia, SST, M.P.W.P", "Anggota": "Mohammad Rifki Abdul Razak A.Md.Stat., Muhammad Saiful"}, {"Timestamp": "2026-01-29T15:57:39.589000", "Tim Kerja": "INDUSTRI DAN SDMK", "Proyek": "Laporan Tahunan Pertambangan dan Energi (PE)", "Tujuan Organisasi": "Mewujudkan Perumusan Kebijakan dan Pengambilan Keputusan Berbasis Data Statistik Berkualitas dan Insight yang Relevan", "Sasaran": "Terwujudnya Penyediaan Data Dan Insight Statistik Industri Yang Berkualitas", "Sasaran 2": "", "Sasaran 3": "", "IKU": "Persentase Publikasi/Laporan Statistik Industri Yang Berkualitas : 100 Persen", "Ketua Tim": "Muhammad Zein, SST, M.P.W.P", "Anggota": "Larasati Widyaningrum, S.Tr.Stat., Naima, S.P, M.Si, Nurlaela Badjeber"}, {"Timestamp": "2026-01-29T15:58:28.814000", "Tim Kerja": "BMN dan PBJ", "Proyek": "Laporan Pengawasan dan Pengendalian BMN", "Tujuan Organisasi": "Mewujudkan Tata Kelola Badan Pusat Statistik yang Berkualitas, Akuntabel, Efektif, dan Efisien dalam Menyelenggarakan Statistik", "Sasaran": "", "Sasaran 2": "", "Sasaran 3": "Terwujudnya Dukungan Manajemen Pada Bps Provinsi Dan Bps Kabupaten/Kota", "IKU": "Nilai SAKIP oleh Inspektorat : 77.95 Poin", "Ketua Tim": "Wiwik Natalia, SST, M.P.W.P", "Anggota": "Mohammad Rifki Abdul Razak A.Md.Stat., Muhammad Saiful, Nur Zahra Saharia, A.Md.Stat."}, {"Timestamp": "2026-01-29T15:58:31.296000", "Tim Kerja": "INDUSTRI DAN SDMK", "Proyek": "Publikasi Statistik Air Bersih", "Tujuan Organisasi": "Mewujudkan Perumusan Kebijakan dan Pengambilan Keputusan Berbasis Data Statistik Berkualitas dan Insight yang Relevan", "Sasaran": "Terwujudnya Penyediaan Data Dan Insight Statistik Industri Yang Berkualitas", "Sasaran 2": "", "Sasaran 3": "", "IKU": "Persentase Publikasi/Laporan Statistik Industri Yang Berkualitas : 100 Persen", "Ketua Tim": "Muhammad Zein, SST, M.P.W.P", "Anggota": "Larasati Widyaningrum, S.Tr.Stat., Naima, S.P, M.Si, Nurlaela Badjeber"}, {"Timestamp": "2026-01-29T15:59:05.840000", "Tim Kerja": "BMN dan PBJ", "Proyek": "Pengelolaan rumah negara", "Tujuan Organisasi": "Mewujudkan Tata Kelola Badan Pusat Statistik yang Berkualitas, Akuntabel, Efektif, dan Efisien dalam Menyelenggarakan Statistik", "Sasaran": "", "Sasaran 2": "", "Sasaran 3": "Terwujudnya Dukungan Manajemen Pada Bps Provinsi Dan Bps Kabupaten/Kota", "IKU": "Nilai SAKIP oleh Inspektorat : 77.95 Poin", "Ketua Tim": "Wiwik Natalia, SST, M.P.W.P", "Anggota": "Mohammad Rifki Abdul Razak A.Md.Stat., Muhammad Saiful, Nur Zahra Saharia, A.Md.Stat."}, {"Timestamp": "2026-01-29T15:59:18.809000", "Tim Kerja": "INDUSTRI DAN SDMK", "Proyek": "Laporan Tahunan Konstruksi", "Tujuan Organisasi": "Mewujudkan Perumusan Kebijakan dan Pengambilan Keputusan Berbasis Data Statistik Berkualitas dan Insight yang Relevan", "Sasaran": "Terwujudnya Penyediaan Data Dan Insight Statistik Industri Yang Berkualitas", "Sasaran 2": "", "Sasaran 3": "", "IKU": "Persentase Publikasi/Laporan Statistik Industri Yang Berkualitas : 100 Persen", "Ketua Tim": "Muhammad Zein, SST, M.P.W.P", "Anggota": "Larasati Widyaningrum, S.Tr.Stat., Naima, S.P, M.Si, Nurlaela Badjeber"}, {"Timestamp": "2026-01-29T15:59:45.340000", "Tim Kerja": "BMN dan PBJ", "Proyek": "Pengelolaan Tanah Negara", "Tujuan Organisasi": "Mewujudkan Tata Kelola Badan Pusat Statistik yang Berkualitas, Akuntabel, Efektif, dan Efisien dalam Menyelenggarakan Statistik", "Sasaran": "", "Sasaran 2": "", "Sasaran 3": "Terwujudnya Dukungan Manajemen Pada Bps Provinsi Dan Bps Kabupaten/Kota", "IKU": "Nilai SAKIP oleh Inspektorat : 77.95 Poin", "Ketua Tim": "Wiwik Natalia, SST, M.P.W.P", "Anggota": "Mohammad Rifki Abdul Razak A.Md.Stat., Muhammad Saiful"}, {"Timestamp": "2026-01-29T16:00:03.455000", "Tim Kerja": "INDUSTRI DAN SDMK", "Proyek": "Publikasi Direktori Perusahaan Konstruksi", "Tujuan Organisasi": "Mewujudkan Perumusan Kebijakan dan Pengambilan Keputusan Berbasis Data Statistik Berkualitas dan Insight yang Relevan", "Sasaran": "Terwujudnya Penyediaan Data Dan Insight Statistik Industri Yang Berkualitas", "Sasaran 2": "", "Sasaran 3": "", "IKU": "Persentase Publikasi/Laporan Statistik Industri Yang Berkualitas : 100 Persen", "Ketua Tim": "Muhammad Zein, SST, M.P.W.P", "Anggota": "Larasati Widyaningrum, S.Tr.Stat., Naima, S.P, M.Si, Nurlaela Badjeber"}, {"Timestamp": "2026-01-29T16:00:09.171000", "Tim Kerja": "SSDH (STATISTIK SUMBER DAYA HAYATI)", "Proyek": "Survei Pertanian Tanaman Pangan (Ubinan)", "Tujuan Organisasi": "Mewujudkan Perumusan Kebijakan dan Pengambilan Keputusan Berbasis Data Statistik Berkualitas dan Insight yang Relevan", "Sasaran": "Terwujudnya Penyediaan Data Dan Insight Statistik Tanaman Pangan, Hortikultura, Dan Perkebunan Yang Berkualitas", "Sasaran 2": "", "Sasaran 3": "", "IKU": "Persentase Publikasi/Laporan Statistik Tanaman Pangan, Hortikultura, Dan Perkebunan Yang Berkualitas :100 Persen", "Ketua Tim": "Ir. Yaslin Hendrita Tansala, M.Si", "Anggota": "Intan Fajria, S.Si"}, {"Timestamp": "2026-01-29T16:03:32.098000", "Tim Kerja": "INDUSTRI DAN SDMK", "Proyek": "Survei Captive Power", "Tujuan Organisasi": "Mewujudkan Perumusan Kebijakan dan Pengambilan Keputusan Berbasis Data Statistik Berkualitas dan Insight yang Relevan", "Sasaran": "Terwujudnya Penyediaan Data Dan Insight Statistik Industri Yang Berkualitas", "Sasaran 2": "", "Sasaran 3": "", "IKU": "Persentase Publikasi/Laporan Statistik Industri Yang Berkualitas : 100 Persen", "Ketua Tim": "Muhammad Zein, SST, M.P.W.P", "Anggota": "Larasati Widyaningrum, S.Tr.Stat., Naima, S.P, M.Si, Nurlaela Badjeber"}, {"Timestamp": "2026-01-29T16:04:54.456000", "Tim Kerja": "INDUSTRI DAN SDMK", "Proyek": "Survei Non Migas ", "Tujuan Organisasi": "Mewujudkan Perumusan Kebijakan dan Pengambilan Keputusan Berbasis Data Statistik Berkualitas dan Insight yang Relevan", "Sasaran": "Terwujudnya Penyediaan Data Dan Insight Statistik Industri Yang Berkualitas", "Sasaran 2": "", "Sasaran 3": "", "IKU": "Persentase Publikasi/Laporan Statistik Industri Yang Berkualitas : 100 Persen", "Ketua Tim": "Muhammad Zein, SST, M.P.W.P", "Anggota": "Larasati Widyaningrum, S.Tr.Stat., Naima, S.P, M.Si, Nurlaela Badjeber"}, {"Timestamp": "2026-01-29T16:06:49.594000", "Tim Kerja": "INDUSTRI DAN SDMK", "Proyek": "Survei Galian Berbadan Hukum Tahunan", "Tujuan Organisasi": "Mewujudkan Perumusan Kebijakan dan Pengambilan Keputusan Berbasis Data Statistik Berkualitas dan Insight yang Relevan", "Sasaran": "Terwujudnya Penyediaan Data Dan Insight Statistik Industri Yang Berkualitas", "Sasaran 2": "", "Sasaran 3": "", "IKU": "Persentase Publikasi/Laporan Statistik Industri Yang Berkualitas : 100 Persen", "Ketua Tim": "Muhammad Zein, SST, M.P.W.P", "Anggota": "Larasati Widyaningrum, S.Tr.Stat., Naima, S.P, M.Si, Nurlaela Badjeber"}, {"Timestamp": "2026-01-29T16:07:06.246000", "Tim Kerja": "INDUSTRI DAN SDMK", "Proyek": "Updating Perusahaan Pertambangan dan Energi", "Tujuan Organisasi": "Mewujudkan Perumusan Kebijakan dan Pengambilan Keputusan Berbasis Data Statistik Berkualitas dan Insight yang Relevan", "Sasaran": "Terwujudnya Penyediaan Data Dan Insight Statistik Industri Yang Berkualitas", "Sasaran 2": "", "Sasaran 3": "", "IKU": "Persentase Publikasi/Laporan Statistik Industri Yang Berkualitas : 100 Persen", "Ketua Tim": "Muhammad Zein, SST, M.P.W.P", "Anggota": "Larasati Widyaningrum, S.Tr.Stat., Naima, S.P, M.Si, Nurlaela Badjeber"}, {"Timestamp": "2026-01-29T16:07:55.206000", "Tim Kerja": "INDUSTRI DAN SDMK", "Proyek": "Pengutipan Perusahaan Pertambangan dan Energi", "Tujuan Organisasi": "Mewujudkan Perumusan Kebijakan dan Pengambilan Keputusan Berbasis Data Statistik Berkualitas dan Insight yang Relevan", "Sasaran": "Terwujudnya Penyediaan Data Dan Insight Statistik Industri Yang Berkualitas", "Sasaran 2": "", "Sasaran 3": "", "IKU": "Persentase Publikasi/Laporan Statistik Industri Yang Berkualitas : 100 Persen", "Ketua Tim": "Muhammad Zein, SST, M.P.W.P", "Anggota": "Larasati Widyaningrum, S.Tr.Stat., Naima, S.P, M.Si, Nurlaela Badjeber"}, {"Timestamp": "2026-01-29T16:08:31.275000", "Tim Kerja": "INDUSTRI DAN SDMK", "Proyek": "Survei Galian URT", "Tujuan Organisasi": "Mewujudkan Perumusan Kebijakan dan Pengambilan Keputusan Berbasis Data Statistik Berkualitas dan Insight yang Relevan", "Sasaran": "Terwujudnya Penyediaan Data Dan Insight Statistik Industri Yang Berkualitas", "Sasaran 2": "", "Sasaran 3": "", "IKU": "Persentase Publikasi/Laporan Statistik Industri Yang Berkualitas : 100 Persen", "Ketua Tim": "Muhammad Zein, SST, M.P.W.P", "Anggota": "Larasati Widyaningrum, S.Tr.Stat., Naima, S.P, M.Si, Nurlaela Badjeber"}, {"Timestamp": "2026-01-29T16:09:48.649000", "Tim Kerja": "INDUSTRI DAN SDMK", "Proyek": "Survei Air Bersih Tahunan", "Tujuan Organisasi": "Mewujudkan Perumusan Kebijakan dan Pengambilan Keputusan Berbasis Data Statistik Berkualitas dan Insight yang Relevan", "Sasaran": "Terwujudnya Penyediaan Data Dan Insight Statistik Industri Yang Berkualitas", "Sasaran 2": "", "Sasaran 3": "", "IKU": "Persentase Publikasi/Laporan Statistik Industri Yang Berkualitas : 100 Persen", "Ketua Tim": "Muhammad Zein, SST, M.P.W.P", "Anggota": "Larasati Widyaningrum, S.Tr.Stat., Naima, S.P, M.Si, Nurlaela Badjeber"}, {"Timestamp": "2026-01-29T16:11:07.742000", "Tim Kerja": "INDUSTRI DAN SDMK", "Proyek": "Survei Listrik Tahunan", "Tujuan Organisasi": "Mewujudkan Perumusan Kebijakan dan Pengambilan Keputusan Berbasis Data Statistik Berkualitas dan Insight yang Relevan", "Sasaran": "Terwujudnya Penyediaan Data Dan Insight Statistik Industri Yang Berkualitas", "Sasaran 2": "", "Sasaran 3": "", "IKU": "Persentase Publikasi/Laporan Statistik Industri Yang Berkualitas : 100 Persen", "Ketua Tim": "Muhammad Zein, SST, M.P.W.P", "Anggota": "Larasati Widyaningrum, S.Tr.Stat., Naima, S.P, M.Si, Nurlaela Badjeber"}, {"Timestamp": "2026-01-29T16:19:19.293000", "Tim Kerja": "INDUSTRI DAN SDMK", "Proyek": "Updating Perusahaan Konstruksi Tahunan", "Tujuan Organisasi": "Mewujudkan Perumusan Kebijakan dan Pengambilan Keputusan Berbasis Data Statistik Berkualitas dan Insight yang Relevan", "Sasaran": "Terwujudnya Penyediaan Data Dan Insight Statistik Industri Yang Berkualitas", "Sasaran 2": "", "Sasaran 3": "", "IKU": "Persentase Publikasi/Laporan Statistik Industri Yang Berkualitas : 100 Persen", "Ketua Tim": "Muhammad Zein, SST, M.P.W.P", "Anggota": "Larasati Widyaningrum, S.Tr.Stat., Naima, S.P, M.Si, Nurlaela Badjeber"}, {"Timestamp": "2026-01-29T16:19:30.894000", "Tim Kerja": "SSDH (STATISTIK SUMBER DAYA HAYATI)", "Proyek": "Survei Indeks Produksi Perkebunan", "Tujuan Organisasi": "Mewujudkan Perumusan Kebijakan dan Pengambilan Keputusan Berbasis Data Statistik Berkualitas dan Insight yang Relevan", "Sasaran": "Terwujudnya Penyediaan Data Dan Insight Statistik Tanaman Pangan, Hortikultura, Dan Perkebunan Yang Berkualitas", "Sasaran 2": "", "Sasaran 3": "", "IKU": "Persentase Publikasi/Laporan Statistik Tanaman Pangan, Hortikultura, Dan Perkebunan Yang Berkualitas :100 Persen", "Ketua Tim": "Ir. Yaslin Hendrita Tansala, M.Si", "Anggota": "Agus Herryanto, SST"}, {"Timestamp": "2026-01-29T16:20:02.332000", "Tim Kerja": "INDUSTRI DAN SDMK", "Proyek": "Survei IBS Triwulanan", "Tujuan Organisasi": "Mewujudkan Perumusan Kebijakan dan Pengambilan Keputusan Berbasis Data Statistik Berkualitas dan Insight yang Relevan", "Sasaran": "Terwujudnya Penyediaan Data Dan Insight Statistik Industri Yang Berkualitas", "Sasaran 2": "", "Sasaran 3": "", "IKU": "Persentase Publikasi/Laporan Statistik Industri Yang Berkualitas : 100 Persen", "Ketua Tim": "Muhammad Zein, SST, M.P.W.P", "Anggota": "Nurlaela Badjeber"}, {"Timestamp": "2026-01-29T16:32:02.352000", "Tim Kerja": "INDUSTRI DAN SDMK", "Proyek": "Survei IBS Tahunan", "Tujuan Organisasi": "Mewujudkan Perumusan Kebijakan dan Pengambilan Keputusan Berbasis Data Statistik Berkualitas dan Insight yang Relevan", "Sasaran": "Terwujudnya Penyediaan Data Dan Insight Statistik Industri Yang Berkualitas", "Sasaran 2": "", "Sasaran 3": "", "IKU": "Persentase Publikasi/Laporan Statistik Industri Yang Berkualitas : 100 Persen", "Ketua Tim": "Muhammad Zein, SST, M.P.W.P", "Anggota": "Larasati Widyaningrum, S.Tr.Stat., Nurlaela Badjeber"}, {"Timestamp": "2026-01-29T16:33:37.892000", "Tim Kerja": "INDUSTRI DAN SDMK", "Proyek": "Pemutakhiran Direktori Perusahaan Awal (DPA)", "Tujuan Organisasi": "Mewujudkan Perumusan Kebijakan dan Pengambilan Keputusan Berbasis Data Statistik Berkualitas dan Insight yang Relevan", "Sasaran": "Terwujudnya Penyediaan Data Dan Insight Statistik Industri Yang Berkualitas", "Sasaran 2": "", "Sasaran 3": "", "IKU": "Persentase Publikasi/Laporan Statistik Industri Yang Berkualitas : 100 Persen", "Ketua Tim": "Muhammad Zein, SST, M.P.W.P", "Anggota": "Nurlaela Badjeber"}, {"Timestamp": "2026-01-29T16:46:46.965000", "Tim Kerja": "UMUM", "Proyek": "Pengembangan Kompetensi SDM yang Optimal", "Tujuan Organisasi": "Mewujudkan Tata Kelola Badan Pusat Statistik yang Berkualitas, Akuntabel, Efektif, dan Efisien dalam Menyelenggarakan Statistik", "Sasaran": "", "Sasaran 2": "", "Sasaran 3": "Terwujudnya Dukungan Manajemen Pada Bps Provinsi Dan Bps Kabupaten/Kota", "IKU": "Nilai SAKIP oleh Inspektorat : 77.95 Poin", "Ketua Tim": "Imron Taufik J Musa, S.Si, M.Si", "Anggota": "Asmawati, S.Si, Catur Prihatin, A.Md, Enos Rombe, Muhammad Fadhilah Akbar, S.Tr.Stat., Mustakim, Rika Ari Wulandari, S.Psi, M.AP., Salahudin, SE, M.M., Tuti Kadariah, S.Sos"}, {"Timestamp": "2026-01-29T16:49:42.185000", "Tim Kerja": "UMUM", "Proyek": "Monitoring Pengelolaan BMN sesuai SOP", "Tujuan Organisasi": "Mewujudkan Tata Kelola Badan Pusat Statistik yang Berkualitas, Akuntabel, Efektif, dan Efisien dalam Menyelenggarakan Statistik", "Sasaran": "", "Sasaran 2": "", "Sasaran 3": "Terwujudnya Dukungan Manajemen Pada Bps Provinsi Dan Bps Kabupaten/Kota", "IKU": "Nilai SAKIP oleh Inspektorat : 77.95 Poin", "Ketua Tim": "", "Anggota": "Catur Prihatin, A.Md, Enos Rombe, Mohammad Rifki Abdul Razak A.Md.Stat., Muhammad Saiful, Mustakim, Tuti Kadariah, S.Sos"}, {"Timestamp": "2026-01-29T16:53:51.821000", "Tim Kerja": "UMUM", "Proyek": "Pengelolaan Perlengkapan dan Rumah Tangga Kantor yang baik", "Tujuan Organisasi": "Mewujudkan Tata Kelola Badan Pusat Statistik yang Berkualitas, Akuntabel, Efektif, dan Efisien dalam Menyelenggarakan Statistik", "Sasaran": "", "Sasaran 2": "", "Sasaran 3": "Terwujudnya Dukungan Manajemen Pada Bps Provinsi Dan Bps Kabupaten/Kota", "IKU": "Nilai SAKIP oleh Inspektorat : 77.95 Poin", "Ketua Tim": "Imron Taufik J Musa, S.Si, M.Si", "Anggota": "Catur Prihatin, A.Md, Enos Rombe, Mustakim"}, {"Timestamp": "2026-01-29T16:56:25.880000", "Tim Kerja": "UMUM", "Proyek": "Pengelolaan SDM yang Optimal", "Tujuan Organisasi": "Mewujudkan Tata Kelola Badan Pusat Statistik yang Berkualitas, Akuntabel, Efektif, dan Efisien dalam Menyelenggarakan Statistik", "Sasaran": "", "Sasaran 2": "", "Sasaran 3": "Peningkatan Pembangunan Zona Integritas", "IKU": "Tingkat Keberhasilan Pembangunan Zona Integritas : 100 Persen", "Ketua Tim": "Imron Taufik J Musa, S.Si, M.Si", "Anggota": "Asmawati, S.Si, Muhammad Fadhilah Akbar, S.Tr.Stat., Rika Ari Wulandari, S.Psi, M.AP., Salahudin, SE, M.M."}, {"Timestamp": "2026-01-29T16:59:47.702000", "Tim Kerja": "UMUM", "Proyek": "Kegiatan BPS dan Sosialisasi yang terselenggara dengan baik dan tepat waktu", "Tujuan Organisasi": "Mewujudkan Tata Kelola Badan Pusat Statistik yang Berkualitas, Akuntabel, Efektif, dan Efisien dalam Menyelenggarakan Statistik", "Sasaran": "", "Sasaran 2": "", "Sasaran 3": "Peningkatan Pembangunan Zona Integritas", "IKU": "Tingkat Keberhasilan Pembangunan Zona Integritas : 100 Persen", "Ketua Tim": "Imron Taufik J Musa, S.Si, M.Si", "Anggota": "Asmawati, S.Si, Catur Prihatin, A.Md, Muhammad Fadhilah Akbar, S.Tr.Stat., Muhammad Saiful, Mustakim, Rika Ari Wulandari, S.Psi, M.AP., Salahudin, SE, M.M., Tuti Kadariah, S.Sos"}, {"Timestamp": "2026-01-29T17:02:27.800000", "Tim Kerja": "UMUM", "Proyek": "Pengelolaan Hukum dan Organisasi yang baik", "Tujuan Organisasi": "Mewujudkan Tata Kelola Badan Pusat Statistik yang Berkualitas, Akuntabel, Efektif, dan Efisien dalam Menyelenggarakan Statistik", "Sasaran": "", "Sasaran 2": "", "Sasaran 3": "Peningkatan Pembangunan Zona Integritas", "IKU": "Tingkat Keberhasilan Pembangunan Zona Integritas : 100 Persen", "Ketua Tim": "Imron Taufik J Musa, S.Si, M.Si", "Anggota": "Asmawati, S.Si, Muhammad Fadhilah Akbar, S.Tr.Stat., Rika Ari Wulandari, S.Psi, M.AP., Salahudin, SE, M.M."}, {"Timestamp": "2026-01-29T17:03:37.297000", "Tim Kerja": "UMUM", "Proyek": "Pelaksanaan Kearsipan dan Persandian yang baik", "Tujuan Organisasi": "Mewujudkan Tata Kelola Badan Pusat Statistik yang Berkualitas, Akuntabel, Efektif, dan Efisien dalam Menyelenggarakan Statistik", "Sasaran": "", "Sasaran 2": "", "Sasaran 3": "Peningkatan Pembangunan Zona Integritas", "IKU": "Tingkat Keberhasilan Pembangunan Zona Integritas : 100 Persen", "Ketua Tim": "Imron Taufik J Musa, S.Si, M.Si", "Anggota": "Muhammad Fadhilah Akbar, S.Tr.Stat., Tuti Kadariah, S.Sos"}, {"Timestamp": "2026-01-29T17:05:18.653000", "Tim Kerja": "UMUM", "Proyek": "Tugas Belajar dalam Rangka Peningkatan Kinerja dan Kompetensi Secara Optimal", "Tujuan Organisasi": "Mewujudkan Tata Kelola Badan Pusat Statistik yang Berkualitas, Akuntabel, Efektif, dan Efisien dalam Menyelenggarakan Statistik", "Sasaran": "", "Sasaran 2": "", "Sasaran 3": "Peningkatan Pembangunan Zona Integritas", "IKU": "Tingkat Keberhasilan Pembangunan Zona Integritas : 100 Persen", "Ketua Tim": "Imron Taufik J Musa, S.Si, M.Si", "Anggota": "Asmawati, S.Si, Muhammad Fadhilah Akbar, S.Tr.Stat."}, {"Timestamp": "2026-01-29T17:15:29.206000", "Tim Kerja": "KEUANGAN", "Proyek": "Rekonsiliasi Transaksi Keuangan Tingkat Satker dan Wilayah", "Tujuan Organisasi": "Mewujudkan Tata Kelola Badan Pusat Statistik yang Berkualitas, Akuntabel, Efektif, dan Efisien dalam Menyelenggarakan Statistik", "Sasaran": "", "Sasaran 2": "", "Sasaran 3": "Terwujudnya Dukungan Manajemen Pada Bps Provinsi Dan Bps Kabupaten/Kota", "IKU": "Nilai SAKIP oleh Inspektorat : 77.95 Poin", "Ketua Tim": "Lustiawaty Achmad, SST, MPWP", "Anggota": "Ahmad Risal, S.Tr.Stat., Imam Santoso S., A.Md., L. Vennasa Virginia Saraswati, S.E., Masmah, Mohammad Rifki Abdul Razak A.Md.Stat., Muhammad Saiful, Murni, S.Sos, Nur Zahra Saharia, A.Md.Stat."}, {"Timestamp": "2026-01-29T17:21:35.696000", "Tim Kerja": "KEUANGAN", "Proyek": "Penyusunan Laporan Keuangan Tingkat Satker dan Wilayah", "Tujuan Organisasi": "Mewujudkan Tata Kelola Badan Pusat Statistik yang Berkualitas, Akuntabel, Efektif, dan Efisien dalam Menyelenggarakan Statistik", "Sasaran": "", "Sasaran 2": "", "Sasaran 3": "Terwujudnya Dukungan Manajemen Pada Bps Provinsi Dan Bps Kabupaten/Kota", "IKU": "Nilai SAKIP oleh Inspektorat : 77.95 Poin", "Ketua Tim": "Lustiawaty Achmad, SST, MPWP", "Anggota": "Imam Santoso S., A.Md., Mohammad Rifki Abdul Razak A.Md.Stat., Muhammad Saiful, Murni, S.Sos, Nur Zahra Saharia, A.Md.Stat."}, {"Timestamp": "2026-01-29T17:23:54.127000", "Tim Kerja": "KEUANGAN", "Proyek": "Kualitas Pelaporan LK Tingkat Satker dan Wilayah", "Tujuan Organisasi": "Mewujudkan Tata Kelola Badan Pusat Statistik yang Berkualitas, Akuntabel, Efektif, dan Efisien dalam Menyelenggarakan Statistik", "Sasaran": "", "Sasaran 2": "", "Sasaran 3": "Terwujudnya Dukungan Manajemen Pada Bps Provinsi Dan Bps Kabupaten/Kota", "IKU": "Nilai SAKIP oleh Inspektorat : 77.95 Poin", "Ketua Tim": "Lustiawaty Achmad, SST, MPWP", "Anggota": "Imam Santoso S., A.Md., Murni, S.Sos"}, {"Timestamp": "2026-01-29T17:26:18.225000", "Tim Kerja": "KEUANGAN", "Proyek": "Penerapan pengendalian intern atas pelaporan keuangan (PIPK)  Tingkat Satker dan Wilayah", "Tujuan Organisasi": "Mewujudkan Tata Kelola Badan Pusat Statistik yang Berkualitas, Akuntabel, Efektif, dan Efisien dalam Menyelenggarakan Statistik", "Sasaran": "", "Sasaran 2": "", "Sasaran 3": "Terwujudnya Dukungan Manajemen Pada Bps Provinsi Dan Bps Kabupaten/Kota", "IKU": "Nilai SAKIP oleh Inspektorat : 77.95 Poin", "Ketua Tim": "Lustiawaty Achmad, SST, MPWP", "Anggota": "Imam Santoso S., A.Md., L. Vennasa Virginia Saraswati, S.E., Mohammad Rifki Abdul Razak A.Md.Stat., Muhammad Saiful, Murni, S.Sos, Nur Zahra Saharia, A.Md.Stat., Wiwik Natalia, SST, M.P.W.P"}, {"Timestamp": "2026-01-29T17:28:38.419000", "Tim Kerja": "KEUANGAN", "Proyek": "Pengembangan pejabat fungsional dalam pengelolaan keuangan APBN", "Tujuan Organisasi": "Mewujudkan Tata Kelola Badan Pusat Statistik yang Berkualitas, Akuntabel, Efektif, dan Efisien dalam Menyelenggarakan Statistik", "Sasaran": "", "Sasaran 2": "", "Sasaran 3": "Terwujudnya Dukungan Manajemen Pada Bps Provinsi Dan Bps Kabupaten/Kota", "IKU": "", "Ketua Tim": "", "Anggota": "I Made Budi Hartawan, S.Si, Imam Santoso S., A.Md., Lustiawaty Achmad, SST, MPWP, Masmah, Murni, S.Sos, Nur Zahra Saharia, A.Md.Stat."}, {"Timestamp": "2026-01-29T19:26:21.640000", "Tim Kerja": "KEUANGAN", "Proyek": "Pelaporan SPIDER tingkat satuan kerja dan tingkat wilayah", "Tujuan Organisasi": "Mewujudkan Tata Kelola Badan Pusat Statistik yang Berkualitas, Akuntabel, Efektif, dan Efisien dalam Menyelenggarakan Statistik", "Sasaran": "", "Sasaran 2": "", "Sasaran 3": "Terwujudnya Dukungan Manajemen Pada Bps Provinsi Dan Bps Kabupaten/Kota", "IKU": "Nilai SAKIP oleh Inspektorat : 77.95 Poin", "Ketua Tim": "Lustiawaty Achmad, SST, MPWP", "Anggota": "Ahmad Risal, S.Tr.Stat., Imam Santoso S., A.Md., L. Vennasa Virginia Saraswati, S.E., Luhur Partomo Hudoyo, S.Si, M.Stat, Masmah, Mohammad Rifki Abdul Razak A.Md.Stat., Muhammad Saiful, Murni, S.Sos, Nur Zahra Saharia, A.Md.Stat., Wiwik Natalia, SST, M.P.W.P"}, {"Timestamp": "2026-01-29T19:35:52.282000", "Tim Kerja": "PENILAI INTERNAL", "Proyek": "Penilaian SAKIP", "Tujuan Organisasi": "Mewujudkan Tata Kelola Badan Pusat Statistik yang Berkualitas, Akuntabel, Efektif, dan Efisien dalam Menyelenggarakan Statistik", "Sasaran": "", "Sasaran 2": "", "Sasaran 3": "Terwujudnya Dukungan Manajemen Pada Bps Provinsi Dan Bps Kabupaten/Kota", "IKU": "Nilai SAKIP oleh Inspektorat : 77.95 Poin", "Ketua Tim": "Luhur Partomo Hudoyo, S.Si, M.Stat", "Anggota": "Ahmad Risal, S.Tr.Stat., Fima Anggadini, SST, M.P.W, Isna Aissatussiri Asshidiq, S.Tr.Stat., Larasati Widyaningrum, S.Tr.Stat., Nurainun Fitriani, SST"}, {"Timestamp": "2026-01-29T19:36:58.413000", "Tim Kerja": "PENILAI INTERNAL", "Proyek": "Penilaian Satker WBK/WBBM", "Tujuan Organisasi": "Mewujudkan Tata Kelola Badan Pusat Statistik yang Berkualitas, Akuntabel, Efektif, dan Efisien dalam Menyelenggarakan Statistik", "Sasaran": "", "Sasaran 2": "", "Sasaran 3": "Peningkatan Pembangunan Zona Integritas", "IKU": "Tingkat Keberhasilan Pembangunan Zona Integritas : 100 Persen", "Ketua Tim": "Luhur Partomo Hudoyo, S.Si, M.Stat", "Anggota": "Ahmad Risal, S.Tr.Stat., Fima Anggadini, SST, M.P.W, Isna Aissatussiri Asshidiq, S.Tr.Stat., Larasati Widyaningrum, S.Tr.Stat., Nurainun Fitriani, SST"}, {"Timestamp": "2026-01-29T19:38:01.564000", "Tim Kerja": "PENILAI INTERNAL", "Proyek": "Penilaian Mandiri SPIP", "Tujuan Organisasi": "Mewujudkan Tata Kelola Badan Pusat Statistik yang Berkualitas, Akuntabel, Efektif, dan Efisien dalam Menyelenggarakan Statistik", "Sasaran": "", "Sasaran 2": "", "Sasaran 3": "Peningkatan Pembangunan Zona Integritas", "IKU": "Tingkat Keberhasilan Pembangunan Zona Integritas : 100 Persen", "Ketua Tim": "Luhur Partomo Hudoyo, S.Si, M.Stat", "Anggota": "Ahmad Risal, S.Tr.Stat., Fima Anggadini, SST, M.P.W, Isna Aissatussiri Asshidiq, S.Tr.Stat., Larasati Widyaningrum, S.Tr.Stat., Nurainun Fitriani, SST"}, {"Timestamp": "2026-01-29T19:40:09.854000", "Tim Kerja": "MITIGASI RISIKO", "Proyek": "Penyusunan Daftar Risiko", "Tujuan Organisasi": "Mewujudkan Tata Kelola Badan Pusat Statistik yang Berkualitas, Akuntabel, Efektif, dan Efisien dalam Menyelenggarakan Statistik", "Sasaran": "", "Sasaran 2": "", "Sasaran 3": "Peningkatan Pembangunan Zona Integritas", "IKU": "Tingkat Keberhasilan Pembangunan Zona Integritas : 100 Persen", "Ketua Tim": "Luhur Partomo Hudoyo, S.Si, M.Stat", "Anggota": "Ahmad Risal, S.Tr.Stat., Annisa Nur Kusuma, SST, Apriliansyah, S.Tr.Stat., Daniel Kurnia Nugraha Sitorus, S.Tr.Stat., Hasbiah, S.S., Isna Aissatussiri Asshidiq, S.Tr.Stat., Lidya Rosselindo Pelima, S.T, M.T., Mayanti Meylisa Toding, SST, M.Sc, Muhammad Zein, SST, M.P.W.P, Nurainun Fitriani, SST, Sepryati Matoory, S.P, Winansibutet, S.Si, M.P.W.P."}];
+    </script>
+</body>
+
+</html>
