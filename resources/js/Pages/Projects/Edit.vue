@@ -7,7 +7,9 @@ import { Input } from '@/Components/ui/input';
 import { Label } from '@/Components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/Components/ui/select';
 import InputError from '@/Components/InputError.vue';
-import { computed, ref } from 'vue';
+import { computed, reactive, ref } from 'vue';
+import { Checkbox } from '@/Components/ui/checkbox';
+import { RadioGroup, RadioGroupItem } from '@/Components/ui/radio-group';
 
 interface WorkItemAssignment {
     employee_id: number;
@@ -74,17 +76,40 @@ const nextNumber = computed(() =>
 
 const showAddForm = ref(false);
 
-type AssignmentRow = { employee_id: number; target: number; target_unit: string; _included: boolean };
+type AssignmentRow = { employee_id: number; target: number; target_unit: string };
 
 const addMemberSearch = ref('');
 const editMemberSearch = ref('');
+
+// reactive(Set) lets Vue track .has()/.add()/.delete() — ref(Set) does NOT.
+const addIncludedIds = reactive(new Set<number>());
+// Outer record + each inner Set are both reactive.
+const editIncludedIdsMap = reactive<Record<number, Set<number>>>({});
+
+// Computed maps for template bindings — avoids Set.has() tracking edge-cases.
+const addCheckedMap = computed<Record<number, boolean>>(() => {
+    const m: Record<number, boolean> = {};
+    addIncludedIds.forEach(id => { m[id] = true; });
+    return m;
+});
+const editCheckedMap = computed<Record<number, Record<number, boolean>>>(() => {
+    const out: Record<number, Record<number, boolean>> = {};
+    for (const [itemId, set] of Object.entries(editIncludedIdsMap)) {
+        const m: Record<number, boolean> = {};
+        (set as Set<number>).forEach((id: number) => { m[id] = true; });
+        out[Number(itemId)] = m;
+    }
+    return out;
+});
+
+const addAssignTo = ref<'all' | 'specific'>('all');
+const editAssignToMap = ref<Record<number, 'all' | 'specific'>>({});
 
 const addForm = useForm({
     number: nextNumber.value,
     description: '',
     target: 1 as number,
     target_unit: 'Kegiatan',
-    assign_to: 'all' as 'all' | 'specific',
     assignments: [] as AssignmentRow[],
 });
 
@@ -110,28 +135,33 @@ function openAddForm() {
     addForm.description = '';
     addForm.target = 1;
     addForm.target_unit = 'Kegiatan';
-    addForm.assign_to = 'all';
+    addAssignTo.value = 'all';
     addForm.assignments = projectMembers.value.map(m => ({
         employee_id: m.id,
         target: 1,
         target_unit: 'Kegiatan',
-        _included: true,
     }));
+    addIncludedIds.clear();
+    for (const m of projectMembers.value) addIncludedIds.add(m.id);
     addForm.clearErrors();
     addMemberSearch.value = '';
     showAddForm.value = true;
 }
 
+function toggleAddIncluded(employeeId: number) {
+    if (addIncludedIds.has(employeeId)) addIncludedIds.delete(employeeId);
+    else addIncludedIds.add(employeeId);
+}
+
 function storeItem() {
+    const assignTo = addAssignTo.value;
+    const assignments = assignTo === 'specific'
+        ? addForm.assignments
+            .filter(a => addIncludedIds.has(a.employee_id))
+            .map(a => ({ employee_id: a.employee_id, target: a.target, target_unit: a.target_unit }))
+        : [];
     addForm
-        .transform(data => ({
-            ...data,
-            assignments: data.assign_to === 'specific'
-                ? data.assignments
-                    .filter(a => a._included)
-                    .map(a => ({ employee_id: a.employee_id, target: a.target, target_unit: a.target_unit }))
-                : [],
-        }))
+        .transform(data => ({ ...data, assign_to: assignTo, assignments }))
         .post(route('work-items.store', props.project.id), {
             preserveScroll: true,
             onSuccess: () => { showAddForm.value = false; },
@@ -155,15 +185,21 @@ function startEdit(item: WorkItem) {
             employee_id: m.id,
             target: existing?.target ?? item.target,
             target_unit: existing?.target_unit ?? item.target_unit,
-            _included: !hasSpecific || !!existing,
         };
     });
+
+    const includedIds = !hasSpecific ? projectMembers.value.map(m => m.id) : item.assignments.map(a => a.employee_id);
+    editIncludedIdsMap[item.id] = reactive(new Set(includedIds));
+
+    editAssignToMap.value = {
+        ...editAssignToMap.value,
+        [item.id]: (!hasSpecific || allSameTarget) ? 'all' : 'specific',
+    };
 
     editForms.value[item.id] = useForm({
         description: item.description,
         target: item.target,
         target_unit: item.target_unit,
-        assign_to: (!hasSpecific || allSameTarget) ? 'all' : 'specific' as 'all' | 'specific',
         assignments,
     });
     editMemberSearch.value = '';
@@ -174,16 +210,23 @@ function cancelEdit() {
     editingId.value = null;
 }
 
+function toggleEditIncluded(itemId: number, employeeId: number) {
+    const set = editIncludedIdsMap[itemId];
+    if (!set) return;
+    if (set.has(employeeId)) set.delete(employeeId);
+    else set.add(employeeId);
+}
+
 function saveEdit(itemId: number) {
-    editForms.value[itemId]
-        .transform((data: any) => ({
-            ...data,
-            assignments: data.assign_to === 'specific'
-                ? data.assignments
-                    .filter((a: AssignmentRow) => a._included)
-                    .map((a: AssignmentRow) => ({ employee_id: a.employee_id, target: a.target, target_unit: a.target_unit }))
-                : [],
-        }))
+    const f = editForms.value[itemId];
+    const assignTo = editAssignToMap.value[itemId] ?? 'all';
+    const includedSet = editIncludedIdsMap[itemId] ?? new Set<number>();
+    const assignments = assignTo === 'specific'
+        ? (f.assignments as AssignmentRow[])
+            .filter(a => includedSet.has(a.employee_id))
+            .map(a => ({ employee_id: a.employee_id, target: a.target, target_unit: a.target_unit }))
+        : [];
+    f.transform((data: any) => ({ ...data, assign_to: assignTo, assignments }))
         .put(route('work-items.update', itemId), {
             preserveScroll: true,
             onSuccess: () => { editingId.value = null; },
@@ -328,53 +371,75 @@ function memberName(employeeId: number): string {
                                 <!-- Assignment mode toggle -->
                                 <div class="flex items-center gap-4 text-sm">
                                     <Label class="text-xs">Ditugaskan ke:</Label>
-                                    <label class="flex items-center gap-1.5 text-xs cursor-pointer">
-                                        <input type="radio" v-model="editForms[item.id].assign_to" value="all" class="accent-primary" />
-                                        Semua anggota
-                                    </label>
-                                    <label class="flex items-center gap-1.5 text-xs cursor-pointer">
-                                        <input type="radio" v-model="editForms[item.id].assign_to" value="specific" class="accent-primary" />
-                                        Anggota tertentu
-                                    </label>
-                                </div>
-
-                                <!-- All members: single target -->
-                                <div v-if="editForms[item.id].assign_to === 'all'" class="grid grid-cols-2 gap-3">
-                                    <div>
-                                        <Label class="text-xs">Target (semua)</Label>
-                                        <Input type="number" min="0.01" step="0.01" v-model="editForms[item.id].target" class="mt-1" />
-                                    </div>
-                                    <div>
-                                        <Label class="text-xs">Satuan</Label>
-                                        <Input v-model="editForms[item.id].target_unit" class="mt-1" />
-                                    </div>
-                                </div>
-
-                                <!-- Specific members: per-member targets -->
-                                <div v-else class="space-y-2">
-                                    <div class="relative">
-                                        <svg class="absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 pointer-events-none text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0"/></svg>
-                                        <input v-model="editMemberSearch" type="text" placeholder="Cari anggota..." class="w-full rounded-md border border-input bg-white py-1.5 pl-8 pr-3 text-xs focus:outline-none focus:ring-1 focus:ring-ring" />
-                                    </div>
-                                    <div class="max-h-44 overflow-y-auto rounded-md border">
-                                        <div
-                                            v-for="idx in filteredEditIndices"
-                                            :key="editForms[item.id].assignments[idx].employee_id"
-                                            :class="['flex items-center gap-2 border-b border-gray-50 px-3 py-2 last:border-b-0 transition-colors', editForms[item.id].assignments[idx]._included ? 'bg-primary/5' : 'bg-white hover:bg-gray-50']"
-                                        >
-                                            <label class="flex min-w-0 flex-1 cursor-pointer items-center gap-2">
-                                                <input type="checkbox" v-model="editForms[item.id].assignments[idx]._included" class="h-3.5 w-3.5 shrink-0 accent-primary" />
-                                                <div class="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary/10 text-[10px] font-bold text-primary">
-                                                    {{ memberName(editForms[item.id].assignments[idx].employee_id).charAt(0).toUpperCase() }}
-                                                </div>
-                                                <span class="min-w-0 flex-1 truncate text-xs text-gray-700">{{ memberName(editForms[item.id].assignments[idx].employee_id) }}</span>
-                                            </label>
-                                            <Input type="number" min="0.01" step="0.01" v-model="editForms[item.id].assignments[idx].target" class="w-20 shrink-0 text-xs" :disabled="!editForms[item.id].assignments[idx]._included" />
-                                            <Input v-model="editForms[item.id].assignments[idx].target_unit" class="w-24 shrink-0 text-xs" :disabled="!editForms[item.id].assignments[idx]._included" />
+                                    <RadioGroup v-model="editAssignToMap[item.id]" class="flex gap-4">
+                                        <div class="flex items-center gap-1.5">
+                                            <RadioGroupItem :id="`edit-all-${item.id}`" value="all" />
+                                            <Label :for="`edit-all-${item.id}`" class="cursor-pointer text-xs font-normal">Semua anggota</Label>
                                         </div>
-                                        <p v-if="filteredEditIndices.length === 0" class="px-3 py-4 text-center text-xs text-gray-400">Tidak ada anggota ditemukan.</p>
-                                    </div>
+                                        <div class="flex items-center gap-1.5">
+                                            <RadioGroupItem :id="`edit-specific-${item.id}`" value="specific" />
+                                            <Label :for="`edit-specific-${item.id}`" class="cursor-pointer text-xs font-normal">Anggota tertentu</Label>
+                                        </div>
+                                    </RadioGroup>
                                 </div>
+
+                                <!-- Assignment panel: single target or per-member -->
+                                <Transition
+                                    mode="out-in"
+                                    enter-from-class="opacity-0 -translate-y-1"
+                                    enter-active-class="transition-all duration-200 ease-out"
+                                    leave-active-class="transition-all duration-150 ease-in"
+                                    leave-to-class="opacity-0 -translate-y-1"
+                                >
+                                    <div v-if="editAssignToMap[item.id] === 'all'" key="all" class="grid grid-cols-2 gap-3">
+                                        <div>
+                                            <Label class="text-xs">Target (semua)</Label>
+                                            <Input type="number" min="0.01" step="0.01" v-model="editForms[item.id].target" class="mt-1" />
+                                        </div>
+                                        <div>
+                                            <Label class="text-xs">Satuan</Label>
+                                            <Input v-model="editForms[item.id].target_unit" class="mt-1" />
+                                        </div>
+                                    </div>
+                                    <div v-else key="specific" class="space-y-2">
+                                        <div class="relative">
+                                            <svg class="absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 pointer-events-none text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0"/></svg>
+                                            <input v-model="editMemberSearch" type="text" placeholder="Cari anggota..." class="w-full rounded-md border border-input bg-white py-1.5 pl-8 pr-3 text-xs focus:outline-none focus:ring-1 focus:ring-ring" />
+                                        </div>
+                                        <div class="relative">
+                                            <div class="max-h-44 overflow-y-auto rounded-md border [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-gray-200 [&::-webkit-scrollbar-track]:bg-transparent">
+                                                <div
+                                                    v-for="idx in filteredEditIndices"
+                                                    :key="editForms[item.id].assignments[idx].employee_id"
+                                                    :class="['flex items-center gap-2 border-b border-gray-50 px-3 py-2 last:border-b-0 transition-colors', editCheckedMap[item.id]?.[editForms[item.id].assignments[idx].employee_id] ? 'bg-primary/5' : 'bg-white hover:bg-gray-50']"
+                                                >
+                                                    <label class="flex min-w-0 flex-1 cursor-pointer items-center gap-2">
+                                                        <Checkbox
+                                                            :model-value="!!editCheckedMap[item.id]?.[editForms[item.id].assignments[idx].employee_id]"
+                                                            @update:model-value="() => toggleEditIncluded(item.id, editForms[item.id].assignments[idx].employee_id)"
+                                                            @click.stop
+                                                            class="h-3.5 w-3.5 shrink-0"
+                                                        />
+                                                        <div class="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary/10 text-[10px] font-bold text-primary">
+                                                            {{ memberName(editForms[item.id].assignments[idx].employee_id).charAt(0).toUpperCase() }}
+                                                        </div>
+                                                        <span class="min-w-0 flex-1 truncate text-xs text-gray-700">{{ memberName(editForms[item.id].assignments[idx].employee_id) }}</span>
+                                                    </label>
+                                                    <div :class="['flex shrink-0 gap-1', !editCheckedMap[item.id]?.[editForms[item.id].assignments[idx].employee_id] && 'pointer-events-none opacity-40']">
+                                                        <Input type="number" min="0.01" step="0.01" v-model="editForms[item.id].assignments[idx].target" class="w-20 text-xs" />
+                                                        <Input v-model="editForms[item.id].assignments[idx].target_unit" class="w-24 text-xs" />
+                                                    </div>
+                                                </div>
+                                                <p v-if="filteredEditIndices.length === 0" class="px-3 py-4 text-center text-xs text-gray-400">Tidak ada anggota ditemukan.</p>
+                                            </div>
+                                            <div class="pointer-events-none absolute inset-x-0 bottom-0 flex justify-center rounded-b-md bg-gradient-to-t from-white via-white/60 to-transparent py-1">
+                                                <svg class="h-3.5 w-3.5 animate-bounce text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/>
+                                                </svg>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </Transition>
 
                                 <div class="flex justify-end gap-2">
                                     <Button size="sm" variant="outline" class="h-7 px-3 text-xs" @click="cancelEdit">Batal</Button>
@@ -386,6 +451,12 @@ function memberName(employeeId: number): string {
                 </div>
 
                 <!-- Add form -->
+                <Transition
+                    enter-from-class="opacity-0 -translate-y-1"
+                    enter-active-class="transition-all duration-200 ease-out"
+                    leave-active-class="transition-all duration-150 ease-in"
+                    leave-to-class="opacity-0 -translate-y-1"
+                >
                 <div v-if="showAddForm" class="mt-3 rounded-md border border-blue-100 bg-blue-50 p-4">
                     <p class="mb-3 text-sm font-medium text-blue-800">Tambah Rincian Kegiatan</p>
                     <div class="space-y-3">
@@ -404,57 +475,79 @@ function memberName(employeeId: number): string {
                         <!-- Assignment mode -->
                         <div class="flex items-center gap-4">
                             <Label class="text-xs">Ditugaskan ke:</Label>
-                            <label class="flex items-center gap-1.5 text-xs cursor-pointer">
-                                <input type="radio" v-model="addForm.assign_to" value="all" class="accent-primary" />
-                                Semua anggota
-                            </label>
-                            <label class="flex items-center gap-1.5 text-xs cursor-pointer">
-                                <input type="radio" v-model="addForm.assign_to" value="specific" class="accent-primary" />
-                                Anggota tertentu
-                            </label>
-                        </div>
-
-                        <!-- All: single target -->
-                        <div v-if="addForm.assign_to === 'all'" class="grid grid-cols-2 gap-3">
-                            <div>
-                                <Label class="text-xs">Target (semua) <span class="text-red-500">*</span></Label>
-                                <Input type="number" min="0.01" step="0.01" v-model="addForm.target" class="mt-1" />
-                                <InputError :message="addForm.errors.target" />
-                            </div>
-                            <div>
-                                <Label class="text-xs">Satuan</Label>
-                                <Input v-model="addForm.target_unit" class="mt-1" placeholder="Kegiatan" />
-                            </div>
-                        </div>
-
-                        <!-- Specific: per-member -->
-                        <div v-else class="space-y-2">
-                            <p v-if="!projectMembers.length" class="text-xs text-gray-400">Tambahkan anggota proyek terlebih dahulu.</p>
-                            <template v-else>
-                                <div class="relative">
-                                    <svg class="absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 pointer-events-none text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0"/></svg>
-                                    <input v-model="addMemberSearch" type="text" placeholder="Cari anggota..." class="w-full rounded-md border border-input bg-white py-1.5 pl-8 pr-3 text-xs focus:outline-none focus:ring-1 focus:ring-ring" />
+                            <RadioGroup v-model="addAssignTo" class="flex gap-4">
+                                <div class="flex items-center gap-1.5">
+                                    <RadioGroupItem id="add-all" value="all" />
+                                    <Label for="add-all" class="cursor-pointer text-xs font-normal">Semua anggota</Label>
                                 </div>
-                                <div class="max-h-44 overflow-y-auto rounded-md border">
-                                    <div
-                                        v-for="idx in filteredAddIndices"
-                                        :key="addForm.assignments[idx].employee_id"
-                                        :class="['flex items-center gap-2 border-b border-gray-50 px-3 py-2 last:border-b-0 transition-colors', addForm.assignments[idx]._included ? 'bg-primary/5' : 'bg-white hover:bg-gray-50']"
-                                    >
-                                        <label class="flex min-w-0 flex-1 cursor-pointer items-center gap-2">
-                                            <input type="checkbox" v-model="addForm.assignments[idx]._included" class="h-3.5 w-3.5 shrink-0 accent-primary" />
-                                            <div class="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary/10 text-[10px] font-bold text-primary">
-                                                {{ memberName(addForm.assignments[idx].employee_id).charAt(0).toUpperCase() }}
-                                            </div>
-                                            <span class="min-w-0 flex-1 truncate text-xs text-gray-700">{{ memberName(addForm.assignments[idx].employee_id) }}</span>
-                                        </label>
-                                        <Input type="number" min="0.01" step="0.01" v-model="addForm.assignments[idx].target" class="w-20 shrink-0 text-xs" :disabled="!addForm.assignments[idx]._included" />
-                                        <Input v-model="addForm.assignments[idx].target_unit" class="w-24 shrink-0 text-xs" :disabled="!addForm.assignments[idx]._included" />
+                                <div class="flex items-center gap-1.5">
+                                    <RadioGroupItem id="add-specific" value="specific" />
+                                    <Label for="add-specific" class="cursor-pointer text-xs font-normal">Anggota tertentu</Label>
+                                </div>
+                            </RadioGroup>
+                        </div>
+
+                        <!-- Assignment panel: single target or per-member -->
+                        <Transition
+                            mode="out-in"
+                            enter-from-class="opacity-0 -translate-y-1"
+                            enter-active-class="transition-all duration-200 ease-out"
+                            leave-active-class="transition-all duration-150 ease-in"
+                            leave-to-class="opacity-0 -translate-y-1"
+                        >
+                            <div v-if="addAssignTo === 'all'" key="all" class="grid grid-cols-2 gap-3">
+                                <div>
+                                    <Label class="text-xs">Target (semua) <span class="text-red-500">*</span></Label>
+                                    <Input type="number" min="0.01" step="0.01" v-model="addForm.target" class="mt-1" />
+                                    <InputError :message="addForm.errors.target" />
+                                </div>
+                                <div>
+                                    <Label class="text-xs">Satuan</Label>
+                                    <Input v-model="addForm.target_unit" class="mt-1" placeholder="Kegiatan" />
+                                </div>
+                            </div>
+                            <div v-else key="specific" class="space-y-2">
+                                <p v-if="!projectMembers.length" class="text-xs text-gray-400">Tambahkan anggota proyek terlebih dahulu.</p>
+                                <template v-else>
+                                    <div class="relative">
+                                        <svg class="absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 pointer-events-none text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0"/></svg>
+                                        <input v-model="addMemberSearch" type="text" placeholder="Cari anggota..." class="w-full rounded-md border border-input bg-white py-1.5 pl-8 pr-3 text-xs focus:outline-none focus:ring-1 focus:ring-ring" />
                                     </div>
-                                    <p v-if="filteredAddIndices.length === 0" class="px-3 py-4 text-center text-xs text-gray-400">Tidak ada anggota ditemukan.</p>
-                                </div>
-                            </template>
-                        </div>
+                                    <div class="relative">
+                                        <div class="max-h-44 overflow-y-auto rounded-md border [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-gray-200 [&::-webkit-scrollbar-track]:bg-transparent">
+                                            <div
+                                                v-for="idx in filteredAddIndices"
+                                                :key="addForm.assignments[idx].employee_id"
+                                                :class="['flex items-center gap-2 border-b border-gray-50 px-3 py-2 last:border-b-0 transition-colors', addCheckedMap[addForm.assignments[idx].employee_id] ? 'bg-primary/5' : 'bg-white hover:bg-gray-50']"
+                                            >
+                                                <label class="flex min-w-0 flex-1 cursor-pointer items-center gap-2">
+                                                    <Checkbox
+                                                        :model-value="!!addCheckedMap[addForm.assignments[idx].employee_id]"
+                                                        @update:model-value="() => toggleAddIncluded(addForm.assignments[idx].employee_id)"
+                                                        @click.stop
+                                                        class="h-3.5 w-3.5 shrink-0"
+                                                    />
+                                                    <div class="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary/10 text-[10px] font-bold text-primary">
+                                                        {{ memberName(addForm.assignments[idx].employee_id).charAt(0).toUpperCase() }}
+                                                    </div>
+                                                    <span class="min-w-0 flex-1 truncate text-xs text-gray-700">{{ memberName(addForm.assignments[idx].employee_id) }}</span>
+                                                </label>
+                                                <div :class="['flex shrink-0 gap-1', !addCheckedMap[addForm.assignments[idx].employee_id] && 'pointer-events-none opacity-40']">
+                                                    <Input type="number" min="0.01" step="0.01" v-model="addForm.assignments[idx].target" class="w-20 text-xs" />
+                                                    <Input v-model="addForm.assignments[idx].target_unit" class="w-24 text-xs" />
+                                                </div>
+                                            </div>
+                                            <p v-if="filteredAddIndices.length === 0" class="px-3 py-4 text-center text-xs text-gray-400">Tidak ada anggota ditemukan.</p>
+                                        </div>
+                                        <div class="pointer-events-none absolute inset-x-0 bottom-0 flex justify-center rounded-b-md bg-gradient-to-t from-white via-white/60 to-transparent py-1">
+                                            <svg class="h-3.5 w-3.5 animate-bounce text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                                <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/>
+                                            </svg>
+                                        </div>
+                                    </div>
+                                </template>
+                            </div>
+                        </Transition>
 
                         <div class="flex justify-end gap-2">
                             <Button size="sm" variant="outline" class="h-7 px-3 text-xs" @click="showAddForm = false">Batal</Button>
@@ -462,7 +555,9 @@ function memberName(employeeId: number): string {
                         </div>
                     </div>
                 </div>
+                </Transition>
             </div>
         </div>
     </AppLayout>
 </template>
+
