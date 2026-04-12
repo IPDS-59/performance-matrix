@@ -20,7 +20,7 @@ class SyncWorkItemAssignmentsAction
         }
     }
 
-    private function syncAll(WorkItem $workItem, Project $project, int $target, string $targetUnit): void
+    private function syncAll(WorkItem $workItem, Project $project, float $target, string $targetUnit): void
     {
         $memberIds = $project->members()->pluck('employees.id');
 

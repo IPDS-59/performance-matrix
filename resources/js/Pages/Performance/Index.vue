@@ -760,7 +760,7 @@ function projectSubmittedCount(project: TeamProjectWithMembers): number {
                                                 <div class="mb-2 grid grid-cols-2 gap-2">
                                                     <div>
                                                         <Label class="text-xs">Target</Label>
-                                                        <Input type="number" min="1" step="1" v-model="editForm.target" class="mt-1" />
+                                                        <Input type="number" min="0.01" step="0.01" v-model="editForm.target" class="mt-1" />
                                                         <InputError :message="editForm.errors.target" />
                                                     </div>
                                                     <div>
@@ -1191,8 +1191,8 @@ function projectSubmittedCount(project: TeamProjectWithMembers): number {
                                                 leave-to-class="opacity-0 -translate-y-1"
                                             >
                                                 <div v-if="editAssignTo === 'all'" key="all" class="mb-2 grid grid-cols-2 gap-2">
-                                                    <div><Label class="text-xs">Target</Label><Input type="number" min="1" step="1" v-model="editForm.target" class="mt-1" /></div>
-                                                    <div><Label class="text-xs">Satuan</Label><Input v-model="editForm.target_unit" class="mt-1" /></div>
+                                                    <div><Label class="text-xs">Target</Label><Input type="number" min="0.01" step="0.01" v-model="editForm.target" class="mt-1" /><InputError :message="editForm.errors.target" /></div>
+                                                    <div><Label class="text-xs">Satuan</Label><Input v-model="editForm.target_unit" class="mt-1" /><InputError :message="editForm.errors.target_unit" /></div>
                                                 </div>
                                                 <div v-else key="specific" class="mb-2 space-y-1.5">
                                                     <div class="relative">
@@ -1219,7 +1219,7 @@ function projectSubmittedCount(project: TeamProjectWithMembers): number {
                                                                     <span class="min-w-0 flex-1 truncate text-xs text-gray-700">{{ editForm.assignments[idx].display_name }}</span>
                                                                 </label>
                                                                 <div :class="['flex shrink-0 gap-1', !editCheckedMap[editForm.assignments[idx].employee_id] && 'pointer-events-none opacity-40']">
-                                                                    <Input type="number" min="1" step="1" v-model="editForm.assignments[idx].target" class="w-20 text-xs" />
+                                                                    <Input type="number" min="0.01" step="0.01" v-model="editForm.assignments[idx].target" class="w-20 text-xs" />
                                                                     <Input v-model="editForm.assignments[idx].target_unit" class="w-24 text-xs" />
                                                                 </div>
                                                             </div>

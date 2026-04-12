@@ -6,6 +6,7 @@ use App\Actions\WorkItem\SyncWorkItemAssignmentsAction;
 use App\Models\Project;
 use App\Models\WorkItem;
 use App\Notifications\WorkItemAssignedNotification;
+use App\Notifications\WorkItemUpdatedNotification;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 
@@ -64,6 +65,15 @@ class WorkItemController extends Controller
 
         $this->syncAssignments->execute($workItem, $workItem->project, $validated);
 
+        // Notify every assigned employee (skip the lead who just updated it)
+        $workItem->load('project.team', 'assignments.employee.user');
+        foreach ($workItem->assignments as $assignment) {
+            $user = $assignment->employee?->user;
+            if ($user && $user->id !== $request->user()->id) {
+                $user->notify(new WorkItemUpdatedNotification($workItem));
+            }
+        }
+
         return back()->with('success', 'Rincian kegiatan berhasil diperbarui.');
     }
 
@@ -85,12 +95,12 @@ class WorkItemController extends Controller
     {
         $rules = [
             'description' => ['required', 'string'],
-            'target' => ['required', 'integer', 'min:1'],
+            'target' => ['required', 'numeric', 'min:0.01'],
             'target_unit' => ['required', 'string', 'max:50'],
             'assign_to' => ['required', 'in:all,specific'],
             'assignments' => ['required_if:assign_to,specific', 'array'],
             'assignments.*.employee_id' => ['required', 'exists:employees,id'],
-            'assignments.*.target' => ['required', 'integer', 'min:1'],
+            'assignments.*.target' => ['required', 'numeric', 'min:0.01'],
             'assignments.*.target_unit' => ['required', 'string', 'max:50'],
         ];
 
