@@ -2,6 +2,7 @@
 import AppLayout from '@/Layouts/AppLayout.vue';
 import { Head, router } from '@inertiajs/vue3';
 import { Bar } from 'vue-chartjs';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/Components/ui/select';
 import {
     BarElement,
     CategoryScale,
@@ -166,21 +167,25 @@ function achievementColor(val: number | null) {
         <div class="mb-6 flex flex-wrap items-end gap-3">
             <div>
                 <label class="mb-1 block text-xs text-gray-500">Bulan</label>
-                <select
-                    v-model="month"
-                    class="rounded-md border border-input bg-white px-3 py-1.5 text-sm shadow-sm focus:outline-none focus:ring-1 focus:ring-ring"
-                >
-                    <option v-for="(m, idx) in MONTHS" :key="idx" :value="idx + 1">{{ m }}</option>
-                </select>
+                <Select v-model="month">
+                    <SelectTrigger class="w-36">
+                        <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                        <SelectItem v-for="(m, idx) in MONTHS" :key="idx" :value="idx + 1">{{ m }}</SelectItem>
+                    </SelectContent>
+                </Select>
             </div>
             <div>
                 <label class="mb-1 block text-xs text-gray-500">Tahun</label>
-                <select
-                    v-model="year"
-                    class="rounded-md border border-input bg-white px-3 py-1.5 text-sm shadow-sm focus:outline-none focus:ring-1 focus:ring-ring"
-                >
-                    <option v-for="y in years" :key="y" :value="y">{{ y }}</option>
-                </select>
+                <Select v-model="year">
+                    <SelectTrigger class="w-28">
+                        <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                        <SelectItem v-for="y in years" :key="y" :value="y">{{ y }}</SelectItem>
+                    </SelectContent>
+                </Select>
             </div>
             <button
                 @click="applyFilter"

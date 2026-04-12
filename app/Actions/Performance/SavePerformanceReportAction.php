@@ -28,8 +28,17 @@ class SavePerformanceReportAction
             ? (float) $assignment->target
             : (float) $workItem->target;
 
+        // Sum all other months' realizations to compute cumulative achievement
+        $otherMonthsTotal = (float) PerformanceReport::where('work_item_id', $workItem->id)
+            ->where('reported_by', $reporter?->id)
+            ->where(function ($q) use ($periodMonth, $periodYear) {
+                $q->where('period_year', '!=', $periodYear)
+                  ->orWhere('period_month', '!=', $periodMonth);
+            })
+            ->sum('realization');
+
         $achievementPercentage = $target > 0
-            ? min(100, round(($realization / $target) * 100, 2))
+            ? min(100, round((($otherMonthsTotal + $realization) / $target) * 100, 2))
             : 0;
 
         $report = PerformanceReport::updateOrCreate(

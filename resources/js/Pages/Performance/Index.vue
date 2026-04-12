@@ -2,7 +2,7 @@
 import AppLayout from '@/Layouts/AppLayout.vue';
 import { Head, router, useForm } from '@inertiajs/vue3';
 import type { Employee, Project } from '@/types';
-import { ref, computed, reactive } from 'vue';
+import { ref, computed, reactive, watch } from 'vue';
 import { Checkbox } from '@/Components/ui/checkbox';
 import { RadioGroup, RadioGroupItem } from '@/Components/ui/radio-group';
 import { Button } from '@/Components/ui/button';
@@ -230,8 +230,16 @@ function getReport(workItemId: number) {
 function computePct(workItemId: number): number {
     const wi = getWorkItem(workItemId);
     if (!wi || !wi.target || Number(wi.target) <= 0) return 0;
-    const item = getItem(workItemId);
-    return Math.min(100, (Number(item.realization) / Number(wi.target)) * 100);
+
+    // Sum all other months' saved realizations (cumulative progress)
+    const prevTotal = wi.performance_reports
+        .filter(r => r.period_month !== props.filters.month)
+        .reduce((sum, r) => sum + Number(r.realization), 0);
+
+    // Add the current month's form input
+    const currentRealization = Number(getItem(workItemId).realization);
+
+    return Math.min(100, ((prevTotal + currentRealization) / Number(wi.target)) * 100);
 }
 
 function progressColor(pct: number): string {
@@ -255,6 +263,18 @@ function projectAvgPct(project: ProjectWithItems): number {
 function submit() {
     form.post(route('performance.batch'), { preserveScroll: true });
 }
+
+// When the month/year filter changes (preserveState navigation), reset the form
+// so items are re-seeded from the new month's report data.
+watch(
+    () => [props.filters.month, props.filters.year] as const,
+    ([newMonth, newYear]) => {
+        form.period_month = newMonth;
+        form.period_year = newYear;
+        form.items = [];
+        seededIds.clear();
+    },
+);
 
 // ── Work item management (project leader) ─────────────────────────────────
 
@@ -687,21 +707,21 @@ function projectSubmittedCount(project: TeamProjectWithMembers): number {
 
                                             <!-- Monthly timeline strip -->
                                             <div class="mb-3">
-                                                <div class="flex items-center gap-0.5">
+                                                <div class="flex items-center gap-1">
                                                     <button
                                                         v-for="m in 12"
                                                         :key="m"
                                                         type="button"
                                                         :title="`${months[m-1].label}: ${wi.performance_reports.find(r => r.period_month === m) ? Number(wi.performance_reports.find(r => r.period_month === m)!.realization).toLocaleString('id') + ' ' + wi.target_unit : 'Belum diinput'}`"
-                                                        :class="['h-3 w-3 shrink-0 rounded-full transition-all', monthDotClass(wi, m)]"
+                                                        :class="['h-3.5 w-3.5 shrink-0 rounded-full transition-all', monthDotClass(wi, m)]"
                                                         @click.prevent="selectMonth(m)"
                                                     />
                                                 </div>
-                                                <div class="mt-0.5 flex items-center gap-0.5">
+                                                <div class="mt-1 flex items-center gap-1">
                                                     <span
                                                         v-for="m in 12"
                                                         :key="m"
-                                                        :class="['w-3 shrink-0 text-center text-[8px]', m === props.filters.month ? 'font-bold text-primary' : 'text-gray-400']"
+                                                        :class="['w-3.5 shrink-0 text-center text-[9px]', m === props.filters.month ? 'font-bold text-primary' : 'text-gray-400']"
                                                     >{{ monthAbbr[m-1] }}</span>
                                                 </div>
                                             </div>
@@ -1159,7 +1179,7 @@ function projectSubmittedCount(project: TeamProjectWithMembers): number {
                                                             <div class="flex shrink-0 items-center gap-2 text-xs">
                                                                 <span class="text-gray-500">{{ Number(wi.performance_reports.find(r => r.reported_by === member.id)!.realization).toLocaleString('id') }}</span>
                                                                 <span :class="['font-bold', memberPctColor(wi.performance_reports.find(r => r.reported_by === member.id)!.achievement_percentage)]">
-                                                                    {{ wi.performance_reports.find(r => r.reported_by === member.id)!.achievement_percentage.toFixed(1) }}%
+                                                                    {{ Number(wi.performance_reports.find(r => r.reported_by === member.id)!.achievement_percentage).toFixed(1) }}%
                                                                 </span>
                                                             </div>
                                                         </div>
@@ -1379,21 +1399,21 @@ function projectSubmittedCount(project: TeamProjectWithMembers): number {
 
                                         <!-- Monthly timeline strip -->
                                         <div class="mb-3">
-                                            <div class="flex items-center gap-0.5">
+                                            <div class="flex items-center gap-1">
                                                 <button
                                                     v-for="m in 12"
                                                     :key="m"
                                                     type="button"
                                                     :title="`${months[m-1].label}: ${wi.performance_reports.find(r => r.period_month === m) ? Number(wi.performance_reports.find(r => r.period_month === m)!.realization).toLocaleString('id') + ' ' + wi.target_unit : 'Belum diinput'}`"
-                                                    :class="['h-3 w-3 shrink-0 rounded-full transition-all', monthDotClass(wi, m)]"
+                                                    :class="['h-3.5 w-3.5 shrink-0 rounded-full transition-all', monthDotClass(wi, m)]"
                                                     @click.prevent="selectMonth(m)"
                                                 />
                                             </div>
-                                            <div class="mt-0.5 flex items-center gap-0.5">
+                                            <div class="mt-1 flex items-center gap-1">
                                                 <span
                                                     v-for="m in 12"
                                                     :key="m"
-                                                    :class="['w-3 shrink-0 text-center text-[8px]', m === props.filters.month ? 'font-bold text-primary' : 'text-gray-400']"
+                                                    :class="['w-3.5 shrink-0 text-center text-[9px]', m === props.filters.month ? 'font-bold text-primary' : 'text-gray-400']"
                                                 >{{ monthAbbr[m-1] }}</span>
                                             </div>
                                         </div>

@@ -57,15 +57,21 @@ class DashboardController extends Controller
             ->get(['project_id', 'employee_id', 'role'])
             ->groupBy('project_id');
 
-        // Progress: avg achievement per project for selected period
+        // Progress: avg achievement per employee per project (so each person sees only their own progress)
         $progress = DB::table('performance_reports')
             ->join('work_items', 'work_items.id', '=', 'performance_reports.work_item_id')
             ->whereIn('work_items.project_id', $projects->pluck('id'))
             ->where('performance_reports.period_year', $year)
             ->where('performance_reports.period_month', $month)
-            ->groupBy('work_items.project_id')
-            ->select('work_items.project_id', DB::raw('AVG(achievement_percentage) as avg_achievement'))
-            ->pluck('avg_achievement', 'project_id');
+            ->whereNotNull('performance_reports.reported_by')
+            ->groupBy('work_items.project_id', 'performance_reports.reported_by')
+            ->select(
+                'work_items.project_id',
+                'performance_reports.reported_by',
+                DB::raw('AVG(achievement_percentage) as avg_achievement')
+            )
+            ->get()
+            ->mapWithKeys(fn ($row) => ["{$row->reported_by}:{$row->project_id}" => (float) $row->avg_achievement]);
 
         $teams = Team::where('is_active', true)->orderBy('name')->get(['id', 'name']);
 
@@ -158,20 +164,75 @@ class DashboardController extends Controller
                 ->get()
             : collect();
 
+        $cacheKey = "team_progress:{$year}:{$month}";
+        $teamProgress = Cache::get($cacheKey, collect());
+
+        $teams = Team::with(['employees' => fn ($q) => $q->select('employees.id', 'name', 'display_name', 'team_id')])
+            ->orderBy('name')
+            ->get(['id', 'name', 'code']);
+
+        $projectLeaderIds = DB::table('projects')
+            ->where('year', $year)
+            ->whereNotNull('leader_id')
+            ->pluck('leader_id')
+            ->unique()
+            ->values();
+
+        $topByProjects = DB::table('employees')
+            ->join('project_members', 'project_members.employee_id', '=', 'employees.id')
+            ->join('projects', 'projects.id', '=', 'project_members.project_id')
+            ->where('projects.year', $year)
+            ->where('employees.is_active', true)
+            ->groupBy('employees.id', 'employees.name', 'employees.display_name')
+            ->select('employees.id', 'employees.name', 'employees.display_name', DB::raw('COUNT(DISTINCT project_members.project_id) as project_count'))
+            ->orderByDesc('project_count')
+            ->limit(10)
+            ->get();
+
+        $topByAchievement = DB::table('employees')
+            ->join('performance_reports', 'performance_reports.reported_by', '=', 'employees.id')
+            ->join('work_items', 'work_items.id', '=', 'performance_reports.work_item_id')
+            ->join('projects', 'projects.id', '=', 'work_items.project_id')
+            ->where('performance_reports.period_year', $year)
+            ->where('performance_reports.period_month', $month)
+            ->where('projects.year', $year)
+            ->where('employees.is_active', true)
+            ->groupBy('employees.id', 'employees.name', 'employees.display_name')
+            ->select('employees.id', 'employees.name', 'employees.display_name', DB::raw('AVG(performance_reports.achievement_percentage) as avg_achievement'))
+            ->orderByDesc('avg_achievement')
+            ->limit(10)
+            ->get();
+
         return Inertia::render('Dashboard', [
             'role' => 'staff',
             'employee' => $employee->only('id', 'name', 'display_name'),
             'projects' => $projects,
             'team_projects' => $teamProjects,
             'personal_stats' => $this->personalStats($employee, $year, $month),
+            'teams' => $teams,
+            'team_progress' => $teamProgress,
+            'project_leader_ids' => $projectLeaderIds,
+            'top_employees_by_projects' => $topByProjects,
+            'top_employees_by_achievement' => $topByAchievement,
             'filters' => compact('year', 'month'),
         ]);
     }
 
     private function headDashboard($user, int $year, int $month): Response
     {
-        $cacheKey = "team_progress:{$year}:{$month}";
-        $teamProgress = Cache::get($cacheKey, collect());
+        $teamProgress = DB::table('performance_reports')
+            ->join('work_items', 'work_items.id', '=', 'performance_reports.work_item_id')
+            ->join('projects', 'projects.id', '=', 'work_items.project_id')
+            ->where('performance_reports.period_month', $month)
+            ->where('performance_reports.period_year', $year)
+            ->groupBy('projects.team_id')
+            ->select(
+                'projects.team_id',
+                DB::raw('AVG(performance_reports.achievement_percentage) as avg_achievement'),
+                DB::raw('COUNT(performance_reports.id) as report_count')
+            )
+            ->get()
+            ->keyBy('team_id');
 
         $projectLeaderIds = DB::table('projects')
             ->where('year', $year)
@@ -184,11 +245,38 @@ class DashboardController extends Controller
             ->orderBy('name')
             ->get(['id', 'name', 'code']);
 
+        $topByProjects = DB::table('employees')
+            ->join('project_members', 'project_members.employee_id', '=', 'employees.id')
+            ->join('projects', 'projects.id', '=', 'project_members.project_id')
+            ->where('projects.year', $year)
+            ->where('employees.is_active', true)
+            ->groupBy('employees.id', 'employees.name', 'employees.display_name')
+            ->select('employees.id', 'employees.name', 'employees.display_name', DB::raw('COUNT(DISTINCT project_members.project_id) as project_count'))
+            ->orderByDesc('project_count')
+            ->limit(10)
+            ->get();
+
+        $topByAchievement = DB::table('employees')
+            ->join('performance_reports', 'performance_reports.reported_by', '=', 'employees.id')
+            ->join('work_items', 'work_items.id', '=', 'performance_reports.work_item_id')
+            ->join('projects', 'projects.id', '=', 'work_items.project_id')
+            ->where('performance_reports.period_year', $year)
+            ->where('performance_reports.period_month', $month)
+            ->where('projects.year', $year)
+            ->where('employees.is_active', true)
+            ->groupBy('employees.id', 'employees.name', 'employees.display_name')
+            ->select('employees.id', 'employees.name', 'employees.display_name', DB::raw('AVG(performance_reports.achievement_percentage) as avg_achievement'))
+            ->orderByDesc('avg_achievement')
+            ->limit(10)
+            ->get();
+
         $data = [
             'role' => 'head',
             'teams' => $teams,
             'team_progress' => $teamProgress,
             'project_leader_ids' => $projectLeaderIds,
+            'top_employees_by_projects' => $topByProjects,
+            'top_employees_by_achievement' => $topByAchievement,
             'filters' => compact('year', 'month'),
         ];
 

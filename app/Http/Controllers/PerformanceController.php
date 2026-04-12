@@ -71,8 +71,8 @@ class PerformanceController extends Controller
                     'assignments' => fn ($q) => $q->where('employee_id', $employee->id),
                     'performanceReports' => fn ($q) => $q
                         ->where('period_year', $year)
-                        ->where('period_month', $month)
-                        ->where('reported_by', $employee->id),
+                        ->where('reported_by', $employee->id)
+                        ->with('attachments'),
                 ]),
             'team:id,name',
         ])
@@ -118,7 +118,10 @@ class PerformanceController extends Controller
                 'performanceReports' => fn ($q) => $q
                     ->where('period_year', $year)
                     ->where('period_month', $month)
-                    ->with('reporter:id,name,display_name'),
+                    ->with([
+                        'reporter:id,name,display_name',
+                        'attachments.reviewer:id,name,display_name',
+                    ]),
             ]),
             'members:id,name,display_name',
             'team:id,name',

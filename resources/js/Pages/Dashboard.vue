@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import AppLayout from '@/Layouts/AppLayout.vue';
 import { Head, router } from '@inertiajs/vue3';
-import { computed, ref } from 'vue';
+import { computed, reactive, ref } from 'vue';
 import type { Employee, Team } from '@/types';
 import { Card, CardContent, CardHeader, CardTitle } from '@/Components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/Components/ui/tabs';
@@ -99,6 +99,14 @@ interface TeamWithMembers extends Team {
     members?: TeamMember[];
 }
 
+interface EmployeeRankItem {
+    id: number;
+    name: string;
+    display_name: string | null;
+    project_count?: number;
+    avg_achievement?: number;
+}
+
 // ── Props ──────────────────────────────────────────────────────────────────
 
 const props = defineProps<{
@@ -112,6 +120,8 @@ const props = defineProps<{
     team_progress?: Record<string, TeamProgress>;
     org_avg?: number;
     trend?: TrendPoint[];
+    top_employees_by_projects?: EmployeeRankItem[];
+    top_employees_by_achievement?: EmployeeRankItem[];
     filters: { year: number; month: number };
 }>();
 
@@ -247,6 +257,21 @@ function isProjectLeaderById(employeeId: number): boolean {
     return props.project_leader_ids?.includes(employeeId) ?? false;
 }
 
+// ── Chip scroll indicator (always visible when container is scrollable) ────
+
+const chipScrollable = reactive<Record<number, boolean>>({});
+const chipResizeObservers = new Map<number, ResizeObserver>();
+
+function initChipScrollable(el: HTMLElement | null, projectId: number) {
+    chipResizeObservers.get(projectId)?.disconnect();
+    if (!el) return;
+    const update = () => { chipScrollable[projectId] = el.scrollWidth > el.clientWidth; };
+    update();
+    const ro = new ResizeObserver(update);
+    ro.observe(el);
+    chipResizeObservers.set(projectId, ro);
+}
+
 // ── Bar chart ──────────────────────────────────────────────────────────────
 
 const barChartData = computed(() => ({
@@ -339,6 +364,110 @@ const lineChartOptions = {
             grid: { color: 'rgba(0,0,0,0.05)' },
         },
         x: { grid: { display: false } },
+    },
+};
+
+// ── Employee ranking charts ────────────────────────────────────────────────
+
+const empByProjectsChartData = computed(() => ({
+    labels: (props.top_employees_by_projects ?? []).map(e => e.display_name || e.name),
+    datasets: [{
+        label: 'Proyek',
+        data: (props.top_employees_by_projects ?? []).map(e => e.project_count ?? 0),
+        backgroundColor: (props.top_employees_by_projects ?? []).map(e =>
+            e.id === props.employee?.id ? 'rgba(27,75,138,0.9)' : 'rgba(99,102,241,0.65)'
+        ),
+        borderRadius: 4,
+        borderSkipped: false,
+    }],
+}));
+
+const empByProjectsChartOptions = {
+    indexAxis: 'y' as const,
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+        legend: { display: false },
+        tooltip: {
+            callbacks: {
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                label: (ctx: any) => ` ${ctx.parsed.x} proyek`,
+            },
+        },
+    },
+    scales: {
+        x: {
+            min: 0,
+            grid: { color: 'rgba(0,0,0,0.04)' },
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            ticks: { callback: (v: any) => `${v}` },
+        },
+        y: {
+            grid: { display: false },
+            ticks: {
+                font: { size: 10 },
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                callback: (val: any, idx: number) => {
+                    const label = (props.top_employees_by_projects ?? [])[idx]?.display_name
+                        || (props.top_employees_by_projects ?? [])[idx]?.name
+                        || '';
+                    return label.length > 16 ? label.substring(0, 14) + '…' : label;
+                },
+            },
+        },
+    },
+};
+
+const empByAchievementChartData = computed(() => ({
+    labels: (props.top_employees_by_achievement ?? []).map(e => e.display_name || e.name),
+    datasets: [{
+        label: 'Capaian (%)',
+        data: (props.top_employees_by_achievement ?? []).map(e => e.avg_achievement ?? 0),
+        backgroundColor: (props.top_employees_by_achievement ?? []).map(e =>
+            e.id === props.employee?.id ? 'rgba(27,75,138,0.9)' :
+            (e.avg_achievement ?? 0) >= 80 ? 'rgba(34,197,94,0.65)' :
+            (e.avg_achievement ?? 0) >= 50 ? 'rgba(234,179,8,0.65)' :
+            'rgba(239,68,68,0.65)'
+        ),
+        borderRadius: 4,
+        borderSkipped: false,
+    }],
+}));
+
+const empByAchievementChartOptions = {
+    indexAxis: 'y' as const,
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+        legend: { display: false },
+        tooltip: {
+            callbacks: {
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                label: (ctx: any) => ` ${ctx.parsed.x?.toFixed(1) ?? '-'}%`,
+            },
+        },
+    },
+    scales: {
+        x: {
+            min: 0,
+            max: 100,
+            grid: { color: 'rgba(0,0,0,0.04)' },
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            ticks: { callback: (v: any) => `${v}%` },
+        },
+        y: {
+            grid: { display: false },
+            ticks: {
+                font: { size: 10 },
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                callback: (val: any, idx: number) => {
+                    const label = (props.top_employees_by_achievement ?? [])[idx]?.display_name
+                        || (props.top_employees_by_achievement ?? [])[idx]?.name
+                        || '';
+                    return label.length > 16 ? label.substring(0, 14) + '…' : label;
+                },
+            },
+        },
     },
 };
 </script>
@@ -506,6 +635,123 @@ const lineChartOptions = {
                                     </div>
                                 </div>
                             </div>
+
+                            <!-- Team comparison (also visible from personal tab) -->
+                            <h2 class="mt-10 mb-4 flex items-center gap-2 text-sm font-semibold text-primary uppercase tracking-wide">
+                                <span class="h-px flex-1 bg-primary/20"></span>
+                                Perbandingan Kinerja Tim
+                                <span class="h-px flex-1 bg-primary/20"></span>
+                            </h2>
+                            <div class="grid gap-4 lg:grid-cols-3">
+                                <Card class="lg:col-span-2">
+                                    <CardHeader class="pb-2">
+                                        <CardTitle class="text-base">Capaian Per Tim</CardTitle>
+                                    </CardHeader>
+                                    <CardContent>
+                                        <div v-if="teamList.length" class="h-64">
+                                            <Bar :data="barChartData" :options="barChartOptions" />
+                                        </div>
+                                        <div v-else class="flex h-64 items-center justify-center rounded-lg border border-dashed border-gray-200 bg-gray-50">
+                                            <p class="text-sm text-gray-400">Belum ada data capaian tim bulan ini</p>
+                                        </div>
+                                    </CardContent>
+                                </Card>
+                                <Card>
+                                    <CardHeader>
+                                        <CardTitle class="text-base">Peringkat Tim</CardTitle>
+                                    </CardHeader>
+                                    <CardContent class="p-0">
+                                        <div class="relative">
+                                            <div class="max-h-64 overflow-y-auto divide-y divide-gray-100 [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-gray-200 [&::-webkit-scrollbar-track]:bg-transparent">
+                                                <template v-if="teamList.length">
+                                                    <div v-for="(team, idx) in teamList" :key="team.id">
+                                                        <button
+                                                            type="button"
+                                                            class="flex w-full items-center gap-3 px-4 py-3 text-left hover:bg-gray-50 transition-colors"
+                                                            :aria-expanded="isTeamExpanded(team.id)"
+                                                            @click="toggleTeam(team.id)"
+                                                        >
+                                                            <span class="w-5 shrink-0 text-right text-xs font-bold text-gray-400">{{ idx + 1 }}</span>
+                                                            <div class="min-w-0 flex-1">
+                                                                <p class="truncate text-sm font-medium">{{ team.name }}</p>
+                                                                <Progress :model-value="team.avg" :class="['mt-1 h-1.5', progressVariant(team.avg)]" />
+                                                            </div>
+                                                            <span :class="['shrink-0 text-sm font-bold', achievementColor(team.avg)]">{{ team.avg.toFixed(1) }}%</span>
+                                                            <svg :class="['h-4 w-4 shrink-0 text-gray-400 transition-transform', isTeamExpanded(team.id) ? 'rotate-180' : '']" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                                                            </svg>
+                                                        </button>
+                                                    </div>
+                                                </template>
+                                                <div v-else class="px-4 py-8 text-center text-sm text-gray-400">Belum ada data tim</div>
+                                            </div>
+                                        </div>
+                                    </CardContent>
+                                </Card>
+                            </div>
+
+                            <h2 class="mt-10 mb-4 flex items-center gap-2 text-sm font-semibold text-primary uppercase tracking-wide">
+                                <span class="h-px flex-1 bg-primary/20"></span>
+                                Peringkat Pegawai
+                                <span class="h-px flex-1 bg-primary/20"></span>
+                            </h2>
+                            <div class="grid gap-4 md:grid-cols-2">
+                                <Card>
+                                    <CardHeader class="pb-2">
+                                        <CardTitle class="text-sm font-semibold">Top 10 Proyek Terbanyak</CardTitle>
+                                    </CardHeader>
+                                    <CardContent>
+                                        <div v-if="top_employees_by_projects?.length" class="mb-3 h-52">
+                                            <Bar :data="empByProjectsChartData" :options="empByProjectsChartOptions" />
+                                        </div>
+                                        <div v-else class="mb-3 flex h-52 items-center justify-center rounded-lg border border-dashed border-gray-200 bg-gray-50">
+                                            <p class="text-sm text-gray-400">Belum ada data proyek bulan ini</p>
+                                        </div>
+                                        <div class="relative">
+                                            <div class="max-h-52 overflow-y-auto divide-y divide-gray-100 rounded-md border [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-gray-200 [&::-webkit-scrollbar-track]:bg-transparent">
+                                                <template v-if="top_employees_by_projects?.length">
+                                                    <div v-for="(emp, idx) in top_employees_by_projects" :key="emp.id" :class="['flex items-center gap-3 px-3 py-2', emp.id === employee?.id ? 'bg-primary/5' : '']">
+                                                        <span class="w-5 shrink-0 text-right text-xs font-bold text-gray-400">{{ idx + 1 }}</span>
+                                                        <div class="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-indigo-100 text-[10px] font-bold text-indigo-700">{{ (emp.display_name || emp.name).charAt(0).toUpperCase() }}</div>
+                                                        <span :class="['min-w-0 flex-1 truncate text-xs', emp.id === employee?.id ? 'font-semibold text-primary' : 'text-gray-700']">{{ emp.display_name || emp.name }}<span v-if="emp.id === employee?.id" class="ml-1 font-normal text-primary/70">(Anda)</span></span>
+                                                        <span class="shrink-0 text-xs font-bold text-indigo-600">{{ emp.project_count }} proyek</span>
+                                                    </div>
+                                                </template>
+                                                <div v-else class="px-4 py-6 text-center text-xs text-gray-400">Belum ada data</div>
+                                            </div>
+                                        </div>
+                                    </CardContent>
+                                </Card>
+                                <Card>
+                                    <CardHeader class="pb-2">
+                                        <CardTitle class="text-sm font-semibold">Top 10 Capaian Terbesar</CardTitle>
+                                    </CardHeader>
+                                    <CardContent>
+                                        <div v-if="top_employees_by_achievement?.length" class="mb-3 h-52">
+                                            <Bar :data="empByAchievementChartData" :options="empByAchievementChartOptions" />
+                                        </div>
+                                        <div v-else class="mb-3 flex h-52 items-center justify-center rounded-lg border border-dashed border-gray-200 bg-gray-50">
+                                            <p class="text-sm text-gray-400">Belum ada data capaian bulan ini</p>
+                                        </div>
+                                        <div class="relative">
+                                            <div class="max-h-52 overflow-y-auto divide-y divide-gray-100 rounded-md border [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-gray-200 [&::-webkit-scrollbar-track]:bg-transparent">
+                                                <template v-if="top_employees_by_achievement?.length">
+                                                    <div v-for="(emp, idx) in top_employees_by_achievement" :key="emp.id" :class="['flex items-center gap-3 px-3 py-2', emp.id === employee?.id ? 'bg-primary/5' : '']">
+                                                        <span class="w-5 shrink-0 text-right text-xs font-bold text-gray-400">{{ idx + 1 }}</span>
+                                                        <div class="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-green-100 text-[10px] font-bold text-green-700">{{ (emp.display_name || emp.name).charAt(0).toUpperCase() }}</div>
+                                                        <div class="min-w-0 flex-1">
+                                                            <p :class="['truncate text-xs', emp.id === employee?.id ? 'font-semibold text-primary' : 'text-gray-700']">{{ emp.display_name || emp.name }}<span v-if="emp.id === employee?.id" class="ml-1 font-normal text-primary/70">(Anda)</span></p>
+                                                            <Progress :model-value="emp.avg_achievement ?? 0" :class="['mt-0.5 h-1', progressVariant(emp.avg_achievement ?? 0)]" />
+                                                        </div>
+                                                        <span :class="['shrink-0 text-xs font-bold', achievementColor(emp.avg_achievement ?? 0)]">{{ (emp.avg_achievement ?? 0).toFixed(1) }}%</span>
+                                                    </div>
+                                                </template>
+                                                <div v-else class="px-4 py-6 text-center text-xs text-gray-400">Belum ada data</div>
+                                            </div>
+                                        </div>
+                                    </CardContent>
+                                </Card>
+                            </div>
                         </TabsContent>
                         <TabsContent value="team">
                             <div class="space-y-4">
@@ -527,23 +773,43 @@ const lineChartOptions = {
                                     </CardHeader>
                                     <CardContent class="pt-0">
                                         <!-- Member list -->
-                                        <div class="flex gap-2 overflow-x-auto pb-1">
-                                            <div
-                                                v-for="member in ledProject.members"
-                                                :key="member.id"
-                                                :class="[
-                                                    'flex shrink-0 items-center gap-1.5 rounded-full border px-3 py-1 text-xs',
-                                                    isProjectLeader(member)
-                                                        ? 'border-amber-300 bg-amber-50 text-amber-800'
-                                                        : 'border-gray-200 bg-gray-50 text-gray-700'
-                                                ]"
-                                            >
-                                                <span v-if="isProjectLeader(member)" class="text-amber-500" aria-label="Ketua">&#9733;</span>
-                                                <span>{{ member.display_name || member.name }}</span>
-                                                <Badge
+                                        <div class="flex items-center gap-2">
+                                            <!-- Pinned ketua -->
+                                            <template v-for="member in ledProject.members" :key="'lead-'+member.id">
+                                                <div
                                                     v-if="isProjectLeader(member)"
-                                                    class="ml-0.5 h-4 bg-amber-500 px-1.5 text-[10px] text-white hover:bg-amber-500"
-                                                >Ketua</Badge>
+                                                    class="flex shrink-0 items-center gap-1.5 rounded-full border border-amber-300 bg-amber-50 px-3 py-1 text-xs text-amber-800"
+                                                >
+                                                    <span class="text-amber-500" aria-label="Ketua">&#9733;</span>
+                                                    <span>{{ member.display_name || member.name }}</span>
+                                                    <Badge class="ml-0.5 h-4 bg-amber-500 px-1.5 text-[10px] text-white hover:bg-amber-500">Ketua</Badge>
+                                                </div>
+                                            </template>
+
+                                            <span
+                                                v-if="ledProject.members.some(m => isProjectLeader(m)) && ledProject.members.some(m => !isProjectLeader(m))"
+                                                class="h-6 w-px shrink-0 bg-gray-200"
+                                            />
+
+                                            <div v-if="ledProject.members.some(m => !isProjectLeader(m))" class="relative min-w-0 flex-1">
+                                                <div
+                                                    class="flex gap-2 overflow-x-auto [&::-webkit-scrollbar]:hidden [scrollbar-width:none]"
+                                                    :ref="(el) => initChipScrollable(el as HTMLElement | null, ledProject.id)"
+                                                >
+                                                    <template v-for="member in ledProject.members" :key="member.id">
+                                                        <div
+                                                            v-if="!isProjectLeader(member)"
+                                                            class="flex shrink-0 items-center gap-1.5 rounded-full border border-gray-200 bg-gray-50 px-3 py-1 text-xs text-gray-700"
+                                                        >
+                                                            <span>{{ member.display_name || member.name }}</span>
+                                                        </div>
+                                                    </template>
+                                                </div>
+                                                <div v-if="chipScrollable[ledProject.id]" class="pointer-events-none absolute inset-y-0 right-0 flex items-center bg-gradient-to-l from-white via-white/70 to-transparent pl-6 pr-1">
+                                                    <svg class="h-4 w-4 animate-bounce-x text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/>
+                                                    </svg>
+                                                </div>
                                             </div>
                                         </div>
                                     </CardContent>
@@ -618,6 +884,210 @@ const lineChartOptions = {
                                 </div>
                             </div>
                         </div>
+                    </div>
+
+                    <!-- Team ranking (visible to all staff for comparison) — always shown -->
+                    <h2 class="mt-10 mb-4 flex items-center gap-2 text-sm font-semibold text-primary uppercase tracking-wide">
+                        <span class="h-px flex-1 bg-primary/20"></span>
+                        Perbandingan Kinerja Tim
+                        <span class="h-px flex-1 bg-primary/20"></span>
+                    </h2>
+                    <div class="grid gap-4 lg:grid-cols-3">
+                        <!-- Bar chart -->
+                        <Card class="lg:col-span-2">
+                            <CardHeader class="pb-2">
+                                <CardTitle class="text-base">Capaian Per Tim</CardTitle>
+                            </CardHeader>
+                            <CardContent>
+                                <div v-if="teamList.length" class="h-64">
+                                    <Bar :data="barChartData" :options="barChartOptions" />
+                                </div>
+                                <div v-else class="flex h-64 items-center justify-center rounded-lg border border-dashed border-gray-200 bg-gray-50">
+                                    <p class="text-sm text-gray-400">Belum ada data capaian tim bulan ini</p>
+                                </div>
+                            </CardContent>
+                        </Card>
+
+                        <!-- Team ranking list -->
+                        <Card>
+                            <CardHeader>
+                                <CardTitle class="text-base">Peringkat Tim</CardTitle>
+                            </CardHeader>
+                            <CardContent class="p-0">
+                                <div class="relative">
+                                    <div class="max-h-64 overflow-y-auto divide-y divide-gray-100 [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-gray-200 [&::-webkit-scrollbar-track]:bg-transparent">
+                                        <template v-if="teamList.length">
+                                            <div v-for="(team, idx) in teamList" :key="team.id">
+                                                <button
+                                                    type="button"
+                                                    class="flex w-full items-center gap-3 px-4 py-3 text-left hover:bg-gray-50 transition-colors"
+                                                    :aria-expanded="isTeamExpanded(team.id)"
+                                                    @click="toggleTeam(team.id)"
+                                                >
+                                                    <span class="w-5 shrink-0 text-right text-xs font-bold text-gray-400">
+                                                        {{ idx + 1 }}
+                                                    </span>
+                                                    <div class="min-w-0 flex-1">
+                                                        <p class="truncate text-sm font-medium">{{ team.name }}</p>
+                                                        <Progress :model-value="team.avg" :class="['mt-1 h-1.5', progressVariant(team.avg)]" />
+                                                    </div>
+                                                    <span :class="['shrink-0 text-sm font-bold', achievementColor(team.avg)]">
+                                                        {{ team.avg.toFixed(1) }}%
+                                                    </span>
+                                                    <svg
+                                                        :class="['h-4 w-4 shrink-0 text-gray-400 transition-transform', isTeamExpanded(team.id) ? 'rotate-180' : '']"
+                                                        fill="none" stroke="currentColor" viewBox="0 0 24 24"
+                                                    >
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                                                    </svg>
+                                                </button>
+                                                <div
+                                                    v-if="isTeamExpanded(team.id) && (team as TeamWithMembers).members?.length"
+                                                    class="border-t border-gray-100 bg-gray-50 px-4 py-3"
+                                                >
+                                                    <p class="mb-2 text-xs font-medium text-gray-500 uppercase tracking-wide">Anggota Tim</p>
+                                                    <div class="flex flex-wrap gap-1.5">
+                                                        <span
+                                                            v-for="member in (team as TeamWithMembers).members"
+                                                            :key="member.id"
+                                                            :class="[
+                                                                'inline-flex items-center gap-1 rounded-full border px-2.5 py-0.5 text-xs',
+                                                                isProjectLeaderById(member.id)
+                                                                    ? 'border-amber-300 bg-amber-50 text-amber-800'
+                                                                    : 'border-gray-200 bg-white text-gray-600'
+                                                            ]"
+                                                        >
+                                                            <span v-if="isProjectLeaderById(member.id)" class="text-amber-500" aria-label="Ketua Proyek">&#9733;</span>
+                                                            {{ member.display_name || member.name }}
+                                                            <Badge
+                                                                v-if="isProjectLeaderById(member.id)"
+                                                                class="ml-0.5 h-3.5 bg-amber-500 px-1 text-[9px] leading-none text-white hover:bg-amber-500"
+                                                            >Ketua</Badge>
+                                                        </span>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </template>
+                                        <div v-else class="px-4 py-8 text-center text-sm text-gray-400">
+                                            Belum ada data tim
+                                        </div>
+                                    </div>
+                                    <div v-if="teamList.length > 4" class="pointer-events-none absolute inset-x-0 bottom-0 flex justify-center bg-gradient-to-t from-white via-white/60 to-transparent py-1.5">
+                                        <svg class="h-4 w-4 animate-bounce text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                            <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/>
+                                        </svg>
+                                    </div>
+                                </div>
+                            </CardContent>
+                        </Card>
+                    </div>
+
+                    <!-- Top 10 Pegawai rankings — always visible -->
+                    <h2 class="mt-10 mb-4 flex items-center gap-2 text-sm font-semibold text-primary uppercase tracking-wide">
+                        <span class="h-px flex-1 bg-primary/20"></span>
+                        Peringkat Pegawai
+                        <span class="h-px flex-1 bg-primary/20"></span>
+                    </h2>
+                    <div class="grid gap-4 md:grid-cols-2">
+                        <!-- Top 10 by project count -->
+                        <Card>
+                            <CardHeader class="pb-2">
+                                <CardTitle class="text-sm font-semibold">Top 10 Proyek Terbanyak</CardTitle>
+                            </CardHeader>
+                            <CardContent>
+                                <!-- Chart -->
+                                <div v-if="top_employees_by_projects?.length" class="mb-3 h-52">
+                                    <Bar :data="empByProjectsChartData" :options="empByProjectsChartOptions" />
+                                </div>
+                                <div v-else class="mb-3 flex h-52 items-center justify-center rounded-lg border border-dashed border-gray-200 bg-gray-50">
+                                    <p class="text-sm text-gray-400">Belum ada data proyek bulan ini</p>
+                                </div>
+                                <!-- Scrollable list -->
+                                <div class="relative">
+                                    <div class="max-h-52 overflow-y-auto divide-y divide-gray-100 rounded-md border [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-gray-200 [&::-webkit-scrollbar-track]:bg-transparent">
+                                        <template v-if="top_employees_by_projects?.length">
+                                            <div
+                                                v-for="(emp, idx) in top_employees_by_projects"
+                                                :key="emp.id"
+                                                :class="['flex items-center gap-3 px-3 py-2', emp.id === employee?.id ? 'bg-primary/5' : '']"
+                                            >
+                                                <span class="w-5 shrink-0 text-right text-xs font-bold text-gray-400">{{ idx + 1 }}</span>
+                                                <div class="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-indigo-100 text-[10px] font-bold text-indigo-700">
+                                                    {{ (emp.display_name || emp.name).charAt(0).toUpperCase() }}
+                                                </div>
+                                                <span :class="['min-w-0 flex-1 truncate text-xs', emp.id === employee?.id ? 'font-semibold text-primary' : 'text-gray-700']">
+                                                    {{ emp.display_name || emp.name }}
+                                                    <span v-if="emp.id === employee?.id" class="ml-1 font-normal text-primary/70">(Anda)</span>
+                                                </span>
+                                                <span class="shrink-0 text-xs font-bold text-indigo-600">{{ emp.project_count }} proyek</span>
+                                            </div>
+                                        </template>
+                                        <div v-else class="px-4 py-6 text-center text-xs text-gray-400">
+                                            Belum ada data
+                                        </div>
+                                    </div>
+                                    <div v-if="(top_employees_by_projects?.length ?? 0) > 6" class="pointer-events-none absolute inset-x-0 bottom-0 flex justify-center rounded-b-md bg-gradient-to-t from-white via-white/60 to-transparent py-1">
+                                        <svg class="h-3.5 w-3.5 animate-bounce text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                            <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/>
+                                        </svg>
+                                    </div>
+                                </div>
+                            </CardContent>
+                        </Card>
+
+                        <!-- Top 10 by achievement -->
+                        <Card>
+                            <CardHeader class="pb-2">
+                                <CardTitle class="text-sm font-semibold">Top 10 Capaian Terbesar</CardTitle>
+                            </CardHeader>
+                            <CardContent>
+                                <!-- Chart -->
+                                <div v-if="top_employees_by_achievement?.length" class="mb-3 h-52">
+                                    <Bar :data="empByAchievementChartData" :options="empByAchievementChartOptions" />
+                                </div>
+                                <div v-else class="mb-3 flex h-52 items-center justify-center rounded-lg border border-dashed border-gray-200 bg-gray-50">
+                                    <p class="text-sm text-gray-400">Belum ada data capaian bulan ini</p>
+                                </div>
+                                <!-- Scrollable list -->
+                                <div class="relative">
+                                    <div class="max-h-52 overflow-y-auto divide-y divide-gray-100 rounded-md border [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-gray-200 [&::-webkit-scrollbar-track]:bg-transparent">
+                                        <template v-if="top_employees_by_achievement?.length">
+                                            <div
+                                                v-for="(emp, idx) in top_employees_by_achievement"
+                                                :key="emp.id"
+                                                :class="['flex items-center gap-3 px-3 py-2', emp.id === employee?.id ? 'bg-primary/5' : '']"
+                                            >
+                                                <span class="w-5 shrink-0 text-right text-xs font-bold text-gray-400">{{ idx + 1 }}</span>
+                                                <div class="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-green-100 text-[10px] font-bold text-green-700">
+                                                    {{ (emp.display_name || emp.name).charAt(0).toUpperCase() }}
+                                                </div>
+                                                <div class="min-w-0 flex-1">
+                                                    <p :class="['truncate text-xs', emp.id === employee?.id ? 'font-semibold text-primary' : 'text-gray-700']">
+                                                        {{ emp.display_name || emp.name }}
+                                                        <span v-if="emp.id === employee?.id" class="ml-1 font-normal text-primary/70">(Anda)</span>
+                                                    </p>
+                                                    <Progress
+                                                        :model-value="emp.avg_achievement ?? 0"
+                                                        :class="['mt-0.5 h-1', progressVariant(emp.avg_achievement ?? 0)]"
+                                                    />
+                                                </div>
+                                                <span :class="['shrink-0 text-xs font-bold', achievementColor(emp.avg_achievement ?? 0)]">
+                                                    {{ (emp.avg_achievement ?? 0).toFixed(1) }}%
+                                                </span>
+                                            </div>
+                                        </template>
+                                        <div v-else class="px-4 py-6 text-center text-xs text-gray-400">
+                                            Belum ada data
+                                        </div>
+                                    </div>
+                                    <div v-if="(top_employees_by_achievement?.length ?? 0) > 6" class="pointer-events-none absolute inset-x-0 bottom-0 flex justify-center rounded-b-md bg-gradient-to-t from-white via-white/60 to-transparent py-1">
+                                        <svg class="h-3.5 w-3.5 animate-bounce text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                            <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/>
+                                        </svg>
+                                    </div>
+                                </div>
+                            </CardContent>
+                        </Card>
                     </div>
 
                     <!-- No projects -->
@@ -776,59 +1246,138 @@ const lineChartOptions = {
                             <CardTitle class="text-base">Peringkat Tim</CardTitle>
                         </CardHeader>
                         <CardContent class="p-0">
-                            <div class="max-h-64 overflow-y-auto divide-y divide-gray-100">
-                                <div v-for="(team, idx) in teamList" :key="team.id">
-                                    <!-- Team row (clickable to expand members) -->
-                                    <button
-                                        type="button"
-                                        class="flex w-full items-center gap-3 px-4 py-3 text-left hover:bg-gray-50 transition-colors"
-                                        :aria-expanded="isTeamExpanded(team.id)"
-                                        @click="toggleTeam(team.id)"
-                                    >
-                                        <span class="w-5 shrink-0 text-right text-xs font-bold text-gray-400">
-                                            {{ idx + 1 }}
-                                        </span>
-                                        <div class="min-w-0 flex-1">
-                                            <p class="truncate text-sm font-medium">{{ team.name }}</p>
-                                            <Progress :model-value="team.avg" :class="['mt-1 h-1.5', progressVariant(team.avg)]" />
-                                        </div>
-                                        <span :class="['shrink-0 text-sm font-bold', achievementColor(team.avg)]">
-                                            {{ team.avg.toFixed(1) }}%
-                                        </span>
-                                        <!-- Chevron -->
-                                        <svg
-                                            :class="['h-4 w-4 shrink-0 text-gray-400 transition-transform', isTeamExpanded(team.id) ? 'rotate-180' : '']"
-                                            fill="none" stroke="currentColor" viewBox="0 0 24 24"
+                            <div class="relative">
+                                <div class="max-h-64 overflow-y-auto divide-y divide-gray-100 [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-gray-200 [&::-webkit-scrollbar-track]:bg-transparent">
+                                    <div v-for="(team, idx) in teamList" :key="team.id">
+                                        <!-- Team row (clickable to expand members) -->
+                                        <button
+                                            type="button"
+                                            class="flex w-full items-center gap-3 px-4 py-3 text-left hover:bg-gray-50 transition-colors"
+                                            :aria-expanded="isTeamExpanded(team.id)"
+                                            @click="toggleTeam(team.id)"
                                         >
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
-                                        </svg>
-                                    </button>
-                                    <!-- Expandable member chips -->
-                                    <div
-                                        v-if="isTeamExpanded(team.id) && (team as TeamWithMembers).members?.length"
-                                        class="border-t border-gray-100 bg-gray-50 px-4 py-3"
-                                    >
-                                        <p class="mb-2 text-xs font-medium text-gray-500 uppercase tracking-wide">Anggota Tim</p>
-                                        <div class="flex flex-wrap gap-1.5">
-                                            <span
-                                                v-for="member in (team as TeamWithMembers).members"
-                                                :key="member.id"
-                                                :class="[
-                                                    'inline-flex items-center gap-1 rounded-full border px-2.5 py-0.5 text-xs',
-                                                    isProjectLeaderById(member.id)
-                                                        ? 'border-amber-300 bg-amber-50 text-amber-800'
-                                                        : 'border-gray-200 bg-white text-gray-600'
-                                                ]"
-                                            >
-                                                <span v-if="isProjectLeaderById(member.id)" class="text-amber-500" aria-label="Ketua Proyek">&#9733;</span>
-                                                {{ member.display_name || member.name }}
-                                                <Badge
-                                                    v-if="isProjectLeaderById(member.id)"
-                                                    class="ml-0.5 h-3.5 bg-amber-500 px-1 text-[9px] leading-none text-white hover:bg-amber-500"
-                                                >Ketua</Badge>
+                                            <span class="w-5 shrink-0 text-right text-xs font-bold text-gray-400">
+                                                {{ idx + 1 }}
                                             </span>
+                                            <div class="min-w-0 flex-1">
+                                                <p class="truncate text-sm font-medium">{{ team.name }}</p>
+                                                <Progress :model-value="team.avg" :class="['mt-1 h-1.5', progressVariant(team.avg)]" />
+                                            </div>
+                                            <span :class="['shrink-0 text-sm font-bold', achievementColor(team.avg)]">
+                                                {{ team.avg.toFixed(1) }}%
+                                            </span>
+                                            <!-- Chevron -->
+                                            <svg
+                                                :class="['h-4 w-4 shrink-0 text-gray-400 transition-transform', isTeamExpanded(team.id) ? 'rotate-180' : '']"
+                                                fill="none" stroke="currentColor" viewBox="0 0 24 24"
+                                            >
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                                            </svg>
+                                        </button>
+                                        <!-- Expandable member chips -->
+                                        <div
+                                            v-if="isTeamExpanded(team.id) && (team as TeamWithMembers).members?.length"
+                                            class="border-t border-gray-100 bg-gray-50 px-4 py-3"
+                                        >
+                                            <p class="mb-2 text-xs font-medium text-gray-500 uppercase tracking-wide">Anggota Tim</p>
+                                            <div class="flex flex-wrap gap-1.5">
+                                                <span
+                                                    v-for="member in (team as TeamWithMembers).members"
+                                                    :key="member.id"
+                                                    :class="[
+                                                        'inline-flex items-center gap-1 rounded-full border px-2.5 py-0.5 text-xs',
+                                                        isProjectLeaderById(member.id)
+                                                            ? 'border-amber-300 bg-amber-50 text-amber-800'
+                                                            : 'border-gray-200 bg-white text-gray-600'
+                                                    ]"
+                                                >
+                                                    <span v-if="isProjectLeaderById(member.id)" class="text-amber-500" aria-label="Ketua Proyek">&#9733;</span>
+                                                    {{ member.display_name || member.name }}
+                                                    <Badge
+                                                        v-if="isProjectLeaderById(member.id)"
+                                                        class="ml-0.5 h-3.5 bg-amber-500 px-1 text-[9px] leading-none text-white hover:bg-amber-500"
+                                                    >Ketua</Badge>
+                                                </span>
+                                            </div>
                                         </div>
                                     </div>
+                                </div>
+                                <div class="pointer-events-none absolute inset-x-0 bottom-0 flex justify-center bg-gradient-to-t from-white via-white/60 to-transparent py-1.5">
+                                    <svg class="h-4 w-4 animate-bounce text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/>
+                                    </svg>
+                                </div>
+                            </div>
+                        </CardContent>
+                    </Card>
+                </div>
+
+                <!-- Employee rankings (same as staff view) -->
+                <h2 class="mt-10 mb-4 flex items-center gap-2 text-sm font-semibold text-primary uppercase tracking-wide">
+                    <span class="h-px flex-1 bg-primary/20"></span>
+                    Peringkat Pegawai
+                    <span class="h-px flex-1 bg-primary/20"></span>
+                </h2>
+                <div class="grid gap-4 md:grid-cols-2">
+                    <!-- Top 10 by project count -->
+                    <Card>
+                        <CardHeader class="pb-2">
+                            <CardTitle class="text-sm font-semibold">Top 10 Proyek Terbanyak</CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                            <div v-if="top_employees_by_projects?.length" class="mb-3 h-52">
+                                <Bar :data="empByProjectsChartData" :options="empByProjectsChartOptions" />
+                            </div>
+                            <div v-else class="mb-3 flex h-52 items-center justify-center rounded-lg border border-dashed border-gray-200 bg-gray-50">
+                                <p class="text-sm text-gray-400">Belum ada data proyek bulan ini</p>
+                            </div>
+                            <div class="relative">
+                                <div class="max-h-52 overflow-y-auto divide-y divide-gray-100 rounded-md border [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-gray-200 [&::-webkit-scrollbar-track]:bg-transparent">
+                                    <template v-if="top_employees_by_projects?.length">
+                                        <div v-for="(emp, idx) in top_employees_by_projects" :key="emp.id" class="flex items-center gap-3 px-3 py-2">
+                                            <span class="w-5 shrink-0 text-right text-xs font-bold text-gray-400">{{ idx + 1 }}</span>
+                                            <div class="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-indigo-100 text-[10px] font-bold text-indigo-700">
+                                                {{ (emp.display_name || emp.name).charAt(0).toUpperCase() }}
+                                            </div>
+                                            <span class="min-w-0 flex-1 truncate text-xs text-gray-700">{{ emp.display_name || emp.name }}</span>
+                                            <span class="shrink-0 text-xs font-bold text-indigo-600">{{ emp.project_count }} proyek</span>
+                                        </div>
+                                    </template>
+                                    <div v-else class="px-4 py-6 text-center text-xs text-gray-400">Belum ada data</div>
+                                </div>
+                            </div>
+                        </CardContent>
+                    </Card>
+                    <!-- Top 10 by achievement -->
+                    <Card>
+                        <CardHeader class="pb-2">
+                            <CardTitle class="text-sm font-semibold">Top 10 Capaian Terbesar</CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                            <div v-if="top_employees_by_achievement?.length" class="mb-3 h-52">
+                                <Bar :data="empByAchievementChartData" :options="empByAchievementChartOptions" />
+                            </div>
+                            <div v-else class="mb-3 flex h-52 items-center justify-center rounded-lg border border-dashed border-gray-200 bg-gray-50">
+                                <p class="text-sm text-gray-400">Belum ada data capaian bulan ini</p>
+                            </div>
+                            <div class="relative">
+                                <div class="max-h-52 overflow-y-auto divide-y divide-gray-100 rounded-md border [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-gray-200 [&::-webkit-scrollbar-track]:bg-transparent">
+                                    <template v-if="top_employees_by_achievement?.length">
+                                        <div v-for="(emp, idx) in top_employees_by_achievement" :key="emp.id" class="flex items-center gap-3 px-3 py-2">
+                                            <span class="w-5 shrink-0 text-right text-xs font-bold text-gray-400">{{ idx + 1 }}</span>
+                                            <div class="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-green-100 text-[10px] font-bold text-green-700">
+                                                {{ (emp.display_name || emp.name).charAt(0).toUpperCase() }}
+                                            </div>
+                                            <div class="min-w-0 flex-1">
+                                                <p class="truncate text-xs text-gray-700">{{ emp.display_name || emp.name }}</p>
+                                                <Progress :model-value="emp.avg_achievement ?? 0" :class="['mt-0.5 h-1', progressVariant(emp.avg_achievement ?? 0)]" />
+                                            </div>
+                                            <span :class="['shrink-0 text-xs font-bold', achievementColor(emp.avg_achievement ?? 0)]">
+                                                {{ (emp.avg_achievement ?? 0).toFixed(1) }}%
+                                            </span>
+                                        </div>
+                                    </template>
+                                    <div v-else class="px-4 py-6 text-center text-xs text-gray-400">Belum ada data</div>
                                 </div>
                             </div>
                         </CardContent>
@@ -907,57 +1456,64 @@ const lineChartOptions = {
                             <CardTitle class="text-base">Peringkat Tim</CardTitle>
                         </CardHeader>
                         <CardContent class="p-0">
-                            <div class="max-h-64 overflow-y-auto divide-y divide-gray-100">
-                                <div v-for="(team, idx) in teamList" :key="team.id">
-                                    <button
-                                        type="button"
-                                        class="flex w-full items-center gap-3 px-4 py-3 text-left hover:bg-gray-50 transition-colors"
-                                        :aria-expanded="isTeamExpanded(team.id)"
-                                        @click="toggleTeam(team.id)"
-                                    >
-                                        <span class="w-5 shrink-0 text-right text-xs font-bold text-gray-400">
-                                            {{ idx + 1 }}
-                                        </span>
-                                        <div class="min-w-0 flex-1">
-                                            <p class="truncate text-sm font-medium">{{ team.name }}</p>
-                                            <Progress :model-value="team.avg" :class="['mt-1 h-1.5', progressVariant(team.avg)]" />
-                                        </div>
-                                        <span :class="['shrink-0 text-sm font-bold', achievementColor(team.avg)]">
-                                            {{ team.avg.toFixed(1) }}%
-                                        </span>
-                                        <svg
-                                            :class="['h-4 w-4 shrink-0 text-gray-400 transition-transform', isTeamExpanded(team.id) ? 'rotate-180' : '']"
-                                            fill="none" stroke="currentColor" viewBox="0 0 24 24"
+                            <div class="relative">
+                                <div class="max-h-64 overflow-y-auto divide-y divide-gray-100 [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-gray-200 [&::-webkit-scrollbar-track]:bg-transparent">
+                                    <div v-for="(team, idx) in teamList" :key="team.id">
+                                        <button
+                                            type="button"
+                                            class="flex w-full items-center gap-3 px-4 py-3 text-left hover:bg-gray-50 transition-colors"
+                                            :aria-expanded="isTeamExpanded(team.id)"
+                                            @click="toggleTeam(team.id)"
                                         >
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
-                                        </svg>
-                                    </button>
-                                    <!-- Expandable member chips -->
-                                    <div
-                                        v-if="isTeamExpanded(team.id) && (team as TeamWithMembers).members?.length"
-                                        class="border-t border-gray-100 bg-gray-50 px-4 py-3"
-                                    >
-                                        <p class="mb-2 text-xs font-medium text-gray-500 uppercase tracking-wide">Anggota Tim</p>
-                                        <div class="flex flex-wrap gap-1.5">
-                                            <span
-                                                v-for="member in (team as TeamWithMembers).members"
-                                                :key="member.id"
-                                                :class="[
-                                                    'inline-flex items-center gap-1 rounded-full border px-2.5 py-0.5 text-xs',
-                                                    isProjectLeaderById(member.id)
-                                                        ? 'border-amber-300 bg-amber-50 text-amber-800'
-                                                        : 'border-gray-200 bg-white text-gray-600'
-                                                ]"
-                                            >
-                                                <span v-if="isProjectLeaderById(member.id)" class="text-amber-500" aria-label="Ketua Proyek">&#9733;</span>
-                                                {{ member.display_name || member.name }}
-                                                <Badge
-                                                    v-if="isProjectLeaderById(member.id)"
-                                                    class="ml-0.5 h-3.5 bg-amber-500 px-1 text-[9px] leading-none text-white hover:bg-amber-500"
-                                                >Ketua</Badge>
+                                            <span class="w-5 shrink-0 text-right text-xs font-bold text-gray-400">
+                                                {{ idx + 1 }}
                                             </span>
+                                            <div class="min-w-0 flex-1">
+                                                <p class="truncate text-sm font-medium">{{ team.name }}</p>
+                                                <Progress :model-value="team.avg" :class="['mt-1 h-1.5', progressVariant(team.avg)]" />
+                                            </div>
+                                            <span :class="['shrink-0 text-sm font-bold', achievementColor(team.avg)]">
+                                                {{ team.avg.toFixed(1) }}%
+                                            </span>
+                                            <svg
+                                                :class="['h-4 w-4 shrink-0 text-gray-400 transition-transform', isTeamExpanded(team.id) ? 'rotate-180' : '']"
+                                                fill="none" stroke="currentColor" viewBox="0 0 24 24"
+                                            >
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                                            </svg>
+                                        </button>
+                                        <!-- Expandable member chips -->
+                                        <div
+                                            v-if="isTeamExpanded(team.id) && (team as TeamWithMembers).members?.length"
+                                            class="border-t border-gray-100 bg-gray-50 px-4 py-3"
+                                        >
+                                            <p class="mb-2 text-xs font-medium text-gray-500 uppercase tracking-wide">Anggota Tim</p>
+                                            <div class="flex flex-wrap gap-1.5">
+                                                <span
+                                                    v-for="member in (team as TeamWithMembers).members"
+                                                    :key="member.id"
+                                                    :class="[
+                                                        'inline-flex items-center gap-1 rounded-full border px-2.5 py-0.5 text-xs',
+                                                        isProjectLeaderById(member.id)
+                                                            ? 'border-amber-300 bg-amber-50 text-amber-800'
+                                                            : 'border-gray-200 bg-white text-gray-600'
+                                                    ]"
+                                                >
+                                                    <span v-if="isProjectLeaderById(member.id)" class="text-amber-500" aria-label="Ketua Proyek">&#9733;</span>
+                                                    {{ member.display_name || member.name }}
+                                                    <Badge
+                                                        v-if="isProjectLeaderById(member.id)"
+                                                        class="ml-0.5 h-3.5 bg-amber-500 px-1 text-[9px] leading-none text-white hover:bg-amber-500"
+                                                    >Ketua</Badge>
+                                                </span>
+                                            </div>
                                         </div>
                                     </div>
+                                </div>
+                                <div class="pointer-events-none absolute inset-x-0 bottom-0 flex justify-center bg-gradient-to-t from-white via-white/60 to-transparent py-1.5">
+                                    <svg class="h-4 w-4 animate-bounce text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/>
+                                    </svg>
                                 </div>
                             </div>
                         </CardContent>

@@ -6,6 +6,7 @@ use App\Http\Controllers\EmployeeReportController;
 use App\Http\Controllers\PerformanceController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\ProjectController;
+use App\Http\Controllers\ReportAttachmentController;
 use App\Http\Controllers\TeamController;
 use App\Http\Controllers\WorkItemController;
 use Illuminate\Support\Facades\Route;
@@ -41,6 +42,12 @@ Route::middleware(['auth', 'verified'])->group(function () {
     // Staff performance entry
     Route::get('/performance', [PerformanceController::class, 'index'])->name('performance.index');
     Route::post('/performance/batch', [PerformanceController::class, 'storeBatch'])->name('performance.batch');
+
+    // Report attachments
+    Route::post('/performance/{report}/attachments', [ReportAttachmentController::class, 'store'])->name('report-attachments.store');
+    Route::get('/report-attachments/{attachment}/download', [ReportAttachmentController::class, 'download'])->name('report-attachments.download');
+    Route::delete('/report-attachments/{attachment}', [ReportAttachmentController::class, 'destroy'])->name('report-attachments.destroy');
+    Route::patch('/report-attachments/{attachment}/review', [ReportAttachmentController::class, 'review'])->name('report-attachments.review');
 
     // Profile
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');

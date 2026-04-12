@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class PerformanceReport extends Model
 {
@@ -37,5 +38,10 @@ class PerformanceReport extends Model
     public function reporter(): BelongsTo
     {
         return $this->belongsTo(Employee::class, 'reported_by');
+    }
+
+    public function attachments(): HasMany
+    {
+        return $this->hasMany(ReportAttachment::class);
     }
 }

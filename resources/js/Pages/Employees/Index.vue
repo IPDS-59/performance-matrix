@@ -4,12 +4,24 @@ import { Head, Link, router } from '@inertiajs/vue3';
 import type { Employee } from '@/types';
 import { Button } from '@/Components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/Components/ui/table';
+import ConfirmDialog from '@/Components/ConfirmDialog.vue';
+import { ref } from 'vue';
 
 defineProps<{ employees: Employee[] }>();
 
+const confirmOpen = ref(false);
+const pendingId = ref<number | null>(null);
+const pendingName = ref('');
+
 function confirmDelete(id: number, name: string) {
-    if (confirm(`Hapus pegawai "${name}"?`)) {
-        router.delete(route('employees.destroy', id));
+    pendingId.value = id;
+    pendingName.value = name;
+    confirmOpen.value = true;
+}
+
+function executeDelete() {
+    if (pendingId.value !== null) {
+        router.delete(route('employees.destroy', pendingId.value));
     }
 }
 </script>
@@ -61,7 +73,7 @@ function confirmDelete(id: number, name: string) {
                                 <Button variant="outline" size="sm" as-child>
                                     <Link :href="route('employees.edit', emp.id)">Edit</Link>
                                 </Button>
-                                <Button variant="destructive" size="sm" @click="confirmDelete(emp.id, emp.name)">
+                                <Button variant="destructive" size="sm" @click="confirmDelete(emp.id, emp.display_name || emp.name)">
                                     Hapus
                                 </Button>
                             </div>
@@ -70,5 +82,13 @@ function confirmDelete(id: number, name: string) {
                 </TableBody>
             </Table>
         </div>
+
+        <ConfirmDialog
+            v-model:open="confirmOpen"
+            title="Hapus Pegawai"
+            :description="`Pegawai &quot;${pendingName}&quot; akan dihapus secara permanen. Tindakan ini tidak dapat dibatalkan.`"
+            confirm-label="Hapus Pegawai"
+            @confirm="executeDelete"
+        />
     </AppLayout>
 </template>
