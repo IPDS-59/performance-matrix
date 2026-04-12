@@ -74,7 +74,7 @@ const nextNumber = computed(() =>
 
 const showAddForm = ref(false);
 
-type AssignmentRow = { employee_id: number; target: number; target_unit: string };
+type AssignmentRow = { employee_id: number; target: number; target_unit: string; _included: boolean };
 
 const addForm = useForm({
     number: nextNumber.value,
@@ -95,16 +95,26 @@ function openAddForm() {
         employee_id: m.id,
         target: 1,
         target_unit: 'Kegiatan',
+        _included: true,
     }));
     addForm.clearErrors();
     showAddForm.value = true;
 }
 
 function storeItem() {
-    addForm.post(route('work-items.store', props.project.id), {
-        preserveScroll: true,
-        onSuccess: () => { showAddForm.value = false; },
-    });
+    addForm
+        .transform(data => ({
+            ...data,
+            assignments: data.assign_to === 'specific'
+                ? data.assignments
+                    .filter(a => a._included)
+                    .map(a => ({ employee_id: a.employee_id, target: a.target, target_unit: a.target_unit }))
+                : [],
+        }))
+        .post(route('work-items.store', props.project.id), {
+            preserveScroll: true,
+            onSuccess: () => { showAddForm.value = false; },
+        });
 }
 
 // Edit form
@@ -113,24 +123,26 @@ const editingId = ref<number | null>(null);
 const editForms = ref<Record<number, ReturnType<typeof useForm>>>({});
 
 function startEdit(item: WorkItem) {
-    const existingIds = new Set(item.assignments.map(a => a.employee_id));
+    const hasSpecific = item.assignments.length > 0;
+    const allSameTarget = !hasSpecific ||
+        (item.assignments.length === projectMembers.value.length &&
+            item.assignments.every(a => a.target == item.target && a.target_unit === item.target_unit));
+
     const assignments: AssignmentRow[] = projectMembers.value.map(m => {
         const existing = item.assignments.find(a => a.employee_id === m.id);
         return {
             employee_id: m.id,
             target: existing?.target ?? item.target,
             target_unit: existing?.target_unit ?? item.target_unit,
+            _included: !hasSpecific || !!existing,
         };
     });
-
-    const allSameTarget = item.assignments.length === 0 ||
-        item.assignments.length === projectMembers.value.length && item.assignments.every(a => a.target == item.target && a.target_unit === item.target_unit);
 
     editForms.value[item.id] = useForm({
         description: item.description,
         target: item.target,
         target_unit: item.target_unit,
-        assign_to: (item.assignments.length === 0 || allSameTarget) ? 'all' : 'specific' as 'all' | 'specific',
+        assign_to: (!hasSpecific || allSameTarget) ? 'all' : 'specific' as 'all' | 'specific',
         assignments,
     });
     editingId.value = item.id;
@@ -141,10 +153,19 @@ function cancelEdit() {
 }
 
 function saveEdit(itemId: number) {
-    editForms.value[itemId].put(route('work-items.update', itemId), {
-        preserveScroll: true,
-        onSuccess: () => { editingId.value = null; },
-    });
+    editForms.value[itemId]
+        .transform((data: any) => ({
+            ...data,
+            assignments: data.assign_to === 'specific'
+                ? data.assignments
+                    .filter((a: AssignmentRow) => a._included)
+                    .map((a: AssignmentRow) => ({ employee_id: a.employee_id, target: a.target, target_unit: a.target_unit }))
+                : [],
+        }))
+        .put(route('work-items.update', itemId), {
+            preserveScroll: true,
+            onSuccess: () => { editingId.value = null; },
+        });
 }
 
 function deleteItem(itemId: number) {
@@ -312,10 +333,8 @@ function memberName(employeeId: number): string {
                                     <div v-for="(row, idx) in editForms[item.id].assignments" :key="row.employee_id" class="flex items-center gap-2">
                                         <label class="flex items-center gap-1.5 w-40 shrink-0">
                                             <input type="checkbox"
-                                                :value="row.employee_id"
-                                                :checked="row._included !== false"
+                                                v-model="editForms[item.id].assignments[idx]._included"
                                                 class="accent-primary"
-                                                @change="(e) => { row._included = (e.target as HTMLInputElement).checked }"
                                             />
                                             <span class="truncate text-xs">{{ memberName(row.employee_id) }}</span>
                                         </label>
@@ -380,7 +399,7 @@ function memberName(employeeId: number): string {
                             <p v-if="!projectMembers.length" class="text-xs text-gray-400">Tambahkan anggota proyek terlebih dahulu.</p>
                             <div v-for="(row, idx) in addForm.assignments" :key="row.employee_id" class="flex items-center gap-2">
                                 <label class="flex items-center gap-1.5 w-40 shrink-0">
-                                    <input type="checkbox" checked class="accent-primary" />
+                                    <input type="checkbox" v-model="addForm.assignments[idx]._included" class="accent-primary" />
                                     <span class="truncate text-xs">{{ memberName(row.employee_id) }}</span>
                                 </label>
                                 <Input type="number" min="0.01" step="0.01" v-model="addForm.assignments[idx].target" class="w-24 text-xs" />

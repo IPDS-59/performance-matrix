@@ -82,7 +82,7 @@ class ProjectController extends Controller
             && $user->employee !== null
             && $user->employee->id === $project->leader_id;
 
-        $project->load('members:id,name,display_name', 'team:id,name', 'workItems');
+        $project->load('members:id,name,display_name', 'team:id,name', 'workItems.assignments');
         $teams = Team::where('is_active', true)->orderBy('name')->get(['id', 'name']);
         $employees = Employee::where('is_active', true)->orderBy('name')->get(['id', 'name', 'display_name']);
 
