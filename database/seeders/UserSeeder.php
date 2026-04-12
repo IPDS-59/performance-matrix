@@ -2,6 +2,7 @@
 
 namespace Database\Seeders;
 
+use App\Models\Employee;
 use App\Models\User;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
@@ -41,7 +42,7 @@ class UserSeeder extends Seeder
         $staff->syncRoles('staff');
 
         // Link staff demo to a seeded employee so performance entry works
-        $employee = \App\Models\Employee::where('name', 'Sukma Nirmala Dewi')->first();
+        $employee = Employee::where('name', 'Sukma Nirmala Dewi')->first();
         if ($employee && ! $employee->user_id) {
             $employee->update(['user_id' => $staff->id]);
             $staff->update(['name' => $employee->display_name ?? $employee->name]);

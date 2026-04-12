@@ -771,23 +771,6 @@
       "objectives": []
     },
     {
-      "team": "STATISTIK JASA",
-      "name": "1. PUBLIKASI/LAPORAN STATISTIK KEUANGAN, 2. PUBLIKASI/LAPORAN STATISTIK TEKNOLOGI INFORMASI, 3.PUBLIKASI/LAPORAN STATISTIK PARIWISATA ",
-      "objective": "Mewujudkan Perumusan Kebijakan dan Pengambilan Keputusan Berbasis Data Statistik Berkualitas dan Insight yang Relevan",
-      "kpi": "Persentase Publikasi/Laporan Statistik Keuangan, Teknologi Informasi, Dan Pariwisata Yang Berkualitas : 100 Persen",
-      "status": "active",
-      "year": 2026,
-      "leader": "Akmal",
-      "members": [
-        "Apriliansyah",
-        "Fajrianto Manungki",
-        "Reni Triani R Timumun"
-      ],
-      "objectives": [
-        "Terwujudnya Penyediaan Data Dan Insight Statistik Keuangan, Teknologi Informasi, Dan Pariwisata Yang Berkualitas"
-      ]
-    },
-    {
       "team": "STATISTIK DISTRIBUSI",
       "name": "Penyediaan data Statistik Transportasi",
       "objective": "Mewujudkan Perumusan Kebijakan dan Pengambilan Keputusan Berbasis Data Statistik Berkualitas dan Insight yang Relevan",
@@ -3041,6 +3024,57 @@
       "objectives": [
         "Peningkatan Pembangunan Zona Integritas"
       ]
+    },
+    {
+      "team": "STATISTIK JASA",
+      "objective": "Mewujudkan Perumusan Kebijakan dan Pengambilan Keputusan Berbasis Data Statistik Berkualitas dan Insight yang Relevan",
+      "kpi": "Persentase Publikasi/Laporan Statistik Keuangan, Teknologi Informasi, Dan Pariwisata Yang Berkualitas : 100 Persen",
+      "status": "active",
+      "year": 2026,
+      "leader": "Akmal",
+      "members": [
+        "Apriliansyah",
+        "Fajrianto Manungki",
+        "Reni Triani R Timumun"
+      ],
+      "objectives": [
+        "Terwujudnya Penyediaan Data Dan Insight Statistik Keuangan, Teknologi Informasi, Dan Pariwisata Yang Berkualitas"
+      ],
+      "name": "Publikasi/Laporan Statistik Keuangan"
+    },
+    {
+      "team": "STATISTIK JASA",
+      "objective": "Mewujudkan Perumusan Kebijakan dan Pengambilan Keputusan Berbasis Data Statistik Berkualitas dan Insight yang Relevan",
+      "kpi": "Persentase Publikasi/Laporan Statistik Keuangan, Teknologi Informasi, Dan Pariwisata Yang Berkualitas : 100 Persen",
+      "status": "active",
+      "year": 2026,
+      "leader": "Akmal",
+      "members": [
+        "Apriliansyah",
+        "Fajrianto Manungki",
+        "Reni Triani R Timumun"
+      ],
+      "objectives": [
+        "Terwujudnya Penyediaan Data Dan Insight Statistik Keuangan, Teknologi Informasi, Dan Pariwisata Yang Berkualitas"
+      ],
+      "name": "Publikasi/Laporan Statistik Teknologi Informasi"
+    },
+    {
+      "team": "STATISTIK JASA",
+      "objective": "Mewujudkan Perumusan Kebijakan dan Pengambilan Keputusan Berbasis Data Statistik Berkualitas dan Insight yang Relevan",
+      "kpi": "Persentase Publikasi/Laporan Statistik Keuangan, Teknologi Informasi, Dan Pariwisata Yang Berkualitas : 100 Persen",
+      "status": "active",
+      "year": 2026,
+      "leader": "Akmal",
+      "members": [
+        "Apriliansyah",
+        "Fajrianto Manungki",
+        "Reni Triani R Timumun"
+      ],
+      "objectives": [
+        "Terwujudnya Penyediaan Data Dan Insight Statistik Keuangan, Teknologi Informasi, Dan Pariwisata Yang Berkualitas"
+      ],
+      "name": "Publikasi/Laporan Statistik Pariwisata"
     }
   ],
   "work_items": [
@@ -3367,24 +3401,6 @@
       "year": 2026,
       "number": 3,
       "description": "Penyusunan laporan hasil Survei Harga Konsumen"
-    },
-    {
-      "project": "1. PUBLIKASI/LAPORAN STATISTIK KEUANGAN, 2. PUBLIKASI/LAPORAN STATISTIK TEKNOLOGI INFORMASI, 3.PUBLIKASI/LAPORAN STATISTIK PARIWISATA ",
-      "year": 2026,
-      "number": 1,
-      "description": "Persiapan dan koordinasi pelaksanaan 1. PUBLIKASI/LAPORAN STATISTIK KEUANGAN, 2. PUBLIKASI/LAPORAN STATISTIK TEKNOLOGI INFORMASI, 3.PUBLIKASI/LAPORAN STATISTIK PARIWISATA "
-    },
-    {
-      "project": "1. PUBLIKASI/LAPORAN STATISTIK KEUANGAN, 2. PUBLIKASI/LAPORAN STATISTIK TEKNOLOGI INFORMASI, 3.PUBLIKASI/LAPORAN STATISTIK PARIWISATA ",
-      "year": 2026,
-      "number": 2,
-      "description": "Pelaksanaan kegiatan 1. PUBLIKASI/LAPORAN STATISTIK KEUANGAN, 2. PUBLIKASI/LAPORAN STATISTIK TEKNOLOGI INFORMASI, 3.PUBLIKASI/LAPORAN STATISTIK PARIWISATA "
-    },
-    {
-      "project": "1. PUBLIKASI/LAPORAN STATISTIK KEUANGAN, 2. PUBLIKASI/LAPORAN STATISTIK TEKNOLOGI INFORMASI, 3.PUBLIKASI/LAPORAN STATISTIK PARIWISATA ",
-      "year": 2026,
-      "number": 3,
-      "description": "Penyusunan laporan hasil 1. PUBLIKASI/LAPORAN STATISTIK KEUANGAN, 2. PUBLIKASI/LAPORAN STATISTIK TEKNOLOGI INFORMASI, 3.PUBLIKASI/LAPORAN STATISTIK PARIWISATA "
     },
     {
       "project": "Penyediaan data Statistik Transportasi",
@@ -5545,6 +5561,60 @@
       "year": 2026,
       "number": 3,
       "description": "Penyusunan laporan hasil Penyusunan Daftar Risiko"
+    },
+    {
+      "project": "Publikasi/Laporan Statistik Keuangan",
+      "year": 2026,
+      "number": 1,
+      "description": "Persiapan dan koordinasi pelaksanaan Publikasi/Laporan Statistik Keuangan"
+    },
+    {
+      "project": "Publikasi/Laporan Statistik Keuangan",
+      "year": 2026,
+      "number": 2,
+      "description": "Pelaksanaan kegiatan Publikasi/Laporan Statistik Keuangan"
+    },
+    {
+      "project": "Publikasi/Laporan Statistik Keuangan",
+      "year": 2026,
+      "number": 3,
+      "description": "Penyusunan laporan hasil Publikasi/Laporan Statistik Keuangan"
+    },
+    {
+      "project": "Publikasi/Laporan Statistik Teknologi Informasi",
+      "year": 2026,
+      "number": 1,
+      "description": "Persiapan dan koordinasi pelaksanaan Publikasi/Laporan Statistik Teknologi Informasi"
+    },
+    {
+      "project": "Publikasi/Laporan Statistik Teknologi Informasi",
+      "year": 2026,
+      "number": 2,
+      "description": "Pelaksanaan kegiatan Publikasi/Laporan Statistik Teknologi Informasi"
+    },
+    {
+      "project": "Publikasi/Laporan Statistik Teknologi Informasi",
+      "year": 2026,
+      "number": 3,
+      "description": "Penyusunan laporan hasil Publikasi/Laporan Statistik Teknologi Informasi"
+    },
+    {
+      "project": "Publikasi/Laporan Statistik Pariwisata",
+      "year": 2026,
+      "number": 1,
+      "description": "Persiapan dan koordinasi pelaksanaan Publikasi/Laporan Statistik Pariwisata"
+    },
+    {
+      "project": "Publikasi/Laporan Statistik Pariwisata",
+      "year": 2026,
+      "number": 2,
+      "description": "Pelaksanaan kegiatan Publikasi/Laporan Statistik Pariwisata"
+    },
+    {
+      "project": "Publikasi/Laporan Statistik Pariwisata",
+      "year": 2026,
+      "number": 3,
+      "description": "Penyusunan laporan hasil Publikasi/Laporan Statistik Pariwisata"
     }
   ]
 }
