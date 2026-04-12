@@ -30,7 +30,7 @@ class NotifyTeamLeadOnReportSubmitted
             }
 
             // Only notify each leader once per batch
-            if (in_array($project->leader_id, $notified, true)) {
+            if (in_array((int) $project->leader_id, $notified, true)) {
                 continue;
             }
 
@@ -42,7 +42,7 @@ class NotifyTeamLeadOnReportSubmitted
                 $project,
             ));
 
-            $notified[] = $project->leader_id;
+            $notified[] = (int) $project->leader_id;
         }
     }
 }

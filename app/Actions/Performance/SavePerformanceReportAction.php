@@ -29,6 +29,24 @@ class SavePerformanceReportAction
             ? (float) $assignment->target
             : (float) $workItem->target;
 
+        // Block new submissions when target is already reached
+        $isNewMonth = ! PerformanceReport::where([
+            'work_item_id' => $workItem->id,
+            'reported_by' => $reporter?->id,
+            'period_year' => $periodYear,
+            'period_month' => $periodMonth,
+        ])->exists();
+
+        if ($isNewMonth && $target > 0 && $reporter) {
+            $currentTotal = (float) PerformanceReport::where('work_item_id', $workItem->id)
+                ->where('reported_by', $reporter->id)
+                ->where('period_year', $periodYear)
+                ->where('approval_status', '!=', 'rejected')
+                ->sum('realization');
+
+            abort_if($currentTotal >= $target, 422, 'Target untuk rincian ini sudah tercapai.');
+        }
+
         // Sum all other months' realizations to compute cumulative achievement
         $otherMonthsTotal = (float) PerformanceReport::where('work_item_id', $workItem->id)
             ->where('reported_by', $reporter?->id)
