@@ -3,9 +3,12 @@
 namespace App\Http\Controllers;
 
 use App\Actions\Employees\LinkEmployeeToUserAction;
+use App\Http\Requests\StoreMutationRequest;
 use App\Models\Employee;
+use App\Models\EmployeeTeamHistory;
 use App\Models\Team;
 use App\Models\User;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -60,7 +63,12 @@ class EmployeeController extends Controller
         $users = User::whereDoesntHave('employee')->orderBy('name')->get(['id', 'name', 'email']);
         $employee->load('educations', 'team:id,name');
 
-        return Inertia::render('Employees/Edit', compact('employee', 'teams', 'users'));
+        $mutations = $employee->teamHistories()
+            ->with('team:id,name')
+            ->orderByDesc('started_at')
+            ->get();
+
+        return Inertia::render('Employees/Edit', compact('employee', 'teams', 'users', 'mutations'));
     }
 
     public function update(Request $request, Employee $employee, LinkEmployeeToUserAction $linkAction): RedirectResponse
@@ -98,5 +106,41 @@ class EmployeeController extends Controller
         $employee->delete();
 
         return redirect()->route('employees.index')->with('success', 'Pegawai berhasil dihapus.');
+    }
+
+    public function storeMutation(StoreMutationRequest $request, Employee $employee): RedirectResponse
+    {
+        $validated = $request->validated();
+
+        // Close the current open history entry for this employee.
+        EmployeeTeamHistory::where('employee_id', $employee->id)
+            ->whereNull('ended_at')
+            ->update(['ended_at' => $validated['started_at']]);
+
+        // Record the new team assignment.
+        EmployeeTeamHistory::create([
+            'employee_id' => $employee->id,
+            'team_id' => $validated['team_id'],
+            'started_at' => $validated['started_at'],
+            'notes' => $validated['notes'] ?? null,
+            'ended_at' => null,
+        ]);
+
+        // Update the employee's current team.
+        $employee->update(['team_id' => $validated['team_id']]);
+
+        return redirect()->back()->with('success', 'Mutasi pegawai berhasil disimpan.');
+    }
+
+    public function mutationHistory(Employee $employee): JsonResponse
+    {
+        $this->authorize('update', $employee);
+
+        $mutations = $employee->teamHistories()
+            ->with('team:id,name')
+            ->orderByDesc('started_at')
+            ->get();
+
+        return response()->json($mutations);
     }
 }

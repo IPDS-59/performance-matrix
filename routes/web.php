@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\EmployeeController;
+use App\Http\Controllers\EmployeeReportController;
 use App\Http\Controllers\PerformanceController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\ProjectController;
@@ -29,6 +30,13 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('/projects/{project}/work-items', [WorkItemController::class, 'store'])->name('work-items.store');
     Route::put('/work-items/{workItem}', [WorkItemController::class, 'update'])->name('work-items.update');
     Route::delete('/work-items/{workItem}', [WorkItemController::class, 'destroy'])->name('work-items.destroy');
+
+    // Employee mutation (transfer)
+    Route::post('/employees/{employee}/mutasi', [EmployeeController::class, 'storeMutation'])->name('employees.mutasi');
+    Route::get('/employees/{employee}/mutasi', [EmployeeController::class, 'mutationHistory'])->name('employees.mutasi.history');
+
+    // Reports
+    Route::get('/laporan/pegawai', [EmployeeReportController::class, 'index'])->name('laporan.pegawai');
 
     // Staff performance entry
     Route::get('/performance', [PerformanceController::class, 'index'])->name('performance.index');
