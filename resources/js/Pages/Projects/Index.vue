@@ -16,6 +16,7 @@ const props = defineProps<{
     teams: Team[];
     year: number;
     teamId: number;
+    canCreate: boolean;
 }>();
 
 const year = ref(props.year);
@@ -92,7 +93,7 @@ const teamGroups = computed(() => {
                     </SelectContent>
                 </Select>
             </div>
-            <Button as-child>
+            <Button v-if="canCreate" as-child>
                 <Link :href="route('projects.create')">Tambah Proyek</Link>
             </Button>
         </div>

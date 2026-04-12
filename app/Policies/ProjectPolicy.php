@@ -19,7 +19,14 @@ class ProjectPolicy
 
     public function create(User $user): bool
     {
-        return $user->hasPermissionTo('manage-projects');
+        if ($user->hasPermissionTo('manage-projects') || $user->hasPermissionTo('create-project')) {
+            return true;
+        }
+
+        // Staff who already lead a project may create new ones for their team.
+        $employee = $user->employee;
+
+        return $employee !== null && Project::where('leader_id', $employee->id)->exists();
     }
 
     public function update(User $user, Project $project): bool

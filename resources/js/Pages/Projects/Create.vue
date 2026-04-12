@@ -22,10 +22,11 @@ const props = defineProps<{
     employees: Employee[];
     previousProjects: PreviousProject[];
     copyYear: number;
+    isAdmin: boolean;
 }>();
 
 const form = useForm({
-    team_id: null as number | null,
+    team_id: props.isAdmin ? null as number | null : (props.teams[0]?.id ?? null) as number | null,
     leader_id: null as number | null,
     name: '',
     description: '',
@@ -74,17 +75,23 @@ function copyProject(project: PreviousProject) {
                 <h2 class="mb-4 text-base font-semibold text-gray-900">Proyek Baru</h2>
                 <form @submit.prevent="submit" class="space-y-4">
                     <div class="grid grid-cols-2 gap-4">
+                        <!-- Admin: team picker; Lead: read-only team badge -->
                         <div>
                             <Label>Tim Kerja</Label>
-                            <Select v-model="form.team_id">
-                                <SelectTrigger class="mt-1">
-                                    <SelectValue placeholder="Pilih tim..." />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem v-for="team in teams" :key="team.id" :value="team.id">{{ team.name }}</SelectItem>
-                                </SelectContent>
-                            </Select>
-                            <InputError :message="form.errors.team_id" />
+                            <template v-if="isAdmin">
+                                <Select v-model="form.team_id">
+                                    <SelectTrigger class="mt-1">
+                                        <SelectValue placeholder="Pilih tim..." />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem v-for="team in teams" :key="team.id" :value="team.id">{{ team.name }}</SelectItem>
+                                    </SelectContent>
+                                </Select>
+                                <InputError :message="form.errors.team_id" />
+                            </template>
+                            <p v-else class="mt-1 rounded-md border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-gray-700">
+                                {{ teams[0]?.name ?? '—' }}
+                            </p>
                         </div>
                         <div>
                             <Label for="year">Tahun</Label>
@@ -97,7 +104,8 @@ function copyProject(project: PreviousProject) {
                         <Input id="name" v-model="form.name" class="mt-1" />
                         <InputError :message="form.errors.name" />
                     </div>
-                    <div>
+                    <!-- Admin: leader picker; Lead: auto-set, no field shown -->
+                    <div v-if="isAdmin">
                         <Label>Ketua Tim</Label>
                         <Select v-model="form.leader_id">
                             <SelectTrigger class="mt-1">
@@ -122,7 +130,7 @@ function copyProject(project: PreviousProject) {
                         <textarea id="objective" v-model="form.objective" rows="2" class="mt-1 w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-1 focus:ring-ring" />
                         <InputError :message="form.errors.objective" />
                     </div>
-                    <div>
+                    <div v-if="isAdmin">
                         <Label>Status</Label>
                         <Select v-model="form.status">
                             <SelectTrigger class="mt-1">
@@ -153,7 +161,7 @@ function copyProject(project: PreviousProject) {
 
                 <Input
                     v-model="copySearch"
-                    placeholder="Cari nama proyek atau tim..."
+                    :placeholder="isAdmin ? 'Cari nama proyek atau tim...' : 'Cari nama proyek...'"
                     class="mb-3"
                 />
 

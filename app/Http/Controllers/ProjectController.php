@@ -29,24 +29,48 @@ class ProjectController extends Controller
 
         $teams = Team::where('is_active', true)->orderBy('name')->get(['id', 'name']);
 
-        return Inertia::render('Projects/Index', compact('projects', 'teams', 'year', 'teamId'));
+        $canCreate = $request->user()->can('create', Project::class);
+
+        return Inertia::render('Projects/Index', compact('projects', 'teams', 'year', 'teamId', 'canCreate'));
     }
 
     public function create(Request $request): Response
     {
         $this->authorize('create', Project::class);
 
-        $teams = Team::where('is_active', true)->orderBy('name')->get(['id', 'name']);
-        $employees = Employee::where('is_active', true)->orderBy('name')->get(['id', 'name', 'display_name']);
-
-        // Projects from last year that can be copied
+        $user = $request->user();
+        $isAdmin = $user->hasPermissionTo('manage-projects');
         $copyYear = $request->integer('copy_year', now()->year - 1);
-        $previousProjects = Project::with('team:id,name')
-            ->where('year', $copyYear)
-            ->orderBy('name')
-            ->get(['id', 'name', 'team_id', 'year']);
 
-        return Inertia::render('Projects/Create', compact('teams', 'employees', 'previousProjects', 'copyYear'));
+        if ($isAdmin) {
+            $teams = Team::where('is_active', true)->orderBy('name')->get(['id', 'name']);
+            $employees = Employee::where('is_active', true)->orderBy('name')->get(['id', 'name', 'display_name']);
+            $previousProjects = Project::with('team:id,name')
+                ->where('year', $copyYear)
+                ->orderBy('name')
+                ->get(['id', 'name', 'team_id', 'year']);
+        } else {
+            $employee = $user->employee;
+            $teamId = $employee?->team_id;
+
+            $teams = $teamId
+                ? Team::where('id', $teamId)->get(['id', 'name'])
+                : collect();
+
+            $employees = $teamId
+                ? Employee::where('is_active', true)->where('team_id', $teamId)->orderBy('name')->get(['id', 'name', 'display_name'])
+                : collect();
+
+            $previousProjects = $teamId
+                ? Project::with('team:id,name')
+                    ->where('year', $copyYear)
+                    ->where('team_id', $teamId)
+                    ->orderBy('name')
+                    ->get(['id', 'name', 'team_id', 'year'])
+                : collect();
+        }
+
+        return Inertia::render('Projects/Create', compact('teams', 'employees', 'previousProjects', 'copyYear', 'isAdmin'));
     }
 
     public function copy(Request $request, Project $project, SyncProjectMembersAction $syncMembers): RedirectResponse
@@ -99,9 +123,11 @@ class ProjectController extends Controller
     {
         $this->authorize('create', Project::class);
 
+        $isAdmin = $request->user()->hasPermissionTo('manage-projects');
+
         $validated = $request->validate([
-            'team_id' => ['required', 'exists:teams,id'],
-            'leader_id' => ['nullable', 'exists:employees,id'],
+            'team_id' => $isAdmin ? ['required', 'exists:teams,id'] : ['sometimes'],
+            'leader_id' => $isAdmin ? ['nullable', 'exists:employees,id'] : ['sometimes'],
             'name' => ['required', 'string', 'max:255'],
             'description' => ['nullable', 'string'],
             'objective' => ['nullable', 'string'],
@@ -113,9 +139,19 @@ class ProjectController extends Controller
             'members.*.role' => ['in:leader,member'],
         ]);
 
+        if (! $isAdmin) {
+            $employee = $request->user()->employee;
+            abort_if(! $employee || ! $employee->team_id, 403, 'Akun belum terhubung ke tim.');
+            $validated['team_id'] = $employee->team_id;
+            $validated['leader_id'] = $employee->id;
+        }
+
         $project = Project::create($validated);
 
-        if (! empty($validated['members'])) {
+        if (! $isAdmin) {
+            // Auto-add the lead as a member with leader role
+            $syncMembers->execute($project, [$validated['leader_id'] => ['role' => 'leader']]);
+        } elseif (! empty($validated['members'])) {
             $memberMap = collect($validated['members'])
                 ->keyBy('employee_id')
                 ->map(fn ($m) => ['role' => $m['role']])
@@ -123,7 +159,7 @@ class ProjectController extends Controller
             $syncMembers->execute($project, $memberMap);
         }
 
-        return redirect()->route('projects.index')->with('success', 'Proyek berhasil ditambahkan.');
+        return redirect()->route('projects.edit', $project)->with('success', 'Proyek berhasil ditambahkan. Silakan tambahkan anggota dan rincian kegiatan.');
     }
 
     public function edit(Project $project, Request $request): Response
