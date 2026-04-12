@@ -34,12 +34,13 @@ const actionConfig: Record<ReviewEvent['action'], { label: string; dotClass: str
     },
 };
 
+const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agt', 'Sep', 'Okt', 'Nov', 'Des'];
+
 function formatDate(isoString: string): string {
-    return new Date(isoString).toLocaleDateString('id-ID', {
-        day: 'numeric',
-        month: 'short',
-        year: 'numeric',
-    });
+    const d = new Date(isoString);
+    const date = `${d.getDate()} ${MONTHS[d.getMonth()]} ${d.getFullYear()}`;
+    const time = `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+    return `${date}, ${time}`;
 }
 </script>
 
@@ -69,7 +70,18 @@ function formatDate(isoString: string): string {
                     <span v-if="rv.actor" class="text-xs text-gray-600">{{ rv.actor.name }}</span>
                     <span class="ml-auto shrink-0 text-[10px] text-gray-400">{{ formatDate(rv.created_at) }}</span>
                 </div>
-                <p v-if="rv.note" class="mt-1 text-xs text-gray-600 italic">{{ rv.note }}</p>
+                <div v-if="rv.note" class="mt-2">
+                    <!-- CSS triangle pointer (▲) -->
+                    <div
+                        class="ml-4 h-0 w-0 border-x-[6px] border-x-transparent border-b-[7px]"
+                        :class="rv.action === 'rejected' ? 'border-b-red-300' : 'border-b-gray-300'"
+                    />
+                    <div
+                        :class="['rounded-md border px-3 py-2 text-xs leading-relaxed', rv.action === 'rejected' ? 'border-red-300 bg-red-50 text-red-800' : 'border-gray-300 bg-gray-50 text-gray-700']"
+                    >
+                        {{ rv.note }}
+                    </div>
+                </div>
             </div>
         </div>
     </div>
