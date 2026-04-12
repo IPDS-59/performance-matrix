@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Actions\WorkItem\SyncWorkItemAssignmentsAction;
 use App\Models\Project;
 use App\Models\WorkItem;
+use App\Notifications\WorkItemAssignedNotification;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 
@@ -31,6 +32,15 @@ class WorkItemController extends Controller
         ]);
 
         $this->syncAssignments->execute($workItem, $project, $validated);
+
+        // Notify every assigned employee (skip the lead who just created it)
+        $workItem->load('project.team', 'assignments.employee.user');
+        foreach ($workItem->assignments as $assignment) {
+            $user = $assignment->employee?->user;
+            if ($user && $user->id !== $request->user()->id) {
+                $user->notify(new WorkItemAssignedNotification($workItem));
+            }
+        }
 
         return back()->with('success', 'Rincian kegiatan berhasil ditambahkan.');
     }

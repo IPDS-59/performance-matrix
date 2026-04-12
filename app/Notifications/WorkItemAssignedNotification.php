@@ -31,6 +31,7 @@ class WorkItemAssignedNotification extends Notification
             'project_name' => $project?->name,
             'team_name' => $project?->team?->name,
             'message' => "Anda ditugaskan pada rincian kegiatan \"{$this->workItem->description}\" di proyek {$project?->name}.",
+            'url' => route('performance.index'),
         ];
     }
 }

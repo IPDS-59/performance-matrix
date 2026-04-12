@@ -14,7 +14,7 @@ const isStaff = computed(() => user.value.role === 'staff');
 
 // ── Notifications ─────────────────────────────────────────────────────────
 const unreadCount = ref(0);
-const notifications = ref<Array<{ id: string; type: string; message: string; read_at: string | null; created_at: string }>>([]);
+const notifications = ref<Array<{ id: string; type: string; message: string; data: Record<string, unknown>; read_at: string | null; created_at: string }>>([]);
 const showDropdown = ref(false);
 
 async function fetchNotifications() {
@@ -35,6 +35,20 @@ async function markAllRead() {
 function toggleDropdown() {
     showDropdown.value = !showDropdown.value;
     if (showDropdown.value) fetchNotifications();
+}
+
+async function handleNotificationClick(n: { id: string; data: Record<string, unknown>; read_at: string | null }) {
+    if (!n.read_at) {
+        await fetch(route('notifications.read', n.id), {
+            method: 'PATCH',
+            headers: { 'X-CSRF-TOKEN': (document.querySelector('meta[name=csrf-token]') as HTMLMetaElement)?.content ?? '' },
+        });
+        n.read_at = new Date().toISOString();
+        unreadCount.value = Math.max(0, unreadCount.value - 1);
+    }
+    showDropdown.value = false;
+    const url = n.data?.url as string | undefined;
+    if (url) router.visit(url);
 }
 
 let pollInterval: ReturnType<typeof setInterval> | null = null;
@@ -266,10 +280,14 @@ onUnmounted(() => {
                                 <div
                                     v-for="n in notifications"
                                     :key="n.id"
-                                    :class="['px-4 py-3 text-xs hover:bg-gray-50 transition-colors', !n.read_at ? 'bg-blue-50' : '']"
+                                    :class="['px-4 py-3 text-xs transition-colors', !n.read_at ? 'bg-blue-50' : '', n.data?.url ? 'cursor-pointer hover:bg-primary/5' : 'hover:bg-gray-50']"
+                                    @click="handleNotificationClick(n)"
                                 >
                                     <p :class="['leading-relaxed', !n.read_at ? 'font-medium text-gray-800' : 'text-gray-600']">{{ n.message }}</p>
-                                    <p class="mt-1 text-gray-400">{{ new Date(n.created_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) }}</p>
+                                    <div class="mt-1 flex items-center justify-between gap-2">
+                                        <p class="text-gray-400">{{ new Date(n.created_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) }}</p>
+                                        <span v-if="n.data?.url" class="text-[10px] text-primary">Lihat →</span>
+                                    </div>
                                 </div>
                             </div>
                         </div>
