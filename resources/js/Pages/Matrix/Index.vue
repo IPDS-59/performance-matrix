@@ -140,8 +140,7 @@ function cellBgColor(pct: number): string {
                 <tbody>
                     <tr v-for="employee in employees" :key="employee.id" class="border-b hover:bg-gray-50">
                         <td class="sticky left-0 bg-white border-r px-3 py-1.5 font-medium">
-                            <div>{{ employee.display_name || employee.name }}</div>
-                            <div class="text-gray-400">{{ employee.team?.name }}</div>
+                            {{ employee.display_name || employee.name }}
                         </td>
                         <td
                             v-for="project in projects"

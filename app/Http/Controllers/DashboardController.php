@@ -39,11 +39,11 @@ class DashboardController extends Controller
         $month = $request->integer('month', now()->month);
         $teamId = $request->integer('team_id');
 
-        $employees = Employee::with('team:id,name')
+        $employees = Employee::query()
             ->where('is_active', true)
             ->when($teamId, fn ($q) => $q->whereHas('projects', fn ($q2) => $q2->where('team_id', $teamId)->where('year', $year)))
             ->orderBy('name')
-            ->get(['id', 'name', 'display_name', 'team_id']);
+            ->get(['id', 'name', 'display_name']);
 
         $projects = Project::with('workItems')
             ->where('year', $year)
