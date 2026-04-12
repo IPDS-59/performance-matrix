@@ -7,6 +7,7 @@ use App\Models\PerformanceReport;
 use App\Models\Project;
 use App\Models\Team;
 use Illuminate\Http\Request;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -32,7 +33,7 @@ class DashboardController extends Controller
 
     public function matrix(Request $request): Response
     {
-        $this->authorize('viewAny', PerformanceReport::class);
+        // Matrix is visible to all authenticated users
 
         $year = $request->integer('year', now()->year);
         $month = $request->integer('month', now()->month);
@@ -77,6 +78,37 @@ class DashboardController extends Controller
         return Inertia::render('Matrix/Index', compact(
             'employees', 'projects', 'assignments', 'progress', 'teams', 'year', 'month', 'teamId'
         ));
+    }
+
+    /**
+     * Load teams with their active members sourced from project membership (current year).
+     * This is more accurate than using the team_id FK on employees, which can be stale.
+     *
+     * @return Collection<int, Team>
+     */
+    private function loadTeamsWithMembers(int $year): Collection
+    {
+        $teams = Team::orderBy('name')->get(['id', 'name', 'code']);
+
+        $membersByTeam = DB::table('employees')
+            ->select('employees.id', 'employees.name', 'employees.display_name', 'projects.team_id')
+            ->join('project_members', 'project_members.employee_id', '=', 'employees.id')
+            ->join('projects', 'projects.id', '=', 'project_members.project_id')
+            ->where('projects.year', $year)
+            ->whereIn('projects.team_id', $teams->pluck('id'))
+            ->where('employees.is_active', true)
+            ->distinct()
+            ->get()
+            ->groupBy(fn ($m) => (string) $m->team_id);
+
+        $teams->each(function ($team) use ($membersByTeam) {
+            $rows = $membersByTeam->get((string) $team->id, collect());
+            $team->setRelation('employees', Employee::hydrate(
+                $rows->map(fn ($m) => ['id' => $m->id, 'name' => $m->name, 'display_name' => $m->display_name])->all()
+            ));
+        });
+
+        return $teams;
     }
 
     private function personalStats(Employee $employee, int $year, int $month): array
@@ -177,9 +209,7 @@ class DashboardController extends Controller
             ->get()
             ->keyBy('team_id');
 
-        $teams = Team::with(['employees' => fn ($q) => $q->select('employees.id', 'name', 'display_name', 'team_id')])
-            ->orderBy('name')
-            ->get(['id', 'name', 'code']);
+        $teams = $this->loadTeamsWithMembers($year);
 
         $projectLeaderIds = DB::table('projects')
             ->where('year', $year)
@@ -251,9 +281,7 @@ class DashboardController extends Controller
             ->unique()
             ->values();
 
-        $teams = Team::with(['employees' => fn ($q) => $q->select('employees.id', 'name', 'display_name', 'team_id')])
-            ->orderBy('name')
-            ->get(['id', 'name', 'code']);
+        $teams = $this->loadTeamsWithMembers($year);
 
         $topByProjects = DB::table('employees')
             ->join('project_members', 'project_members.employee_id', '=', 'employees.id')
@@ -374,9 +402,7 @@ class DashboardController extends Controller
             ->unique()
             ->values();
 
-        $teams = Team::with(['employees' => fn ($q) => $q->select('employees.id', 'name', 'display_name', 'team_id')])
-            ->orderBy('name')
-            ->get(['id', 'name', 'code']);
+        $teams = $this->loadTeamsWithMembers($year);
 
         return Inertia::render('Dashboard', [
             'role' => 'admin',
