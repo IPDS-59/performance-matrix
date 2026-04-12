@@ -170,34 +170,21 @@ function groupByTeam(projects: ProjectWithItems[]) {
 const projectsByTeam = computed(() => groupByTeam(projectsWithWork.value));
 const projectsByTeamNoWork = computed(() => groupByTeam(projectsWithoutWork.value));
 
-// ── Performance report form ────────────────────────────────────────────────
+// ── Performance report form (per-item) ────────────────────────────────────
 
-type ItemForm = {
-    work_item_id: number;
-    realization: number;
+type ItemState = {
+    realization: number | string;
     issues: string;
     solutions: string;
     action_plan: string;
 };
 
-const form = useForm<{
-    period_month: number;
-    period_year: number;
-    items: ItemForm[];
-}>({
-    period_month: props.filters.month,
-    period_year: props.filters.year,
-    items: [],
-});
+const itemStates = reactive(new Map<number, ItemState>());
+const itemProcessing = reactive(new Set<number>());
+const itemErrors = reactive(new Map<number, Partial<Record<string, string>>>());
 
-const seededIds = new Set<number>();
-
-function getItem(workItemId: number): ItemForm {
-    const existing = form.items.find(i => i.work_item_id === workItemId);
-    if (existing) return existing;
-
-    if (!seededIds.has(workItemId)) {
-        seededIds.add(workItemId);
+function getItemState(workItemId: number): ItemState {
+    if (!itemStates.has(workItemId)) {
         let report: WorkItemWithReports['performance_reports'][number] | undefined;
         outer: for (const p of props.projects) {
             for (const wi of p.work_items) {
@@ -207,15 +194,47 @@ function getItem(workItemId: number): ItemForm {
                 }
             }
         }
-        form.items.push({
-            work_item_id: workItemId,
-            realization: report?.realization ?? 0,
+        itemStates.set(workItemId, {
+            realization: Number(report?.realization ?? 0),
             issues: report?.issues ?? '',
             solutions: report?.solutions ?? '',
             action_plan: report?.action_plan ?? '',
         });
     }
-    return form.items.find(i => i.work_item_id === workItemId)!;
+    return itemStates.get(workItemId)!;
+}
+
+function submitItem(workItemId: number) {
+    const state = getItemState(workItemId);
+    itemProcessing.add(workItemId);
+    itemErrors.delete(workItemId);
+
+    router.post(
+        route('performance.batch'),
+        {
+            period_month: props.filters.month,
+            period_year: props.filters.year,
+            items: [{
+                work_item_id: workItemId,
+                realization: state.realization,
+                issues: state.issues || null,
+                solutions: state.solutions || null,
+                action_plan: state.action_plan || null,
+            }],
+        },
+        {
+            preserveScroll: true,
+            onFinish: () => itemProcessing.delete(workItemId),
+            onError: (errors) => {
+                const errs: Partial<Record<string, string>> = {};
+                for (const [key, msg] of Object.entries(errors)) {
+                    const field = key.replace(/^items\.\d+\./, '');
+                    errs[field] = msg as string;
+                }
+                itemErrors.set(workItemId, errs);
+            },
+        },
+    );
 }
 
 function getWorkItem(workItemId: number): WorkItemWithReports | undefined {
@@ -242,13 +261,11 @@ function computePct(workItemId: number): number {
         .filter(r => r.period_month !== props.filters.month)
         .reduce((sum, r) => sum + Number(r.realization), 0);
 
-    // Use the live form value only if the user has already opened this item;
-    // otherwise read the saved report value. Never seed form.items as a side effect.
-    const formItem = form.items.find(i => i.work_item_id === workItemId);
+    const state = itemStates.get(workItemId);
     const savedRealization = wi.performance_reports
         .find(r => r.period_month === props.filters.month)?.realization ?? 0;
-    const currentRealization = formItem !== undefined
-        ? Number(formItem.realization)
+    const currentRealization = state !== undefined
+        ? Number(state.realization)
         : Number(savedRealization);
 
     return Math.min(100, ((prevTotal + currentRealization) / Number(wi.target)) * 100);
@@ -288,19 +305,14 @@ function projectAvgPct(project: ProjectWithItems): number {
     return pcts.reduce((s, v) => s + v, 0) / pcts.length;
 }
 
-function submit() {
-    form.post(route('performance.batch'), { preserveScroll: true });
-}
-
-// When the month/year filter changes (preserveState navigation), reset the form
-// so items are re-seeded from the new month's report data.
+// When the month/year filter changes, clear per-item state so items re-seed
+// from the new month's report data.
 watch(
     () => [props.filters.month, props.filters.year] as const,
-    ([newMonth, newYear]) => {
-        form.period_month = newMonth;
-        form.period_year = newYear;
-        form.items = [];
-        seededIds.clear();
+    () => {
+        itemStates.clear();
+        itemProcessing.clear();
+        itemErrors.clear();
     },
 );
 
@@ -681,7 +693,7 @@ function projectSubmittedCount(project: TeamProjectWithMembers): number {
                     <p class="mt-1 text-sm">Anda belum ditugaskan ke proyek aktif tahun {{ filters.year }}.</p>
                 </div>
 
-                <form v-else @submit.prevent="submit" class="space-y-8">
+                <div v-else class="space-y-8">
                     <!-- Projects with assigned work items (main fillable section) -->
                     <div v-if="projectsByTeam.length">
                         <div v-for="group in projectsByTeam" :key="group.teamId" class="space-y-3">
@@ -825,10 +837,10 @@ function projectSubmittedCount(project: TeamProjectWithMembers): number {
                                                     <div>
                                                         <Label class="text-xs text-gray-500">Realisasi ({{ wi.target_unit }})</Label>
                                                         <div class="mt-1 flex items-center gap-2">
-                                                            <Input type="number" min="0" step="0.01" v-model="getItem(wi.id).realization" class="w-28" />
+                                                            <Input type="number" min="0" step="0.01" v-model="getItemState(wi.id).realization" class="w-28" />
                                                             <span class="text-xs text-gray-400">{{ wi.target_unit }}</span>
                                                         </div>
-                                                        <InputError :message="form.errors[`items.${form.items.findIndex(i => i.work_item_id === wi.id)}.realization`]" />
+                                                        <InputError :message="itemErrors.get(wi.id)?.realization" />
                                                     </div>
                                                 </div>
                                             </div>
@@ -836,16 +848,26 @@ function projectSubmittedCount(project: TeamProjectWithMembers): number {
                                             <div class="grid gap-3 sm:grid-cols-3">
                                                 <div>
                                                     <Label class="text-xs text-gray-500">Kendala</Label>
-                                                    <Textarea v-model="getItem(wi.id).issues" rows="3" class="mt-1 text-sm" placeholder="(opsional)" />
+                                                    <Textarea v-model="getItemState(wi.id).issues" rows="3" class="mt-1 text-sm" placeholder="(opsional)" />
                                                 </div>
                                                 <div>
                                                     <Label class="text-xs text-gray-500">Solusi</Label>
-                                                    <Textarea v-model="getItem(wi.id).solutions" rows="3" class="mt-1 text-sm" placeholder="(opsional)" />
+                                                    <Textarea v-model="getItemState(wi.id).solutions" rows="3" class="mt-1 text-sm" placeholder="(opsional)" />
                                                 </div>
                                                 <div>
                                                     <Label class="text-xs text-gray-500">Rencana Tindak Lanjut</Label>
-                                                    <Textarea v-model="getItem(wi.id).action_plan" rows="3" class="mt-1 text-sm" placeholder="(opsional)" />
+                                                    <Textarea v-model="getItemState(wi.id).action_plan" rows="3" class="mt-1 text-sm" placeholder="(opsional)" />
                                                 </div>
+                                            </div>
+                                            <div class="mt-2 flex justify-end">
+                                                <Button
+                                                    type="button"
+                                                    size="sm"
+                                                    :disabled="itemProcessing.has(wi.id)"
+                                                    @click="submitItem(wi.id)"
+                                                >
+                                                    {{ itemProcessing.has(wi.id) ? 'Menyimpan...' : 'Simpan' }}
+                                                </Button>
                                             </div>
 
                                             <!-- Bukti dukung (only when a report exists for this month) -->
@@ -1038,13 +1060,7 @@ function projectSubmittedCount(project: TeamProjectWithMembers): number {
                         </div>
                     </template>
 
-                    <!-- Save button -->
-                    <div v-if="projectsByTeam.length" class="sticky bottom-4 flex justify-end">
-                        <Button type="submit" :disabled="form.processing" class="px-8 shadow-lg">
-                            {{ form.processing ? 'Menyimpan...' : 'Simpan Laporan Kinerja' }}
-                        </Button>
-                    </div>
-                </form>
+                </div>
             </TabsContent>
 
             <!-- ── Tim Saya tab ────────────────────────────────────────── -->
@@ -1428,7 +1444,7 @@ function projectSubmittedCount(project: TeamProjectWithMembers): number {
                 <p class="mt-1 text-sm">Anda belum ditugaskan ke proyek aktif tahun {{ filters.year }}.</p>
             </div>
 
-            <form v-else @submit.prevent="submit" class="space-y-8">
+            <div v-else class="space-y-8">
                 <!-- Projects with assigned work items (main fillable section) -->
                 <div v-if="projectsByTeam.length">
                     <div v-for="group in projectsByTeam" :key="group.teamId" class="space-y-3">
@@ -1556,10 +1572,10 @@ function projectSubmittedCount(project: TeamProjectWithMembers): number {
                                                 <div>
                                                     <Label class="text-xs text-gray-500">Realisasi ({{ wi.target_unit }})</Label>
                                                     <div class="mt-1 flex items-center gap-2">
-                                                        <Input type="number" min="0" step="0.01" v-model="getItem(wi.id).realization" class="w-28" />
+                                                        <Input type="number" min="0" step="0.01" v-model="getItemState(wi.id).realization" class="w-28" />
                                                         <span class="text-xs text-gray-400">{{ wi.target_unit }}</span>
                                                     </div>
-                                                    <InputError :message="form.errors[`items.${form.items.findIndex(i => i.work_item_id === wi.id)}.realization`]" />
+                                                    <InputError :message="itemErrors.get(wi.id)?.realization" />
                                                 </div>
                                             </div>
                                         </div>
@@ -1567,16 +1583,26 @@ function projectSubmittedCount(project: TeamProjectWithMembers): number {
                                         <div class="grid gap-3 sm:grid-cols-3">
                                             <div>
                                                 <Label class="text-xs text-gray-500">Kendala</Label>
-                                                <Textarea v-model="getItem(wi.id).issues" rows="3" class="mt-1 text-sm" placeholder="(opsional)" />
+                                                <Textarea v-model="getItemState(wi.id).issues" rows="3" class="mt-1 text-sm" placeholder="(opsional)" />
                                             </div>
                                             <div>
                                                 <Label class="text-xs text-gray-500">Solusi</Label>
-                                                <Textarea v-model="getItem(wi.id).solutions" rows="3" class="mt-1 text-sm" placeholder="(opsional)" />
+                                                <Textarea v-model="getItemState(wi.id).solutions" rows="3" class="mt-1 text-sm" placeholder="(opsional)" />
                                             </div>
                                             <div>
                                                 <Label class="text-xs text-gray-500">Rencana Tindak Lanjut</Label>
-                                                <Textarea v-model="getItem(wi.id).action_plan" rows="3" class="mt-1 text-sm" placeholder="(opsional)" />
+                                                <Textarea v-model="getItemState(wi.id).action_plan" rows="3" class="mt-1 text-sm" placeholder="(opsional)" />
                                             </div>
+                                        </div>
+                                        <div class="mt-2 flex justify-end">
+                                            <Button
+                                                type="button"
+                                                size="sm"
+                                                :disabled="itemProcessing.has(wi.id)"
+                                                @click="submitItem(wi.id)"
+                                            >
+                                                {{ itemProcessing.has(wi.id) ? 'Menyimpan...' : 'Simpan' }}
+                                            </Button>
                                         </div>
 
                                         <!-- Bukti dukung (only when a report exists for this month) -->
@@ -1768,13 +1794,7 @@ function projectSubmittedCount(project: TeamProjectWithMembers): number {
                     </div>
                 </template>
 
-                <!-- Save button -->
-                <div v-if="projectsByTeam.length" class="sticky bottom-4 flex justify-end">
-                    <Button type="submit" :disabled="form.processing" class="px-8 shadow-lg">
-                        {{ form.processing ? 'Menyimpan...' : 'Simpan Laporan Kinerja' }}
-                    </Button>
-                </div>
-            </form>
+            </div>
         </template>
     </AppLayout>
 </template>
