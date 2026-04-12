@@ -4,6 +4,7 @@ import { Head, router } from '@inertiajs/vue3';
 import { computed, ref } from 'vue';
 import type { Employee, Team } from '@/types';
 import { Card, CardContent, CardHeader, CardTitle } from '@/Components/ui/card';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/Components/ui/tabs';
 import { Badge } from '@/Components/ui/badge';
 import { Progress } from '@/Components/ui/progress';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/Components/ui/select';
@@ -376,7 +377,7 @@ const lineChartOptions = {
                 <p class="mt-1 text-sm">Hubungi administrator untuk menghubungkan akun ke data pegawai.</p>
             </div>
             <template v-else>
-                <!-- Welcome card -->
+                <!-- Welcome card (always visible, outside tabs) -->
                 <div class="mb-6 flex items-center gap-4 rounded-lg border bg-white p-5 shadow-sm">
                     <div class="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-primary/10 text-xl font-bold text-primary">
                         {{ (employee.display_name || employee.name).charAt(0).toUpperCase() }}
@@ -387,162 +388,277 @@ const lineChartOptions = {
                     </div>
                 </div>
 
-                <!-- Personal stat cards -->
-                <div v-if="personal_stats" class="mb-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-                    <!-- Tim Kerja -->
-                    <div class="rounded-lg border bg-white p-6 shadow-sm">
-                        <div class="flex items-start gap-4">
-                            <div class="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-blue-100" aria-hidden="true">
-                                <svg class="h-6 w-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0"/>
-                                </svg>
-                            </div>
-                            <div class="min-w-0 flex-1">
-                                <p class="text-sm font-medium text-gray-500">Tim Kerja</p>
-                                <p class="mt-1 text-2xl font-bold text-gray-900">{{ personal_stats.teams_count }}</p>
-                            </div>
-                        </div>
-                    </div>
-                    <!-- Proyek -->
-                    <div class="rounded-lg border bg-white p-6 shadow-sm">
-                        <div class="flex items-start gap-4">
-                            <div class="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-indigo-100" aria-hidden="true">
-                                <svg class="h-6 w-6 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"/>
-                                </svg>
-                            </div>
-                            <div class="min-w-0 flex-1">
-                                <p class="text-sm font-medium text-gray-500">Proyek</p>
-                                <p class="mt-1 text-2xl font-bold text-gray-900">{{ personal_stats.projects_count }}</p>
-                            </div>
-                        </div>
-                    </div>
-                    <!-- Item Kerja -->
-                    <div class="rounded-lg border bg-white p-6 shadow-sm">
-                        <div class="flex items-start gap-4">
-                            <div class="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-teal-100" aria-hidden="true">
-                                <svg class="h-6 w-6 text-teal-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"/>
-                                </svg>
-                            </div>
-                            <div class="min-w-0 flex-1">
-                                <p class="text-sm font-medium text-gray-500">Item Kerja</p>
-                                <p class="mt-1 text-2xl font-bold text-gray-900">{{ personal_stats.items_count }}</p>
-                            </div>
-                        </div>
-                    </div>
-                    <!-- Rata-rata Capaian -->
-                    <div class="rounded-lg border bg-white p-6 shadow-sm">
-                        <div class="flex items-start gap-4">
-                            <div :class="['flex h-12 w-12 shrink-0 items-center justify-center rounded-full', avgIconBgColor(personal_stats.avg_achievement)]" aria-hidden="true">
-                                <svg :class="['h-6 w-6', avgIconColor(personal_stats.avg_achievement)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
-                                </svg>
-                            </div>
-                            <div class="min-w-0 flex-1">
-                                <p class="text-sm font-medium text-gray-500">Rata-rata Capaian</p>
-                                <p :class="['mt-1 text-2xl font-bold', achievementColor(personal_stats.avg_achievement)]">
-                                    {{ personal_stats.avg_achievement.toFixed(1) }}%
-                                </p>
-                                <Progress
-                                    :model-value="personal_stats.avg_achievement"
-                                    :class="['mt-2 h-1.5', progressVariant(personal_stats.avg_achievement)]"
-                                />
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- No projects -->
-                <div v-if="!projects?.length" class="py-12 text-center text-gray-400">
-                    <p>Belum ada proyek untuk periode ini.</p>
-                </div>
-
-                <!-- Personal projects grouped by team -->
-                <div v-else class="space-y-6">
-                    <div v-for="group in projectsByTeam" :key="group.teamName">
-                        <h2 class="mb-3 flex items-center gap-2 text-sm font-semibold text-primary uppercase tracking-wide">
-                            <span class="h-px flex-1 bg-primary/20"></span>
-                            {{ group.teamName }}
-                            <span class="h-px flex-1 bg-primary/20"></span>
-                        </h2>
-                        <div class="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-                            <Card
-                                v-for="project in group.projects"
-                                :key="project.id"
-                                class="hover:shadow-md transition-shadow"
-                            >
-                                <CardHeader class="pb-2">
-                                    <CardTitle class="text-sm font-medium leading-tight">{{ project.name }}</CardTitle>
-                                </CardHeader>
-                                <CardContent>
-                                    <div class="flex items-baseline justify-between">
-                                        <span class="text-xs text-gray-500">Capaian bulan ini</span>
-                                        <span :class="['text-xl font-bold', achievementColor(projectAvg(project))]">
-                                            {{ projectAvg(project).toFixed(1) }}%
-                                        </span>
+                <!-- Tabs only when team lead, otherwise just show personal content -->
+                <template v-if="personal_stats?.is_team_lead">
+                    <Tabs default-value="personal" class="w-full">
+                        <TabsList class="mb-6">
+                            <TabsTrigger value="personal">Kinerja Saya</TabsTrigger>
+                            <TabsTrigger value="team">
+                                Tim yang Saya Pimpin
+                                <Badge variant="secondary" class="ml-2 text-xs">{{ team_projects?.length ?? 0 }}</Badge>
+                            </TabsTrigger>
+                        </TabsList>
+                        <TabsContent value="personal">
+                            <!-- Personal stat cards -->
+                            <div v-if="personal_stats" class="mb-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                                <!-- Tim Kerja -->
+                                <div class="rounded-lg border bg-white p-6 shadow-sm">
+                                    <div class="flex items-start gap-4">
+                                        <div class="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-blue-100" aria-hidden="true">
+                                            <svg class="h-6 w-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0"/>
+                                            </svg>
+                                        </div>
+                                        <div class="min-w-0 flex-1">
+                                            <p class="text-sm font-medium text-gray-500">Tim Kerja</p>
+                                            <p class="mt-1 text-2xl font-bold text-gray-900">{{ personal_stats.teams_count }}</p>
+                                        </div>
                                     </div>
-                                    <Progress
-                                        :model-value="projectAvg(project)"
-                                        :class="['mt-2 h-2', progressVariant(projectAvg(project))]"
-                                    />
-                                    <p class="mt-2 text-xs text-gray-400">
-                                        {{ project.work_items.length }} item kerja
-                                    </p>
-                                </CardContent>
-                            </Card>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Led projects section (team lead staff) -->
-                <template v-if="personal_stats?.is_team_lead && team_projects?.length">
-                    <div class="mt-10">
-                        <div class="mb-4 flex items-center gap-3">
-                            <h2 class="text-base font-semibold text-gray-800">Proyek yang Saya Pimpin</h2>
-                            <span class="h-px flex-1 bg-gray-200"></span>
-                            <Badge variant="outline" class="text-xs">{{ team_projects.length }} proyek</Badge>
-                        </div>
-                        <div class="space-y-4">
-                            <Card v-for="ledProject in team_projects" :key="ledProject.id" class="overflow-hidden">
-                                <CardHeader class="pb-3">
-                                    <div class="flex items-start justify-between gap-3">
-                                        <div>
-                                            <CardTitle class="text-sm font-semibold text-gray-800">{{ ledProject.name }}</CardTitle>
-                                            <p v-if="ledProject.team" class="mt-0.5 text-xs text-gray-500">
-                                                {{ ledProject.team.name }}
+                                </div>
+                                <!-- Proyek -->
+                                <div class="rounded-lg border bg-white p-6 shadow-sm">
+                                    <div class="flex items-start gap-4">
+                                        <div class="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-indigo-100" aria-hidden="true">
+                                            <svg class="h-6 w-6 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"/>
+                                            </svg>
+                                        </div>
+                                        <div class="min-w-0 flex-1">
+                                            <p class="text-sm font-medium text-gray-500">Proyek</p>
+                                            <p class="mt-1 text-2xl font-bold text-gray-900">{{ personal_stats.projects_count }}</p>
+                                        </div>
+                                    </div>
+                                </div>
+                                <!-- Item Kerja -->
+                                <div class="rounded-lg border bg-white p-6 shadow-sm">
+                                    <div class="flex items-start gap-4">
+                                        <div class="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-teal-100" aria-hidden="true">
+                                            <svg class="h-6 w-6 text-teal-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"/>
+                                            </svg>
+                                        </div>
+                                        <div class="min-w-0 flex-1">
+                                            <p class="text-sm font-medium text-gray-500">Item Kerja</p>
+                                            <p class="mt-1 text-2xl font-bold text-gray-900">{{ personal_stats.items_count }}</p>
+                                        </div>
+                                    </div>
+                                </div>
+                                <!-- Rata-rata Capaian -->
+                                <div class="rounded-lg border bg-white p-6 shadow-sm">
+                                    <div class="flex items-start gap-4">
+                                        <div :class="['flex h-12 w-12 shrink-0 items-center justify-center rounded-full', avgIconBgColor(personal_stats.avg_achievement)]" aria-hidden="true">
+                                            <svg :class="['h-6 w-6', avgIconColor(personal_stats.avg_achievement)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
+                                            </svg>
+                                        </div>
+                                        <div class="min-w-0 flex-1">
+                                            <p class="text-sm font-medium text-gray-500">Rata-rata Capaian</p>
+                                            <p :class="['mt-1 text-2xl font-bold', achievementColor(personal_stats.avg_achievement)]">
+                                                {{ personal_stats.avg_achievement.toFixed(1) }}%
                                             </p>
-                                        </div>
-                                        <div class="shrink-0 text-right text-xs text-gray-500">
-                                            <span class="font-medium text-gray-700">{{ ledProjectSubmittedCount(ledProject) }}</span>
-                                            <span class="text-gray-400"> / {{ ledProjectMemberCount(ledProject) }}</span>
-                                            <p class="text-gray-400">sudah input</p>
+                                            <Progress
+                                                :model-value="personal_stats.avg_achievement"
+                                                :class="['mt-2 h-1.5', progressVariant(personal_stats.avg_achievement)]"
+                                            />
                                         </div>
                                     </div>
-                                </CardHeader>
-                                <CardContent class="pt-0">
-                                    <!-- Member list -->
-                                    <div class="flex flex-wrap gap-2">
-                                        <div
-                                            v-for="member in ledProject.members"
-                                            :key="member.id"
-                                            :class="[
-                                                'flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs',
-                                                isProjectLeader(member)
-                                                    ? 'border-amber-300 bg-amber-50 text-amber-800'
-                                                    : 'border-gray-200 bg-gray-50 text-gray-700'
-                                            ]"
+                                </div>
+                            </div>
+
+                            <!-- No projects -->
+                            <div v-if="!projects?.length" class="py-12 text-center text-gray-400">
+                                <p>Belum ada proyek untuk periode ini.</p>
+                            </div>
+
+                            <!-- Personal projects grouped by team -->
+                            <div v-else class="space-y-6">
+                                <div v-for="group in projectsByTeam" :key="group.teamName">
+                                    <h2 class="mb-3 flex items-center gap-2 text-sm font-semibold text-primary uppercase tracking-wide">
+                                        <span class="h-px flex-1 bg-primary/20"></span>
+                                        {{ group.teamName }}
+                                        <span class="h-px flex-1 bg-primary/20"></span>
+                                    </h2>
+                                    <div class="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                                        <Card
+                                            v-for="project in group.projects"
+                                            :key="project.id"
+                                            class="hover:shadow-md transition-shadow"
                                         >
-                                            <span v-if="isProjectLeader(member)" class="text-amber-500" aria-label="Ketua">&#9733;</span>
-                                            <span>{{ member.display_name || member.name }}</span>
-                                            <Badge
-                                                v-if="isProjectLeader(member)"
-                                                class="ml-0.5 h-4 bg-amber-500 px-1.5 text-[10px] text-white hover:bg-amber-500"
-                                            >Ketua</Badge>
-                                        </div>
+                                            <CardHeader class="pb-2">
+                                                <CardTitle class="text-sm font-medium leading-tight">{{ project.name }}</CardTitle>
+                                            </CardHeader>
+                                            <CardContent>
+                                                <div class="flex items-baseline justify-between">
+                                                    <span class="text-xs text-gray-500">Capaian bulan ini</span>
+                                                    <span :class="['text-xl font-bold', achievementColor(projectAvg(project))]">
+                                                        {{ projectAvg(project).toFixed(1) }}%
+                                                    </span>
+                                                </div>
+                                                <Progress
+                                                    :model-value="projectAvg(project)"
+                                                    :class="['mt-2 h-2', progressVariant(projectAvg(project))]"
+                                                />
+                                                <p class="mt-2 text-xs text-gray-400">
+                                                    {{ project.work_items.length }} item kerja
+                                                </p>
+                                            </CardContent>
+                                        </Card>
                                     </div>
-                                </CardContent>
-                            </Card>
+                                </div>
+                            </div>
+                        </TabsContent>
+                        <TabsContent value="team">
+                            <div class="space-y-4">
+                                <Card v-for="ledProject in team_projects" :key="ledProject.id" class="overflow-hidden">
+                                    <CardHeader class="pb-3">
+                                        <div class="flex items-start justify-between gap-3">
+                                            <div>
+                                                <CardTitle class="text-sm font-semibold text-gray-800">{{ ledProject.name }}</CardTitle>
+                                                <p v-if="ledProject.team" class="mt-0.5 text-xs text-gray-500">
+                                                    {{ ledProject.team.name }}
+                                                </p>
+                                            </div>
+                                            <div class="shrink-0 text-right text-xs text-gray-500">
+                                                <span class="font-medium text-gray-700">{{ ledProjectSubmittedCount(ledProject) }}</span>
+                                                <span class="text-gray-400"> / {{ ledProjectMemberCount(ledProject) }}</span>
+                                                <p class="text-gray-400">sudah input</p>
+                                            </div>
+                                        </div>
+                                    </CardHeader>
+                                    <CardContent class="pt-0">
+                                        <!-- Member list -->
+                                        <div class="flex gap-2 overflow-x-auto pb-1">
+                                            <div
+                                                v-for="member in ledProject.members"
+                                                :key="member.id"
+                                                :class="[
+                                                    'flex shrink-0 items-center gap-1.5 rounded-full border px-3 py-1 text-xs',
+                                                    isProjectLeader(member)
+                                                        ? 'border-amber-300 bg-amber-50 text-amber-800'
+                                                        : 'border-gray-200 bg-gray-50 text-gray-700'
+                                                ]"
+                                            >
+                                                <span v-if="isProjectLeader(member)" class="text-amber-500" aria-label="Ketua">&#9733;</span>
+                                                <span>{{ member.display_name || member.name }}</span>
+                                                <Badge
+                                                    v-if="isProjectLeader(member)"
+                                                    class="ml-0.5 h-4 bg-amber-500 px-1.5 text-[10px] text-white hover:bg-amber-500"
+                                                >Ketua</Badge>
+                                            </div>
+                                        </div>
+                                    </CardContent>
+                                </Card>
+                            </div>
+                        </TabsContent>
+                    </Tabs>
+                </template>
+                <template v-else>
+                    <!-- Non-lead: show personal stats and projects directly -->
+                    <!-- Personal stat cards -->
+                    <div v-if="personal_stats" class="mb-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                        <!-- Tim Kerja -->
+                        <div class="rounded-lg border bg-white p-6 shadow-sm">
+                            <div class="flex items-start gap-4">
+                                <div class="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-blue-100" aria-hidden="true">
+                                    <svg class="h-6 w-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0"/>
+                                    </svg>
+                                </div>
+                                <div class="min-w-0 flex-1">
+                                    <p class="text-sm font-medium text-gray-500">Tim Kerja</p>
+                                    <p class="mt-1 text-2xl font-bold text-gray-900">{{ personal_stats.teams_count }}</p>
+                                </div>
+                            </div>
+                        </div>
+                        <!-- Proyek -->
+                        <div class="rounded-lg border bg-white p-6 shadow-sm">
+                            <div class="flex items-start gap-4">
+                                <div class="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-indigo-100" aria-hidden="true">
+                                    <svg class="h-6 w-6 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"/>
+                                    </svg>
+                                </div>
+                                <div class="min-w-0 flex-1">
+                                    <p class="text-sm font-medium text-gray-500">Proyek</p>
+                                    <p class="mt-1 text-2xl font-bold text-gray-900">{{ personal_stats.projects_count }}</p>
+                                </div>
+                            </div>
+                        </div>
+                        <!-- Item Kerja -->
+                        <div class="rounded-lg border bg-white p-6 shadow-sm">
+                            <div class="flex items-start gap-4">
+                                <div class="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-teal-100" aria-hidden="true">
+                                    <svg class="h-6 w-6 text-teal-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"/>
+                                    </svg>
+                                </div>
+                                <div class="min-w-0 flex-1">
+                                    <p class="text-sm font-medium text-gray-500">Item Kerja</p>
+                                    <p class="mt-1 text-2xl font-bold text-gray-900">{{ personal_stats.items_count }}</p>
+                                </div>
+                            </div>
+                        </div>
+                        <!-- Rata-rata Capaian -->
+                        <div class="rounded-lg border bg-white p-6 shadow-sm">
+                            <div class="flex items-start gap-4">
+                                <div :class="['flex h-12 w-12 shrink-0 items-center justify-center rounded-full', avgIconBgColor(personal_stats.avg_achievement)]" aria-hidden="true">
+                                    <svg :class="['h-6 w-6', avgIconColor(personal_stats.avg_achievement)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
+                                    </svg>
+                                </div>
+                                <div class="min-w-0 flex-1">
+                                    <p class="text-sm font-medium text-gray-500">Rata-rata Capaian</p>
+                                    <p :class="['mt-1 text-2xl font-bold', achievementColor(personal_stats.avg_achievement)]">
+                                        {{ personal_stats.avg_achievement.toFixed(1) }}%
+                                    </p>
+                                    <Progress
+                                        :model-value="personal_stats.avg_achievement"
+                                        :class="['mt-2 h-1.5', progressVariant(personal_stats.avg_achievement)]"
+                                    />
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- No projects -->
+                    <div v-if="!projects?.length" class="py-12 text-center text-gray-400">
+                        <p>Belum ada proyek untuk periode ini.</p>
+                    </div>
+
+                    <!-- Personal projects grouped by team -->
+                    <div v-else class="space-y-6">
+                        <div v-for="group in projectsByTeam" :key="group.teamName">
+                            <h2 class="mb-3 flex items-center gap-2 text-sm font-semibold text-primary uppercase tracking-wide">
+                                <span class="h-px flex-1 bg-primary/20"></span>
+                                {{ group.teamName }}
+                                <span class="h-px flex-1 bg-primary/20"></span>
+                            </h2>
+                            <div class="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                                <Card
+                                    v-for="project in group.projects"
+                                    :key="project.id"
+                                    class="hover:shadow-md transition-shadow"
+                                >
+                                    <CardHeader class="pb-2">
+                                        <CardTitle class="text-sm font-medium leading-tight">{{ project.name }}</CardTitle>
+                                    </CardHeader>
+                                    <CardContent>
+                                        <div class="flex items-baseline justify-between">
+                                            <span class="text-xs text-gray-500">Capaian bulan ini</span>
+                                            <span :class="['text-xl font-bold', achievementColor(projectAvg(project))]">
+                                                {{ projectAvg(project).toFixed(1) }}%
+                                            </span>
+                                        </div>
+                                        <Progress
+                                            :model-value="projectAvg(project)"
+                                            :class="['mt-2 h-2', progressVariant(projectAvg(project))]"
+                                        />
+                                        <p class="mt-2 text-xs text-gray-400">
+                                            {{ project.work_items.length }} item kerja
+                                        </p>
+                                    </CardContent>
+                                </Card>
+                            </div>
                         </div>
                     </div>
                 </template>

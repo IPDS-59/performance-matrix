@@ -220,6 +220,9 @@ type FormAssignmentRow = {
     display_name: string;
 };
 
+const addMemberSearch = ref('');
+const editMemberSearch = ref('');
+
 // Add form
 const addingProjectId = ref<number | null>(null);
 const addForm = useForm({
@@ -245,6 +248,7 @@ function openAdd(project: { id: number; work_items: Array<{ number: number }>; m
         display_name: m.display_name || m.name,
     }));
     addForm.clearErrors();
+    addMemberSearch.value = '';
     addingProjectId.value = project.id;
 }
 
@@ -297,6 +301,7 @@ function openEdit(
         };
     });
     editForm.clearErrors();
+    editMemberSearch.value = '';
     editingItemId.value = wi.id;
 }
 
@@ -319,6 +324,21 @@ function submitEdit(itemId: number) {
 function deleteItem(itemId: number) {
     router.delete(route('work-items.destroy', itemId), { preserveScroll: true });
 }
+
+const filteredAddIndices = computed(() => {
+    const q = addMemberSearch.value.toLowerCase();
+    return addForm.assignments.reduce<number[]>((acc, row, idx) => {
+        if (!q || row.display_name.toLowerCase().includes(q)) acc.push(idx);
+        return acc;
+    }, []);
+});
+const filteredEditIndices = computed(() => {
+    const q = editMemberSearch.value.toLowerCase();
+    return editForm.assignments.reduce<number[]>((acc, row, idx) => {
+        if (!q || row.display_name.toLowerCase().includes(q)) acc.push(idx);
+        return acc;
+    }, []);
+});
 
 // ── Tim Saya: group by team ────────────────────────────────────────────────
 
@@ -639,11 +659,11 @@ function projectSubmittedCount(project: TeamProjectWithMembers): number {
                                     </div>
                                 </div>
                                 <!-- Member chips -->
-                                <div class="mt-3 flex flex-wrap gap-2">
+                                <div class="mt-3 flex gap-2 overflow-x-auto pb-1">
                                     <div
                                         v-for="member in teamProject.members"
                                         :key="member.id"
-                                        :class="['flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs',
+                                        :class="['flex shrink-0 items-center gap-1.5 rounded-full border px-3 py-1 text-xs',
                                             isMemberLeader(member) ? 'border-amber-300 bg-amber-50 text-amber-800'
                                             : memberHasAnyReport(teamProject, member.id) ? 'border-green-200 bg-green-50 text-green-700'
                                             : 'border-gray-200 bg-gray-50 text-gray-500']"
@@ -691,11 +711,27 @@ function projectSubmittedCount(project: TeamProjectWithMembers): number {
                                                 <div><Label class="text-xs">Satuan</Label><Input v-model="editForm.target_unit" class="mt-1" /></div>
                                             </div>
                                             <div v-else class="mb-2 space-y-1.5">
-                                                <div v-for="(row, idx) in editForm.assignments" :key="row.employee_id" class="flex items-center gap-2">
-                                                    <input type="checkbox" v-model="editForm.assignments[idx]._included" class="accent-primary shrink-0" />
-                                                    <span class="w-36 shrink-0 truncate text-xs">{{ row.display_name }}</span>
-                                                    <Input type="number" min="0.01" step="0.01" v-model="editForm.assignments[idx].target" class="w-20 text-xs" />
-                                                    <Input v-model="editForm.assignments[idx].target_unit" class="w-24 text-xs" />
+                                                <div class="relative">
+                                                    <svg class="absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 pointer-events-none text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0"/></svg>
+                                                    <input v-model="editMemberSearch" type="text" placeholder="Cari anggota..." class="w-full rounded-md border border-input bg-white py-1.5 pl-8 pr-3 text-xs focus:outline-none focus:ring-1 focus:ring-ring" />
+                                                </div>
+                                                <div class="max-h-44 overflow-y-auto rounded-md border">
+                                                    <div
+                                                        v-for="idx in filteredEditIndices"
+                                                        :key="editForm.assignments[idx].employee_id"
+                                                        :class="['flex items-center gap-2 border-b border-gray-50 px-3 py-2 last:border-b-0 transition-colors', editForm.assignments[idx]._included ? 'bg-primary/5' : 'bg-white hover:bg-gray-50']"
+                                                    >
+                                                        <label class="flex min-w-0 flex-1 cursor-pointer items-center gap-2">
+                                                            <input type="checkbox" v-model="editForm.assignments[idx]._included" class="h-3.5 w-3.5 shrink-0 accent-primary" />
+                                                            <div class="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary/10 text-[10px] font-bold text-primary">
+                                                                {{ editForm.assignments[idx].display_name.charAt(0).toUpperCase() }}
+                                                            </div>
+                                                            <span class="min-w-0 flex-1 truncate text-xs text-gray-700">{{ editForm.assignments[idx].display_name }}</span>
+                                                        </label>
+                                                        <Input type="number" min="0.01" step="0.01" v-model="editForm.assignments[idx].target" class="w-20 shrink-0 text-xs" :disabled="!editForm.assignments[idx]._included" />
+                                                        <Input v-model="editForm.assignments[idx].target_unit" class="w-24 shrink-0 text-xs" :disabled="!editForm.assignments[idx]._included" />
+                                                    </div>
+                                                    <p v-if="filteredEditIndices.length === 0" class="px-3 py-4 text-center text-xs text-gray-400">Tidak ada anggota ditemukan.</p>
                                                 </div>
                                             </div>
                                             <div class="flex justify-end gap-2">
@@ -764,11 +800,27 @@ function projectSubmittedCount(project: TeamProjectWithMembers): number {
                                                 <div><Label class="text-xs">Satuan</Label><Input v-model="addForm.target_unit" placeholder="Kegiatan" class="mt-1" /></div>
                                             </div>
                                             <div v-else class="mb-2 space-y-1.5">
-                                                <div v-for="(row, idx) in addForm.assignments" :key="row.employee_id" class="flex items-center gap-2">
-                                                    <input type="checkbox" v-model="addForm.assignments[idx]._included" class="accent-primary shrink-0" />
-                                                    <span class="w-36 shrink-0 truncate text-xs">{{ row.display_name }}</span>
-                                                    <Input type="number" min="0.01" step="0.01" v-model="addForm.assignments[idx].target" class="w-20 text-xs" />
-                                                    <Input v-model="addForm.assignments[idx].target_unit" class="w-24 text-xs" placeholder="Satuan" />
+                                                <div class="relative">
+                                                    <svg class="absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 pointer-events-none text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0"/></svg>
+                                                    <input v-model="addMemberSearch" type="text" placeholder="Cari anggota..." class="w-full rounded-md border border-input bg-white py-1.5 pl-8 pr-3 text-xs focus:outline-none focus:ring-1 focus:ring-ring" />
+                                                </div>
+                                                <div class="max-h-44 overflow-y-auto rounded-md border">
+                                                    <div
+                                                        v-for="idx in filteredAddIndices"
+                                                        :key="addForm.assignments[idx].employee_id"
+                                                        :class="['flex items-center gap-2 border-b border-gray-50 px-3 py-2 last:border-b-0 transition-colors', addForm.assignments[idx]._included ? 'bg-primary/5' : 'bg-white hover:bg-gray-50']"
+                                                    >
+                                                        <label class="flex min-w-0 flex-1 cursor-pointer items-center gap-2">
+                                                            <input type="checkbox" v-model="addForm.assignments[idx]._included" class="h-3.5 w-3.5 shrink-0 accent-primary" />
+                                                            <div class="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary/10 text-[10px] font-bold text-primary">
+                                                                {{ addForm.assignments[idx].display_name.charAt(0).toUpperCase() }}
+                                                            </div>
+                                                            <span class="min-w-0 flex-1 truncate text-xs text-gray-700">{{ addForm.assignments[idx].display_name }}</span>
+                                                        </label>
+                                                        <Input type="number" min="0.01" step="0.01" v-model="addForm.assignments[idx].target" class="w-20 shrink-0 text-xs" :disabled="!addForm.assignments[idx]._included" />
+                                                        <Input v-model="addForm.assignments[idx].target_unit" class="w-24 shrink-0 text-xs" :disabled="!addForm.assignments[idx]._included" />
+                                                    </div>
+                                                    <p v-if="filteredAddIndices.length === 0" class="px-3 py-4 text-center text-xs text-gray-400">Tidak ada anggota ditemukan.</p>
                                                 </div>
                                             </div>
                                             <div class="flex justify-end gap-2">
