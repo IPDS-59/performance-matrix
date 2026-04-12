@@ -92,7 +92,7 @@ class PerformanceController extends Controller
      */
     private function inlineAssignmentTarget($project, Employee $employee)
     {
-        $project->work_items->transform(function ($wi) {
+        $project->workItems->transform(function ($wi) {
             $assignment = $wi->assignments->first();
             $wi->target = $assignment?->target ?? $wi->target;
             $wi->target_unit = $assignment?->target_unit ?? $wi->target_unit;
