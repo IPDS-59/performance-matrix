@@ -86,6 +86,38 @@ it('forbids resubmitting another employee report', function () {
         ->assertForbidden();
 });
 
+it('notifies the team lead when a report is resubmitted', function () {
+    Notification::fake();
+
+    $leadUser = \App\Models\User::factory()->create();
+    $leadEmployee = Employee::factory()->create(['user_id' => $leadUser->id]);
+
+    $user = staffUser();
+    $employee = Employee::factory()->create(['user_id' => $user->id]);
+
+    $project = Project::factory()->create(['year' => 2026, 'leader_id' => $leadEmployee->id]);
+    $project->members()->attach($employee->id, ['role' => 'member']);
+
+    $workItem = WorkItem::factory()->create(['project_id' => $project->id, 'target' => 10]);
+    WorkItemAssignment::create([
+        'work_item_id' => $workItem->id, 'employee_id' => $employee->id, 'target' => 10, 'target_unit' => 'Keg',
+    ]);
+
+    $report = PerformanceReport::factory()->create([
+        'work_item_id' => $workItem->id,
+        'reported_by' => $employee->id,
+        'period_year' => 2026,
+        'period_month' => 3,
+        'approval_status' => 'rejected',
+    ]);
+
+    $this->actingAs($user)
+        ->patch(route('performance.resubmit', $report), ['realization' => 5])
+        ->assertRedirect();
+
+    Notification::assertSentTo($leadUser, \App\Notifications\ReportSubmittedNotification::class);
+});
+
 it('recalculates achievement percentage on resubmit', function () {
     Notification::fake();
 

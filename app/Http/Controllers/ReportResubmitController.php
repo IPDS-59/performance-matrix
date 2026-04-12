@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Events\PerformanceBatchSubmitted;
 use App\Models\PerformanceReport;
 use App\Models\PerformanceReportReview;
 use App\Models\WorkItemAssignment;
@@ -59,6 +60,8 @@ class ReportResubmitController extends Controller
             'actor_id' => $request->user()->id,
             'action' => 'resubmitted',
         ]);
+
+        PerformanceBatchSubmitted::dispatch($employee, $report->period_month, $report->period_year, [$report->id]);
 
         return back()->with('success', 'Laporan berhasil diajukan ulang.');
     }
