@@ -8,6 +8,7 @@ use App\Http\Controllers\PerformanceApprovalController;
 use App\Http\Controllers\PerformanceController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\ProjectController;
+use App\Http\Controllers\ProjectListController;
 use App\Http\Controllers\ReportAttachmentController;
 use App\Http\Controllers\TeamController;
 use App\Http\Controllers\WorkItemController;
@@ -48,7 +49,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/laporan/pegawai', [EmployeeReportController::class, 'index'])->name('laporan.pegawai');
 
     // Staff performance entry
-    Route::get('/performance', [PerformanceController::class, 'index'])->name('performance.index');
+    Route::get('/performance', [ProjectListController::class, 'index'])->name('performance.index');
     Route::post('/performance/batch', [PerformanceController::class, 'storeBatch'])->name('performance.batch');
 
     // Report approval (team leads + head)
