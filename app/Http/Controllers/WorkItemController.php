@@ -34,6 +34,13 @@ class WorkItemController extends Controller
 
         $this->syncAssignments->execute($workItem, $project, $validated);
 
+        if ($validated['assign_to'] === 'specific') {
+            $firstUnit = $workItem->assignments()->value('target_unit');
+            if ($firstUnit) {
+                $workItem->update(['target_unit' => $firstUnit]);
+            }
+        }
+
         // Notify every assigned employee (skip the lead who just created it)
         $workItem->load('project.team', 'assignments.employee.user');
         foreach ($workItem->assignments as $assignment) {
@@ -64,6 +71,13 @@ class WorkItemController extends Controller
         ]);
 
         $this->syncAssignments->execute($workItem, $workItem->project, $validated);
+
+        if ($validated['assign_to'] === 'specific') {
+            $firstUnit = $workItem->assignments()->value('target_unit');
+            if ($firstUnit) {
+                $workItem->update(['target_unit' => $firstUnit]);
+            }
+        }
 
         // Notify every assigned employee (skip the lead who just updated it)
         $workItem->load('project.team', 'assignments.employee.user');

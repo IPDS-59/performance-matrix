@@ -131,7 +131,7 @@ class ProjectDetailController extends Controller
                 'number' => $wi->number,
                 'description' => $wi->description,
                 'target' => (float) $wi->target,
-                'target_unit' => $wi->target_unit,
+                'target_unit' => $wi->assignments->first()?->target_unit ?? $wi->target_unit,
                 'assigned_members' => $wi->assignments->map(fn ($a) => [
                     'employee_id' => $a->employee_id,
                     'name' => $a->employee?->display_name ?? $a->employee?->name ?? '—',

@@ -40,7 +40,7 @@ class WorkItemDetailController extends Controller
     private function workItemData(WorkItem $workItem, Employee $employee, bool $isLead): array
     {
         $assignment = $isLead
-            ? null
+            ? $workItem->assignments()->first()
             : $workItem->assignments()->where('employee_id', $employee->id)->first();
 
         $target = (float) ($assignment?->target ?? $workItem->target);
