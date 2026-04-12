@@ -65,7 +65,7 @@ function seedRolesAndPermissions(): void
         ->syncPermissions(['manage-teams', 'manage-employees', 'manage-projects', 'manage-work-items', 'view-matrix', 'view-reports']);
 
     Role::firstOrCreate(['name' => 'head', 'guard_name' => 'web'])
-        ->syncPermissions(['view-matrix', 'view-reports']);
+        ->syncPermissions(['view-matrix', 'view-reports', 'enter-performance']);
 
     Role::firstOrCreate(['name' => 'staff', 'guard_name' => 'web'])
         ->syncPermissions(['enter-performance']);

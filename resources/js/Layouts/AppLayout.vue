@@ -76,9 +76,9 @@ const isStaff = computed(() => user.value.role === 'staff');
                     <span v-if="sidebar.isOpen">Matriks</span>
                 </Link>
 
-                <!-- Performance entry (staff) -->
+                <!-- Performance entry (staff + head) -->
                 <Link
-                    v-if="isStaff"
+                    v-if="isStaff || isHead"
                     :href="route('performance.index')"
                     :class="route().current('performance.*') ? 'bg-white/20' : 'hover:bg-white/10'"
                     class="flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors"

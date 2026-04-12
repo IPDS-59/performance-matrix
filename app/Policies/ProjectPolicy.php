@@ -9,12 +9,12 @@ class ProjectPolicy
 {
     public function viewAny(User $user): bool
     {
-        return $user->hasPermissionTo('manage-projects');
+        return $user->hasPermissionTo('manage-projects') || $user->hasRole(['head', 'staff']);
     }
 
     public function view(User $user, Project $project): bool
     {
-        return $user->hasPermissionTo('manage-projects');
+        return $user->hasPermissionTo('manage-projects') || $user->hasRole(['head', 'staff']);
     }
 
     public function create(User $user): bool
@@ -24,11 +24,19 @@ class ProjectPolicy
 
     public function update(User $user, Project $project): bool
     {
-        return $user->hasPermissionTo('manage-projects');
+        if ($user->hasPermissionTo('manage-projects')) {
+            return true;
+        }
+
+        return $user->employee !== null && $user->employee->id === $project->leader_id;
     }
 
     public function delete(User $user, Project $project): bool
     {
-        return $user->hasPermissionTo('manage-projects');
+        if ($user->hasPermissionTo('manage-projects')) {
+            return true;
+        }
+
+        return $user->employee !== null && $user->employee->id === $project->leader_id;
     }
 }

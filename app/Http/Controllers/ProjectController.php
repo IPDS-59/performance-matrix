@@ -73,42 +73,64 @@ class ProjectController extends Controller
         return redirect()->route('projects.index')->with('success', 'Proyek berhasil ditambahkan.');
     }
 
-    public function edit(Project $project): Response
+    public function edit(Project $project, Request $request): Response
     {
         $this->authorize('update', $project);
+
+        $user = $request->user();
+        $isLeader = ! $user->hasPermissionTo('manage-projects')
+            && $user->employee !== null
+            && $user->employee->id === $project->leader_id;
 
         $project->load('members:id,name,display_name', 'team:id,name');
         $teams = Team::where('is_active', true)->orderBy('name')->get(['id', 'name']);
         $employees = Employee::where('is_active', true)->orderBy('name')->get(['id', 'name', 'display_name']);
 
-        return Inertia::render('Projects/Edit', compact('project', 'teams', 'employees'));
+        return Inertia::render('Projects/Edit', compact('project', 'teams', 'employees', 'isLeader'));
     }
 
     public function update(Request $request, Project $project, SyncProjectMembersAction $syncMembers): RedirectResponse
     {
         $this->authorize('update', $project);
 
-        $validated = $request->validate([
-            'team_id' => ['required', 'exists:teams,id'],
-            'leader_id' => ['nullable', 'exists:employees,id'],
-            'name' => ['required', 'string', 'max:255'],
-            'description' => ['nullable', 'string'],
-            'objective' => ['nullable', 'string'],
-            'kpi' => ['nullable', 'string'],
-            'status' => ['in:active,completed,cancelled'],
-            'year' => ['required', 'integer', 'min:2020', 'max:2099'],
-            'members' => ['array'],
-            'members.*.employee_id' => ['exists:employees,id'],
-            'members.*.role' => ['in:leader,member'],
-        ]);
+        $isAdmin = $request->user()->hasPermissionTo('manage-projects');
 
-        $project->update($validated);
+        if ($isAdmin) {
+            $validated = $request->validate([
+                'team_id' => ['required', 'exists:teams,id'],
+                'leader_id' => ['nullable', 'exists:employees,id'],
+                'name' => ['required', 'string', 'max:255'],
+                'description' => ['nullable', 'string'],
+                'objective' => ['nullable', 'string'],
+                'kpi' => ['nullable', 'string'],
+                'status' => ['in:active,completed,cancelled'],
+                'year' => ['required', 'integer', 'min:2020', 'max:2099'],
+                'members' => ['array'],
+                'members.*.employee_id' => ['exists:employees,id'],
+                'members.*.role' => ['in:leader,member'],
+            ]);
 
-        $memberMap = collect($validated['members'] ?? [])
-            ->keyBy('employee_id')
-            ->map(fn ($m) => ['role' => $m['role']])
-            ->all();
-        $syncMembers->execute($project, $memberMap);
+            $project->update($validated);
+
+            $memberMap = collect($validated['members'] ?? [])
+                ->keyBy('employee_id')
+                ->map(fn ($m) => ['role' => $m['role']])
+                ->all();
+            $syncMembers->execute($project, $memberMap);
+        } else {
+            // Project leader: only allowed to update members
+            $validated = $request->validate([
+                'members' => ['array'],
+                'members.*.employee_id' => ['exists:employees,id'],
+                'members.*.role' => ['in:leader,member'],
+            ]);
+
+            $memberMap = collect($validated['members'] ?? [])
+                ->keyBy('employee_id')
+                ->map(fn ($m) => ['role' => $m['role']])
+                ->all();
+            $syncMembers->execute($project, $memberMap);
+        }
 
         return redirect()->route('projects.index')->with('success', 'Proyek berhasil diperbarui.');
     }

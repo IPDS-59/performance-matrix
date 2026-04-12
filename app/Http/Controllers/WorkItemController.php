@@ -11,7 +11,12 @@ class WorkItemController extends Controller
 {
     public function store(Request $request, Project $project): RedirectResponse
     {
-        $this->authorize('create', WorkItem::class);
+        $employee = $request->user()->employee;
+        $isProjectLeader = $employee !== null && $project->leader_id === $employee->id;
+
+        if (! $isProjectLeader) {
+            $this->authorize('create', WorkItem::class);
+        }
 
         $validated = $request->validate([
             'number' => ['required', 'integer', 'min:1', "unique:work_items,number,NULL,id,project_id,{$project->id}"],
@@ -25,7 +30,12 @@ class WorkItemController extends Controller
 
     public function update(Request $request, WorkItem $workItem): RedirectResponse
     {
-        $this->authorize('update', $workItem);
+        $employee = $request->user()->employee;
+        $isProjectLeader = $employee !== null && $workItem->project->leader_id === $employee->id;
+
+        if (! $isProjectLeader) {
+            $this->authorize('update', $workItem);
+        }
 
         $validated = $request->validate([
             'description' => ['required', 'string'],
@@ -38,7 +48,12 @@ class WorkItemController extends Controller
 
     public function destroy(WorkItem $workItem): RedirectResponse
     {
-        $this->authorize('delete', $workItem);
+        $employee = request()->user()->employee;
+        $isProjectLeader = $employee !== null && $workItem->project->leader_id === $employee->id;
+
+        if (! $isProjectLeader) {
+            $this->authorize('delete', $workItem);
+        }
 
         $workItem->delete();
 

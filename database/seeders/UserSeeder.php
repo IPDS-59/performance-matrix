@@ -6,13 +6,32 @@ use App\Models\Employee;
 use App\Models\User;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Str;
 
 class UserSeeder extends Seeder
 {
+    /** Derive email from employee name: "Sukma Nirmala Dewi" → "sukma@bpssulteng.id" */
+    private function emailFromName(string $name): string
+    {
+        $firstName = Str::lower(Str::before($name, ' '));
+
+        return "{$firstName}@bpssulteng.id";
+    }
+
+    private function linkEmployee(User $user, string $employeeName, ?array $extraUpdate = null): void
+    {
+        $employee = Employee::where('name', $employeeName)->first();
+        if ($employee && ! $employee->user_id) {
+            $employee->update(array_merge(['user_id' => $user->id], $extraUpdate ?? []));
+            $user->update(['name' => $employee->display_name ?? $employee->name]);
+        }
+    }
+
     public function run(): void
     {
+        // Admin — no linked employee
         $admin = User::firstOrCreate(
-            ['email' => 'admin@bps-sulteng.go.id'],
+            ['email' => 'admin@bpssulteng.id'],
             [
                 'name' => 'Administrator',
                 'password' => Hash::make('password'),
@@ -21,9 +40,9 @@ class UserSeeder extends Seeder
         );
         $admin->syncRoles('admin');
 
-        // Kepala BPS Provinsi — linked to Imron Taufik J Musa
+        // Kepala BPS Provinsi — imron@bpssulteng.id → Imron Taufik J Musa
         $head = User::firstOrCreate(
-            ['email' => 'kepala@bps-sulteng.go.id'],
+            ['email' => $this->emailFromName('Imron Taufik J Musa')],
             [
                 'name' => 'Imron Taufik J Musa',
                 'password' => Hash::make('password'),
@@ -31,19 +50,13 @@ class UserSeeder extends Seeder
             ]
         );
         $head->syncRoles('head');
+        $this->linkEmployee($head, 'Imron Taufik J Musa', [
+            'position' => 'Kepala BPS Provinsi Sulawesi Tengah',
+        ]);
 
-        $kepalaEmployee = Employee::where('name', 'Imron Taufik J Musa')->first();
-        if ($kepalaEmployee && ! $kepalaEmployee->user_id) {
-            $kepalaEmployee->update([
-                'user_id' => $head->id,
-                'position' => 'Kepala BPS Provinsi Sulawesi Tengah',
-            ]);
-            $head->update(['name' => $kepalaEmployee->display_name ?? $kepalaEmployee->name]);
-        }
-
-        // Ketua Tim — linked to Hespri Yomeldi
+        // Ketua Tim — hespri@bpssulteng.id → Hespri Yomeldi
         $hespri = User::firstOrCreate(
-            ['email' => 'hespri@bps-sulteng.go.id'],
+            ['email' => $this->emailFromName('Hespri Yomeldi')],
             [
                 'name' => 'Hespri Yomeldi',
                 'password' => Hash::make('password'),
@@ -51,28 +64,18 @@ class UserSeeder extends Seeder
             ]
         );
         $hespri->syncRoles('staff');
+        $this->linkEmployee($hespri, 'Hespri Yomeldi');
 
-        $hespriEmployee = Employee::where('name', 'Hespri Yomeldi')->first();
-        if ($hespriEmployee && ! $hespriEmployee->user_id) {
-            $hespriEmployee->update(['user_id' => $hespri->id]);
-            $hespri->update(['name' => $hespriEmployee->display_name ?? $hespriEmployee->name]);
-        }
-
-        // Staff demo — linked to Sukma Nirmala Dewi
+        // Staff demo — sukma@bpssulteng.id → Sukma Nirmala Dewi
         $staff = User::firstOrCreate(
-            ['email' => 'staff@bps-sulteng.go.id'],
+            ['email' => $this->emailFromName('Sukma Nirmala Dewi')],
             [
-                'name' => 'Staff Demo',
+                'name' => 'Sukma Nirmala Dewi',
                 'password' => Hash::make('password'),
                 'role' => 'staff',
             ]
         );
         $staff->syncRoles('staff');
-
-        $staffEmployee = Employee::where('name', 'Sukma Nirmala Dewi')->first();
-        if ($staffEmployee && ! $staffEmployee->user_id) {
-            $staffEmployee->update(['user_id' => $staff->id]);
-            $staff->update(['name' => $staffEmployee->display_name ?? $staffEmployee->name]);
-        }
+        $this->linkEmployee($staff, 'Sukma Nirmala Dewi');
     }
 }

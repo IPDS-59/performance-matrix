@@ -41,6 +41,7 @@ class RolePermissionSeeder extends Seeder
         $head->syncPermissions([
             'view-matrix',
             'view-reports',
+            'enter-performance',
         ]);
 
         $staff = Role::firstOrCreate(['name' => 'staff']);

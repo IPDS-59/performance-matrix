@@ -25,7 +25,7 @@ class DashboardController extends Controller
         }
 
         if ($user->hasRole('head')) {
-            return $this->headDashboard($year, $month);
+            return $this->headDashboard($user, $year, $month);
         }
 
         return $this->adminDashboard($year, $month);
@@ -74,6 +74,45 @@ class DashboardController extends Controller
         ));
     }
 
+    private function personalStats(Employee $employee, int $year, int $month): array
+    {
+        $projectIds = DB::table('project_members')
+            ->join('projects', 'projects.id', '=', 'project_members.project_id')
+            ->where('project_members.employee_id', $employee->id)
+            ->where('projects.year', $year)
+            ->pluck('project_members.project_id')
+            ->unique()
+            ->values();
+
+        $teamIds = DB::table('projects')
+            ->whereIn('id', $projectIds)
+            ->pluck('team_id')
+            ->unique()
+            ->values();
+
+        $workItemIds = DB::table('work_items')
+            ->whereIn('project_id', $projectIds)
+            ->pluck('id');
+
+        $avgAchievement = DB::table('performance_reports')
+            ->whereIn('work_item_id', $workItemIds)
+            ->where('period_year', $year)
+            ->where('period_month', $month)
+            ->avg('achievement_percentage');
+
+        $isTeamLead = Project::where('leader_id', $employee->id)
+            ->where('year', $year)
+            ->exists();
+
+        return [
+            'teams_count' => $teamIds->count(),
+            'projects_count' => $projectIds->count(),
+            'items_count' => $workItemIds->count(),
+            'avg_achievement' => round($avgAchievement ?? 0, 2),
+            'is_team_lead' => $isTeamLead,
+        ];
+    }
+
     private function staffDashboard($user, int $year, int $month): Response
     {
         $employee = $user->employee;
@@ -84,6 +123,8 @@ class DashboardController extends Controller
                 'filters' => compact('year', 'month'),
             ]);
         }
+
+        $isTeamLead = Project::where('leader_id', $employee->id)->where('year', $year)->exists();
 
         $projects = Project::with([
             'workItems.performanceReports' => fn ($q) => $q->where('period_year', $year)->where('period_month', $month),
@@ -97,27 +138,65 @@ class DashboardController extends Controller
             ->select('projects.*')
             ->get();
 
+        $teamProjects = $isTeamLead
+            ? Project::with([
+                'workItems' => fn ($q) => $q->with([
+                    'performanceReports' => fn ($q) => $q
+                        ->where('period_year', $year)
+                        ->where('period_month', $month)
+                        ->with('reporter:id,name,display_name'),
+                ]),
+                'members:id,name,display_name',
+                'team:id,name',
+            ])
+                ->where('leader_id', $employee->id)
+                ->where('year', $year)
+                ->join('teams', 'teams.id', 'projects.team_id')
+                ->orderBy('teams.name')
+                ->orderBy('projects.name')
+                ->select('projects.*')
+                ->get()
+            : collect();
+
         return Inertia::render('Dashboard', [
             'role' => 'staff',
             'employee' => $employee->only('id', 'name', 'display_name'),
             'projects' => $projects,
+            'team_projects' => $teamProjects,
+            'personal_stats' => $this->personalStats($employee, $year, $month),
             'filters' => compact('year', 'month'),
         ]);
     }
 
-    private function headDashboard(int $year, int $month): Response
+    private function headDashboard($user, int $year, int $month): Response
     {
         $cacheKey = "team_progress:{$year}:{$month}";
         $teamProgress = Cache::get($cacheKey, collect());
 
-        $teams = Team::orderBy('name')->get(['id', 'name', 'code']);
+        $projectLeaderIds = DB::table('projects')
+            ->where('year', $year)
+            ->whereNotNull('leader_id')
+            ->pluck('leader_id')
+            ->unique()
+            ->values();
 
-        return Inertia::render('Dashboard', [
+        $teams = Team::with(['employees' => fn ($q) => $q->select('employees.id', 'name', 'display_name', 'team_id')])
+            ->orderBy('name')
+            ->get(['id', 'name', 'code']);
+
+        $data = [
             'role' => 'head',
             'teams' => $teams,
             'team_progress' => $teamProgress,
+            'project_leader_ids' => $projectLeaderIds,
             'filters' => compact('year', 'month'),
-        ]);
+        ];
+
+        if ($user->employee) {
+            $data['personal_stats'] = $this->personalStats($user->employee, $year, $month);
+        }
+
+        return Inertia::render('Dashboard', $data);
     }
 
     private function adminDashboard(int $year, int $month): Response
@@ -144,12 +223,22 @@ class DashboardController extends Controller
             ->select('performance_reports.period_month', DB::raw('AVG(achievement_percentage) as avg_achievement'))
             ->get();
 
-        $teams = Team::orderBy('name')->get(['id', 'name', 'code']);
+        $projectLeaderIds = DB::table('projects')
+            ->where('year', $year)
+            ->whereNotNull('leader_id')
+            ->pluck('leader_id')
+            ->unique()
+            ->values();
+
+        $teams = Team::with(['employees' => fn ($q) => $q->select('employees.id', 'name', 'display_name', 'team_id')])
+            ->orderBy('name')
+            ->get(['id', 'name', 'code']);
 
         return Inertia::render('Dashboard', [
             'role' => 'admin',
             'teams' => $teams,
             'team_progress' => $teamProgress,
+            'project_leader_ids' => $projectLeaderIds,
             'org_avg' => round($orgAvg ?? 0, 2),
             'trend' => $trend,
             'filters' => compact('year', 'month'),

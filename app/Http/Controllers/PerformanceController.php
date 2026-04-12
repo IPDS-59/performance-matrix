@@ -36,9 +36,32 @@ class PerformanceController extends Controller
             ->select('projects.*')
             ->get();
 
+        $isTeamLead = Project::where('leader_id', $employee->id)->where('year', $year)->exists();
+        $teamProjects = $isTeamLead
+            ? Project::with([
+                'workItems' => fn ($q) => $q->with([
+                    'performanceReports' => fn ($q) => $q
+                        ->where('period_year', $year)
+                        ->where('period_month', $month)
+                        ->with('reporter:id,name,display_name'),
+                ]),
+                'members:id,name,display_name',
+                'team:id,name',
+            ])
+                ->where('leader_id', $employee->id)
+                ->where('year', $year)
+                ->join('teams', 'teams.id', 'projects.team_id')
+                ->orderBy('teams.name')
+                ->orderBy('projects.name')
+                ->select('projects.*')
+                ->get()
+            : collect();
+
         return Inertia::render('Performance/Index', [
             'employee' => $employee->only('id', 'name', 'display_name'),
             'projects' => $projects,
+            'is_team_lead' => $isTeamLead,
+            'team_projects' => $teamProjects,
             'filters' => ['year' => $year, 'month' => $month],
         ]);
     }

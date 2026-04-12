@@ -11,7 +11,11 @@ import { Badge } from '@/Components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/Components/ui/select';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/Components/ui/accordion';
 import { Progress } from '@/Components/ui/progress';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/Components/ui/tabs';
+import { Card, CardContent, CardHeader, CardTitle } from '@/Components/ui/card';
 import InputError from '@/Components/InputError.vue';
+
+// ── Types ──────────────────────────────────────────────────────────────────
 
 interface WorkItemWithReports {
     id: number;
@@ -33,11 +37,45 @@ interface ProjectWithItems extends Project {
     work_items: WorkItemWithReports[];
 }
 
+interface TeamMember extends Employee {
+    pivot: { role: string };
+}
+
+interface TeamWorkItemReport {
+    id: number;
+    realization: number;
+    achievement_percentage: number;
+    reported_by: number | null;
+    reporter: { id: number; name: string; display_name: string | null } | null;
+}
+
+interface TeamWorkItem {
+    id: number;
+    description: string;
+    target: number;
+    target_unit: string;
+    performance_reports: TeamWorkItemReport[];
+}
+
+interface TeamProjectWithMembers {
+    id: number;
+    name: string;
+    team: { id: number; name: string } | null;
+    members: TeamMember[];
+    work_items: TeamWorkItem[];
+}
+
+// ── Props ──────────────────────────────────────────────────────────────────
+
 const props = defineProps<{
     employee: Pick<Employee, 'id' | 'name' | 'display_name'>;
     projects: ProjectWithItems[];
+    is_team_lead: boolean;
+    team_projects: TeamProjectWithMembers[];
     filters: { year: number; month: number };
 }>();
+
+// ── Filters ────────────────────────────────────────────────────────────────
 
 const year = ref(props.filters.year);
 const month = ref(props.filters.month);
@@ -57,7 +95,8 @@ const months = [
 
 const monthLabel = computed(() => months.find(m => m.value === props.filters.month)?.label ?? '');
 
-// Group projects by team
+// ── Personal projects: group by team ──────────────────────────────────────
+
 const projectsByTeam = computed(() => {
     const groups: Record<number, { teamId: number; teamName: string; projects: ProjectWithItems[] }> = {};
     for (const p of props.projects) {
@@ -69,7 +108,8 @@ const projectsByTeam = computed(() => {
     return Object.values(groups).sort((a, b) => a.teamName.localeCompare(b.teamName));
 });
 
-// Form state
+// ── Form state (personal input) ────────────────────────────────────────────
+
 type ItemForm = {
     work_item_id: number;
     realization: number;
@@ -151,6 +191,63 @@ function projectAvgPct(project: ProjectWithItems): number {
 function submit() {
     form.post(route('performance.batch'), { preserveScroll: true });
 }
+
+// ── Team view helpers ──────────────────────────────────────────────────────
+
+function isMemberLeader(member: TeamMember): boolean {
+    return member.pivot.role === 'leader' || member.pivot.role === 'ketua';
+}
+
+function getMemberReport(
+    project: TeamProjectWithMembers,
+    memberId: number,
+): TeamWorkItemReport | null {
+    for (const wi of project.work_items) {
+        const report = wi.performance_reports.find(r => r.reported_by === memberId);
+        if (report) return report;
+    }
+    return null;
+}
+
+function memberHasAnyReport(project: TeamProjectWithMembers, memberId: number): boolean {
+    return project.work_items.some(wi =>
+        wi.performance_reports.some(r => r.reported_by === memberId),
+    );
+}
+
+function memberAvgAchievement(project: TeamProjectWithMembers, memberId: number): number {
+    const reports: TeamWorkItemReport[] = [];
+    for (const wi of project.work_items) {
+        const report = wi.performance_reports.find(r => r.reported_by === memberId);
+        if (report) reports.push(report);
+    }
+    if (!reports.length) return 0;
+    return reports.reduce((s, r) => s + r.achievement_percentage, 0) / reports.length;
+}
+
+function memberProgressColor(pct: number): string {
+    if (pct >= 80) return '[&>div]:bg-green-500';
+    if (pct >= 50) return '[&>div]:bg-yellow-500';
+    return '[&>div]:bg-red-500';
+}
+
+function memberPctColor(pct: number): string {
+    if (pct >= 80) return 'text-green-600';
+    if (pct >= 50) return 'text-yellow-500';
+    return 'text-red-500';
+}
+
+function projectSubmittedCount(project: TeamProjectWithMembers): number {
+    const reportedBySet = new Set<number>();
+    for (const wi of project.work_items) {
+        for (const r of wi.performance_reports) {
+            if (r.reported_by !== null) {
+                reportedBySet.add(r.reported_by);
+            }
+        }
+    }
+    return reportedBySet.size;
+}
 </script>
 
 <template>
@@ -183,152 +280,467 @@ function submit() {
             </span>
         </div>
 
-        <div v-if="!projects.length" class="py-16 text-center text-gray-400">
-            <p class="font-medium">Tidak ada proyek untuk periode ini.</p>
-            <p class="mt-1 text-sm">Anda belum ditugaskan ke proyek aktif tahun {{ filters.year }}.</p>
-        </div>
-
-        <form v-else @submit.prevent="submit" class="space-y-8">
-            <!-- Grouped by team -->
-            <div v-for="group in projectsByTeam" :key="group.teamId" class="space-y-3">
-                <!-- Team header -->
-                <div class="flex items-center gap-3">
-                    <h2 class="text-sm font-bold uppercase tracking-wide text-primary">
-                        {{ group.teamName }}
-                    </h2>
-                    <span class="h-px flex-1 bg-primary/20"></span>
-                    <Badge variant="outline" class="text-xs">
-                        {{ group.projects.length }} proyek
+        <!-- Tab toggle: only shown for team leads -->
+        <Tabs v-if="is_team_lead" default-value="personal" class="w-full">
+            <TabsList class="mb-6">
+                <TabsTrigger value="personal">Kinerja Saya</TabsTrigger>
+                <TabsTrigger value="team">
+                    Tim Saya
+                    <Badge variant="secondary" class="ml-2 text-xs">
+                        {{ team_projects.length }}
                     </Badge>
+                </TabsTrigger>
+            </TabsList>
+
+            <!-- ── Kinerja Saya tab ─────────────────────────────────────── -->
+            <TabsContent value="personal">
+                <div v-if="!projects.length" class="py-16 text-center text-gray-400">
+                    <p class="font-medium">Tidak ada proyek untuk periode ini.</p>
+                    <p class="mt-1 text-sm">Anda belum ditugaskan ke proyek aktif tahun {{ filters.year }}.</p>
                 </div>
 
-                <!-- Projects accordion within team -->
-                <Accordion type="multiple" class="space-y-2">
-                    <AccordionItem
-                        v-for="project in group.projects"
-                        :key="project.id"
-                        :value="String(project.id)"
-                        class="rounded-lg border bg-white shadow-sm"
-                    >
-                        <AccordionTrigger class="px-4 py-3 hover:no-underline">
-                            <div class="flex min-w-0 flex-1 items-center gap-3 pr-2">
-                                <span class="min-w-0 flex-1 truncate text-left font-medium text-gray-800">
-                                    {{ project.name }}
-                                </span>
-                                <div class="flex shrink-0 items-center gap-2">
-                                    <div class="hidden w-24 sm:block">
-                                        <Progress
-                                            :model-value="projectAvgPct(project)"
-                                            :class="['h-1.5', progressColor(projectAvgPct(project))]"
-                                        />
+                <form v-else @submit.prevent="submit" class="space-y-8">
+                    <div v-for="group in projectsByTeam" :key="group.teamId" class="space-y-3">
+                        <!-- Team header -->
+                        <div class="flex items-center gap-3">
+                            <h2 class="text-sm font-bold uppercase tracking-wide text-primary">
+                                {{ group.teamName }}
+                            </h2>
+                            <span class="h-px flex-1 bg-primary/20"></span>
+                            <Badge variant="outline" class="text-xs">
+                                {{ group.projects.length }} proyek
+                            </Badge>
+                        </div>
+
+                        <Accordion type="multiple" class="space-y-2">
+                            <AccordionItem
+                                v-for="project in group.projects"
+                                :key="project.id"
+                                :value="String(project.id)"
+                                class="rounded-lg border bg-white shadow-sm"
+                            >
+                                <AccordionTrigger class="px-4 py-3 hover:no-underline">
+                                    <div class="flex min-w-0 flex-1 items-center gap-3 pr-2">
+                                        <span class="min-w-0 flex-1 truncate text-left font-medium text-gray-800">
+                                            {{ project.name }}
+                                        </span>
+                                        <div class="flex shrink-0 items-center gap-2">
+                                            <div class="hidden w-24 sm:block">
+                                                <Progress
+                                                    :model-value="projectAvgPct(project)"
+                                                    :class="['h-1.5', progressColor(projectAvgPct(project))]"
+                                                />
+                                            </div>
+                                            <span :class="['text-sm font-bold', pctColor(projectAvgPct(project))]">
+                                                {{ projectAvgPct(project).toFixed(0) }}%
+                                            </span>
+                                        </div>
                                     </div>
-                                    <span :class="['text-sm font-bold', pctColor(projectAvgPct(project))]">
-                                        {{ projectAvgPct(project).toFixed(0) }}%
-                                    </span>
+                                </AccordionTrigger>
+                                <AccordionContent class="px-4 pb-4">
+                                    <div class="space-y-4">
+                                        <div
+                                            v-for="wi in project.work_items"
+                                            :key="wi.id"
+                                            class="rounded-md border border-gray-100 bg-gray-50 p-4"
+                                        >
+                                            <p class="mb-4 text-sm font-semibold text-gray-700">
+                                                {{ wi.number }}. {{ wi.description }}
+                                            </p>
+
+                                            <div class="mb-4 rounded-md border border-gray-200 bg-white p-3">
+                                                <div class="mb-2 flex items-center justify-between">
+                                                    <span class="text-xs font-medium uppercase tracking-wide text-gray-500">Progres Capaian</span>
+                                                    <span :class="['text-base font-bold', pctColor(computePct(wi.id))]">
+                                                        {{ computePct(wi.id).toFixed(1) }}%
+                                                    </span>
+                                                </div>
+                                                <Progress
+                                                    :model-value="computePct(wi.id)"
+                                                    :class="['mb-3 h-2', progressColor(computePct(wi.id))]"
+                                                />
+                                                <div class="grid grid-cols-2 gap-4">
+                                                    <div>
+                                                        <Label class="text-xs text-gray-500">
+                                                            Target ({{ wi.target_unit }})
+                                                        </Label>
+                                                        <div class="mt-1 flex items-center gap-2">
+                                                            <span class="rounded bg-gray-100 px-2.5 py-1.5 text-sm font-semibold text-gray-700">
+                                                                {{ Number(wi.target).toLocaleString('id') }}
+                                                            </span>
+                                                            <span class="text-xs text-gray-400">{{ wi.target_unit }}</span>
+                                                        </div>
+                                                    </div>
+                                                    <div>
+                                                        <Label class="text-xs text-gray-500">
+                                                            Realisasi ({{ wi.target_unit }})
+                                                        </Label>
+                                                        <div class="mt-1 flex items-center gap-2">
+                                                            <Input
+                                                                type="number"
+                                                                min="0"
+                                                                step="0.01"
+                                                                v-model="getItem(wi.id).realization"
+                                                                class="w-28"
+                                                            />
+                                                            <span class="text-xs text-gray-400">{{ wi.target_unit }}</span>
+                                                        </div>
+                                                        <InputError :message="form.errors[`items.${form.items.findIndex(i => i.work_item_id === wi.id)}.realization`]" />
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            <div class="grid gap-3 sm:grid-cols-3">
+                                                <div>
+                                                    <Label class="text-xs text-gray-500">Kendala</Label>
+                                                    <Textarea
+                                                        v-model="getItem(wi.id).issues"
+                                                        rows="3"
+                                                        class="mt-1 text-sm"
+                                                        placeholder="(opsional)"
+                                                    />
+                                                </div>
+                                                <div>
+                                                    <Label class="text-xs text-gray-500">Solusi</Label>
+                                                    <Textarea
+                                                        v-model="getItem(wi.id).solutions"
+                                                        rows="3"
+                                                        class="mt-1 text-sm"
+                                                        placeholder="(opsional)"
+                                                    />
+                                                </div>
+                                                <div>
+                                                    <Label class="text-xs text-gray-500">Rencana Tindak Lanjut</Label>
+                                                    <Textarea
+                                                        v-model="getItem(wi.id).action_plan"
+                                                        rows="3"
+                                                        class="mt-1 text-sm"
+                                                        placeholder="(opsional)"
+                                                    />
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </AccordionContent>
+                            </AccordionItem>
+                        </Accordion>
+                    </div>
+
+                    <div class="sticky bottom-4 flex justify-end">
+                        <Button
+                            type="submit"
+                            :disabled="form.processing"
+                            class="px-8 shadow-lg"
+                        >
+                            {{ form.processing ? 'Menyimpan...' : 'Simpan Laporan Kinerja' }}
+                        </Button>
+                    </div>
+                </form>
+            </TabsContent>
+
+            <!-- ── Tim Saya tab ────────────────────────────────────────── -->
+            <TabsContent value="team">
+                <div v-if="!team_projects.length" class="py-16 text-center text-gray-400">
+                    <p class="font-medium">Tidak ada proyek tim untuk periode ini.</p>
+                </div>
+
+                <div v-else class="space-y-6">
+                    <Card
+                        v-for="teamProject in team_projects"
+                        :key="teamProject.id"
+                        class="overflow-hidden"
+                    >
+                        <!-- Project header -->
+                        <CardHeader class="pb-4">
+                            <div class="flex items-start justify-between gap-3">
+                                <div>
+                                    <CardTitle class="text-base font-semibold text-gray-800">
+                                        {{ teamProject.name }}
+                                    </CardTitle>
+                                    <p v-if="teamProject.team" class="mt-0.5 text-sm text-gray-500">
+                                        {{ teamProject.team.name }}
+                                    </p>
+                                </div>
+                                <!-- Submission summary -->
+                                <div class="shrink-0 rounded-lg border bg-gray-50 px-3 py-2 text-right">
+                                    <p class="text-xs text-gray-500">Sudah input</p>
+                                    <p class="text-lg font-bold text-gray-800 leading-tight">
+                                        <span :class="projectSubmittedCount(teamProject) === teamProject.members.length ? 'text-green-600' : 'text-gray-800'">
+                                            {{ projectSubmittedCount(teamProject) }}
+                                        </span>
+                                        <span class="text-sm font-normal text-gray-400"> / {{ teamProject.members.length }}</span>
+                                    </p>
                                 </div>
                             </div>
-                        </AccordionTrigger>
-                        <AccordionContent class="px-4 pb-4">
+
+                            <!-- Member chips overview -->
+                            <div class="mt-3 flex flex-wrap gap-2">
+                                <div
+                                    v-for="member in teamProject.members"
+                                    :key="member.id"
+                                    :class="[
+                                        'flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs transition-colors',
+                                        isMemberLeader(member)
+                                            ? 'border-amber-300 bg-amber-50 text-amber-800'
+                                            : memberHasAnyReport(teamProject, member.id)
+                                                ? 'border-green-200 bg-green-50 text-green-700'
+                                                : 'border-gray-200 bg-gray-50 text-gray-500'
+                                    ]"
+                                >
+                                    <span
+                                        v-if="isMemberLeader(member)"
+                                        class="text-amber-500"
+                                        aria-label="Ketua Proyek"
+                                    >&#9733;</span>
+                                    <span>{{ member.display_name || member.name }}</span>
+                                    <Badge
+                                        v-if="isMemberLeader(member)"
+                                        class="ml-0.5 h-4 bg-amber-500 px-1.5 text-[10px] text-white hover:bg-amber-500"
+                                    >
+                                        Ketua
+                                    </Badge>
+                                </div>
+                            </div>
+                        </CardHeader>
+
+                        <CardContent class="pt-0">
+                            <!-- Work items with per-member realization -->
                             <div class="space-y-4">
                                 <div
-                                    v-for="wi in project.work_items"
+                                    v-for="wi in teamProject.work_items"
                                     :key="wi.id"
                                     class="rounded-md border border-gray-100 bg-gray-50 p-4"
                                 >
-                                    <p class="mb-4 text-sm font-semibold text-gray-700">
-                                        {{ wi.number }}. {{ wi.description }}
-                                    </p>
-
-                                    <!-- Target + Realization -->
-                                    <div class="mb-4 rounded-md border border-gray-200 bg-white p-3">
-                                        <div class="mb-2 flex items-center justify-between">
-                                            <span class="text-xs font-medium uppercase tracking-wide text-gray-500">Progres Capaian</span>
-                                            <span :class="['text-base font-bold', pctColor(computePct(wi.id))]">
-                                                {{ computePct(wi.id).toFixed(1) }}%
-                                            </span>
-                                        </div>
-                                        <Progress
-                                            :model-value="computePct(wi.id)"
-                                            :class="['mb-3 h-2', progressColor(computePct(wi.id))]"
-                                        />
-                                        <div class="grid grid-cols-2 gap-4">
-                                            <div>
-                                                <Label class="text-xs text-gray-500">
-                                                    Target ({{ wi.target_unit }})
-                                                </Label>
-                                                <div class="mt-1 flex items-center gap-2">
-                                                    <span class="rounded bg-gray-100 px-2.5 py-1.5 text-sm font-semibold text-gray-700">
-                                                        {{ Number(wi.target).toLocaleString('id') }}
-                                                    </span>
-                                                    <span class="text-xs text-gray-400">{{ wi.target_unit }}</span>
-                                                </div>
-                                            </div>
-                                            <div>
-                                                <Label class="text-xs text-gray-500">
-                                                    Realisasi ({{ wi.target_unit }})
-                                                </Label>
-                                                <div class="mt-1 flex items-center gap-2">
-                                                    <Input
-                                                        type="number"
-                                                        min="0"
-                                                        step="0.01"
-                                                        v-model="getItem(wi.id).realization"
-                                                        class="w-28"
-                                                    />
-                                                    <span class="text-xs text-gray-400">{{ wi.target_unit }}</span>
-                                                </div>
-                                                <InputError :message="form.errors[`items.${form.items.findIndex(i => i.work_item_id === wi.id)}.realization`]" />
-                                            </div>
-                                        </div>
+                                    <!-- Work item header -->
+                                    <div class="mb-3 flex items-start justify-between gap-2">
+                                        <p class="text-sm font-semibold text-gray-700">
+                                            {{ wi.description }}
+                                        </p>
+                                        <span class="shrink-0 rounded bg-gray-200 px-2 py-0.5 text-xs text-gray-600">
+                                            Target: {{ Number(wi.target).toLocaleString('id') }} {{ wi.target_unit }}
+                                        </span>
                                     </div>
 
-                                    <!-- Notes grid -->
-                                    <div class="grid gap-3 sm:grid-cols-3">
-                                        <div>
-                                            <Label class="text-xs text-gray-500">Kendala</Label>
-                                            <Textarea
-                                                v-model="getItem(wi.id).issues"
-                                                rows="3"
-                                                class="mt-1 text-sm"
-                                                placeholder="(opsional)"
-                                            />
-                                        </div>
-                                        <div>
-                                            <Label class="text-xs text-gray-500">Solusi</Label>
-                                            <Textarea
-                                                v-model="getItem(wi.id).solutions"
-                                                rows="3"
-                                                class="mt-1 text-sm"
-                                                placeholder="(opsional)"
-                                            />
-                                        </div>
-                                        <div>
-                                            <Label class="text-xs text-gray-500">Rencana Tindak Lanjut</Label>
-                                            <Textarea
-                                                v-model="getItem(wi.id).action_plan"
-                                                rows="3"
-                                                class="mt-1 text-sm"
-                                                placeholder="(opsional)"
-                                            />
+                                    <!-- Per-member progress rows -->
+                                    <div class="space-y-2.5">
+                                        <div
+                                            v-for="member in teamProject.members"
+                                            :key="member.id"
+                                            class="rounded-md border bg-white p-3"
+                                        >
+                                            <!-- Member name row -->
+                                            <div class="mb-2 flex items-center gap-2">
+                                                <div
+                                                    :class="[
+                                                        'flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-[10px] font-bold',
+                                                        isMemberLeader(member)
+                                                            ? 'bg-amber-100 text-amber-700'
+                                                            : 'bg-gray-100 text-gray-600'
+                                                    ]"
+                                                    aria-hidden="true"
+                                                >
+                                                    {{ (member.display_name || member.name).charAt(0).toUpperCase() }}
+                                                </div>
+                                                <span
+                                                    :class="[
+                                                        'text-xs font-medium',
+                                                        isMemberLeader(member) ? 'text-amber-800' : 'text-gray-700'
+                                                    ]"
+                                                >
+                                                    {{ member.display_name || member.name }}
+                                                </span>
+                                                <Badge
+                                                    v-if="isMemberLeader(member)"
+                                                    class="h-4 bg-amber-500 px-1.5 text-[10px] text-white hover:bg-amber-500"
+                                                >
+                                                    Ketua
+                                                </Badge>
+                                                <span
+                                                    v-if="isMemberLeader(member)"
+                                                    class="text-xs text-amber-500"
+                                                    aria-hidden="true"
+                                                >&#9733;</span>
+                                            </div>
+
+                                            <!-- Report row: realization or "Belum diinput" -->
+                                            <template v-if="wi.performance_reports.find(r => r.reported_by === member.id)">
+                                                <div class="flex items-center justify-between gap-3">
+                                                    <div class="min-w-0 flex-1">
+                                                        <Progress
+                                                            :model-value="wi.performance_reports.find(r => r.reported_by === member.id)!.achievement_percentage"
+                                                            :class="['h-2', memberProgressColor(wi.performance_reports.find(r => r.reported_by === member.id)!.achievement_percentage)]"
+                                                        />
+                                                    </div>
+                                                    <div class="flex shrink-0 items-center gap-2 text-xs">
+                                                        <span class="text-gray-500">
+                                                            {{ Number(wi.performance_reports.find(r => r.reported_by === member.id)!.realization).toLocaleString('id') }}
+                                                            <span class="text-gray-400">{{ wi.target_unit }}</span>
+                                                        </span>
+                                                        <span :class="['font-bold', memberPctColor(wi.performance_reports.find(r => r.reported_by === member.id)!.achievement_percentage)]">
+                                                            {{ wi.performance_reports.find(r => r.reported_by === member.id)!.achievement_percentage.toFixed(1) }}%
+                                                        </span>
+                                                    </div>
+                                                </div>
+                                            </template>
+                                            <template v-else>
+                                                <p class="text-xs text-gray-400 italic">Belum diinput</p>
+                                            </template>
                                         </div>
                                     </div>
                                 </div>
                             </div>
-                        </AccordionContent>
-                    </AccordionItem>
-                </Accordion>
+                        </CardContent>
+                    </Card>
+                </div>
+            </TabsContent>
+        </Tabs>
+
+        <!-- Non-lead: no tabs, show personal form directly ─────────────── -->
+        <template v-else>
+            <div v-if="!projects.length" class="py-16 text-center text-gray-400">
+                <p class="font-medium">Tidak ada proyek untuk periode ini.</p>
+                <p class="mt-1 text-sm">Anda belum ditugaskan ke proyek aktif tahun {{ filters.year }}.</p>
             </div>
 
-            <!-- Submit -->
-            <div class="sticky bottom-4 flex justify-end">
-                <Button
-                    type="submit"
-                    :disabled="form.processing"
-                    class="px-8 shadow-lg"
-                >
-                    {{ form.processing ? 'Menyimpan...' : 'Simpan Laporan Kinerja' }}
-                </Button>
-            </div>
-        </form>
+            <form v-else @submit.prevent="submit" class="space-y-8">
+                <!-- Grouped by team -->
+                <div v-for="group in projectsByTeam" :key="group.teamId" class="space-y-3">
+                    <!-- Team header -->
+                    <div class="flex items-center gap-3">
+                        <h2 class="text-sm font-bold uppercase tracking-wide text-primary">
+                            {{ group.teamName }}
+                        </h2>
+                        <span class="h-px flex-1 bg-primary/20"></span>
+                        <Badge variant="outline" class="text-xs">
+                            {{ group.projects.length }} proyek
+                        </Badge>
+                    </div>
+
+                    <Accordion type="multiple" class="space-y-2">
+                        <AccordionItem
+                            v-for="project in group.projects"
+                            :key="project.id"
+                            :value="String(project.id)"
+                            class="rounded-lg border bg-white shadow-sm"
+                        >
+                            <AccordionTrigger class="px-4 py-3 hover:no-underline">
+                                <div class="flex min-w-0 flex-1 items-center gap-3 pr-2">
+                                    <span class="min-w-0 flex-1 truncate text-left font-medium text-gray-800">
+                                        {{ project.name }}
+                                    </span>
+                                    <div class="flex shrink-0 items-center gap-2">
+                                        <div class="hidden w-24 sm:block">
+                                            <Progress
+                                                :model-value="projectAvgPct(project)"
+                                                :class="['h-1.5', progressColor(projectAvgPct(project))]"
+                                            />
+                                        </div>
+                                        <span :class="['text-sm font-bold', pctColor(projectAvgPct(project))]">
+                                            {{ projectAvgPct(project).toFixed(0) }}%
+                                        </span>
+                                    </div>
+                                </div>
+                            </AccordionTrigger>
+                            <AccordionContent class="px-4 pb-4">
+                                <div class="space-y-4">
+                                    <div
+                                        v-for="wi in project.work_items"
+                                        :key="wi.id"
+                                        class="rounded-md border border-gray-100 bg-gray-50 p-4"
+                                    >
+                                        <p class="mb-4 text-sm font-semibold text-gray-700">
+                                            {{ wi.number }}. {{ wi.description }}
+                                        </p>
+
+                                        <div class="mb-4 rounded-md border border-gray-200 bg-white p-3">
+                                            <div class="mb-2 flex items-center justify-between">
+                                                <span class="text-xs font-medium uppercase tracking-wide text-gray-500">Progres Capaian</span>
+                                                <span :class="['text-base font-bold', pctColor(computePct(wi.id))]">
+                                                    {{ computePct(wi.id).toFixed(1) }}%
+                                                </span>
+                                            </div>
+                                            <Progress
+                                                :model-value="computePct(wi.id)"
+                                                :class="['mb-3 h-2', progressColor(computePct(wi.id))]"
+                                            />
+                                            <div class="grid grid-cols-2 gap-4">
+                                                <div>
+                                                    <Label class="text-xs text-gray-500">
+                                                        Target ({{ wi.target_unit }})
+                                                    </Label>
+                                                    <div class="mt-1 flex items-center gap-2">
+                                                        <span class="rounded bg-gray-100 px-2.5 py-1.5 text-sm font-semibold text-gray-700">
+                                                            {{ Number(wi.target).toLocaleString('id') }}
+                                                        </span>
+                                                        <span class="text-xs text-gray-400">{{ wi.target_unit }}</span>
+                                                    </div>
+                                                </div>
+                                                <div>
+                                                    <Label class="text-xs text-gray-500">
+                                                        Realisasi ({{ wi.target_unit }})
+                                                    </Label>
+                                                    <div class="mt-1 flex items-center gap-2">
+                                                        <Input
+                                                            type="number"
+                                                            min="0"
+                                                            step="0.01"
+                                                            v-model="getItem(wi.id).realization"
+                                                            class="w-28"
+                                                        />
+                                                        <span class="text-xs text-gray-400">{{ wi.target_unit }}</span>
+                                                    </div>
+                                                    <InputError :message="form.errors[`items.${form.items.findIndex(i => i.work_item_id === wi.id)}.realization`]" />
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <div class="grid gap-3 sm:grid-cols-3">
+                                            <div>
+                                                <Label class="text-xs text-gray-500">Kendala</Label>
+                                                <Textarea
+                                                    v-model="getItem(wi.id).issues"
+                                                    rows="3"
+                                                    class="mt-1 text-sm"
+                                                    placeholder="(opsional)"
+                                                />
+                                            </div>
+                                            <div>
+                                                <Label class="text-xs text-gray-500">Solusi</Label>
+                                                <Textarea
+                                                    v-model="getItem(wi.id).solutions"
+                                                    rows="3"
+                                                    class="mt-1 text-sm"
+                                                    placeholder="(opsional)"
+                                                />
+                                            </div>
+                                            <div>
+                                                <Label class="text-xs text-gray-500">Rencana Tindak Lanjut</Label>
+                                                <Textarea
+                                                    v-model="getItem(wi.id).action_plan"
+                                                    rows="3"
+                                                    class="mt-1 text-sm"
+                                                    placeholder="(opsional)"
+                                                />
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </AccordionContent>
+                        </AccordionItem>
+                    </Accordion>
+                </div>
+
+                <!-- Submit -->
+                <div class="sticky bottom-4 flex justify-end">
+                    <Button
+                        type="submit"
+                        :disabled="form.processing"
+                        class="px-8 shadow-lg"
+                    >
+                        {{ form.processing ? 'Menyimpan...' : 'Simpan Laporan Kinerja' }}
+                    </Button>
+                </div>
+            </form>
+        </template>
     </AppLayout>
 </template>

@@ -13,9 +13,15 @@ it('renders index for admin', function () {
         ->assertInertia(fn ($page) => $page->component('Projects/Index')->has('projects')->has('teams'));
 });
 
-it('denies index for staff', function () {
+it('allows index for staff', function () {
     $this->actingAs(staffUser())
         ->get(route('projects.index'))
+        ->assertInertia(fn ($page) => $page->component('Projects/Index')->has('projects')->has('teams'));
+});
+
+it('denies project creation for staff', function () {
+    $this->actingAs(staffUser())
+        ->get(route('projects.create'))
         ->assertForbidden();
 });
 
