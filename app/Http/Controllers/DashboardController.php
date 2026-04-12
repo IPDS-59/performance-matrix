@@ -41,7 +41,7 @@ class DashboardController extends Controller
 
         $employees = Employee::with('team:id,name')
             ->where('is_active', true)
-            ->when($teamId, fn ($q) => $q->where('team_id', $teamId))
+            ->when($teamId, fn ($q) => $q->whereHas('projects', fn ($q2) => $q2->where('team_id', $teamId)->where('year', $year)))
             ->orderBy('name')
             ->get(['id', 'name', 'display_name', 'team_id']);
 

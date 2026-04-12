@@ -72,15 +72,16 @@ class EmployeeReportController extends Controller
 
         // All active employees with team, project counts, and period achievement.
         $employees = Employee::with('team:id,name')
-            ->withCount([
-                'projects as total_projects',
-                'projects as leader_count' => fn ($q) => $q->wherePivot('role', 'leader'),
-                'projects as member_count' => fn ($q) => $q->wherePivot('role', 'member'),
-            ])
             ->leftJoinSub($achievementSub, 'achievement_stats', fn ($join) => $join->on('employees.id', '=', 'achievement_stats.employee_id'))
             ->where('employees.is_active', true)
             ->orderBy('employees.name')
-            ->select('employees.*', 'achievement_stats.avg_achievement')
+            ->select([
+                'employees.*',
+                'achievement_stats.avg_achievement',
+                DB::raw('(SELECT COUNT(*) FROM project_members pm WHERE pm.employee_id = employees.id) as total_projects'),
+                DB::raw("(SELECT COUNT(*) FROM project_members pm WHERE pm.employee_id = employees.id AND pm.role = 'leader') as leader_count"),
+                DB::raw("(SELECT COUNT(*) FROM project_members pm WHERE pm.employee_id = employees.id AND pm.role = 'member') as member_count"),
+            ])
             ->get();
 
         return Inertia::render('Laporan/Pegawai', [
