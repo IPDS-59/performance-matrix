@@ -35,6 +35,7 @@ class ReportApprovedNotification extends Notification
             'reviewer_name' => $this->reviewer->employee?->display_name ?? $this->reviewer->name,
             'review_note' => $this->report->review_note,
             'message' => "Laporan kinerja Anda untuk {$workItem?->description} telah disetujui.",
+            'url' => $workItem ? route('performance.work-items.show', $workItem->id) : route('performance.index'),
         ];
     }
 }

@@ -39,6 +39,7 @@ class NotifyTeamLeadOnReportSubmitted
                 $event->periodMonth,
                 $event->periodYear,
                 count($event->reportIds),
+                $project,
             ));
 
             $notified[] = $project->leader_id;

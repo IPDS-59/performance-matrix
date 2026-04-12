@@ -3,6 +3,7 @@
 namespace App\Notifications;
 
 use App\Models\Employee;
+use App\Models\Project;
 use Illuminate\Bus\Queueable;
 use Illuminate\Notifications\Notification;
 
@@ -15,6 +16,7 @@ class ReportSubmittedNotification extends Notification
         public readonly int $periodMonth,
         public readonly int $periodYear,
         public readonly int $reportCount,
+        public readonly ?Project $project = null,
     ) {}
 
     public function via(object $notifiable): array
@@ -37,8 +39,12 @@ class ReportSubmittedNotification extends Notification
             'period_month' => $this->periodMonth,
             'period_year' => $this->periodYear,
             'report_count' => $this->reportCount,
+            'project_id' => $this->project?->id,
+            'project_name' => $this->project?->name,
             'message' => "{$reporterName} telah mengumpulkan {$this->reportCount} laporan kinerja untuk {$monthName} {$this->periodYear}.",
-            'url' => route('performance.index'),
+            'url' => $this->project
+                ? route('performance.projects.show', $this->project->id)
+                : route('performance.index'),
         ];
     }
 }

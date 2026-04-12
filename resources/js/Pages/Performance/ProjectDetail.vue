@@ -2,7 +2,6 @@
 import AppLayout from '@/Layouts/AppLayout.vue';
 import { Head } from '@inertiajs/vue3';
 import { Badge } from '@/Components/ui/badge';
-import { Progress } from '@/Components/ui/progress';
 
 // ── Types ──────────────────────────────────────────────────────────────────
 
@@ -60,10 +59,10 @@ const props = defineProps<{
 
 // ── Helpers ────────────────────────────────────────────────────────────────
 
-function progressColor(pct: number): string {
-    if (pct >= 80) return '[&>div]:bg-green-500';
-    if (pct >= 50) return '[&>div]:bg-yellow-500';
-    return '[&>div]:bg-red-500';
+function progressBarColor(pct: number): string {
+    if (pct >= 80) return 'bg-green-500';
+    if (pct >= 50) return 'bg-yellow-400';
+    return 'bg-red-400';
 }
 
 function pctTextColor(pct: number): string {
@@ -148,10 +147,12 @@ const leadItems = () => props.work_items as LeadWorkItem[];
                             </td>
                             <td class="px-4 py-3 hidden md:table-cell">
                                 <div class="flex items-center gap-2">
-                                    <Progress
-                                        :value="wi.year_pct"
-                                        :class="['flex-1 h-1.5', progressColor(wi.year_pct)]"
-                                    />
+                                    <div class="flex-1 h-1.5 rounded-full bg-gray-200 overflow-hidden">
+                                        <div
+                                            :class="['h-full rounded-full transition-all', progressBarColor(wi.year_pct)]"
+                                            :style="`width: ${wi.year_pct}%`"
+                                        />
+                                    </div>
                                     <span :class="['text-xs font-medium w-10 text-right shrink-0', pctTextColor(wi.year_pct)]">
                                         {{ wi.year_pct }}%
                                     </span>

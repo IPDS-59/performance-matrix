@@ -6,7 +6,6 @@ import { ref, computed } from 'vue';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/Components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/Components/ui/tabs';
 import { Badge } from '@/Components/ui/badge';
-import { Progress } from '@/Components/ui/progress';
 
 // ── Types ──────────────────────────────────────────────────────────────────
 
@@ -78,10 +77,10 @@ function submittedPct(p: EmployeeProject): number {
     return Math.round((p.submitted_items_count / p.assigned_items_count) * 100);
 }
 
-function progressColor(pct: number): string {
-    if (pct >= 80) return '[&>div]:bg-green-500';
-    if (pct >= 50) return '[&>div]:bg-yellow-500';
-    return '[&>div]:bg-red-500';
+function progressBarColor(pct: number): string {
+    if (pct >= 80) return 'bg-green-500';
+    if (pct >= 50) return 'bg-yellow-400';
+    return 'bg-red-400';
 }
 </script>
 
@@ -161,10 +160,12 @@ function progressColor(pct: number): string {
                                             {{ submittedPct(project) }}%
                                         </span>
                                     </div>
-                                    <Progress
-                                        :value="submittedPct(project)"
-                                        :class="['h-1.5', progressColor(submittedPct(project))]"
-                                    />
+                                    <div class="h-1.5 w-full rounded-full bg-gray-200 overflow-hidden">
+                                        <div
+                                            :class="['h-full rounded-full transition-all', progressBarColor(submittedPct(project))]"
+                                            :style="`width: ${submittedPct(project)}%`"
+                                        />
+                                    </div>
                                 </div>
                                 <p v-else class="text-xs text-gray-400">Belum ada rincian kegiatan.</p>
                             </a>

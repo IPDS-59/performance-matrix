@@ -31,7 +31,7 @@ class WorkItemUpdatedNotification extends Notification
             'project_name' => $project?->name,
             'team_name' => $project?->team?->name,
             'message' => "Rincian kegiatan \"{$this->workItem->description}\" di proyek {$project?->name} telah diperbarui.",
-            'url' => route('performance.index'),
+            'url' => route('performance.work-items.show', $this->workItem->id),
         ];
     }
 }
