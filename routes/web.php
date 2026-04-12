@@ -8,6 +8,7 @@ use App\Http\Controllers\PerformanceApprovalController;
 use App\Http\Controllers\PerformanceController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\ProjectController;
+use App\Http\Controllers\ProjectDetailController;
 use App\Http\Controllers\ProjectListController;
 use App\Http\Controllers\ReportAttachmentController;
 use App\Http\Controllers\TeamController;
@@ -50,6 +51,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
     // Staff performance entry
     Route::get('/performance', [ProjectListController::class, 'index'])->name('performance.index');
+    Route::get('/performance/projects/{project}', [ProjectDetailController::class, 'show'])->name('performance.projects.show');
     Route::post('/performance/batch', [PerformanceController::class, 'storeBatch'])->name('performance.batch');
 
     // Report approval (team leads + head)
