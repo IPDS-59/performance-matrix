@@ -75,12 +75,12 @@ class WorkItemController extends Controller
     {
         $rules = [
             'description' => ['required', 'string'],
-            'target' => ['required', 'numeric', 'min:0.01'],
+            'target' => ['required', 'integer', 'min:1'],
             'target_unit' => ['required', 'string', 'max:50'],
             'assign_to' => ['required', 'in:all,specific'],
             'assignments' => ['required_if:assign_to,specific', 'array'],
             'assignments.*.employee_id' => ['required', 'exists:employees,id'],
-            'assignments.*.target' => ['required', 'numeric', 'min:0.01'],
+            'assignments.*.target' => ['required', 'integer', 'min:1'],
             'assignments.*.target_unit' => ['required', 'string', 'max:50'],
         ];
 

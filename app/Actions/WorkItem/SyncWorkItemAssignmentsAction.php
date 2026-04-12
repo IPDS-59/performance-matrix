@@ -9,7 +9,7 @@ use App\Models\WorkItemAssignment;
 class SyncWorkItemAssignmentsAction
 {
     /**
-     * @param  array{assign_to: 'all'|'specific', target: float, target_unit: string, assignments?: array<array{employee_id: int, target: float, target_unit: string}>}  $data
+     * @param  array{assign_to: 'all'|'specific', target: int, target_unit: string, assignments?: array<array{employee_id: int, target: int, target_unit: string}>}  $data
      */
     public function execute(WorkItem $workItem, Project $project, array $data): void
     {
@@ -20,7 +20,7 @@ class SyncWorkItemAssignmentsAction
         }
     }
 
-    private function syncAll(WorkItem $workItem, Project $project, float $target, string $targetUnit): void
+    private function syncAll(WorkItem $workItem, Project $project, int $target, string $targetUnit): void
     {
         $memberIds = $project->members()->pluck('employees.id');
 

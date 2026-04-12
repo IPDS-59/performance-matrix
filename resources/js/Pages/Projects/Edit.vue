@@ -175,9 +175,6 @@ const editForms = ref<Record<number, ReturnType<typeof useForm>>>({});
 
 function startEdit(item: WorkItem) {
     const hasSpecific = item.assignments.length > 0;
-    const allSameTarget = !hasSpecific ||
-        (item.assignments.length === projectMembers.value.length &&
-            item.assignments.every(a => a.target == item.target && a.target_unit === item.target_unit));
 
     const assignments: AssignmentRow[] = projectMembers.value.map(m => {
         const existing = item.assignments.find(a => a.employee_id === m.id);
@@ -193,7 +190,7 @@ function startEdit(item: WorkItem) {
 
     editAssignToMap.value = {
         ...editAssignToMap.value,
-        [item.id]: (!hasSpecific || allSameTarget) ? 'all' : 'specific',
+        [item.id]: hasSpecific ? 'specific' : 'all',
     };
 
     editForms.value[item.id] = useForm({
@@ -394,7 +391,7 @@ function memberName(employeeId: number): string {
                                     <div v-if="editAssignToMap[item.id] === 'all'" key="all" class="grid grid-cols-2 gap-3">
                                         <div>
                                             <Label class="text-xs">Target (semua)</Label>
-                                            <Input type="number" min="0.01" step="0.01" v-model="editForms[item.id].target" class="mt-1" />
+                                            <Input type="number" min="1" step="1" v-model="editForms[item.id].target" class="mt-1" />
                                         </div>
                                         <div>
                                             <Label class="text-xs">Satuan</Label>
@@ -426,7 +423,7 @@ function memberName(employeeId: number): string {
                                                         <span class="min-w-0 flex-1 truncate text-xs text-gray-700">{{ memberName(editForms[item.id].assignments[idx].employee_id) }}</span>
                                                     </label>
                                                     <div :class="['flex shrink-0 gap-1', !editCheckedMap[item.id]?.[editForms[item.id].assignments[idx].employee_id] && 'pointer-events-none opacity-40']">
-                                                        <Input type="number" min="0.01" step="0.01" v-model="editForms[item.id].assignments[idx].target" class="w-20 text-xs" />
+                                                        <Input type="number" min="1" step="1" v-model="editForms[item.id].assignments[idx].target" class="w-20 text-xs" />
                                                         <Input v-model="editForms[item.id].assignments[idx].target_unit" class="w-24 text-xs" />
                                                     </div>
                                                 </div>
@@ -498,7 +495,7 @@ function memberName(employeeId: number): string {
                             <div v-if="addAssignTo === 'all'" key="all" class="grid grid-cols-2 gap-3">
                                 <div>
                                     <Label class="text-xs">Target (semua) <span class="text-red-500">*</span></Label>
-                                    <Input type="number" min="0.01" step="0.01" v-model="addForm.target" class="mt-1" />
+                                    <Input type="number" min="1" step="1" v-model="addForm.target" class="mt-1" />
                                     <InputError :message="addForm.errors.target" />
                                 </div>
                                 <div>
@@ -533,7 +530,7 @@ function memberName(employeeId: number): string {
                                                     <span class="min-w-0 flex-1 truncate text-xs text-gray-700">{{ memberName(addForm.assignments[idx].employee_id) }}</span>
                                                 </label>
                                                 <div :class="['flex shrink-0 gap-1', !addCheckedMap[addForm.assignments[idx].employee_id] && 'pointer-events-none opacity-40']">
-                                                    <Input type="number" min="0.01" step="0.01" v-model="addForm.assignments[idx].target" class="w-20 text-xs" />
+                                                    <Input type="number" min="1" step="1" v-model="addForm.assignments[idx].target" class="w-20 text-xs" />
                                                     <Input v-model="addForm.assignments[idx].target_unit" class="w-24 text-xs" />
                                                 </div>
                                             </div>
