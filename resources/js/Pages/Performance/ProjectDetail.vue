@@ -95,9 +95,11 @@ function memberName(id: number): string {
     return props.members.find(m => m.id === id)?.name ?? '—';
 }
 
-// ── Add work item dialog ───────────────────────────────────────────────────
+// ── Add / Edit work item dialogs ───────────────────────────────────────────
 
 type AssignmentRow = { employee_id: number; target: number; target_unit: string };
+
+// ── Add ────────────────────────────────────────────────────────────────────
 
 const showAddDialog = ref(false);
 const addMemberSearch = ref('');
@@ -158,6 +160,81 @@ function submitAdd() {
         .post(route('work-items.store', props.project.id), {
             preserveScroll: true,
             onSuccess: () => { showAddDialog.value = false; },
+        });
+}
+
+// ── Edit ───────────────────────────────────────────────────────────────────
+
+const showEditDialog = ref(false);
+const editWorkItemId = ref<number | null>(null);
+const editMemberSearch = ref('');
+const editAssignTo = ref<'all' | 'specific'>('all');
+const editIncludedIds = reactive(new Set<number>());
+
+const editForm = useForm({
+    description: '',
+    target: 1 as number,
+    target_unit: 'Kegiatan',
+    assignments: [] as AssignmentRow[],
+});
+
+const editCheckedMap = computed<Record<number, boolean>>(() => {
+    const m: Record<number, boolean> = {};
+    editIncludedIds.forEach(id => { m[id] = true; });
+    return m;
+});
+
+const filteredEditIndices = computed(() => {
+    const q = editMemberSearch.value.toLowerCase();
+    return editForm.assignments.reduce<number[]>((acc, row, idx) => {
+        if (!q || memberName(row.employee_id).toLowerCase().includes(q)) acc.push(idx);
+        return acc;
+    }, []);
+});
+
+function openEditDialog(wi: LeadWorkItem) {
+    editWorkItemId.value = wi.id;
+    editForm.description = wi.description;
+    editForm.target = wi.target;
+    editForm.target_unit = wi.target_unit;
+
+    const assignedIds = new Set(wi.assigned_members.map(a => a.employee_id));
+    const hasSpecific = assignedIds.size > 0 && assignedIds.size < props.members.length;
+    editAssignTo.value = hasSpecific ? 'specific' : 'all';
+
+    editForm.assignments = props.members.map(m => {
+        const existing = wi.assigned_members.find(a => a.employee_id === m.id);
+        return {
+            employee_id: m.id,
+            target: existing?.target ?? wi.target,
+            target_unit: existing?.target_unit ?? wi.target_unit,
+        };
+    });
+
+    editIncludedIds.clear();
+    for (const id of assignedIds) editIncludedIds.add(id);
+
+    editMemberSearch.value = '';
+    showEditDialog.value = true;
+}
+
+function toggleEditIncluded(employeeId: number) {
+    if (editIncludedIds.has(employeeId)) editIncludedIds.delete(employeeId);
+    else editIncludedIds.add(employeeId);
+}
+
+function submitEdit() {
+    if (!editWorkItemId.value) return;
+    const assignments = editAssignTo.value === 'specific'
+        ? editForm.assignments
+            .filter(a => editIncludedIds.has(a.employee_id))
+            .map(a => ({ employee_id: a.employee_id, target: a.target, target_unit: a.target_unit }))
+        : [];
+    editForm
+        .transform((data: Record<string, unknown>) => ({ ...data, assign_to: editAssignTo.value, assignments }))
+        .put(route('work-items.update', editWorkItemId.value), {
+            preserveScroll: true,
+            onSuccess: () => { showEditDialog.value = false; },
         });
 }
 </script>
@@ -288,7 +365,10 @@ function submitAdd() {
                                 </div>
                             </td>
                             <td class="px-4 py-3 text-center">
-                                <a :href="route('performance.work-items.show', wi.id)" class="inline-flex items-center rounded bg-blue-600 px-2.5 py-1 text-[11px] font-medium text-white hover:bg-blue-700 transition">Tinjau</a>
+                                <div class="flex items-center justify-center gap-1.5">
+                                    <button @click="openEditDialog(wi)" class="inline-flex items-center rounded border border-gray-300 bg-white px-2 py-1 text-[11px] font-medium text-gray-600 hover:bg-gray-50 transition">Edit</button>
+                                    <a :href="route('performance.work-items.show', wi.id)" class="inline-flex items-center rounded bg-blue-600 px-2.5 py-1 text-[11px] font-medium text-white hover:bg-blue-700 transition">Tinjau</a>
+                                </div>
                             </td>
                         </tr>
                     </tbody>
@@ -296,6 +376,118 @@ function submitAdd() {
             </div>
         </template>
     </AppLayout>
+
+    <!-- Edit work item dialog -->
+    <Dialog :open="showEditDialog" @update:open="showEditDialog = $event">
+        <DialogContent class="max-w-lg">
+            <DialogHeader>
+                <DialogTitle>Edit Rincian Kegiatan</DialogTitle>
+            </DialogHeader>
+
+            <div class="space-y-3 pt-1">
+                <!-- Description -->
+                <div>
+                    <Label class="text-xs">Deskripsi <span class="text-red-500">*</span></Label>
+                    <textarea
+                        v-model="editForm.description"
+                        rows="2"
+                        class="mt-1 w-full rounded-md border border-input bg-white px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-ring"
+                        placeholder="Deskripsi kegiatan..."
+                    />
+                    <InputError :message="editForm.errors.description" />
+                </div>
+
+                <!-- Assignment mode -->
+                <div class="flex items-center gap-4">
+                    <Label class="text-xs">Ditugaskan ke:</Label>
+                    <RadioGroup v-model="editAssignTo" class="flex gap-4">
+                        <div class="flex items-center gap-1.5">
+                            <RadioGroupItem id="edit-all" value="all" />
+                            <Label for="edit-all" class="cursor-pointer text-xs font-normal">Semua anggota</Label>
+                        </div>
+                        <div class="flex items-center gap-1.5">
+                            <RadioGroupItem id="edit-specific" value="specific" />
+                            <Label for="edit-specific" class="cursor-pointer text-xs font-normal">Anggota tertentu</Label>
+                        </div>
+                    </RadioGroup>
+                </div>
+
+                <!-- Assignment panel -->
+                <Transition
+                    mode="out-in"
+                    enter-from-class="opacity-0 -translate-y-1"
+                    enter-active-class="transition-all duration-200 ease-out"
+                    leave-active-class="transition-all duration-150 ease-in"
+                    leave-to-class="opacity-0 -translate-y-1"
+                >
+                    <!-- All: single shared target -->
+                    <div v-if="editAssignTo === 'all'" key="all" class="grid grid-cols-2 gap-3">
+                        <div>
+                            <Label class="text-xs">Target (semua) <span class="text-red-500">*</span></Label>
+                            <Input type="number" min="1" step="1" v-model="editForm.target" class="mt-1" />
+                            <InputError :message="editForm.errors.target" />
+                        </div>
+                        <div>
+                            <Label class="text-xs">Satuan</Label>
+                            <Input v-model="editForm.target_unit" class="mt-1" placeholder="Kegiatan" />
+                        </div>
+                    </div>
+
+                    <!-- Specific: per-member rows -->
+                    <div v-else key="specific" class="space-y-2">
+                        <p v-if="!members.length" class="text-xs text-gray-400">Belum ada anggota di proyek ini.</p>
+                        <template v-else>
+                            <div class="relative">
+                                <svg class="absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 pointer-events-none text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0"/>
+                                </svg>
+                                <input v-model="editMemberSearch" type="text" placeholder="Cari anggota..." class="w-full rounded-md border border-input bg-white py-1.5 pl-8 pr-3 text-xs focus:outline-none focus:ring-1 focus:ring-ring" />
+                            </div>
+                            <div class="relative">
+                                <div class="max-h-44 overflow-y-auto rounded-md border [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-gray-200 [&::-webkit-scrollbar-track]:bg-transparent">
+                                    <div
+                                        v-for="idx in filteredEditIndices"
+                                        :key="editForm.assignments[idx].employee_id"
+                                        :class="['flex items-center gap-2 border-b border-gray-50 px-3 py-2 last:border-b-0 transition-colors', editCheckedMap[editForm.assignments[idx].employee_id] ? 'bg-primary/5' : 'bg-white hover:bg-gray-50']"
+                                    >
+                                        <label class="flex min-w-0 flex-1 cursor-pointer items-center gap-2">
+                                            <Checkbox
+                                                :model-value="!!editCheckedMap[editForm.assignments[idx].employee_id]"
+                                                @update:model-value="() => toggleEditIncluded(editForm.assignments[idx].employee_id)"
+                                                @click.stop
+                                                class="h-3.5 w-3.5 shrink-0"
+                                            />
+                                            <div class="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary/10 text-[10px] font-bold text-primary">
+                                                {{ memberName(editForm.assignments[idx].employee_id).charAt(0).toUpperCase() }}
+                                            </div>
+                                            <span class="min-w-0 flex-1 truncate text-xs text-gray-700">{{ memberName(editForm.assignments[idx].employee_id) }}</span>
+                                        </label>
+                                        <div :class="['flex shrink-0 gap-1', !editCheckedMap[editForm.assignments[idx].employee_id] && 'pointer-events-none opacity-40']">
+                                            <Input type="number" min="1" step="1" v-model="editForm.assignments[idx].target" class="w-20 text-xs" />
+                                            <Input v-model="editForm.assignments[idx].target_unit" class="w-24 text-xs" />
+                                        </div>
+                                    </div>
+                                    <p v-if="filteredEditIndices.length === 0" class="px-3 py-4 text-center text-xs text-gray-400">Tidak ada anggota ditemukan.</p>
+                                </div>
+                                <div class="pointer-events-none absolute inset-x-0 bottom-0 flex justify-center rounded-b-md bg-gradient-to-t from-white via-white/60 to-transparent py-1">
+                                    <svg class="h-3.5 w-3.5 animate-bounce text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/>
+                                    </svg>
+                                </div>
+                            </div>
+                        </template>
+                    </div>
+                </Transition>
+
+                <div class="flex justify-end gap-2 pt-1">
+                    <Button type="button" variant="outline" size="sm" @click="showEditDialog = false">Batal</Button>
+                    <Button size="sm" :disabled="editForm.processing" @click="submitEdit">
+                        {{ editForm.processing ? 'Menyimpan...' : 'Simpan' }}
+                    </Button>
+                </div>
+            </div>
+        </DialogContent>
+    </Dialog>
 
     <!-- Add work item dialog -->
     <Dialog :open="showAddDialog" @update:open="showAddDialog = $event">
