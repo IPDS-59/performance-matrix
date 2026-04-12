@@ -27,6 +27,12 @@ class PerformanceApprovalController extends Controller
             'review_note' => $validated['review_note'] ?? null,
         ]);
 
+        $report->attachments()->where('status', 'pending')->update([
+            'status' => 'approved',
+            'reviewed_by' => $request->user()->employee?->id,
+            'reviewed_at' => now(),
+        ]);
+
         PerformanceReportReview::create([
             'performance_report_id' => $report->id,
             'actor_id' => $request->user()->id,
@@ -54,6 +60,12 @@ class PerformanceApprovalController extends Controller
             'reviewed_by' => $request->user()->id,
             'reviewed_at' => now(),
             'review_note' => $validated['review_note'],
+        ]);
+
+        $report->attachments()->where('status', 'pending')->update([
+            'status' => 'rejected',
+            'reviewed_by' => $request->user()->employee?->id,
+            'reviewed_at' => now(),
         ]);
 
         PerformanceReportReview::create([

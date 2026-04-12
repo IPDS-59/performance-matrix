@@ -43,12 +43,21 @@ class WorkItemDetailController extends Controller
             ? null
             : $workItem->assignments()->where('employee_id', $employee->id)->first();
 
+        $target = (float) ($assignment?->target ?? $workItem->target);
+
+        $totalRealization = $isLead ? 0.0 : (float) PerformanceReport::where('work_item_id', $workItem->id)
+            ->where('reported_by', $employee->id)
+            ->where('period_year', $workItem->project->year)
+            ->where('approval_status', '!=', 'rejected')
+            ->sum('realization');
+
         return [
             'id' => $workItem->id,
             'number' => $workItem->number,
             'description' => $workItem->description,
-            'target' => (float) ($assignment?->target ?? $workItem->target),
+            'target' => $target,
             'target_unit' => $assignment?->target_unit ?? $workItem->target_unit,
+            'target_reached' => $target > 0 && $totalRealization >= $target,
             'project' => [
                 'id' => $workItem->project->id,
                 'name' => $workItem->project->name,
@@ -129,6 +138,7 @@ class WorkItemDetailController extends Controller
                 'id' => $att->id,
                 'type' => $att->type,
                 'file_name' => $att->file_name,
+                'mime_type' => $att->mime_type,
                 'title' => $att->title,
                 'url' => $att->url,
                 'status' => $att->status,

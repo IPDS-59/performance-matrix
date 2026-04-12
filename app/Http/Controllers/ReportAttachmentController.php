@@ -61,7 +61,7 @@ class ReportAttachmentController extends Controller
         $disk = Storage::disk('local');
         abort_if(! $disk->exists($attachment->file_path), 404);
 
-        $disposition = $attachment->isImage() ? 'inline' : 'attachment';
+        $disposition = ($attachment->isImage() || $attachment->isPdf()) ? 'inline' : 'attachment';
 
         return $disk->response(
             $attachment->file_path,
