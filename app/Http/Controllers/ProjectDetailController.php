@@ -33,7 +33,21 @@ class ProjectDetailController extends Controller
                 : $this->employeeWorkItems($project, $employee, $year),
             'is_lead' => $isLead,
             'year' => $year,
+            'members' => $isLead ? $this->projectMembers($project) : [],
+            'next_number' => $isLead ? ($project->workItems()->max('number') ?? 0) + 1 : null,
         ]);
+    }
+
+    private function projectMembers(Project $project): array
+    {
+        return $project->members()
+            ->select('employees.id', 'employees.name', 'employees.display_name')
+            ->get()
+            ->map(fn ($e) => [
+                'id' => $e->id,
+                'name' => $e->display_name ?? $e->name,
+            ])
+            ->all();
     }
 
     private function projectData(Project $project): array
