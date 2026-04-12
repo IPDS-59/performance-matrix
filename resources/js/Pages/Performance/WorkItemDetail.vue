@@ -10,6 +10,7 @@ import { Textarea } from '@/Components/ui/textarea';
 import InputError from '@/Components/InputError.vue';
 import PerformanceTimeline from '@/Components/Performance/PerformanceTimeline.vue';
 import type { ReviewEvent } from '@/Components/Performance/PerformanceTimeline.vue';
+import BuktiDukungPicker from '@/Components/Performance/BuktiDukungPicker.vue';
 
 // ── Types ──────────────────────────────────────────────────────────────────
 
@@ -347,19 +348,7 @@ function pct(realization: number, target: number): number {
                         <!-- Attachment upload form -->
                         <div v-if="report.approval_status !== 'approved'">
                             <p class="mb-2 text-[10px] font-semibold uppercase tracking-wide text-gray-400">Tambah Bukti Dukung</p>
-                            <div class="flex flex-wrap gap-2">
-                                <form
-                                    :action="route('report-attachments.store', report.id)"
-                                    method="POST"
-                                    enctype="multipart/form-data"
-                                    class="flex items-center gap-2"
-                                    @submit.prevent="(e) => router.post(route('report-attachments.store', report.id), new FormData(e.target as HTMLFormElement), { preserveScroll: true, forceFormData: true })"
-                                >
-                                    <input type="hidden" name="type" value="file" />
-                                    <input type="file" name="file" accept=".pdf,.jpg,.jpeg,.png,.webp" class="text-xs" />
-                                    <Button type="submit" size="sm" variant="outline" class="text-xs">Upload</Button>
-                                </form>
-                            </div>
+                            <BuktiDukungPicker :report-id="report.id" />
                         </div>
 
                         <!-- Action buttons -->
