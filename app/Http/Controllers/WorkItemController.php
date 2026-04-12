@@ -21,6 +21,8 @@ class WorkItemController extends Controller
         $validated = $request->validate([
             'number' => ['required', 'integer', 'min:1', "unique:work_items,number,NULL,id,project_id,{$project->id}"],
             'description' => ['required', 'string'],
+            'target' => ['required', 'numeric', 'min:0.01'],
+            'target_unit' => ['required', 'string', 'max:50'],
         ]);
 
         $project->workItems()->create($validated);
@@ -39,6 +41,8 @@ class WorkItemController extends Controller
 
         $validated = $request->validate([
             'description' => ['required', 'string'],
+            'target' => ['required', 'numeric', 'min:0.01'],
+            'target_unit' => ['required', 'string', 'max:50'],
         ]);
 
         $workItem->update($validated);

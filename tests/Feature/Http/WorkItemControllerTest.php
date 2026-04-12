@@ -10,6 +10,8 @@ it('stores a work item under a project', function () {
         ->post(route('work-items.store', $project), [
             'number' => 1,
             'description' => 'Persiapan lapangan',
+            'target' => 5,
+            'target_unit' => 'Dokumen',
         ])
         ->assertRedirect();
 
@@ -21,7 +23,7 @@ it('validates required fields on store', function () {
 
     $this->actingAs(adminUser())
         ->post(route('work-items.store', $project), [])
-        ->assertSessionHasErrors(['number', 'description']);
+        ->assertSessionHasErrors(['number', 'description', 'target', 'target_unit']);
 });
 
 it('denies work item store for staff', function () {
@@ -31,6 +33,8 @@ it('denies work item store for staff', function () {
         ->post(route('work-items.store', $project), [
             'number' => 1,
             'description' => 'Test',
+            'target' => 1,
+            'target_unit' => 'Kegiatan',
         ])
         ->assertForbidden();
 });
@@ -41,6 +45,8 @@ it('updates a work item description', function () {
     $this->actingAs(adminUser())
         ->put(route('work-items.update', $workItem), [
             'description' => 'Updated description',
+            'target' => 3,
+            'target_unit' => 'Laporan',
         ])
         ->assertRedirect();
 
@@ -60,6 +66,6 @@ it('deletes a work item', function () {
 it('redirects guests to login on store', function () {
     $project = Project::factory()->create();
 
-    $this->post(route('work-items.store', $project), ['number' => 1, 'description' => 'test'])
+    $this->post(route('work-items.store', $project), ['number' => 1, 'description' => 'test', 'target' => 1, 'target_unit' => 'Kegiatan'])
         ->assertRedirect(route('login'));
 });
