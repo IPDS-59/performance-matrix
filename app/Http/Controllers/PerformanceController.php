@@ -27,7 +27,7 @@ class PerformanceController extends Controller
             'employee' => $employee->only('id', 'name', 'display_name'),
             'projects' => $this->personalProjects($employee, $year, $month),
             'is_team_lead' => Project::where('leader_id', $employee->id)->where('year', $year)->exists(),
-            'team_projects' => $this->teamProjects($employee, $year, $month),
+            'team_projects' => $this->teamProjects($employee, $year),
             'filters' => ['year' => $year, 'month' => $month],
         ]);
     }
@@ -104,7 +104,7 @@ class PerformanceController extends Controller
         return $project;
     }
 
-    private function teamProjects(Employee $employee, int $year, int $month)
+    private function teamProjects(Employee $employee, int $year)
     {
         $isTeamLead = Project::where('leader_id', $employee->id)->where('year', $year)->exists();
 
@@ -117,7 +117,6 @@ class PerformanceController extends Controller
                 'assignments.employee:id,name,display_name',
                 'performanceReports' => fn ($q) => $q
                     ->where('period_year', $year)
-                    ->where('period_month', $month)
                     ->with([
                         'reporter:id,name,display_name',
                         'attachments.reviewer:id,name,display_name',

@@ -49,6 +49,8 @@ interface WorkItemWithReports {
         issues: string | null;
         solutions: string | null;
         action_plan: string | null;
+        approval_status: 'pending' | 'approved' | 'rejected';
+        review_note: string | null;
         attachments: ReportAttachment[];
     }>;
 }
@@ -63,12 +65,16 @@ interface TeamMember extends Employee {
 
 interface TeamWorkItemReport {
     id: number;
+    period_month: number;
     realization: number;
     achievement_percentage: number;
     reported_by: number | null;
     reporter: { id: number; name: string; display_name: string | null } | null;
     attachments: ReportAttachment[];
     reviewer?: { id: number; name: string; display_name: string | null } | null;
+    approval_status: 'pending' | 'approved' | 'rejected';
+    review_note: string | null;
+    reviewed_at: string | null;
 }
 
 interface WorkItemAssignment {
@@ -242,6 +248,22 @@ function computePct(workItemId: number): number {
     return Math.min(100, ((prevTotal + currentRealization) / Number(wi.target)) * 100);
 }
 
+function computeTeamMemberPct(wi: TeamWorkItem, memberId: number): number {
+    const reports = wi.performance_reports.filter(r => r.reported_by === memberId);
+    if (!reports.length) return 0;
+    const assignment = wi.assignments.find(a => a.employee_id === memberId);
+    const target = assignment ? Number(assignment.target) : Number(wi.target);
+    if (target <= 0) return 0;
+    const totalRealization = reports.reduce((sum, r) => sum + Number(r.realization), 0);
+    return Math.min(100, (totalRealization / target) * 100);
+}
+
+function computeTeamMemberTotalRealization(wi: TeamWorkItem, memberId: number): number {
+    return wi.performance_reports
+        .filter(r => r.reported_by === memberId)
+        .reduce((sum, r) => sum + Number(r.realization), 0);
+}
+
 function progressColor(pct: number): string {
     if (pct >= 80) return '[&>div]:bg-green-500';
     if (pct >= 50) return '[&>div]:bg-yellow-500';
@@ -357,7 +379,7 @@ function submitAdd(projectId: number) {
             .map(a => ({ employee_id: a.employee_id, target: a.target, target_unit: a.target_unit }))
         : [];
     addForm
-        .transform(data => ({ ...data, assign_to: assignTo, assignments }))
+        .transform((data: Record<string, unknown>) => ({ ...data, assign_to: assignTo, assignments }))
         .post(route('work-items.store', projectId), {
             preserveScroll: true,
             onSuccess: () => { addingProjectId.value = null; },
@@ -497,6 +519,35 @@ function deleteAttachment(attachmentId: number) {
 
 function reviewAttachment(attachmentId: number, status: 'approved' | 'rejected') {
     router.patch(route('report-attachments.review', attachmentId), { status }, { preserveScroll: true });
+}
+
+const rejectNoteMap = ref<Record<number, string>>({});
+const showRejectForm = ref<Record<number, boolean>>({});
+
+function getCurrentMonthReport(wi: TeamWorkItem, memberId: number): TeamWorkItemReport | undefined {
+    return wi.performance_reports.find(r => r.reported_by === memberId && r.period_month === props.filters.month);
+}
+
+function approveReport(reportId: number) {
+    router.patch(route('performance.approve', reportId), {}, { preserveScroll: true });
+}
+
+function submitRejectReport(reportId: number) {
+    const note = rejectNoteMap.value[reportId] ?? '';
+    router.patch(route('performance.reject', reportId), { review_note: note }, { preserveScroll: true });
+    showRejectForm.value[reportId] = false;
+}
+
+function reportStatusColor(status: string): string {
+    if (status === 'approved') return 'bg-green-100 text-green-700 border-green-200';
+    if (status === 'rejected') return 'bg-red-100 text-red-700 border-red-200';
+    return 'bg-yellow-50 text-yellow-700 border-yellow-200';
+}
+
+function reportStatusLabel(status: string): string {
+    if (status === 'approved') return 'Disetujui';
+    if (status === 'rejected') return 'Ditolak';
+    return 'Menunggu Persetujuan';
 }
 
 function attachmentStatusColor(status: string): string {
@@ -730,10 +781,16 @@ function projectSubmittedCount(project: TeamProjectWithMembers): number {
                                             <div class="mb-4 rounded-md border border-gray-200 bg-white p-3">
                                                 <div class="mb-2 flex items-center justify-between">
                                                     <span class="text-xs font-medium uppercase tracking-wide text-gray-500">Progres Capaian</span>
-                                                    <span :class="['text-base font-bold', pctColor(computePct(wi.id))]">
-                                                        {{ computePct(wi.id).toFixed(1) }}%
-                                                    </span>
+                                                    <div class="flex items-center gap-2">
+                                                        <span v-if="getReport(wi.id)" :class="['inline-flex rounded border px-1.5 py-0.5 text-[10px]', reportStatusColor(getReport(wi.id)!.approval_status)]">
+                                                            {{ reportStatusLabel(getReport(wi.id)!.approval_status) }}
+                                                        </span>
+                                                        <span :class="['text-base font-bold', pctColor(computePct(wi.id))]">
+                                                            {{ computePct(wi.id).toFixed(1) }}%
+                                                        </span>
+                                                    </div>
                                                 </div>
+                                                <p v-if="getReport(wi.id)?.review_note" class="mb-2 text-[10px] italic text-gray-500">Catatan reviewer: {{ getReport(wi.id)!.review_note }}</p>
                                                 <Progress :model-value="computePct(wi.id)" :class="['mb-3 h-2', progressColor(computePct(wi.id))]" />
                                                 <div class="grid grid-cols-2 gap-4">
                                                     <div>
@@ -1170,24 +1227,25 @@ function projectSubmittedCount(project: TeamProjectWithMembers): number {
                                                             Target: {{ wi.assignments.find(a => a.employee_id === member.id)!.target }} {{ wi.assignments.find(a => a.employee_id === member.id)!.target_unit }}
                                                         </span>
                                                     </div>
-                                                    <template v-if="wi.performance_reports.find(r => r.reported_by === member.id)">
+                                                    <template v-if="wi.performance_reports.some(r => r.reported_by === member.id)">
                                                         <div class="flex items-center justify-between gap-3">
                                                             <Progress
-                                                                :model-value="wi.performance_reports.find(r => r.reported_by === member.id)!.achievement_percentage"
-                                                                :class="['h-2 flex-1', memberProgressColor(wi.performance_reports.find(r => r.reported_by === member.id)!.achievement_percentage)]"
+                                                                :model-value="computeTeamMemberPct(wi, member.id)"
+                                                                :class="['h-2 flex-1', memberProgressColor(computeTeamMemberPct(wi, member.id))]"
                                                             />
                                                             <div class="flex shrink-0 items-center gap-2 text-xs">
-                                                                <span class="text-gray-500">{{ Number(wi.performance_reports.find(r => r.reported_by === member.id)!.realization).toLocaleString('id') }}</span>
-                                                                <span :class="['font-bold', memberPctColor(wi.performance_reports.find(r => r.reported_by === member.id)!.achievement_percentage)]">
-                                                                    {{ Number(wi.performance_reports.find(r => r.reported_by === member.id)!.achievement_percentage).toFixed(1) }}%
+                                                                <span class="text-gray-500">{{ computeTeamMemberTotalRealization(wi, member.id).toLocaleString('id') }}</span>
+                                                                <span :class="['font-bold', memberPctColor(computeTeamMemberPct(wi, member.id))]">
+                                                                    {{ computeTeamMemberPct(wi, member.id).toFixed(1) }}%
                                                                 </span>
                                                             </div>
                                                         </div>
-                                                        <!-- Attachments for this member's report (lead view) -->
-                                                        <template v-if="wi.performance_reports.find(r => r.reported_by === member.id)!.attachments?.length">
-                                                            <div class="mt-2 space-y-1">
+                                                        <!-- Current-month report details (attachments + approval) -->
+                                                        <template v-for="currentReport in (getCurrentMonthReport(wi, member.id) ? [getCurrentMonthReport(wi, member.id)!] : [])" :key="currentReport.id">
+                                                            <!-- Attachments -->
+                                                            <div v-if="currentReport.attachments?.length" class="mt-2 space-y-1">
                                                                 <div
-                                                                    v-for="att in wi.performance_reports.find(r => r.reported_by === member.id)!.attachments"
+                                                                    v-for="att in currentReport.attachments"
                                                                     :key="att.id"
                                                                     class="flex items-center gap-2 rounded border border-gray-100 bg-white px-2.5 py-1.5"
                                                                 >
@@ -1196,11 +1254,33 @@ function projectSubmittedCount(project: TeamProjectWithMembers): number {
                                                                     <a v-if="att.display_url" :href="att.display_url" target="_blank" rel="noopener" class="min-w-0 flex-1 truncate text-xs text-blue-600 hover:underline">{{ att.title || att.file_name || att.url }}</a>
                                                                     <span v-else class="min-w-0 flex-1 truncate text-xs text-gray-600">{{ att.title || att.file_name || att.url }}</span>
                                                                     <span :class="['shrink-0 rounded border px-1.5 py-0.5 text-[10px]', attachmentStatusColor(att.status)]">{{ attachmentStatusLabel(att.status) }}</span>
-                                                                    <!-- Approve/reject for leads (pending only) -->
                                                                     <template v-if="att.status === 'pending' && canManageItems(teamProject.leader_id)">
                                                                         <button type="button" class="shrink-0 rounded bg-green-500 px-2 py-0.5 text-[10px] text-white hover:bg-green-600" @click="reviewAttachment(att.id, 'approved')">&#10003;</button>
                                                                         <button type="button" class="shrink-0 rounded bg-red-400 px-2 py-0.5 text-[10px] text-white hover:bg-red-500" @click="reviewAttachment(att.id, 'rejected')">&#10007;</button>
                                                                     </template>
+                                                                </div>
+                                                            </div>
+
+                                                            <!-- Report-level approval -->
+                                                            <div class="mt-2">
+                                                                <div class="flex items-center justify-between">
+                                                                    <span :class="['inline-flex items-center gap-1 rounded border px-1.5 py-0.5 text-[10px]', reportStatusColor(currentReport.approval_status)]">
+                                                                        {{ reportStatusLabel(currentReport.approval_status) }}
+                                                                    </span>
+                                                                    <div v-if="canManageItems(teamProject.leader_id) && currentReport.approval_status === 'pending'" class="flex items-center gap-1.5">
+                                                                        <button type="button" class="rounded bg-green-500 px-2 py-0.5 text-[10px] text-white hover:bg-green-600" @click="approveReport(currentReport.id)">Setujui</button>
+                                                                        <button type="button" class="rounded bg-red-400 px-2 py-0.5 text-[10px] text-white hover:bg-red-500" @click="showRejectForm[currentReport.id] = !showRejectForm[currentReport.id]">Tolak</button>
+                                                                    </div>
+                                                                </div>
+                                                                <p v-if="currentReport.review_note" class="mt-1 text-[10px] italic text-gray-500">Catatan: {{ currentReport.review_note }}</p>
+                                                                <div v-if="showRejectForm[currentReport.id]" class="mt-1.5 flex gap-1.5">
+                                                                    <input
+                                                                        v-model="rejectNoteMap[currentReport.id]"
+                                                                        type="text"
+                                                                        placeholder="Alasan penolakan..."
+                                                                        class="flex-1 rounded border border-gray-300 px-2 py-0.5 text-[10px] focus:border-primary focus:outline-none"
+                                                                    />
+                                                                    <button type="button" class="rounded bg-red-500 px-2 py-0.5 text-[10px] text-white hover:bg-red-600" @click="submitRejectReport(currentReport.id)">Kirim</button>
                                                                 </div>
                                                             </div>
                                                         </template>
@@ -1421,10 +1501,16 @@ function projectSubmittedCount(project: TeamProjectWithMembers): number {
                                         <div class="mb-4 rounded-md border border-gray-200 bg-white p-3">
                                             <div class="mb-2 flex items-center justify-between">
                                                 <span class="text-xs font-medium uppercase tracking-wide text-gray-500">Progres Capaian</span>
-                                                <span :class="['text-base font-bold', pctColor(computePct(wi.id))]">
-                                                    {{ computePct(wi.id).toFixed(1) }}%
-                                                </span>
+                                                <div class="flex items-center gap-2">
+                                                    <span v-if="getReport(wi.id)" :class="['inline-flex rounded border px-1.5 py-0.5 text-[10px]', reportStatusColor(getReport(wi.id)!.approval_status)]">
+                                                        {{ reportStatusLabel(getReport(wi.id)!.approval_status) }}
+                                                    </span>
+                                                    <span :class="['text-base font-bold', pctColor(computePct(wi.id))]">
+                                                        {{ computePct(wi.id).toFixed(1) }}%
+                                                    </span>
+                                                </div>
                                             </div>
+                                            <p v-if="getReport(wi.id)?.review_note" class="mb-2 text-[10px] italic text-gray-500">Catatan reviewer: {{ getReport(wi.id)!.review_note }}</p>
                                             <Progress :model-value="computePct(wi.id)" :class="['mb-3 h-2', progressColor(computePct(wi.id))]" />
                                             <div class="grid grid-cols-2 gap-4">
                                                 <div>

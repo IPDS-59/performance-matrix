@@ -21,6 +21,10 @@ class PerformanceReport extends Model
         'issues',
         'solutions',
         'action_plan',
+        'approval_status',
+        'reviewed_by',
+        'reviewed_at',
+        'review_note',
     ];
 
     protected $casts = [
@@ -28,6 +32,7 @@ class PerformanceReport extends Model
         'period_year' => 'integer',
         'realization' => 'decimal:2',
         'achievement_percentage' => 'decimal:2',
+        'reviewed_at' => 'datetime',
     ];
 
     public function workItem(): BelongsTo
@@ -43,5 +48,25 @@ class PerformanceReport extends Model
     public function attachments(): HasMany
     {
         return $this->hasMany(ReportAttachment::class);
+    }
+
+    public function reviewer(): BelongsTo
+    {
+        return $this->belongsTo(\App\Models\User::class, 'reviewed_by');
+    }
+
+    public function isPending(): bool
+    {
+        return $this->approval_status === 'pending';
+    }
+
+    public function isApproved(): bool
+    {
+        return $this->approval_status === 'approved';
+    }
+
+    public function isRejected(): bool
+    {
+        return $this->approval_status === 'rejected';
     }
 }

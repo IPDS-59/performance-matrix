@@ -291,7 +291,42 @@ class DashboardController extends Controller
         ];
 
         if ($user->employee) {
-            $data['personal_stats'] = $this->personalStats($user->employee, $year, $month);
+            $employee = $user->employee;
+            $data['employee'] = $employee->only('id', 'name', 'display_name');
+            $data['personal_stats'] = $this->personalStats($employee, $year, $month);
+
+            // Personal projects with work items (same as staff view)
+            $data['projects'] = Project::with([
+                'workItems' => fn ($q) => $q
+                    ->whereHas('assignments', fn ($q) => $q->where('employee_id', $employee->id))
+                    ->with([
+                        'assignments' => fn ($q) => $q->where('employee_id', $employee->id),
+                        'performanceReports' => fn ($q) => $q
+                            ->where('period_year', $year)
+                            ->where('reported_by', $employee->id)
+                            ->with('attachments'),
+                    ]),
+                'team:id,name',
+            ])
+                ->whereHas('members', fn ($q) => $q->where('employees.id', $employee->id))
+                ->where('year', $year)
+                ->join('teams', 'teams.id', '=', 'projects.team_id')
+                ->orderBy('teams.name')
+                ->orderBy('projects.name')
+                ->select('projects.*')
+                ->get()
+                ->map(function ($project) use ($employee) {
+                    $project->workItems->transform(function ($wi) {
+                        $assignment = $wi->assignments->first();
+                        $wi->target = $assignment?->target ?? $wi->target;
+                        $wi->target_unit = $assignment?->target_unit ?? $wi->target_unit;
+                        unset($wi->assignments);
+
+                        return $wi;
+                    });
+
+                    return $project;
+                });
         }
 
         return Inertia::render('Dashboard', $data);

@@ -3,6 +3,8 @@
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\EmployeeController;
 use App\Http\Controllers\EmployeeReportController;
+use App\Http\Controllers\NotificationController;
+use App\Http\Controllers\PerformanceApprovalController;
 use App\Http\Controllers\PerformanceController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\ProjectController;
@@ -42,6 +44,15 @@ Route::middleware(['auth', 'verified'])->group(function () {
     // Staff performance entry
     Route::get('/performance', [PerformanceController::class, 'index'])->name('performance.index');
     Route::post('/performance/batch', [PerformanceController::class, 'storeBatch'])->name('performance.batch');
+
+    // Report approval (team leads + head)
+    Route::patch('/performance/{report}/approve', [PerformanceApprovalController::class, 'approve'])->name('performance.approve');
+    Route::patch('/performance/{report}/reject', [PerformanceApprovalController::class, 'reject'])->name('performance.reject');
+
+    // Notifications
+    Route::get('/notifications', [NotificationController::class, 'index'])->name('notifications.index');
+    Route::patch('/notifications/{id}/read', [NotificationController::class, 'markRead'])->name('notifications.read');
+    Route::patch('/notifications/read-all', [NotificationController::class, 'markAllRead'])->name('notifications.read-all');
 
     // Report attachments
     Route::post('/performance/{report}/attachments', [ReportAttachmentController::class, 'store'])->name('report-attachments.store');

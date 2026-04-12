@@ -1,7 +1,8 @@
 <script setup lang="ts">
-import { Link, usePage } from '@inertiajs/vue3';
-import { computed } from 'vue';
+import { Link, router, usePage } from '@inertiajs/vue3';
+import { computed, onMounted, ref } from 'vue';
 import { useSidebarStore } from '@/stores/sidebar';
+import { Notivue, Notification, push } from 'notivue';
 
 const page = usePage();
 const sidebar = useSidebarStore();
@@ -10,6 +11,44 @@ const user = computed(() => page.props.auth.user as { name: string; email: strin
 const isAdmin = computed(() => user.value.role === 'admin');
 const isHead = computed(() => user.value.role === 'head');
 const isStaff = computed(() => user.value.role === 'staff');
+
+// ── Notifications ─────────────────────────────────────────────────────────
+const unreadCount = ref(0);
+const notifications = ref<Array<{ id: string; type: string; message: string; read_at: string | null; created_at: string }>>([]);
+const showDropdown = ref(false);
+
+async function fetchNotifications() {
+    try {
+        const res = await fetch(route('notifications.index'), { headers: { 'X-Requested-With': 'XMLHttpRequest' } });
+        const data = await res.json();
+        notifications.value = data.notifications;
+        unreadCount.value = data.unread_count;
+    } catch {}
+}
+
+async function markAllRead() {
+    await fetch(route('notifications.read-all'), { method: 'PATCH', headers: { 'X-CSRF-TOKEN': (document.querySelector('meta[name=csrf-token]') as HTMLMetaElement)?.content ?? '' } });
+    unreadCount.value = 0;
+    notifications.value = notifications.value.map(n => ({ ...n, read_at: new Date().toISOString() }));
+}
+
+function toggleDropdown() {
+    showDropdown.value = !showDropdown.value;
+    if (showDropdown.value) fetchNotifications();
+}
+
+onMounted(() => {
+    fetchNotifications();
+    // Poll every 60s for new notifications
+    setInterval(fetchNotifications, 60_000);
+
+    // Show toast for Inertia flash success
+    router.on('success', (event: { detail: { page: { props: unknown } } }) => {
+        const flash = (event.detail.page.props as Record<string, unknown>).flash as Record<string, string> | undefined;
+        if (flash?.success) push.success(flash.success);
+        if (flash?.error) push.error(flash.error);
+    });
+});
 </script>
 
 <template>
@@ -181,18 +220,61 @@ const isStaff = computed(() => user.value.role === 'staff');
                 <h1 class="text-lg font-semibold text-gray-800">
                     <slot name="title" />
                 </h1>
-                <div class="flex items-center gap-4 text-sm text-gray-500">
-                    <span>BPS Provinsi Sulawesi Tengah</span>
+                <div class="flex items-center gap-3 text-sm text-gray-500">
+                    <span class="hidden sm:inline">BPS Provinsi Sulawesi Tengah</span>
+
+                    <!-- Notification bell -->
+                    <div class="relative">
+                        <button
+                            type="button"
+                            class="relative flex h-9 w-9 items-center justify-center rounded-full hover:bg-gray-100 transition-colors"
+                            aria-label="Notifikasi"
+                            @click="toggleDropdown"
+                        >
+                            <svg class="h-5 w-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6 6 0 00-5-5.916V4a1 1 0 10-2 0v1.084A6 6 0 006 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/>
+                            </svg>
+                            <span v-if="unreadCount > 0" class="absolute -right-0.5 -top-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[9px] font-bold text-white leading-none">
+                                {{ unreadCount > 9 ? '9+' : unreadCount }}
+                            </span>
+                        </button>
+
+                        <!-- Click-away backdrop -->
+                        <div v-if="showDropdown" class="fixed inset-0 z-40" @click="showDropdown = false" />
+
+                        <!-- Dropdown -->
+                        <div
+                            v-if="showDropdown"
+                            class="absolute right-0 top-11 z-50 w-80 rounded-lg border bg-white shadow-lg"
+                        >
+                            <div class="flex items-center justify-between border-b px-4 py-3">
+                                <span class="text-sm font-semibold text-gray-800">Notifikasi</span>
+                                <button v-if="unreadCount > 0" type="button" class="text-xs text-primary hover:underline" @click="markAllRead">
+                                    Tandai semua dibaca
+                                </button>
+                            </div>
+                            <div class="max-h-80 overflow-y-auto divide-y divide-gray-100">
+                                <div v-if="!notifications.length" class="px-4 py-8 text-center text-sm text-gray-400">
+                                    Tidak ada notifikasi
+                                </div>
+                                <div
+                                    v-for="n in notifications"
+                                    :key="n.id"
+                                    :class="['px-4 py-3 text-xs hover:bg-gray-50 transition-colors', !n.read_at ? 'bg-blue-50' : '']"
+                                >
+                                    <p :class="['leading-relaxed', !n.read_at ? 'font-medium text-gray-800' : 'text-gray-600']">{{ n.message }}</p>
+                                    <p class="mt-1 text-gray-400">{{ new Date(n.created_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) }}</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </header>
 
-            <!-- Flash messages -->
-            <div
-                v-if="$page.props.flash?.success"
-                class="mx-6 mt-4 rounded-md bg-green-50 border border-green-200 p-3 text-sm text-green-800"
-            >
-                {{ $page.props.flash.success }}
-            </div>
+            <!-- Notivue toast container -->
+            <Notivue v-slot="item">
+                <Notification :item="item" />
+            </Notivue>
 
             <!-- Page content -->
             <main class="flex-1 overflow-auto p-6">

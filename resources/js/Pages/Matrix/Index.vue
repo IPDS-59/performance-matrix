@@ -6,6 +6,7 @@ import { ref, computed } from 'vue';
 import { Badge } from '@/Components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/Components/ui/select';
 import { Tabs, TabsList, TabsTrigger } from '@/Components/ui/tabs';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/Components/ui/tooltip';
 
 interface Assignment {
     project_id: number;
@@ -161,9 +162,18 @@ function cellBgColor(pct: number): string {
                             :key="project.id"
                             class="border-b border-r px-2 py-2 font-medium text-center max-w-[100px]"
                         >
-                            <div class="w-20 overflow-hidden text-ellipsis whitespace-nowrap" :title="project.name">
-                                {{ project.name }}
-                            </div>
+                            <TooltipProvider>
+                                <Tooltip>
+                                    <TooltipTrigger as-child>
+                                        <div class="w-20 cursor-default overflow-hidden text-ellipsis whitespace-nowrap">
+                                            {{ project.name }}
+                                        </div>
+                                    </TooltipTrigger>
+                                    <TooltipContent class="max-w-xs text-center text-xs">
+                                        {{ project.name }}
+                                    </TooltipContent>
+                                </Tooltip>
+                            </TooltipProvider>
                         </th>
                     </tr>
                 </thead>

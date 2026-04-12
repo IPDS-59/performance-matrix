@@ -7,6 +7,11 @@ import { resolvePageComponent } from 'laravel-vite-plugin/inertia-helpers';
 import { createPinia } from 'pinia';
 import { createApp, h } from 'vue';
 import { ZiggyVue } from 'ziggy-js';
+import { createNotivue } from 'notivue';
+import 'notivue/notification.css';
+import 'notivue/animations.css';
+
+const push = createNotivue({ notifications: { global: { duration: 4000 } } });
 
 type SetupArg = NonNullable<Parameters<typeof createInertiaApp>[0]['setup']> extends (arg: infer T) => unknown ? T : never;
 
@@ -24,6 +29,7 @@ createInertiaApp({
             .use(plugin)
             .use(createPinia())
             .use(ZiggyVue)
+            .use(push)
             .mount(el);
     },
     progress: {

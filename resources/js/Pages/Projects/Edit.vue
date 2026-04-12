@@ -161,7 +161,7 @@ function storeItem() {
             .map(a => ({ employee_id: a.employee_id, target: a.target, target_unit: a.target_unit }))
         : [];
     addForm
-        .transform(data => ({ ...data, assign_to: assignTo, assignments }))
+        .transform((data: Record<string, unknown>) => ({ ...data, assign_to: assignTo, assignments }))
         .post(route('work-items.store', props.project.id), {
             preserveScroll: true,
             onSuccess: () => { showAddForm.value = false; },
