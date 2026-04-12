@@ -5,6 +5,7 @@ namespace App\Actions\Performance;
 use App\Events\PerformanceReportSaved;
 use App\Models\Employee;
 use App\Models\PerformanceReport;
+use App\Models\PerformanceReportReview;
 use App\Models\WorkItem;
 
 class SavePerformanceReportAction
@@ -56,6 +57,14 @@ class SavePerformanceReportAction
                 'action_plan' => $actionPlan,
             ]
         );
+
+        if ($report->wasRecentlyCreated) {
+            PerformanceReportReview::create([
+                'performance_report_id' => $report->id,
+                'actor_id' => $reporter?->user_id,
+                'action' => 'submitted',
+            ]);
+        }
 
         PerformanceReportSaved::dispatch($report);
 

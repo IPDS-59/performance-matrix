@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class PerformanceReport extends Model
 {
@@ -52,7 +53,17 @@ class PerformanceReport extends Model
 
     public function reviewer(): BelongsTo
     {
-        return $this->belongsTo(\App\Models\User::class, 'reviewed_by');
+        return $this->belongsTo(User::class, 'reviewed_by');
+    }
+
+    public function reviews(): HasMany
+    {
+        return $this->hasMany(PerformanceReportReview::class)->orderBy('created_at');
+    }
+
+    public function latestReview(): HasOne
+    {
+        return $this->hasOne(PerformanceReportReview::class)->latestOfMany('created_at');
     }
 
     public function isPending(): bool

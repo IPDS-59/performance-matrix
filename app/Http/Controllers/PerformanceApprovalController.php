@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\PerformanceReport;
+use App\Models\PerformanceReportReview;
 use App\Models\Project;
 use App\Notifications\ReportApprovedNotification;
 use App\Notifications\ReportRejectedNotification;
@@ -26,6 +27,13 @@ class PerformanceApprovalController extends Controller
             'review_note' => $validated['review_note'] ?? null,
         ]);
 
+        PerformanceReportReview::create([
+            'performance_report_id' => $report->id,
+            'actor_id' => $request->user()->id,
+            'action' => 'approved',
+            'note' => $validated['review_note'] ?? null,
+        ]);
+
         if ($report->reporter?->user) {
             $report->reporter->user->notify(new ReportApprovedNotification($report, $request->user()));
         }
@@ -46,6 +54,13 @@ class PerformanceApprovalController extends Controller
             'reviewed_by' => $request->user()->id,
             'reviewed_at' => now(),
             'review_note' => $validated['review_note'],
+        ]);
+
+        PerformanceReportReview::create([
+            'performance_report_id' => $report->id,
+            'actor_id' => $request->user()->id,
+            'action' => 'rejected',
+            'note' => $validated['review_note'],
         ]);
 
         if ($report->reporter?->user) {

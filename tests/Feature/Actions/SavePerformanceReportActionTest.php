@@ -4,6 +4,8 @@ use App\Actions\Performance\SavePerformanceReportAction;
 use App\Events\PerformanceReportSaved;
 use App\Models\Employee;
 use App\Models\PerformanceReport;
+use App\Models\PerformanceReportReview;
+use App\Models\User;
 use App\Models\WorkItem;
 use Illuminate\Support\Facades\Event;
 
@@ -72,4 +74,36 @@ it('caps achievement at 100 when realization exceeds target', function () {
     $report = $action->execute($workItem, 4, 2026, 2.0);
 
     expect((float) $report->achievement_percentage)->toBe(100.0);
+});
+
+it('creates a submitted review record on first save', function () {
+    Event::fake();
+
+    $user = User::factory()->create();
+    $employee = Employee::factory()->create(['user_id' => $user->id]);
+    $workItem = WorkItem::factory()->create(['target' => 4]);
+    $action = app(SavePerformanceReportAction::class);
+
+    $report = $action->execute($workItem, 4, 2026, 2.0, $employee);
+
+    expect(PerformanceReportReview::where('performance_report_id', $report->id)->count())->toBe(1);
+
+    $review = PerformanceReportReview::where('performance_report_id', $report->id)->sole();
+    expect($review->action)->toBe('submitted');
+    expect($review->actor_id)->toBe($user->id);
+    expect($review->note)->toBeNull();
+});
+
+it('does not create a second review record when updating a pending report', function () {
+    Event::fake();
+
+    $user = User::factory()->create();
+    $employee = Employee::factory()->create(['user_id' => $user->id]);
+    $workItem = WorkItem::factory()->create(['target' => 4]);
+    $action = app(SavePerformanceReportAction::class);
+
+    $action->execute($workItem, 4, 2026, 1.0, $employee);
+    $action->execute($workItem, 4, 2026, 2.0, $employee);
+
+    expect(PerformanceReportReview::whereHas('report', fn ($q) => $q->where('work_item_id', $workItem->id))->count())->toBe(1);
 });
