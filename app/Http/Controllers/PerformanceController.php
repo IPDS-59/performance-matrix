@@ -23,14 +23,17 @@ class PerformanceController extends Controller
         $year = $request->integer('year', now()->year);
         $month = $request->integer('month', now()->month);
 
-        // Projects where this employee is a member
+        // Projects where this employee is a member, ordered by team then project name
         $projects = Project::with([
             'workItems.performanceReports' => fn ($q) => $q->where('period_year', $year)->where('period_month', $month),
             'team:id,name',
         ])
             ->whereHas('members', fn ($q) => $q->where('employees.id', $employee->id))
             ->where('year', $year)
-            ->orderBy('name')
+            ->join('teams', 'teams.id', '=', 'projects.team_id')
+            ->orderBy('teams.name')
+            ->orderBy('projects.name')
+            ->select('projects.*')
             ->get();
 
         return Inertia::render('Performance/Index', [
@@ -53,7 +56,7 @@ class PerformanceController extends Controller
             'period_year' => ['required', 'integer', 'min:2020'],
             'items' => ['required', 'array', 'min:1'],
             'items.*.work_item_id' => ['required', 'exists:work_items,id'],
-            'items.*.achievement_percentage' => ['required', 'numeric', 'min:0', 'max:100'],
+            'items.*.realization' => ['required', 'numeric', 'min:0'],
             'items.*.issues' => ['nullable', 'string'],
             'items.*.solutions' => ['nullable', 'string'],
             'items.*.action_plan' => ['nullable', 'string'],

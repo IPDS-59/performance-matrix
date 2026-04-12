@@ -21,6 +21,7 @@ class ProjectController extends Controller
         $teamId = $request->integer('team_id');
 
         $projects = Project::with('team:id,name', 'leader:id,name,display_name')
+            ->withCount('members')
             ->when($teamId, fn ($q) => $q->where('team_id', $teamId))
             ->where('year', $year)
             ->orderBy('name')

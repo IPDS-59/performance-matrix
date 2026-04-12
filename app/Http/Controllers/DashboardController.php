@@ -79,14 +79,22 @@ class DashboardController extends Controller
         $employee = $user->employee;
 
         if (! $employee) {
-            return Inertia::render('Dashboard', ['role' => 'staff', 'data' => null]);
+            return Inertia::render('Dashboard', [
+                'role' => 'staff',
+                'filters' => compact('year', 'month'),
+            ]);
         }
 
         $projects = Project::with([
             'workItems.performanceReports' => fn ($q) => $q->where('period_year', $year)->where('period_month', $month),
+            'team:id,name',
         ])
             ->whereHas('members', fn ($q) => $q->where('employees.id', $employee->id))
             ->where('year', $year)
+            ->join('teams', 'teams.id', '=', 'projects.team_id')
+            ->orderBy('teams.name')
+            ->orderBy('projects.name')
+            ->select('projects.*')
             ->get();
 
         return Inertia::render('Dashboard', [

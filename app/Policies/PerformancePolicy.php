@@ -9,6 +9,11 @@ use App\Models\WorkItem;
 
 class PerformancePolicy
 {
+    public function viewAny(User $user): bool
+    {
+        return $user->hasPermissionTo('view-matrix') || $user->hasPermissionTo('view-reports');
+    }
+
     public function create(User $user): bool
     {
         return $user->hasPermissionTo('enter-performance');

@@ -51,7 +51,7 @@ const submit = () => {
 
             <Button
                 type="submit"
-                class="w-full bg-[#1B4B8A] hover:bg-[#163d73]"
+                class="w-full"
                 :disabled="form.processing"
             >
                 {{ form.processing ? 'Mengirim...' : 'Kirim Tautan Reset' }}

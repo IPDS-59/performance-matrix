@@ -17,8 +17,11 @@ interface WorkItemWithReports {
     id: number;
     number: number;
     description: string;
+    target: number;
+    target_unit: string;
     performance_reports: Array<{
         id: number;
+        realization: number;
         achievement_percentage: number;
         issues: string | null;
         solutions: string | null;
@@ -52,10 +55,24 @@ const months = [
     { value: 11, label: 'November' }, { value: 12, label: 'Desember' },
 ];
 
-// Form state for batch submission
+const monthLabel = computed(() => months.find(m => m.value === props.filters.month)?.label ?? '');
+
+// Group projects by team
+const projectsByTeam = computed(() => {
+    const groups: Record<number, { teamId: number; teamName: string; projects: ProjectWithItems[] }> = {};
+    for (const p of props.projects) {
+        const tid = p.team_id;
+        const tname = p.team?.name ?? 'Tim Tidak Diketahui';
+        if (!groups[tid]) groups[tid] = { teamId: tid, teamName: tname, projects: [] };
+        groups[tid].projects.push(p);
+    }
+    return Object.values(groups).sort((a, b) => a.teamName.localeCompare(b.teamName));
+});
+
+// Form state
 type ItemForm = {
     work_item_id: number;
-    achievement_percentage: number;
+    realization: number;
     issues: string;
     solutions: string;
     action_plan: string;
@@ -71,37 +88,46 @@ const form = useForm<{
     items: [],
 });
 
-// Initialize form items from existing reports
-const itemMap = computed(() => {
-    const map: Record<number, ItemForm> = {};
-    props.projects.forEach(project => {
-        project.work_items.forEach(wi => {
-            const report = wi.performance_reports[0];
-            map[wi.id] = {
-                work_item_id: wi.id,
-                achievement_percentage: report?.achievement_percentage ?? 0,
-                issues: report?.issues ?? '',
-                solutions: report?.solutions ?? '',
-                action_plan: report?.action_plan ?? '',
-            };
-        });
-    });
-    return map;
-});
+const seededIds = new Set<number>();
 
 function getItem(workItemId: number): ItemForm {
     const existing = form.items.find(i => i.work_item_id === workItemId);
-    if (!existing) {
-        const fromMap = itemMap.value[workItemId];
-        form.items.push(fromMap ?? {
+    if (existing) return existing;
+
+    if (!seededIds.has(workItemId)) {
+        seededIds.add(workItemId);
+        let report: WorkItemWithReports['performance_reports'][number] | undefined;
+        outer: for (const p of props.projects) {
+            for (const wi of p.work_items) {
+                if (wi.id === workItemId) {
+                    report = wi.performance_reports[0];
+                    break outer;
+                }
+            }
+        }
+        form.items.push({
             work_item_id: workItemId,
-            achievement_percentage: 0,
-            issues: '',
-            solutions: '',
-            action_plan: '',
+            realization: report?.realization ?? 0,
+            issues: report?.issues ?? '',
+            solutions: report?.solutions ?? '',
+            action_plan: report?.action_plan ?? '',
         });
     }
     return form.items.find(i => i.work_item_id === workItemId)!;
+}
+
+function getWorkItem(workItemId: number): WorkItemWithReports | undefined {
+    for (const p of props.projects) {
+        const wi = p.work_items.find(w => w.id === workItemId);
+        if (wi) return wi;
+    }
+}
+
+function computePct(workItemId: number): number {
+    const wi = getWorkItem(workItemId);
+    if (!wi || !wi.target || Number(wi.target) <= 0) return 0;
+    const item = getItem(workItemId);
+    return Math.min(100, (Number(item.realization) / Number(wi.target)) * 100);
 }
 
 function progressColor(pct: number): string {
@@ -110,20 +136,32 @@ function progressColor(pct: number): string {
     return '[&>div]:bg-red-500';
 }
 
+function pctColor(pct: number): string {
+    if (pct >= 80) return 'text-green-600';
+    if (pct >= 50) return 'text-yellow-500';
+    return 'text-red-500';
+}
+
+function projectAvgPct(project: ProjectWithItems): number {
+    if (!project.work_items.length) return 0;
+    const pcts = project.work_items.map(wi => computePct(wi.id));
+    return pcts.reduce((s, v) => s + v, 0) / pcts.length;
+}
+
 function submit() {
-    form.post(route('performance.batch'), {
-        preserveScroll: true,
-    });
+    form.post(route('performance.batch'), { preserveScroll: true });
 }
 </script>
 
 <template>
     <Head title="Input Kinerja" />
     <AppLayout>
-        <template #title>Input Kinerja Bulanan</template>
+        <template #title>
+            Input Kinerja — {{ employee.display_name || employee.name }}
+        </template>
 
-        <!-- Filters -->
-        <div class="mb-6 flex items-center gap-3">
+        <!-- Period filters -->
+        <div class="mb-6 flex flex-wrap items-center gap-3">
             <Select v-model="month" @update:modelValue="applyFilters">
                 <SelectTrigger class="w-40">
                     <SelectValue placeholder="Bulan" />
@@ -137,96 +175,158 @@ function submit() {
                     <SelectValue placeholder="Tahun" />
                 </SelectTrigger>
                 <SelectContent>
-                    <SelectItem v-for="y in [2025, 2026, 2027]" :key="y" :value="y">{{ y }}</SelectItem>
+                    <SelectItem v-for="y in [2024, 2025, 2026, 2027]" :key="y" :value="y">{{ y }}</SelectItem>
                 </SelectContent>
             </Select>
+            <span class="ml-auto text-sm text-gray-500">
+                Periode: <strong>{{ monthLabel }} {{ filters.year }}</strong>
+            </span>
         </div>
 
         <div v-if="!projects.length" class="py-16 text-center text-gray-400">
-            Tidak ada proyek yang ditugaskan untuk periode ini.
+            <p class="font-medium">Tidak ada proyek untuk periode ini.</p>
+            <p class="mt-1 text-sm">Anda belum ditugaskan ke proyek aktif tahun {{ filters.year }}.</p>
         </div>
 
-        <form v-else @submit.prevent="submit" class="space-y-4">
-            <Accordion type="multiple" class="space-y-3">
-                <AccordionItem
-                    v-for="project in projects"
-                    :key="project.id"
-                    :value="String(project.id)"
-                    class="rounded-md border bg-white px-4"
-                >
-                    <AccordionTrigger class="py-3">
-                        <div class="flex items-center gap-3 text-left">
-                            <Badge variant="outline" class="shrink-0 text-xs">{{ project.team?.name }}</Badge>
-                            <span class="font-medium">{{ project.name }}</span>
-                        </div>
-                    </AccordionTrigger>
-                    <AccordionContent>
-                        <div class="space-y-6 pb-4">
-                            <div
-                                v-for="wi in project.work_items"
-                                :key="wi.id"
-                                class="rounded-md border border-gray-100 bg-gray-50 p-4"
-                            >
-                                <p class="mb-3 text-sm font-medium text-gray-700">
-                                    {{ wi.number }}. {{ wi.description }}
-                                </p>
+        <form v-else @submit.prevent="submit" class="space-y-8">
+            <!-- Grouped by team -->
+            <div v-for="group in projectsByTeam" :key="group.teamId" class="space-y-3">
+                <!-- Team header -->
+                <div class="flex items-center gap-3">
+                    <h2 class="text-sm font-bold uppercase tracking-wide text-primary">
+                        {{ group.teamName }}
+                    </h2>
+                    <span class="h-px flex-1 bg-primary/20"></span>
+                    <Badge variant="outline" class="text-xs">
+                        {{ group.projects.length }} proyek
+                    </Badge>
+                </div>
 
-                                <div class="grid gap-4 md:grid-cols-2">
-                                    <div>
-                                        <Label>Capaian (%)</Label>
-                                        <div class="mt-1 flex items-center gap-3">
-                                            <Input
-                                                type="number"
-                                                min="0"
-                                                max="100"
-                                                step="0.01"
-                                                v-model="getItem(wi.id).achievement_percentage"
-                                                class="w-28"
-                                            />
-                                            <Progress
-                                                :model-value="Number(getItem(wi.id).achievement_percentage)"
-                                                :class="['flex-1', progressColor(Number(getItem(wi.id).achievement_percentage))]"
+                <!-- Projects accordion within team -->
+                <Accordion type="multiple" class="space-y-2">
+                    <AccordionItem
+                        v-for="project in group.projects"
+                        :key="project.id"
+                        :value="String(project.id)"
+                        class="rounded-lg border bg-white shadow-sm"
+                    >
+                        <AccordionTrigger class="px-4 py-3 hover:no-underline">
+                            <div class="flex min-w-0 flex-1 items-center gap-3 pr-2">
+                                <span class="min-w-0 flex-1 truncate text-left font-medium text-gray-800">
+                                    {{ project.name }}
+                                </span>
+                                <div class="flex shrink-0 items-center gap-2">
+                                    <div class="hidden w-24 sm:block">
+                                        <Progress
+                                            :model-value="projectAvgPct(project)"
+                                            :class="['h-1.5', progressColor(projectAvgPct(project))]"
+                                        />
+                                    </div>
+                                    <span :class="['text-sm font-bold', pctColor(projectAvgPct(project))]">
+                                        {{ projectAvgPct(project).toFixed(0) }}%
+                                    </span>
+                                </div>
+                            </div>
+                        </AccordionTrigger>
+                        <AccordionContent class="px-4 pb-4">
+                            <div class="space-y-4">
+                                <div
+                                    v-for="wi in project.work_items"
+                                    :key="wi.id"
+                                    class="rounded-md border border-gray-100 bg-gray-50 p-4"
+                                >
+                                    <p class="mb-4 text-sm font-semibold text-gray-700">
+                                        {{ wi.number }}. {{ wi.description }}
+                                    </p>
+
+                                    <!-- Target + Realization -->
+                                    <div class="mb-4 rounded-md border border-gray-200 bg-white p-3">
+                                        <div class="mb-2 flex items-center justify-between">
+                                            <span class="text-xs font-medium uppercase tracking-wide text-gray-500">Progres Capaian</span>
+                                            <span :class="['text-base font-bold', pctColor(computePct(wi.id))]">
+                                                {{ computePct(wi.id).toFixed(1) }}%
+                                            </span>
+                                        </div>
+                                        <Progress
+                                            :model-value="computePct(wi.id)"
+                                            :class="['mb-3 h-2', progressColor(computePct(wi.id))]"
+                                        />
+                                        <div class="grid grid-cols-2 gap-4">
+                                            <div>
+                                                <Label class="text-xs text-gray-500">
+                                                    Target ({{ wi.target_unit }})
+                                                </Label>
+                                                <div class="mt-1 flex items-center gap-2">
+                                                    <span class="rounded bg-gray-100 px-2.5 py-1.5 text-sm font-semibold text-gray-700">
+                                                        {{ Number(wi.target).toLocaleString('id') }}
+                                                    </span>
+                                                    <span class="text-xs text-gray-400">{{ wi.target_unit }}</span>
+                                                </div>
+                                            </div>
+                                            <div>
+                                                <Label class="text-xs text-gray-500">
+                                                    Realisasi ({{ wi.target_unit }})
+                                                </Label>
+                                                <div class="mt-1 flex items-center gap-2">
+                                                    <Input
+                                                        type="number"
+                                                        min="0"
+                                                        step="0.01"
+                                                        v-model="getItem(wi.id).realization"
+                                                        class="w-28"
+                                                    />
+                                                    <span class="text-xs text-gray-400">{{ wi.target_unit }}</span>
+                                                </div>
+                                                <InputError :message="form.errors[`items.${form.items.findIndex(i => i.work_item_id === wi.id)}.realization`]" />
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- Notes grid -->
+                                    <div class="grid gap-3 sm:grid-cols-3">
+                                        <div>
+                                            <Label class="text-xs text-gray-500">Kendala</Label>
+                                            <Textarea
+                                                v-model="getItem(wi.id).issues"
+                                                rows="3"
+                                                class="mt-1 text-sm"
+                                                placeholder="(opsional)"
                                             />
                                         </div>
-                                        <InputError :message="form.errors[`items.${form.items.findIndex(i => i.work_item_id === wi.id)}.achievement_percentage`]" />
-                                    </div>
-                                    <div>
-                                        <Label>Kendala</Label>
-                                        <Textarea
-                                            v-model="getItem(wi.id).issues"
-                                            rows="2"
-                                            class="mt-1"
-                                            placeholder="(opsional)"
-                                        />
-                                    </div>
-                                    <div>
-                                        <Label>Solusi</Label>
-                                        <Textarea
-                                            v-model="getItem(wi.id).solutions"
-                                            rows="2"
-                                            class="mt-1"
-                                            placeholder="(opsional)"
-                                        />
-                                    </div>
-                                    <div>
-                                        <Label>Rencana Tindak Lanjut</Label>
-                                        <Textarea
-                                            v-model="getItem(wi.id).action_plan"
-                                            rows="2"
-                                            class="mt-1"
-                                            placeholder="(opsional)"
-                                        />
+                                        <div>
+                                            <Label class="text-xs text-gray-500">Solusi</Label>
+                                            <Textarea
+                                                v-model="getItem(wi.id).solutions"
+                                                rows="3"
+                                                class="mt-1 text-sm"
+                                                placeholder="(opsional)"
+                                            />
+                                        </div>
+                                        <div>
+                                            <Label class="text-xs text-gray-500">Rencana Tindak Lanjut</Label>
+                                            <Textarea
+                                                v-model="getItem(wi.id).action_plan"
+                                                rows="3"
+                                                class="mt-1 text-sm"
+                                                placeholder="(opsional)"
+                                            />
+                                        </div>
                                     </div>
                                 </div>
                             </div>
-                        </div>
-                    </AccordionContent>
-                </AccordionItem>
-            </Accordion>
+                        </AccordionContent>
+                    </AccordionItem>
+                </Accordion>
+            </div>
 
-            <div class="flex justify-end pt-2">
-                <Button type="submit" :disabled="form.processing" class="bg-[#1B4B8A] hover:bg-[#163d70]">
-                    {{ form.processing ? 'Menyimpan...' : 'Simpan Laporan' }}
+            <!-- Submit -->
+            <div class="sticky bottom-4 flex justify-end">
+                <Button
+                    type="submit"
+                    :disabled="form.processing"
+                    class="px-8 shadow-lg"
+                >
+                    {{ form.processing ? 'Menyimpan...' : 'Simpan Laporan Kinerja' }}
                 </Button>
             </div>
         </form>

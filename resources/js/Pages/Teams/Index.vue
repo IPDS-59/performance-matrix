@@ -3,7 +3,6 @@ import AppLayout from '@/Layouts/AppLayout.vue';
 import { Head, Link, router } from '@inertiajs/vue3';
 import type { Team } from '@/types';
 import { Button } from '@/Components/ui/button';
-import { Badge } from '@/Components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/Components/ui/table';
 
 defineProps<{ teams: Team[] }>();
@@ -44,9 +43,11 @@ function confirmDelete(id: number, name: string) {
                         <TableCell class="font-mono text-sm">{{ team.code }}</TableCell>
                         <TableCell>{{ team.name }}</TableCell>
                         <TableCell>
-                            <Badge :variant="team.is_active ? 'default' : 'secondary'">
+                            <span :class="team.is_active
+                                ? 'inline-flex items-center rounded-full border border-green-200 bg-green-100 px-2.5 py-0.5 text-xs font-medium text-green-700'
+                                : 'inline-flex items-center rounded-full border border-gray-200 bg-gray-100 px-2.5 py-0.5 text-xs font-medium text-gray-500'">
                                 {{ team.is_active ? 'Aktif' : 'Nonaktif' }}
-                            </Badge>
+                            </span>
                         </TableCell>
                         <TableCell class="text-right">
                             <div class="flex justify-end gap-2">

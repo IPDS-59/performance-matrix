@@ -48,6 +48,8 @@ export interface WorkItem {
     project_id: number;
     number: number;
     description: string;
+    target: number;
+    target_unit: string;
     performance_reports?: PerformanceReport[];
 }
 
@@ -57,6 +59,7 @@ export interface PerformanceReport {
     reported_by?: number | null;
     period_month: number;
     period_year: number;
+    realization: number;
     achievement_percentage: number;
     issues?: string | null;
     solutions?: string | null;

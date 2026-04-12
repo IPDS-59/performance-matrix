@@ -17,6 +17,8 @@ class WorkItemFactory extends Factory
             'project_id' => Project::factory(),
             'number' => $this->faker->unique()->numberBetween(1, 1000),
             'description' => $this->faker->sentence(),
+            'target' => $this->faker->randomElement([1, 1, 1, 2, 3, 4, 5, 10, 12]),
+            'target_unit' => $this->faker->randomElement(['Kegiatan', 'Dokumen', 'Laporan', 'Paket']),
         ];
     }
 }
