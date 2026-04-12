@@ -39,6 +39,23 @@ class EmployeeReportController extends Controller
             ])
             ->get();
 
+        // Top 10 employees by total project count (all-time, not period-filtered).
+        $top10ByProjects = DB::table('employees')
+            ->join('project_members', 'employees.id', '=', 'project_members.employee_id')
+            ->where('employees.is_active', true)
+            ->groupBy('employees.id', 'employees.name', 'employees.display_name')
+            ->orderByDesc('total_projects')
+            ->limit(10)
+            ->select([
+                'employees.id',
+                'employees.name',
+                'employees.display_name',
+                DB::raw('COUNT(project_members.project_id) as total_projects'),
+                DB::raw("SUM(CASE WHEN project_members.role = 'leader' THEN 1 ELSE 0 END) as leader_count"),
+                DB::raw("SUM(CASE WHEN project_members.role = 'member' THEN 1 ELSE 0 END) as member_count"),
+            ])
+            ->get();
+
         // Subquery: avg achievement per employee for the current filter period.
         $achievementSub = DB::table('employees as e2')
             ->join('project_members as pm2', 'e2.id', '=', 'pm2.employee_id')
@@ -68,6 +85,7 @@ class EmployeeReportController extends Controller
 
         return Inertia::render('Laporan/Pegawai', [
             'top10' => $top10,
+            'top10ByProjects' => $top10ByProjects,
             'employees' => $employees,
             'filters' => compact('year', 'month'),
         ]);

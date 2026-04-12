@@ -21,6 +21,15 @@ interface TopEmployee {
     avg_achievement: number;
 }
 
+interface TopProjectEmployee {
+    id: number;
+    name: string;
+    display_name: string | null;
+    total_projects: number;
+    leader_count: number;
+    member_count: number;
+}
+
 interface EmployeeStat {
     id: number;
     name: string;
@@ -36,6 +45,7 @@ interface EmployeeStat {
 
 const props = defineProps<{
     top10: TopEmployee[];
+    top10ByProjects: TopProjectEmployee[];
     employees: EmployeeStat[];
     filters: { year: number; month: number };
 }>();
@@ -55,7 +65,8 @@ function applyFilter() {
     router.get(route('laporan.pegawai'), { year: year.value, month: month.value }, { preserveState: true });
 }
 
-const chartData = computed(() => ({
+// Chart 1 — top 10 by achievement (period-filtered)
+const achievementChartData = computed(() => ({
     labels: props.top10.map((e) => e.display_name ?? e.name),
     datasets: [
         {
@@ -69,7 +80,7 @@ const chartData = computed(() => ({
     ],
 }));
 
-const chartOptions = {
+const achievementChartOptions = {
     indexAxis: 'y' as const,
     responsive: true,
     maintainAspectRatio: false,
@@ -89,11 +100,54 @@ const chartOptions = {
             ticks: { callback: (v: unknown) => `${v}%` },
             grid: { color: 'rgba(0,0,0,0.05)' },
         },
-        y: {
-            ticks: { font: { size: 12 } },
-        },
+        y: { ticks: { font: { size: 12 } } },
     },
 };
+
+// Chart 2 — top 10 by total projects (all-time)
+const projectChartData = computed(() => ({
+    labels: props.top10ByProjects.map((e) => e.display_name ?? e.name),
+    datasets: [
+        {
+            label: 'Total Proyek',
+            data: props.top10ByProjects.map((e) => e.total_projects),
+            backgroundColor: 'rgba(5, 150, 105, 0.75)',
+            borderColor: 'rgba(5, 150, 105, 1)',
+            borderWidth: 1,
+            borderRadius: 4,
+        },
+    ],
+}));
+
+const maxProjects = computed(() =>
+    props.top10ByProjects.length
+        ? Math.ceil(Math.max(...props.top10ByProjects.map((e) => e.total_projects)) * 1.2)
+        : 10,
+);
+
+const projectChartOptions = computed(() => ({
+    indexAxis: 'y' as const,
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+        title: { display: false },
+        legend: { display: false },
+        tooltip: {
+            callbacks: {
+                label: (ctx: import('chart.js').TooltipItem<'bar'>) => ` ${ctx.parsed.x ?? 0} proyek`,
+            },
+        },
+    },
+    scales: {
+        x: {
+            min: 0,
+            max: maxProjects.value,
+            ticks: { stepSize: 1, callback: (v: unknown) => String(v) },
+            grid: { color: 'rgba(0,0,0,0.05)' },
+        },
+        y: { ticks: { font: { size: 12 } } },
+    },
+}));
 
 function achievementColor(val: number | null) {
     if (val === null) return 'bg-gray-200';
@@ -108,10 +162,10 @@ function achievementColor(val: number | null) {
     <AppLayout>
         <template #title>Laporan Pegawai</template>
 
-        <!-- Filter bar -->
+        <!-- Filter bar (only relevant for chart 1) -->
         <div class="mb-6 flex flex-wrap items-end gap-3">
             <div>
-                <label class="block text-xs text-gray-500 mb-1">Bulan</label>
+                <label class="mb-1 block text-xs text-gray-500">Bulan</label>
                 <select
                     v-model="month"
                     class="rounded-md border border-input bg-white px-3 py-1.5 text-sm shadow-sm focus:outline-none focus:ring-1 focus:ring-ring"
@@ -120,7 +174,7 @@ function achievementColor(val: number | null) {
                 </select>
             </div>
             <div>
-                <label class="block text-xs text-gray-500 mb-1">Tahun</label>
+                <label class="mb-1 block text-xs text-gray-500">Tahun</label>
                 <select
                     v-model="year"
                     class="rounded-md border border-input bg-white px-3 py-1.5 text-sm shadow-sm focus:outline-none focus:ring-1 focus:ring-ring"
@@ -130,24 +184,45 @@ function achievementColor(val: number | null) {
             </div>
             <button
                 @click="applyFilter"
-                class="rounded-md bg-primary px-4 py-1.5 text-sm font-medium text-white hover:bg-primary/90 transition-colors"
+                class="rounded-md bg-primary px-4 py-1.5 text-sm font-medium text-white transition-colors hover:bg-primary/90"
             >
                 Tampilkan
             </button>
         </div>
 
-        <!-- Top 10 chart -->
-        <div class="mb-6 rounded-lg border bg-white p-6">
-            <h2 class="mb-4 text-sm font-semibold text-gray-700">
-                Top 10 Pegawai — Capaian Tertinggi
-                <span class="ml-1 font-normal text-gray-400">({{ MONTHS[filters.month - 1] }} {{ filters.year }})</span>
-            </h2>
-            <div v-if="top10.length" style="height: 320px;">
-                <Bar :data="chartData" :options="chartOptions" />
+        <!-- Two charts side by side -->
+        <div class="mb-6 grid grid-cols-1 gap-6 lg:grid-cols-2">
+            <!-- Chart 1: Top 10 capaian tertinggi -->
+            <div class="rounded-lg border bg-white p-6">
+                <div class="mb-1 flex items-center gap-2">
+                    <span class="inline-block h-3 w-3 rounded-full bg-[#1B4B8A]" />
+                    <h2 class="text-sm font-semibold text-gray-700">Top 10 Capaian Tertinggi</h2>
+                </div>
+                <p class="mb-4 text-xs text-gray-400">
+                    Rata-rata capaian — {{ MONTHS[filters.month - 1] }} {{ filters.year }}
+                </p>
+                <div v-if="top10.length" style="height: 300px;">
+                    <Bar :data="achievementChartData" :options="achievementChartOptions" />
+                </div>
+                <p v-else class="py-10 text-center text-sm text-gray-400">
+                    Belum ada data capaian untuk periode ini.
+                </p>
             </div>
-            <p v-else class="py-8 text-center text-sm text-gray-400">
-                Belum ada data capaian untuk periode ini.
-            </p>
+
+            <!-- Chart 2: Top 10 proyek terbanyak -->
+            <div class="rounded-lg border bg-white p-6">
+                <div class="mb-1 flex items-center gap-2">
+                    <span class="inline-block h-3 w-3 rounded-full bg-emerald-600" />
+                    <h2 class="text-sm font-semibold text-gray-700">Top 10 Proyek Terbanyak</h2>
+                </div>
+                <p class="mb-4 text-xs text-gray-400">Total keterlibatan proyek (semua tahun)</p>
+                <div v-if="top10ByProjects.length" style="height: 300px;">
+                    <Bar :data="projectChartData" :options="projectChartOptions" />
+                </div>
+                <p v-else class="py-10 text-center text-sm text-gray-400">
+                    Belum ada data proyek.
+                </p>
+            </div>
         </div>
 
         <!-- Employee stats table -->

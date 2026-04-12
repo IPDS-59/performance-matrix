@@ -19,6 +19,7 @@ it('renders report page for admin', function () {
         ->assertInertia(fn ($page) => $page
             ->component('Laporan/Pegawai')
             ->has('top10')
+            ->has('top10ByProjects')
             ->has('employees')
             ->has('filters')
         );
