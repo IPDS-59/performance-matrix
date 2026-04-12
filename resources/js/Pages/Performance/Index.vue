@@ -559,8 +559,10 @@ function reviewAttachment(attachmentId: number, status: 'approved' | 'rejected')
 const rejectNoteMap = ref<Record<number, string>>({});
 const showRejectForm = ref<Record<number, boolean>>({});
 
-function getCurrentMonthReport(wi: TeamWorkItem, memberId: number): TeamWorkItemReport | undefined {
-    return wi.performance_reports.find(r => r.reported_by === memberId && r.period_month === props.filters.month);
+function getMemberReports(wi: TeamWorkItem, memberId: number): TeamWorkItemReport[] {
+    return wi.performance_reports
+        .filter(r => r.reported_by === memberId)
+        .sort((a, b) => b.period_month - a.period_month);
 }
 
 function approveReport(reportId: number) {
@@ -1308,62 +1310,74 @@ function projectSubmittedCount(project: TeamProjectWithMembers): number {
                                                                 </span>
                                                             </div>
                                                         </div>
-                                                        <!-- Current-month report details (attachments + approval) -->
-                                                        <template v-for="currentReport in (getCurrentMonthReport(wi, member.id) ? [getCurrentMonthReport(wi, member.id)!] : [])" :key="currentReport.id">
-                                                            <!-- Kendala / Solusi / RTL -->
-                                                            <div v-if="currentReport.issues || currentReport.solutions || currentReport.action_plan" class="mt-2 grid gap-1.5 sm:grid-cols-3">
-                                                                <div v-if="currentReport.issues">
-                                                                    <p class="text-[10px] font-medium uppercase text-gray-400">Kendala</p>
-                                                                    <p class="mt-0.5 text-xs text-gray-700 whitespace-pre-line">{{ currentReport.issues }}</p>
-                                                                </div>
-                                                                <div v-if="currentReport.solutions">
-                                                                    <p class="text-[10px] font-medium uppercase text-gray-400">Solusi</p>
-                                                                    <p class="mt-0.5 text-xs text-gray-700 whitespace-pre-line">{{ currentReport.solutions }}</p>
-                                                                </div>
-                                                                <div v-if="currentReport.action_plan">
-                                                                    <p class="text-[10px] font-medium uppercase text-gray-400">Rencana Tindak Lanjut</p>
-                                                                    <p class="mt-0.5 text-xs text-gray-700 whitespace-pre-line">{{ currentReport.action_plan }}</p>
-                                                                </div>
-                                                            </div>
-                                                            <!-- Attachments -->
-                                                            <div v-if="currentReport.attachments?.length" class="mt-2 space-y-1">
-                                                                <div
-                                                                    v-for="att in currentReport.attachments"
-                                                                    :key="att.id"
-                                                                    class="flex items-center gap-2 rounded border border-gray-100 bg-white px-2.5 py-1.5"
-                                                                >
-                                                                    <svg v-if="att.type === 'file'" class="h-3.5 w-3.5 shrink-0 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
-                                                                    <svg v-else class="h-3.5 w-3.5 shrink-0 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"/></svg>
-                                                                    <a v-if="att.display_url" :href="att.display_url" target="_blank" rel="noopener" class="min-w-0 flex-1 truncate text-xs text-blue-600 hover:underline">{{ att.title || att.file_name || att.url }}</a>
-                                                                    <span v-else class="min-w-0 flex-1 truncate text-xs text-gray-600">{{ att.title || att.file_name || att.url }}</span>
-                                                                    <span :class="['shrink-0 rounded border px-1.5 py-0.5 text-[10px]', attachmentStatusColor(att.status)]">{{ attachmentStatusLabel(att.status) }}</span>
-                                                                    <template v-if="att.status === 'pending' && canManageItems(teamProject.leader_id)">
-                                                                        <button type="button" class="shrink-0 rounded bg-green-500 px-2 py-0.5 text-[10px] text-white hover:bg-green-600" @click="reviewAttachment(att.id, 'approved')">&#10003;</button>
-                                                                        <button type="button" class="shrink-0 rounded bg-red-400 px-2 py-0.5 text-[10px] text-white hover:bg-red-500" @click="reviewAttachment(att.id, 'rejected')">&#10007;</button>
-                                                                    </template>
-                                                                </div>
-                                                            </div>
-
-                                                            <!-- Report-level approval -->
-                                                            <div class="mt-2">
-                                                                <div class="flex items-center justify-between">
-                                                                    <span :class="['inline-flex items-center gap-1 rounded border px-1.5 py-0.5 text-[10px]', reportStatusColor(currentReport.approval_status)]">
-                                                                        {{ reportStatusLabel(currentReport.approval_status) }}
+                                                        <!-- All months' reports (newest first) -->
+                                                        <template v-if="getMemberReports(wi, member.id).length">
+                                                            <div
+                                                                v-for="report in getMemberReports(wi, member.id)"
+                                                                :key="report.id"
+                                                                class="mt-2 rounded border border-gray-100 bg-gray-50 p-2"
+                                                            >
+                                                                <!-- Month label + status -->
+                                                                <div class="mb-1.5 flex items-center gap-2">
+                                                                    <span class="text-[10px] font-semibold uppercase tracking-wide text-gray-500">
+                                                                        {{ months[report.period_month - 1].label }} {{ filters.year }}
                                                                     </span>
-                                                                    <div v-if="canManageItems(teamProject.leader_id) && currentReport.approval_status === 'pending'" class="flex items-center gap-1.5">
-                                                                        <button type="button" class="rounded bg-green-500 px-2 py-0.5 text-[10px] text-white hover:bg-green-600" @click="approveReport(currentReport.id)">Setujui</button>
-                                                                        <button type="button" class="rounded bg-red-400 px-2 py-0.5 text-[10px] text-white hover:bg-red-500" @click="showRejectForm[currentReport.id] = !showRejectForm[currentReport.id]">Tolak</button>
+                                                                    <span class="text-[10px] text-gray-400">·</span>
+                                                                    <span class="text-xs font-medium text-gray-700">{{ Number(report.realization).toLocaleString('id') }} {{ wi.target_unit }}</span>
+                                                                    <span :class="['ml-auto inline-flex items-center gap-1 rounded border px-1.5 py-0.5 text-[10px]', reportStatusColor(report.approval_status)]">
+                                                                        {{ reportStatusLabel(report.approval_status) }}
+                                                                    </span>
+                                                                </div>
+
+                                                                <!-- Kendala / Solusi / RTL -->
+                                                                <div v-if="report.issues || report.solutions || report.action_plan" class="mb-1.5 grid gap-1.5 sm:grid-cols-3">
+                                                                    <div v-if="report.issues">
+                                                                        <p class="text-[10px] font-medium uppercase text-gray-400">Kendala</p>
+                                                                        <p class="mt-0.5 text-xs text-gray-700 whitespace-pre-line">{{ report.issues }}</p>
+                                                                    </div>
+                                                                    <div v-if="report.solutions">
+                                                                        <p class="text-[10px] font-medium uppercase text-gray-400">Solusi</p>
+                                                                        <p class="mt-0.5 text-xs text-gray-700 whitespace-pre-line">{{ report.solutions }}</p>
+                                                                    </div>
+                                                                    <div v-if="report.action_plan">
+                                                                        <p class="text-[10px] font-medium uppercase text-gray-400">Rencana Tindak Lanjut</p>
+                                                                        <p class="mt-0.5 text-xs text-gray-700 whitespace-pre-line">{{ report.action_plan }}</p>
                                                                     </div>
                                                                 </div>
-                                                                <p v-if="currentReport.review_note" class="mt-1 text-[10px] italic text-gray-500">Catatan: {{ currentReport.review_note }}</p>
-                                                                <div v-if="showRejectForm[currentReport.id]" class="mt-1.5 flex gap-1.5">
+
+                                                                <!-- Attachments -->
+                                                                <div v-if="report.attachments?.length" class="mb-1.5 space-y-1">
+                                                                    <div
+                                                                        v-for="att in report.attachments"
+                                                                        :key="att.id"
+                                                                        class="flex items-center gap-2 rounded border border-gray-100 bg-white px-2.5 py-1.5"
+                                                                    >
+                                                                        <svg v-if="att.type === 'file'" class="h-3.5 w-3.5 shrink-0 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                                                                        <svg v-else class="h-3.5 w-3.5 shrink-0 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"/></svg>
+                                                                        <a v-if="att.display_url" :href="att.display_url" target="_blank" rel="noopener" class="min-w-0 flex-1 truncate text-xs text-blue-600 hover:underline">{{ att.title || att.file_name || att.url }}</a>
+                                                                        <span v-else class="min-w-0 flex-1 truncate text-xs text-gray-600">{{ att.title || att.file_name || att.url }}</span>
+                                                                        <span :class="['shrink-0 rounded border px-1.5 py-0.5 text-[10px]', attachmentStatusColor(att.status)]">{{ attachmentStatusLabel(att.status) }}</span>
+                                                                        <template v-if="att.status === 'pending' && canManageItems(teamProject.leader_id)">
+                                                                            <button type="button" class="shrink-0 rounded bg-green-500 px-2 py-0.5 text-[10px] text-white hover:bg-green-600" @click="reviewAttachment(att.id, 'approved')">&#10003;</button>
+                                                                            <button type="button" class="shrink-0 rounded bg-red-400 px-2 py-0.5 text-[10px] text-white hover:bg-red-500" @click="reviewAttachment(att.id, 'rejected')">&#10007;</button>
+                                                                        </template>
+                                                                    </div>
+                                                                </div>
+
+                                                                <!-- Approval actions (pending only) -->
+                                                                <div v-if="canManageItems(teamProject.leader_id) && report.approval_status === 'pending'" class="flex items-center gap-1.5">
+                                                                    <button type="button" class="rounded bg-green-500 px-2 py-0.5 text-[10px] text-white hover:bg-green-600" @click="approveReport(report.id)">Setujui</button>
+                                                                    <button type="button" class="rounded bg-red-400 px-2 py-0.5 text-[10px] text-white hover:bg-red-500" @click="showRejectForm[report.id] = !showRejectForm[report.id]">Tolak</button>
+                                                                </div>
+                                                                <p v-if="report.review_note" class="mt-1 text-[10px] italic text-gray-500">Catatan: {{ report.review_note }}</p>
+                                                                <div v-if="showRejectForm[report.id]" class="mt-1.5 flex gap-1.5">
                                                                     <input
-                                                                        v-model="rejectNoteMap[currentReport.id]"
+                                                                        v-model="rejectNoteMap[report.id]"
                                                                         type="text"
                                                                         placeholder="Alasan penolakan..."
                                                                         class="flex-1 rounded border border-gray-300 px-2 py-0.5 text-[10px] focus:border-primary focus:outline-none"
                                                                     />
-                                                                    <button type="button" class="rounded bg-red-500 px-2 py-0.5 text-[10px] text-white hover:bg-red-600" @click="submitRejectReport(currentReport.id)">Kirim</button>
+                                                                    <button type="button" class="rounded bg-red-500 px-2 py-0.5 text-[10px] text-white hover:bg-red-600" @click="submitRejectReport(report.id)">Kirim</button>
                                                                 </div>
                                                             </div>
                                                         </template>
