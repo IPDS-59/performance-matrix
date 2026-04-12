@@ -212,43 +212,108 @@ function nextNumber(items: Array<{ number: number }>): number {
     return items.length ? Math.max(...items.map(w => w.number)) + 1 : 1;
 }
 
+type FormAssignmentRow = {
+    employee_id: number;
+    target: number;
+    target_unit: string;
+    _included: boolean;
+    display_name: string;
+};
+
 // Add form
 const addingProjectId = ref<number | null>(null);
-const addForm = useForm({ number: 1, description: '', target: 1 as number, target_unit: 'Kegiatan' });
+const addForm = useForm({
+    number: 1,
+    description: '',
+    target: 1 as number,
+    target_unit: 'Kegiatan',
+    assign_to: 'all' as 'all' | 'specific',
+    assignments: [] as FormAssignmentRow[],
+});
 
-function openAdd(project: { id: number; work_items: Array<{ number: number }> }) {
+function openAdd(project: { id: number; work_items: Array<{ number: number }>; members?: TeamMember[] }) {
     addForm.number = nextNumber(project.work_items);
     addForm.description = '';
     addForm.target = 1;
     addForm.target_unit = 'Kegiatan';
+    addForm.assign_to = 'all';
+    addForm.assignments = (project.members ?? []).map(m => ({
+        employee_id: m.id,
+        target: 1,
+        target_unit: 'Kegiatan',
+        _included: true,
+        display_name: m.display_name || m.name,
+    }));
     addForm.clearErrors();
     addingProjectId.value = project.id;
 }
 
 function submitAdd(projectId: number) {
-    addForm.post(route('work-items.store', projectId), {
-        preserveScroll: true,
-        onSuccess: () => { addingProjectId.value = null; },
-    });
+    addForm
+        .transform(data => ({
+            ...data,
+            assignments: data.assign_to === 'specific'
+                ? data.assignments
+                    .filter(a => a._included)
+                    .map(a => ({ employee_id: a.employee_id, target: a.target, target_unit: a.target_unit }))
+                : [],
+        }))
+        .post(route('work-items.store', projectId), {
+            preserveScroll: true,
+            onSuccess: () => { addingProjectId.value = null; },
+        });
 }
 
 // Edit form
 const editingItemId = ref<number | null>(null);
-const editForm = useForm({ description: '', target: 1 as number, target_unit: 'Kegiatan' });
+const editForm = useForm({
+    description: '',
+    target: 1 as number,
+    target_unit: 'Kegiatan',
+    assign_to: 'all' as 'all' | 'specific',
+    assignments: [] as FormAssignmentRow[],
+});
 
-function openEdit(wi: { id: number; description: string; target: number; target_unit: string }) {
+function openEdit(
+    wi: { id: number; description: string; target: number; target_unit: string; assignments?: WorkItemAssignment[] },
+    members?: TeamMember[],
+) {
+    const hasSpecific = (wi.assignments?.length ?? 0) > 0;
+    const allSameTarget = !hasSpecific ||
+        wi.assignments!.every(a => a.target == wi.target && a.target_unit === wi.target_unit);
+
     editForm.description = wi.description;
     editForm.target = Number(wi.target);
     editForm.target_unit = wi.target_unit;
+    editForm.assign_to = (!hasSpecific || allSameTarget) ? 'all' : 'specific';
+    editForm.assignments = (members ?? []).map(m => {
+        const existing = wi.assignments?.find(a => a.employee_id === m.id);
+        return {
+            employee_id: m.id,
+            target: existing?.target ?? Number(wi.target),
+            target_unit: existing?.target_unit ?? wi.target_unit,
+            _included: !hasSpecific || !!existing,
+            display_name: m.display_name || m.name,
+        };
+    });
     editForm.clearErrors();
     editingItemId.value = wi.id;
 }
 
 function submitEdit(itemId: number) {
-    editForm.put(route('work-items.update', itemId), {
-        preserveScroll: true,
-        onSuccess: () => { editingItemId.value = null; },
-    });
+    editForm
+        .transform((data: any) => ({
+            ...data,
+            assignments: data.assign_to === 'specific'
+                ? data.assignments
+                    .filter((a: FormAssignmentRow) => a._included)
+                    .map((a: FormAssignmentRow) => ({ employee_id: a.employee_id, target: a.target, target_unit: a.target_unit }))
+                : [],
+        }))
+        .put(route('work-items.update', itemId), {
+            preserveScroll: true,
+            onSuccess: () => { editingItemId.value = null; },
+        });
 }
 
 function deleteItem(itemId: number) {
@@ -605,7 +670,7 @@ function projectSubmittedCount(project: TeamProjectWithMembers): number {
                                         <div class="mb-3 flex items-start gap-2">
                                             <p class="flex-1 text-sm font-semibold text-gray-700">{{ wi.number }}. {{ wi.description }}</p>
                                             <div v-if="canManageItems(teamProject.leader_id)" class="flex shrink-0 gap-1">
-                                                <button type="button" class="rounded px-2 py-0.5 text-xs text-gray-400 hover:bg-gray-200 hover:text-gray-700" @click="openEdit(wi)">Edit</button>
+                                                <button type="button" class="rounded px-2 py-0.5 text-xs text-gray-400 hover:bg-gray-200 hover:text-gray-700" @click="openEdit(wi, teamProject.members)">Edit</button>
                                                 <button type="button" class="rounded px-2 py-0.5 text-xs text-gray-400 hover:bg-red-50 hover:text-red-600" @click="deleteItem(wi.id)">Hapus</button>
                                             </div>
                                         </div>
@@ -627,8 +692,8 @@ function projectSubmittedCount(project: TeamProjectWithMembers): number {
                                             </div>
                                             <div v-else class="mb-2 space-y-1.5">
                                                 <div v-for="(row, idx) in editForm.assignments" :key="row.employee_id" class="flex items-center gap-2">
-                                                    <input type="checkbox" :checked="row._included !== false" class="accent-primary shrink-0" @change="(e) => { row._included = (e.target as HTMLInputElement).checked }" />
-                                                    <span class="w-36 shrink-0 truncate text-xs">{{ row.employee?.display_name || row.employee?.name || `#${row.employee_id}` }}</span>
+                                                    <input type="checkbox" v-model="editForm.assignments[idx]._included" class="accent-primary shrink-0" />
+                                                    <span class="w-36 shrink-0 truncate text-xs">{{ row.display_name }}</span>
                                                     <Input type="number" min="0.01" step="0.01" v-model="editForm.assignments[idx].target" class="w-20 text-xs" />
                                                     <Input v-model="editForm.assignments[idx].target_unit" class="w-24 text-xs" />
                                                 </div>
@@ -700,8 +765,8 @@ function projectSubmittedCount(project: TeamProjectWithMembers): number {
                                             </div>
                                             <div v-else class="mb-2 space-y-1.5">
                                                 <div v-for="(row, idx) in addForm.assignments" :key="row.employee_id" class="flex items-center gap-2">
-                                                    <input type="checkbox" checked class="accent-primary shrink-0" />
-                                                    <span class="w-36 shrink-0 truncate text-xs">{{ memberName(row.employee_id) }}</span>
+                                                    <input type="checkbox" v-model="addForm.assignments[idx]._included" class="accent-primary shrink-0" />
+                                                    <span class="w-36 shrink-0 truncate text-xs">{{ row.display_name }}</span>
                                                     <Input type="number" min="0.01" step="0.01" v-model="addForm.assignments[idx].target" class="w-20 text-xs" />
                                                     <Input v-model="addForm.assignments[idx].target_unit" class="w-24 text-xs" placeholder="Satuan" />
                                                 </div>
