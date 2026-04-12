@@ -11,6 +11,13 @@ import InputError from '@/Components/InputError.vue';
 import PerformanceTimeline from '@/Components/Performance/PerformanceTimeline.vue';
 import type { ReviewEvent } from '@/Components/Performance/PerformanceTimeline.vue';
 import BuktiDukungPicker from '@/Components/Performance/BuktiDukungPicker.vue';
+import {
+    AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+    AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from '@/Components/ui/alert-dialog';
+import {
+    Dialog, DialogContent, DialogHeader, DialogTitle,
+} from '@/Components/ui/dialog';
 
 // ── Types ──────────────────────────────────────────────────────────────────
 
@@ -18,6 +25,7 @@ interface Attachment {
     id: number;
     type: 'file' | 'link';
     file_name: string | null;
+    mime_type: string | null;
     title: string | null;
     url: string | null;
     status: 'pending' | 'approved' | 'rejected';
@@ -55,6 +63,7 @@ interface WorkItemData {
     description: string;
     target: number;
     target_unit: string;
+    target_reached: boolean;
     project: { id: number; name: string; team_name: string | null };
 }
 
@@ -131,6 +140,37 @@ function saveEdit(report: ReportData) {
             }
         },
     });
+}
+
+const deleteDialogOpen = ref(false);
+const deleteTargetId = ref<number | null>(null);
+
+// ── Attachment preview ─────────────────────────────────────────────────────
+const previewAttachment = ref<Attachment | null>(null);
+
+function attachmentLabel(att: Attachment): string {
+    return att.title || att.file_name || att.url || 'Lampiran';
+}
+
+function isImage(att: Attachment): boolean {
+    return att.type === 'file' && (att.mime_type?.startsWith('image/') ?? false);
+}
+
+function isPdf(att: Attachment): boolean {
+    return att.type === 'file' && att.mime_type === 'application/pdf';
+}
+
+function deleteReport(report: ReportData) {
+    deleteTargetId.value = report.id;
+    deleteDialogOpen.value = true;
+}
+
+function confirmDelete() {
+    const id = deleteTargetId.value;
+    if (!id) return;
+    deleteDialogOpen.value = false;
+    deleteTargetId.value = null;
+    router.delete(route('performance.destroy', id), { preserveScroll: true });
 }
 
 function saveResubmit(report: ReportData) {
@@ -429,12 +469,11 @@ function pct(realization: number, target: number): number {
                                     :key="att.id"
                                     class="flex items-center gap-2 rounded border border-gray-100 bg-gray-50 px-3 py-2 text-sm"
                                 >
-                                    <span class="min-w-0 flex-1 truncate">
-                                        <a v-if="att.display_url" :href="att.display_url" target="_blank" rel="noopener" class="text-blue-600 hover:underline">
-                                            {{ att.title || att.file_name || att.url }}
-                                        </a>
-                                        <span v-else class="text-gray-600">{{ att.title || att.file_name || att.url }}</span>
-                                    </span>
+                                    <button
+                                        type="button"
+                                        class="min-w-0 flex-1 truncate text-left text-blue-600 hover:underline"
+                                        @click="previewAttachment = att"
+                                    >{{ attachmentLabel(att) }}</button>
                                     <span :class="['shrink-0 rounded border px-1.5 py-0.5 text-[10px]', attachmentStatusColor(att.status)]">
                                         {{ attachmentStatusLabel(att.status) }}
                                     </span>
@@ -473,6 +512,14 @@ function pct(realization: number, target: number): number {
                                     @click="openForm(report, 'resubmit')"
                                 >
                                     Ajukan Ulang
+                                </Button>
+                                <Button
+                                    size="sm"
+                                    variant="ghost"
+                                    class="text-red-500 hover:bg-red-50 hover:text-red-700"
+                                    @click="deleteReport(report)"
+                                >
+                                    Hapus
                                 </Button>
                             </template>
                             <Button
@@ -529,7 +576,13 @@ function pct(realization: number, target: number): number {
 
             <!-- New report form -->
             <div class="mt-6">
-                <div v-if="!showNewForm && availableMonths.length > 0">
+                <div v-if="work_item.target_reached" class="flex items-center gap-2 rounded-md border border-green-200 bg-green-50 px-3 py-2 text-sm text-green-700">
+                    <svg class="h-4 w-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                    </svg>
+                    Target sudah tercapai — tidak dapat menambah laporan baru untuk rincian ini.
+                </div>
+                <div v-else-if="!showNewForm && availableMonths.length > 0">
                     <Button variant="outline" @click="openNewForm">
                         + Tambah Laporan Bulan Lain
                     </Button>
@@ -745,12 +798,11 @@ function pct(realization: number, target: number): number {
                                             :key="att.id"
                                             class="flex items-center gap-2 rounded border border-gray-100 bg-gray-50 px-3 py-2 text-sm"
                                         >
-                                            <span class="min-w-0 flex-1 truncate">
-                                                <a v-if="att.display_url" :href="att.display_url" target="_blank" rel="noopener" class="text-blue-600 hover:underline">
-                                                    {{ att.title || att.file_name || att.url }}
-                                                </a>
-                                                <span v-else class="text-gray-600">{{ att.title || att.file_name || att.url }}</span>
-                                            </span>
+                                            <button
+                                                type="button"
+                                                class="min-w-0 flex-1 truncate text-left text-blue-600 hover:underline"
+                                                @click="previewAttachment = att"
+                                            >{{ attachmentLabel(att) }}</button>
                                             <span :class="['shrink-0 rounded border px-1.5 py-0.5 text-[10px]', attachmentStatusColor(att.status)]">
                                                 {{ attachmentStatusLabel(att.status) }}
                                             </span>
@@ -805,4 +857,51 @@ function pct(realization: number, target: number): number {
             </div>
         </template>
     </AppLayout>
+
+    <!-- Attachment preview dialog -->
+    <Dialog :open="previewAttachment !== null" @update:open="(v) => { if (!v) previewAttachment = null }">
+        <DialogContent class="max-w-3xl p-0 overflow-hidden">
+            <DialogHeader class="px-4 py-3 border-b">
+                <DialogTitle class="truncate text-sm">{{ previewAttachment ? attachmentLabel(previewAttachment) : '' }}</DialogTitle>
+            </DialogHeader>
+            <div v-if="previewAttachment" class="overflow-auto">
+                <!-- Image -->
+                <div v-if="isImage(previewAttachment)" class="flex items-center justify-center bg-gray-50 p-4 min-h-[300px]">
+                    <img :src="previewAttachment.display_url!" :alt="attachmentLabel(previewAttachment)" class="max-h-[70vh] w-auto max-w-full rounded shadow" />
+                </div>
+                <!-- PDF -->
+                <div v-else-if="isPdf(previewAttachment)" class="h-[75vh]">
+                    <iframe :src="previewAttachment.display_url!" class="h-full w-full border-0" />
+                </div>
+                <!-- URL / link -->
+                <div v-else-if="previewAttachment.type === 'link'" class="h-[75vh]">
+                    <iframe :src="previewAttachment.url!" class="h-full w-full border-0" sandbox="allow-scripts allow-same-origin allow-forms allow-popups" />
+                </div>
+                <!-- Fallback: file that can't be previewed inline -->
+                <div v-else class="flex flex-col items-center justify-center gap-3 py-12 text-gray-500">
+                    <svg class="h-10 w-10 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                    <p class="text-sm">Pratinjau tidak tersedia untuk tipe file ini.</p>
+                    <a :href="previewAttachment.display_url!" download class="text-sm text-blue-600 hover:underline">Unduh file</a>
+                </div>
+            </div>
+        </DialogContent>
+    </Dialog>
+
+    <!-- Delete report confirmation dialog -->
+    <AlertDialog :open="deleteDialogOpen" @update:open="deleteDialogOpen = $event">
+        <AlertDialogContent>
+            <AlertDialogHeader>
+                <AlertDialogTitle>Hapus laporan ini?</AlertDialogTitle>
+                <AlertDialogDescription>
+                    Data laporan yang sudah dihapus tidak dapat dipulihkan, termasuk semua bukti dukung yang telah diunggah.
+                </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+                <AlertDialogCancel>Batal</AlertDialogCancel>
+                <AlertDialogAction class="bg-red-600 hover:bg-red-700 focus:ring-red-600" @click="confirmDelete">
+                    Hapus
+                </AlertDialogAction>
+            </AlertDialogFooter>
+        </AlertDialogContent>
+    </AlertDialog>
 </template>
