@@ -6,6 +6,7 @@ use App\Actions\Performance\SavePerformanceBatchAction;
 use App\Models\PerformanceReport;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class PerformanceController extends Controller
 {
@@ -35,5 +36,18 @@ class PerformanceController extends Controller
         );
 
         return back()->with('success', 'Laporan kinerja berhasil disimpan.');
+    }
+
+    public function destroy(PerformanceReport $report): RedirectResponse
+    {
+        $this->authorize('delete', $report);
+
+        DB::transaction(function () use ($report) {
+            $report->attachments()->each(fn ($a) => $a->delete());
+            $report->reviews()->delete();
+            $report->delete();
+        });
+
+        return back()->with('success', 'Laporan kinerja berhasil dihapus.');
     }
 }

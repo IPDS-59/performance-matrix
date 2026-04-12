@@ -56,6 +56,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/performance/projects/{project}', [ProjectDetailController::class, 'show'])->name('performance.projects.show');
     Route::get('/performance/work-items/{workItem}', [WorkItemDetailController::class, 'show'])->name('performance.work-items.show');
     Route::post('/performance/batch', [PerformanceController::class, 'storeBatch'])->name('performance.batch');
+    Route::delete('/performance/{report}', [PerformanceController::class, 'destroy'])->name('performance.destroy');
     Route::patch('/performance/{report}/resubmit', [ReportResubmitController::class, 'store'])->name('performance.resubmit');
 
     // Report approval (team leads + head)
@@ -64,8 +65,10 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
     // Notifications
     Route::get('/notifications', [NotificationController::class, 'index'])->name('notifications.index');
+    Route::get('/notifikasi', [NotificationController::class, 'page'])->name('notifications.page');
     Route::patch('/notifications/{id}/read', [NotificationController::class, 'markRead'])->name('notifications.read');
     Route::patch('/notifications/read-all', [NotificationController::class, 'markAllRead'])->name('notifications.read-all');
+    Route::delete('/notifications/{id}', [NotificationController::class, 'destroy'])->name('notifications.destroy');
 
     // Report attachments
     Route::post('/performance/{report}/attachments', [ReportAttachmentController::class, 'store'])->name('report-attachments.store');
