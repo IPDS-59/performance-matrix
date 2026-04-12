@@ -6,6 +6,8 @@ use App\Http\Controllers\EmployeeReportController;
 use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\PerformanceApprovalController;
 use App\Http\Controllers\PerformanceController;
+use App\Http\Controllers\ReportResubmitController;
+use App\Http\Controllers\WorkItemDetailController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\ProjectController;
 use App\Http\Controllers\ProjectDetailController;
@@ -52,7 +54,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
     // Staff performance entry
     Route::get('/performance', [ProjectListController::class, 'index'])->name('performance.index');
     Route::get('/performance/projects/{project}', [ProjectDetailController::class, 'show'])->name('performance.projects.show');
+    Route::get('/performance/work-items/{workItem}', [WorkItemDetailController::class, 'show'])->name('performance.work-items.show');
     Route::post('/performance/batch', [PerformanceController::class, 'storeBatch'])->name('performance.batch');
+    Route::patch('/performance/{report}/resubmit', [ReportResubmitController::class, 'store'])->name('performance.resubmit');
 
     // Report approval (team leads + head)
     Route::patch('/performance/{report}/approve', [PerformanceApprovalController::class, 'approve'])->name('performance.approve');
