@@ -29,6 +29,11 @@ class WorkItem extends Model
         return $this->belongsTo(Project::class);
     }
 
+    public function assignments(): HasMany
+    {
+        return $this->hasMany(WorkItemAssignment::class);
+    }
+
     public function performanceReports(): HasMany
     {
         return $this->hasMany(PerformanceReport::class);

@@ -9,20 +9,29 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import InputError from '@/Components/InputError.vue';
 import { computed, ref } from 'vue';
 
+interface WorkItemAssignment {
+    employee_id: number;
+    target: number;
+    target_unit: string;
+}
+
 interface WorkItem {
     id: number;
     number: number;
     description: string;
     target: number;
     target_unit: string;
+    assignments: WorkItemAssignment[];
 }
 
 const props = defineProps<{
-    project: Project & { work_items?: WorkItem[] };
+    project: Project & { work_items?: WorkItem[]; members?: Employee[] };
     teams: Team[];
     employees: Employee[];
     isLeader?: boolean;
 }>();
+
+// ── Project form ─────────────────────────────────────────────────────────
 
 const initialMembers = computed(() =>
     (props.project.members ?? []).map((m) => ({
@@ -47,20 +56,33 @@ function submit() {
     form.put(route('projects.update', props.project.id));
 }
 
+// ── Project members convenience list ─────────────────────────────────────
+
+const projectMembers = computed(() => props.project.members ?? []);
+
 // ── Work items ────────────────────────────────────────────────────────────
 
-const workItems = computed(() => (props.project.work_items ?? []).slice().sort((a, b) => a.number - b.number));
+const workItems = computed(() =>
+    (props.project.work_items ?? []).slice().sort((a, b) => a.number - b.number)
+);
 
 const nextNumber = computed(() =>
     workItems.value.length ? Math.max(...workItems.value.map(w => w.number)) + 1 : 1
 );
 
+// Add form
+
 const showAddForm = ref(false);
+
+type AssignmentRow = { employee_id: number; target: number; target_unit: string };
+
 const addForm = useForm({
     number: nextNumber.value,
     description: '',
-    target: 1,
+    target: 1 as number,
     target_unit: 'Kegiatan',
+    assign_to: 'all' as 'all' | 'specific',
+    assignments: [] as AssignmentRow[],
 });
 
 function openAddForm() {
@@ -68,6 +90,13 @@ function openAddForm() {
     addForm.description = '';
     addForm.target = 1;
     addForm.target_unit = 'Kegiatan';
+    addForm.assign_to = 'all';
+    addForm.assignments = projectMembers.value.map(m => ({
+        employee_id: m.id,
+        target: 1,
+        target_unit: 'Kegiatan',
+    }));
+    addForm.clearErrors();
     showAddForm.value = true;
 }
 
@@ -78,15 +107,31 @@ function storeItem() {
     });
 }
 
-// Inline edit state per item
+// Edit form
+
 const editingId = ref<number | null>(null);
 const editForms = ref<Record<number, ReturnType<typeof useForm>>>({});
 
 function startEdit(item: WorkItem) {
+    const existingIds = new Set(item.assignments.map(a => a.employee_id));
+    const assignments: AssignmentRow[] = projectMembers.value.map(m => {
+        const existing = item.assignments.find(a => a.employee_id === m.id);
+        return {
+            employee_id: m.id,
+            target: existing?.target ?? item.target,
+            target_unit: existing?.target_unit ?? item.target_unit,
+        };
+    });
+
+    const allSameTarget = item.assignments.length === 0 ||
+        item.assignments.length === projectMembers.value.length && item.assignments.every(a => a.target == item.target && a.target_unit === item.target_unit);
+
     editForms.value[item.id] = useForm({
         description: item.description,
         target: item.target,
         target_unit: item.target_unit,
+        assign_to: (item.assignments.length === 0 || allSameTarget) ? 'all' : 'specific' as 'all' | 'specific',
+        assignments,
     });
     editingId.value = item.id;
 }
@@ -104,6 +149,11 @@ function saveEdit(itemId: number) {
 
 function deleteItem(itemId: number) {
     router.delete(route('work-items.destroy', itemId), { preserveScroll: true });
+}
+
+function memberName(employeeId: number): string {
+    const m = projectMembers.value.find(m => m.id === employeeId);
+    return m ? (m.display_name || m.name) : `#${employeeId}`;
 }
 </script>
 
@@ -187,47 +237,38 @@ function deleteItem(itemId: number) {
                 </form>
             </div>
 
-            <!-- Work items management -->
+            <!-- Work items -->
             <div class="bg-white rounded-md border p-6">
                 <div class="mb-4 flex items-center justify-between">
                     <h2 class="font-semibold text-gray-800">Rincian Kegiatan</h2>
                     <Button v-if="!showAddForm" size="sm" @click="openAddForm">+ Tambah</Button>
                 </div>
 
-                <!-- Empty state -->
                 <p v-if="!workItems.length && !showAddForm" class="text-sm text-gray-400">
                     Belum ada rincian kegiatan. Klik "+ Tambah" untuk menambahkan.
                 </p>
 
-                <!-- Existing items -->
                 <div class="space-y-3">
-                    <div
-                        v-for="item in workItems"
-                        :key="item.id"
-                        class="rounded-md border border-gray-100 bg-gray-50 p-3"
-                    >
+                    <div v-for="item in workItems" :key="item.id" class="rounded-md border border-gray-100 bg-gray-50 p-3">
+
                         <!-- View mode -->
                         <template v-if="editingId !== item.id">
                             <div class="flex items-start gap-3">
                                 <span class="mt-0.5 shrink-0 text-xs font-semibold text-gray-400">{{ item.number }}.</span>
                                 <div class="min-w-0 flex-1">
                                     <p class="text-sm text-gray-700">{{ item.description }}</p>
-                                    <p class="mt-0.5 text-xs text-gray-400">
-                                        Target: {{ item.target }} {{ item.target_unit }}
-                                    </p>
+                                    <!-- Assignment summary -->
+                                    <div v-if="item.assignments.length" class="mt-1.5 space-y-0.5">
+                                        <div v-for="a in item.assignments" :key="a.employee_id" class="flex items-center gap-2 text-xs text-gray-500">
+                                            <span class="font-medium">{{ memberName(a.employee_id) }}</span>
+                                            <span>— {{ a.target }} {{ a.target_unit }}</span>
+                                        </div>
+                                    </div>
+                                    <p v-else class="mt-1 text-xs text-gray-400">Belum ada penugasan</p>
                                 </div>
                                 <div class="flex shrink-0 gap-2">
-                                    <Button size="sm" variant="outline" class="h-7 px-2 text-xs" @click="startEdit(item)">
-                                        Edit
-                                    </Button>
-                                    <Button
-                                        size="sm"
-                                        variant="outline"
-                                        class="h-7 px-2 text-xs text-red-600 hover:bg-red-50 hover:text-red-700"
-                                        @click="deleteItem(item.id)"
-                                    >
-                                        Hapus
-                                    </Button>
+                                    <Button size="sm" variant="outline" class="h-7 px-2 text-xs" @click="startEdit(item)">Edit</Button>
+                                    <Button size="sm" variant="outline" class="h-7 px-2 text-xs text-red-600 hover:bg-red-50 hover:text-red-700" @click="deleteItem(item.id)">Hapus</Button>
                                 </div>
                             </div>
                         </template>
@@ -237,42 +278,62 @@ function deleteItem(itemId: number) {
                             <div class="space-y-3">
                                 <div>
                                     <Label class="text-xs">Deskripsi</Label>
-                                    <textarea
-                                        v-model="editForms[item.id].description"
-                                        rows="2"
-                                        class="mt-1 w-full rounded-md border border-input bg-white px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-1 focus:ring-ring"
-                                    />
+                                    <textarea v-model="editForms[item.id].description" rows="2" class="mt-1 w-full rounded-md border border-input bg-white px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-ring" />
                                     <InputError :message="editForms[item.id].errors.description" />
                                 </div>
-                                <div class="grid grid-cols-2 gap-3">
+
+                                <!-- Assignment mode toggle -->
+                                <div class="flex items-center gap-4 text-sm">
+                                    <Label class="text-xs">Ditugaskan ke:</Label>
+                                    <label class="flex items-center gap-1.5 text-xs cursor-pointer">
+                                        <input type="radio" v-model="editForms[item.id].assign_to" value="all" class="accent-primary" />
+                                        Semua anggota
+                                    </label>
+                                    <label class="flex items-center gap-1.5 text-xs cursor-pointer">
+                                        <input type="radio" v-model="editForms[item.id].assign_to" value="specific" class="accent-primary" />
+                                        Anggota tertentu
+                                    </label>
+                                </div>
+
+                                <!-- All members: single target -->
+                                <div v-if="editForms[item.id].assign_to === 'all'" class="grid grid-cols-2 gap-3">
                                     <div>
-                                        <Label class="text-xs">Target</Label>
+                                        <Label class="text-xs">Target (semua)</Label>
                                         <Input type="number" min="0.01" step="0.01" v-model="editForms[item.id].target" class="mt-1" />
-                                        <InputError :message="editForms[item.id].errors.target" />
                                     </div>
                                     <div>
                                         <Label class="text-xs">Satuan</Label>
-                                        <Input v-model="editForms[item.id].target_unit" class="mt-1" placeholder="Kegiatan" />
-                                        <InputError :message="editForms[item.id].errors.target_unit" />
+                                        <Input v-model="editForms[item.id].target_unit" class="mt-1" />
                                     </div>
                                 </div>
+
+                                <!-- Specific members: per-member targets -->
+                                <div v-else class="space-y-2">
+                                    <div v-for="(row, idx) in editForms[item.id].assignments" :key="row.employee_id" class="flex items-center gap-2">
+                                        <label class="flex items-center gap-1.5 w-40 shrink-0">
+                                            <input type="checkbox"
+                                                :value="row.employee_id"
+                                                :checked="row._included !== false"
+                                                class="accent-primary"
+                                                @change="(e) => { row._included = (e.target as HTMLInputElement).checked }"
+                                            />
+                                            <span class="truncate text-xs">{{ memberName(row.employee_id) }}</span>
+                                        </label>
+                                        <Input type="number" min="0.01" step="0.01" v-model="editForms[item.id].assignments[idx].target" class="w-24 text-xs" />
+                                        <Input v-model="editForms[item.id].assignments[idx].target_unit" class="w-28 text-xs" placeholder="Satuan" />
+                                    </div>
+                                </div>
+
                                 <div class="flex justify-end gap-2">
                                     <Button size="sm" variant="outline" class="h-7 px-3 text-xs" @click="cancelEdit">Batal</Button>
-                                    <Button
-                                        size="sm"
-                                        class="h-7 px-3 text-xs"
-                                        :disabled="editForms[item.id].processing"
-                                        @click="saveEdit(item.id)"
-                                    >
-                                        Simpan
-                                    </Button>
+                                    <Button size="sm" class="h-7 px-3 text-xs" :disabled="editForms[item.id].processing" @click="saveEdit(item.id)">Simpan</Button>
                                 </div>
                             </div>
                         </template>
                     </div>
                 </div>
 
-                <!-- Add new item form -->
+                <!-- Add form -->
                 <div v-if="showAddForm" class="mt-3 rounded-md border border-blue-100 bg-blue-50 p-4">
                     <p class="mb-3 text-sm font-medium text-blue-800">Tambah Rincian Kegiatan</p>
                     <div class="space-y-3">
@@ -280,36 +341,56 @@ function deleteItem(itemId: number) {
                             <div class="col-span-1">
                                 <Label class="text-xs">No.</Label>
                                 <Input type="number" min="1" v-model="addForm.number" class="mt-1" />
-                                <InputError :message="addForm.errors.number" />
                             </div>
                             <div class="col-span-3">
                                 <Label class="text-xs">Deskripsi <span class="text-red-500">*</span></Label>
-                                <textarea
-                                    v-model="addForm.description"
-                                    rows="2"
-                                    class="mt-1 w-full rounded-md border border-input bg-white px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-1 focus:ring-ring"
-                                    placeholder="Deskripsi kegiatan..."
-                                />
+                                <textarea v-model="addForm.description" rows="2" class="mt-1 w-full rounded-md border border-input bg-white px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-ring" placeholder="Deskripsi kegiatan..." />
                                 <InputError :message="addForm.errors.description" />
                             </div>
                         </div>
-                        <div class="grid grid-cols-2 gap-3">
+
+                        <!-- Assignment mode -->
+                        <div class="flex items-center gap-4">
+                            <Label class="text-xs">Ditugaskan ke:</Label>
+                            <label class="flex items-center gap-1.5 text-xs cursor-pointer">
+                                <input type="radio" v-model="addForm.assign_to" value="all" class="accent-primary" />
+                                Semua anggota
+                            </label>
+                            <label class="flex items-center gap-1.5 text-xs cursor-pointer">
+                                <input type="radio" v-model="addForm.assign_to" value="specific" class="accent-primary" />
+                                Anggota tertentu
+                            </label>
+                        </div>
+
+                        <!-- All: single target -->
+                        <div v-if="addForm.assign_to === 'all'" class="grid grid-cols-2 gap-3">
                             <div>
-                                <Label class="text-xs">Target <span class="text-red-500">*</span></Label>
+                                <Label class="text-xs">Target (semua) <span class="text-red-500">*</span></Label>
                                 <Input type="number" min="0.01" step="0.01" v-model="addForm.target" class="mt-1" />
                                 <InputError :message="addForm.errors.target" />
                             </div>
                             <div>
                                 <Label class="text-xs">Satuan</Label>
                                 <Input v-model="addForm.target_unit" class="mt-1" placeholder="Kegiatan" />
-                                <InputError :message="addForm.errors.target_unit" />
                             </div>
                         </div>
+
+                        <!-- Specific: per-member -->
+                        <div v-else class="space-y-2">
+                            <p v-if="!projectMembers.length" class="text-xs text-gray-400">Tambahkan anggota proyek terlebih dahulu.</p>
+                            <div v-for="(row, idx) in addForm.assignments" :key="row.employee_id" class="flex items-center gap-2">
+                                <label class="flex items-center gap-1.5 w-40 shrink-0">
+                                    <input type="checkbox" checked class="accent-primary" />
+                                    <span class="truncate text-xs">{{ memberName(row.employee_id) }}</span>
+                                </label>
+                                <Input type="number" min="0.01" step="0.01" v-model="addForm.assignments[idx].target" class="w-24 text-xs" />
+                                <Input v-model="addForm.assignments[idx].target_unit" class="w-28 text-xs" placeholder="Satuan" />
+                            </div>
+                        </div>
+
                         <div class="flex justify-end gap-2">
                             <Button size="sm" variant="outline" class="h-7 px-3 text-xs" @click="showAddForm = false">Batal</Button>
-                            <Button size="sm" class="h-7 px-3 text-xs" :disabled="addForm.processing" @click="storeItem">
-                                Tambah
-                            </Button>
+                            <Button size="sm" class="h-7 px-3 text-xs" :disabled="addForm.processing" @click="storeItem">Tambah</Button>
                         </div>
                     </div>
                 </div>

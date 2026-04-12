@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Actions\WorkItem\SyncWorkItemAssignmentsAction;
 use App\Models\Project;
 use App\Models\WorkItem;
 use Illuminate\Http\RedirectResponse;
@@ -9,6 +10,8 @@ use Illuminate\Http\Request;
 
 class WorkItemController extends Controller
 {
+    public function __construct(private readonly SyncWorkItemAssignmentsAction $syncAssignments) {}
+
     public function store(Request $request, Project $project): RedirectResponse
     {
         $employee = $request->user()->employee;
@@ -18,14 +21,16 @@ class WorkItemController extends Controller
             $this->authorize('create', WorkItem::class);
         }
 
-        $validated = $request->validate([
-            'number' => ['required', 'integer', 'min:1', "unique:work_items,number,NULL,id,project_id,{$project->id}"],
-            'description' => ['required', 'string'],
-            'target' => ['required', 'numeric', 'min:0.01'],
-            'target_unit' => ['required', 'string', 'max:50'],
+        $validated = $this->validateWorkItem($request, $project);
+
+        $workItem = $project->workItems()->create([
+            'number' => $validated['number'],
+            'description' => $validated['description'],
+            'target' => $validated['target'],
+            'target_unit' => $validated['target_unit'],
         ]);
 
-        $project->workItems()->create($validated);
+        $this->syncAssignments->execute($workItem, $project, $validated);
 
         return back()->with('success', 'Rincian kegiatan berhasil ditambahkan.');
     }
@@ -39,13 +44,15 @@ class WorkItemController extends Controller
             $this->authorize('update', $workItem);
         }
 
-        $validated = $request->validate([
-            'description' => ['required', 'string'],
-            'target' => ['required', 'numeric', 'min:0.01'],
-            'target_unit' => ['required', 'string', 'max:50'],
+        $validated = $this->validateWorkItem($request, $workItem->project, $workItem);
+
+        $workItem->update([
+            'description' => $validated['description'],
+            'target' => $validated['target'],
+            'target_unit' => $validated['target_unit'],
         ]);
 
-        $workItem->update($validated);
+        $this->syncAssignments->execute($workItem, $workItem->project, $validated);
 
         return back()->with('success', 'Rincian kegiatan berhasil diperbarui.');
     }
@@ -62,5 +69,27 @@ class WorkItemController extends Controller
         $workItem->delete();
 
         return back()->with('success', 'Rincian kegiatan berhasil dihapus.');
+    }
+
+    private function validateWorkItem(Request $request, Project $project, ?WorkItem $ignore = null): array
+    {
+        $rules = [
+            'description' => ['required', 'string'],
+            'target' => ['required', 'numeric', 'min:0.01'],
+            'target_unit' => ['required', 'string', 'max:50'],
+            'assign_to' => ['required', 'in:all,specific'],
+            'assignments' => ['required_if:assign_to,specific', 'array'],
+            'assignments.*.employee_id' => ['required', 'exists:employees,id'],
+            'assignments.*.target' => ['required', 'numeric', 'min:0.01'],
+            'assignments.*.target_unit' => ['required', 'string', 'max:50'],
+        ];
+
+        // number is only set at creation time
+        if ($ignore === null) {
+            $rules['number'] = ['required', 'integer', 'min:1',
+                "unique:work_items,number,NULL,id,project_id,{$project->id}"];
+        }
+
+        return $request->validate($rules);
     }
 }

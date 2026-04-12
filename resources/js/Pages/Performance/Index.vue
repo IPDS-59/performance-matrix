@@ -49,12 +49,20 @@ interface TeamWorkItemReport {
     reporter: { id: number; name: string; display_name: string | null } | null;
 }
 
+interface WorkItemAssignment {
+    employee_id: number;
+    target: number;
+    target_unit: string;
+    employee?: { id: number; name: string; display_name: string | null };
+}
+
 interface TeamWorkItem {
     id: number;
     number: number;
     description: string;
     target: number;
     target_unit: string;
+    assignments: WorkItemAssignment[];
     performance_reports: TeamWorkItemReport[];
 }
 
@@ -246,6 +254,19 @@ function submitEdit(itemId: number) {
 function deleteItem(itemId: number) {
     router.delete(route('work-items.destroy', itemId), { preserveScroll: true });
 }
+
+// ── Tim Saya: group by team ────────────────────────────────────────────────
+
+const teamProjectsByTeam = computed(() => {
+    const groups: Record<number, { teamId: number; teamName: string; projects: TeamProjectWithMembers[] }> = {};
+    for (const p of props.team_projects) {
+        const tid = p.team?.id ?? 0;
+        const tname = p.team?.name ?? 'Tim Tidak Diketahui';
+        if (!groups[tid]) groups[tid] = { teamId: tid, teamName: tname, projects: [] };
+        groups[tid].projects.push(p);
+    }
+    return Object.values(groups).sort((a, b) => a.teamName.localeCompare(b.teamName));
+});
 
 // ── Team view helpers ──────────────────────────────────────────────────────
 
@@ -525,182 +546,179 @@ function projectSubmittedCount(project: TeamProjectWithMembers): number {
                     <p class="font-medium">Tidak ada proyek tim untuk periode ini.</p>
                 </div>
 
-                <div v-else class="space-y-6">
-                    <Card
-                        v-for="teamProject in team_projects"
-                        :key="teamProject.id"
-                        class="overflow-hidden"
-                    >
-                        <CardHeader class="pb-4">
-                            <div class="flex items-start justify-between gap-3">
-                                <div>
+                <div v-else class="space-y-8">
+                    <div v-for="group in teamProjectsByTeam" :key="group.teamId" class="space-y-4">
+                        <!-- Team header -->
+                        <div class="flex items-center gap-3">
+                            <h2 class="text-sm font-bold uppercase tracking-wide text-primary">{{ group.teamName }}</h2>
+                            <span class="h-px flex-1 bg-primary/20"></span>
+                            <Badge variant="outline" class="text-xs">{{ group.projects.length }} proyek</Badge>
+                        </div>
+
+                        <Card
+                            v-for="teamProject in group.projects"
+                            :key="teamProject.id"
+                            class="overflow-hidden"
+                        >
+                            <CardHeader class="pb-4">
+                                <div class="flex items-start justify-between gap-3">
                                     <CardTitle class="text-base font-semibold text-gray-800">{{ teamProject.name }}</CardTitle>
-                                    <p v-if="teamProject.team" class="mt-0.5 text-sm text-gray-500">{{ teamProject.team.name }}</p>
-                                </div>
-                                <div class="shrink-0 rounded-lg border bg-gray-50 px-3 py-2 text-right">
-                                    <p class="text-xs text-gray-500">Sudah input</p>
-                                    <p class="text-lg font-bold text-gray-800 leading-tight">
-                                        <span :class="projectSubmittedCount(teamProject) === teamProject.members.length ? 'text-green-600' : 'text-gray-800'">
-                                            {{ projectSubmittedCount(teamProject) }}
-                                        </span>
-                                        <span class="text-sm font-normal text-gray-400"> / {{ teamProject.members.length }}</span>
-                                    </p>
-                                </div>
-                            </div>
-
-                            <div class="mt-3 flex flex-wrap gap-2">
-                                <div
-                                    v-for="member in teamProject.members"
-                                    :key="member.id"
-                                    :class="[
-                                        'flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs transition-colors',
-                                        isMemberLeader(member)
-                                            ? 'border-amber-300 bg-amber-50 text-amber-800'
-                                            : memberHasAnyReport(teamProject, member.id)
-                                                ? 'border-green-200 bg-green-50 text-green-700'
-                                                : 'border-gray-200 bg-gray-50 text-gray-500'
-                                    ]"
-                                >
-                                    <span v-if="isMemberLeader(member)" class="text-amber-500" aria-label="Ketua Proyek">&#9733;</span>
-                                    <span>{{ member.display_name || member.name }}</span>
-                                    <Badge v-if="isMemberLeader(member)" class="ml-0.5 h-4 bg-amber-500 px-1.5 text-[10px] text-white hover:bg-amber-500">Ketua</Badge>
-                                </div>
-                            </div>
-                        </CardHeader>
-
-                        <CardContent class="pt-0">
-                            <div class="space-y-4">
-                                <!-- Empty state -->
-                                <p v-if="!teamProject.work_items.length" class="py-4 text-center text-sm text-gray-400">
-                                    Belum ada rincian kegiatan.
-                                </p>
-
-                                <div
-                                    v-for="wi in teamProject.work_items"
-                                    :key="wi.id"
-                                    class="rounded-md border border-gray-100 bg-gray-50 p-4"
-                                >
-                                    <!-- Work item header with edit/delete -->
-                                    <div v-if="editingItemId !== wi.id" class="mb-3 flex items-start gap-2">
-                                        <p class="flex-1 text-sm font-semibold text-gray-700">
-                                            {{ wi.number }}. {{ wi.description }}
+                                    <div class="shrink-0 rounded-lg border bg-gray-50 px-3 py-2 text-right">
+                                        <p class="text-xs text-gray-500">Sudah input</p>
+                                        <p class="text-lg font-bold text-gray-800 leading-tight">
+                                            <span :class="projectSubmittedCount(teamProject) === teamProject.members.length ? 'text-green-600' : 'text-gray-800'">
+                                                {{ projectSubmittedCount(teamProject) }}
+                                            </span>
+                                            <span class="text-sm font-normal text-gray-400"> / {{ teamProject.members.length }}</span>
                                         </p>
-                                        <span class="shrink-0 rounded bg-gray-200 px-2 py-0.5 text-xs text-gray-600">
-                                            Target: {{ Number(wi.target).toLocaleString('id') }} {{ wi.target_unit }}
-                                        </span>
-                                        <div v-if="canManageItems(teamProject.leader_id)" class="flex shrink-0 gap-1">
-                                            <button type="button" class="rounded px-2 py-0.5 text-xs text-gray-400 hover:bg-gray-200 hover:text-gray-700" @click="openEdit(wi)">Edit</button>
-                                            <button type="button" class="rounded px-2 py-0.5 text-xs text-gray-400 hover:bg-red-50 hover:text-red-600" @click="deleteItem(wi.id)">Hapus</button>
-                                        </div>
-                                    </div>
-
-                                    <!-- Inline edit form -->
-                                    <div v-else class="mb-3 rounded border border-blue-100 bg-blue-50 p-3">
-                                        <div class="mb-2">
-                                            <Label class="text-xs">Deskripsi</Label>
-                                            <textarea v-model="editForm.description" rows="2" class="mt-1 w-full rounded-md border border-input bg-white px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-ring" />
-                                            <InputError :message="editForm.errors.description" />
-                                        </div>
-                                        <div class="mb-2 grid grid-cols-2 gap-2">
-                                            <div>
-                                                <Label class="text-xs">Target</Label>
-                                                <Input type="number" min="0.01" step="0.01" v-model="editForm.target" class="mt-1" />
-                                            </div>
-                                            <div>
-                                                <Label class="text-xs">Satuan</Label>
-                                                <Input v-model="editForm.target_unit" class="mt-1" />
-                                            </div>
-                                        </div>
-                                        <div class="flex justify-end gap-2">
-                                            <button type="button" class="rounded px-3 py-1 text-xs text-gray-500 hover:bg-gray-100" @click="editingItemId = null">Batal</button>
-                                            <button type="button" class="rounded bg-primary px-3 py-1 text-xs text-white hover:bg-primary/90" :disabled="editForm.processing" @click="submitEdit(wi.id)">Simpan</button>
-                                        </div>
-                                    </div>
-
-                                    <!-- Per-member progress rows -->
-                                    <div class="space-y-2.5">
-                                        <div v-for="member in teamProject.members" :key="member.id" class="rounded-md border bg-white p-3">
-                                            <div class="mb-2 flex items-center gap-2">
-                                                <div
-                                                    :class="['flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-[10px] font-bold', isMemberLeader(member) ? 'bg-amber-100 text-amber-700' : 'bg-gray-100 text-gray-600']"
-                                                >
-                                                    {{ (member.display_name || member.name).charAt(0).toUpperCase() }}
-                                                </div>
-                                                <span :class="['text-xs font-medium', isMemberLeader(member) ? 'text-amber-800' : 'text-gray-700']">
-                                                    {{ member.display_name || member.name }}
-                                                </span>
-                                                <Badge v-if="isMemberLeader(member)" class="h-4 bg-amber-500 px-1.5 text-[10px] text-white hover:bg-amber-500">Ketua</Badge>
-                                            </div>
-
-                                            <template v-if="wi.performance_reports.find(r => r.reported_by === member.id)">
-                                                <div class="flex items-center justify-between gap-3">
-                                                    <div class="min-w-0 flex-1">
-                                                        <Progress
-                                                            :model-value="wi.performance_reports.find(r => r.reported_by === member.id)!.achievement_percentage"
-                                                            :class="['h-2', memberProgressColor(wi.performance_reports.find(r => r.reported_by === member.id)!.achievement_percentage)]"
-                                                        />
-                                                    </div>
-                                                    <div class="flex shrink-0 items-center gap-2 text-xs">
-                                                        <span class="text-gray-500">
-                                                            {{ Number(wi.performance_reports.find(r => r.reported_by === member.id)!.realization).toLocaleString('id') }}
-                                                            <span class="text-gray-400">{{ wi.target_unit }}</span>
-                                                        </span>
-                                                        <span :class="['font-bold', memberPctColor(wi.performance_reports.find(r => r.reported_by === member.id)!.achievement_percentage)]">
-                                                            {{ wi.performance_reports.find(r => r.reported_by === member.id)!.achievement_percentage.toFixed(1) }}%
-                                                        </span>
-                                                    </div>
-                                                </div>
-                                            </template>
-                                            <template v-else>
-                                                <p class="text-xs text-gray-400 italic">Belum diinput</p>
-                                            </template>
-                                        </div>
                                     </div>
                                 </div>
+                                <!-- Member chips -->
+                                <div class="mt-3 flex flex-wrap gap-2">
+                                    <div
+                                        v-for="member in teamProject.members"
+                                        :key="member.id"
+                                        :class="['flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs',
+                                            isMemberLeader(member) ? 'border-amber-300 bg-amber-50 text-amber-800'
+                                            : memberHasAnyReport(teamProject, member.id) ? 'border-green-200 bg-green-50 text-green-700'
+                                            : 'border-gray-200 bg-gray-50 text-gray-500']"
+                                    >
+                                        <span v-if="isMemberLeader(member)" class="text-amber-500">&#9733;</span>
+                                        <span>{{ member.display_name || member.name }}</span>
+                                        <Badge v-if="isMemberLeader(member)" class="ml-0.5 h-4 bg-amber-500 px-1.5 text-[10px] text-white hover:bg-amber-500">Ketua</Badge>
+                                    </div>
+                                </div>
+                            </CardHeader>
 
-                                <!-- Add item (project leader only) -->
-                                <template v-if="canManageItems(teamProject.leader_id)">
-                                    <div v-if="addingProjectId === teamProject.id" class="rounded-md border border-blue-100 bg-blue-50 p-3">
-                                        <p class="mb-2 text-xs font-medium text-blue-800">Tambah Rincian Kegiatan</p>
-                                        <div class="mb-2 grid grid-cols-4 gap-2">
-                                            <div>
-                                                <Label class="text-xs">No.</Label>
-                                                <Input type="number" min="1" v-model="addForm.number" class="mt-1" />
-                                            </div>
-                                            <div class="col-span-3">
-                                                <Label class="text-xs">Deskripsi <span class="text-red-500">*</span></Label>
-                                                <textarea v-model="addForm.description" rows="2" placeholder="Deskripsi kegiatan..." class="mt-1 w-full rounded-md border border-input bg-white px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-ring" />
-                                                <InputError :message="addForm.errors.description" />
-                                            </div>
-                                        </div>
-                                        <div class="mb-2 grid grid-cols-2 gap-2">
-                                            <div>
-                                                <Label class="text-xs">Target <span class="text-red-500">*</span></Label>
-                                                <Input type="number" min="0.01" step="0.01" v-model="addForm.target" class="mt-1" />
-                                                <InputError :message="addForm.errors.target" />
-                                            </div>
-                                            <div>
-                                                <Label class="text-xs">Satuan</Label>
-                                                <Input v-model="addForm.target_unit" placeholder="Kegiatan" class="mt-1" />
+                            <CardContent class="pt-0">
+                                <div class="space-y-4">
+                                    <p v-if="!teamProject.work_items.length" class="py-4 text-center text-sm text-gray-400">
+                                        Belum ada rincian kegiatan.
+                                    </p>
+
+                                    <div
+                                        v-for="wi in teamProject.work_items"
+                                        :key="wi.id"
+                                        class="rounded-md border border-gray-100 bg-gray-50 p-4"
+                                    >
+                                        <!-- Work item title -->
+                                        <div class="mb-3 flex items-start gap-2">
+                                            <p class="flex-1 text-sm font-semibold text-gray-700">{{ wi.number }}. {{ wi.description }}</p>
+                                            <div v-if="canManageItems(teamProject.leader_id)" class="flex shrink-0 gap-1">
+                                                <button type="button" class="rounded px-2 py-0.5 text-xs text-gray-400 hover:bg-gray-200 hover:text-gray-700" @click="openEdit(wi)">Edit</button>
+                                                <button type="button" class="rounded px-2 py-0.5 text-xs text-gray-400 hover:bg-red-50 hover:text-red-600" @click="deleteItem(wi.id)">Hapus</button>
                                             </div>
                                         </div>
-                                        <div class="flex justify-end gap-2">
-                                            <button type="button" class="rounded px-3 py-1 text-xs text-gray-500 hover:bg-gray-100" @click="addingProjectId = null">Batal</button>
-                                            <button type="button" class="rounded bg-primary px-3 py-1 text-xs text-white hover:bg-primary/90" :disabled="addForm.processing" @click="submitAdd(teamProject.id)">Tambah</button>
+
+                                        <!-- Inline edit form -->
+                                        <div v-if="editingItemId === wi.id" class="mb-3 rounded border border-blue-100 bg-blue-50 p-3">
+                                            <div class="mb-2">
+                                                <Label class="text-xs">Deskripsi</Label>
+                                                <textarea v-model="editForm.description" rows="2" class="mt-1 w-full rounded-md border border-input bg-white px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-ring" />
+                                            </div>
+                                            <div class="mb-2 flex items-center gap-4">
+                                                <Label class="text-xs shrink-0">Ditugaskan ke:</Label>
+                                                <label class="flex items-center gap-1 text-xs cursor-pointer"><input type="radio" v-model="editForm.assign_to" value="all" class="accent-primary" /> Semua</label>
+                                                <label class="flex items-center gap-1 text-xs cursor-pointer"><input type="radio" v-model="editForm.assign_to" value="specific" class="accent-primary" /> Tertentu</label>
+                                            </div>
+                                            <div v-if="editForm.assign_to === 'all'" class="mb-2 grid grid-cols-2 gap-2">
+                                                <div><Label class="text-xs">Target</Label><Input type="number" min="0.01" step="0.01" v-model="editForm.target" class="mt-1" /></div>
+                                                <div><Label class="text-xs">Satuan</Label><Input v-model="editForm.target_unit" class="mt-1" /></div>
+                                            </div>
+                                            <div v-else class="mb-2 space-y-1.5">
+                                                <div v-for="(row, idx) in editForm.assignments" :key="row.employee_id" class="flex items-center gap-2">
+                                                    <input type="checkbox" :checked="row._included !== false" class="accent-primary shrink-0" @change="(e) => { row._included = (e.target as HTMLInputElement).checked }" />
+                                                    <span class="w-36 shrink-0 truncate text-xs">{{ row.employee?.display_name || row.employee?.name || `#${row.employee_id}` }}</span>
+                                                    <Input type="number" min="0.01" step="0.01" v-model="editForm.assignments[idx].target" class="w-20 text-xs" />
+                                                    <Input v-model="editForm.assignments[idx].target_unit" class="w-24 text-xs" />
+                                                </div>
+                                            </div>
+                                            <div class="flex justify-end gap-2">
+                                                <button type="button" class="rounded px-3 py-1 text-xs text-gray-500 hover:bg-gray-100" @click="editingItemId = null">Batal</button>
+                                                <button type="button" class="rounded bg-primary px-3 py-1 text-xs text-white hover:bg-primary/90" :disabled="editForm.processing" @click="submitEdit(wi.id)">Simpan</button>
+                                            </div>
+                                        </div>
+
+                                        <!-- Per-member progress: only assigned members -->
+                                        <div class="space-y-2.5">
+                                            <template v-for="member in teamProject.members" :key="member.id">
+                                                <div
+                                                    v-if="wi.assignments.length === 0 || wi.assignments.some(a => a.employee_id === member.id)"
+                                                    class="rounded-md border bg-white p-3"
+                                                >
+                                                    <div class="mb-2 flex items-center gap-2">
+                                                        <div :class="['flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-[10px] font-bold', isMemberLeader(member) ? 'bg-amber-100 text-amber-700' : 'bg-gray-100 text-gray-600']">
+                                                            {{ (member.display_name || member.name).charAt(0).toUpperCase() }}
+                                                        </div>
+                                                        <span :class="['text-xs font-medium', isMemberLeader(member) ? 'text-amber-800' : 'text-gray-700']">{{ member.display_name || member.name }}</span>
+                                                        <Badge v-if="isMemberLeader(member)" class="h-4 bg-amber-500 px-1.5 text-[10px] text-white hover:bg-amber-500">Ketua</Badge>
+                                                        <!-- Per-member target badge -->
+                                                        <span v-if="wi.assignments.find(a => a.employee_id === member.id)" class="ml-auto text-xs text-gray-400">
+                                                            Target: {{ wi.assignments.find(a => a.employee_id === member.id)!.target }} {{ wi.assignments.find(a => a.employee_id === member.id)!.target_unit }}
+                                                        </span>
+                                                    </div>
+                                                    <template v-if="wi.performance_reports.find(r => r.reported_by === member.id)">
+                                                        <div class="flex items-center justify-between gap-3">
+                                                            <Progress
+                                                                :model-value="wi.performance_reports.find(r => r.reported_by === member.id)!.achievement_percentage"
+                                                                :class="['h-2 flex-1', memberProgressColor(wi.performance_reports.find(r => r.reported_by === member.id)!.achievement_percentage)]"
+                                                            />
+                                                            <div class="flex shrink-0 items-center gap-2 text-xs">
+                                                                <span class="text-gray-500">{{ Number(wi.performance_reports.find(r => r.reported_by === member.id)!.realization).toLocaleString('id') }}</span>
+                                                                <span :class="['font-bold', memberPctColor(wi.performance_reports.find(r => r.reported_by === member.id)!.achievement_percentage)]">
+                                                                    {{ wi.performance_reports.find(r => r.reported_by === member.id)!.achievement_percentage.toFixed(1) }}%
+                                                                </span>
+                                                            </div>
+                                                        </div>
+                                                    </template>
+                                                    <p v-else class="text-xs text-gray-400 italic">Belum diinput</p>
+                                                </div>
+                                            </template>
                                         </div>
                                     </div>
-                                    <button
-                                        v-else
-                                        type="button"
-                                        class="w-full rounded-md border border-dashed border-gray-300 py-2 text-xs text-gray-400 hover:border-primary hover:text-primary transition-colors"
-                                        @click="openAdd(teamProject)"
-                                    >
-                                        + Tambah Kegiatan
-                                    </button>
-                                </template>
-                            </div>
-                        </CardContent>
-                    </Card>
+
+                                    <!-- Add item (project leader only) -->
+                                    <template v-if="canManageItems(teamProject.leader_id)">
+                                        <div v-if="addingProjectId === teamProject.id" class="rounded-md border border-blue-100 bg-blue-50 p-3">
+                                            <p class="mb-2 text-xs font-medium text-blue-800">Tambah Rincian Kegiatan</p>
+                                            <div class="mb-2 grid grid-cols-4 gap-2">
+                                                <div><Label class="text-xs">No.</Label><Input type="number" min="1" v-model="addForm.number" class="mt-1" /></div>
+                                                <div class="col-span-3">
+                                                    <Label class="text-xs">Deskripsi <span class="text-red-500">*</span></Label>
+                                                    <textarea v-model="addForm.description" rows="2" placeholder="Deskripsi kegiatan..." class="mt-1 w-full rounded-md border border-input bg-white px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-ring" />
+                                                    <InputError :message="addForm.errors.description" />
+                                                </div>
+                                            </div>
+                                            <div class="mb-2 flex items-center gap-4">
+                                                <Label class="text-xs shrink-0">Ditugaskan ke:</Label>
+                                                <label class="flex items-center gap-1 text-xs cursor-pointer"><input type="radio" v-model="addForm.assign_to" value="all" class="accent-primary" /> Semua</label>
+                                                <label class="flex items-center gap-1 text-xs cursor-pointer"><input type="radio" v-model="addForm.assign_to" value="specific" class="accent-primary" /> Tertentu</label>
+                                            </div>
+                                            <div v-if="addForm.assign_to === 'all'" class="mb-2 grid grid-cols-2 gap-2">
+                                                <div><Label class="text-xs">Target <span class="text-red-500">*</span></Label><Input type="number" min="0.01" step="0.01" v-model="addForm.target" class="mt-1" /><InputError :message="addForm.errors.target" /></div>
+                                                <div><Label class="text-xs">Satuan</Label><Input v-model="addForm.target_unit" placeholder="Kegiatan" class="mt-1" /></div>
+                                            </div>
+                                            <div v-else class="mb-2 space-y-1.5">
+                                                <div v-for="(row, idx) in addForm.assignments" :key="row.employee_id" class="flex items-center gap-2">
+                                                    <input type="checkbox" checked class="accent-primary shrink-0" />
+                                                    <span class="w-36 shrink-0 truncate text-xs">{{ memberName(row.employee_id) }}</span>
+                                                    <Input type="number" min="0.01" step="0.01" v-model="addForm.assignments[idx].target" class="w-20 text-xs" />
+                                                    <Input v-model="addForm.assignments[idx].target_unit" class="w-24 text-xs" placeholder="Satuan" />
+                                                </div>
+                                            </div>
+                                            <div class="flex justify-end gap-2">
+                                                <button type="button" class="rounded px-3 py-1 text-xs text-gray-500 hover:bg-gray-100" @click="addingProjectId = null">Batal</button>
+                                                <button type="button" class="rounded bg-primary px-3 py-1 text-xs text-white hover:bg-primary/90" :disabled="addForm.processing" @click="submitAdd(teamProject.id)">Tambah</button>
+                                            </div>
+                                        </div>
+                                        <button v-else type="button" class="w-full rounded-md border border-dashed border-gray-300 py-2 text-xs text-gray-400 hover:border-primary hover:text-primary transition-colors" @click="openAdd(teamProject)">
+                                            + Tambah Kegiatan
+                                        </button>
+                                    </template>
+                                </div>
+                            </CardContent>
+                        </Card>
+                    </div>
                 </div>
             </TabsContent>
         </Tabs>

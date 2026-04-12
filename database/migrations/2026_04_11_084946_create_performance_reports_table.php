@@ -23,7 +23,7 @@ return new class extends Migration
             $table->text('action_plan')->nullable();
             $table->timestamps();
 
-            $table->unique(['work_item_id', 'period_year', 'period_month']);
+            $table->unique(['work_item_id', 'period_year', 'period_month'], 'pr_work_item_period_unique');
         });
     }
 

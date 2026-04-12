@@ -19,7 +19,15 @@ class SavePerformanceReportAction
         ?string $solutions = null,
         ?string $actionPlan = null,
     ): PerformanceReport {
-        $target = (float) $workItem->target;
+        // Use the per-employee assignment target when available
+        $assignment = $reporter
+            ? $workItem->assignments()->where('employee_id', $reporter->id)->first()
+            : null;
+
+        $target = $assignment
+            ? (float) $assignment->target
+            : (float) $workItem->target;
+
         $achievementPercentage = $target > 0
             ? min(100, round(($realization / $target) * 100, 2))
             : 0;
@@ -27,11 +35,11 @@ class SavePerformanceReportAction
         $report = PerformanceReport::updateOrCreate(
             [
                 'work_item_id' => $workItem->id,
+                'reported_by' => $reporter?->id,
                 'period_year' => $periodYear,
                 'period_month' => $periodMonth,
             ],
             [
-                'reported_by' => $reporter?->id,
                 'realization' => $realization,
                 'achievement_percentage' => $achievementPercentage,
                 'issues' => $issues,
