@@ -594,49 +594,7 @@ const empByAchievementChartOptions = {
                                 </div>
                             </div>
 
-                            <!-- No projects -->
-                            <div v-if="!projects?.length" class="py-12 text-center text-gray-400">
-                                <p>Belum ada proyek untuk periode ini.</p>
-                            </div>
-
-                            <!-- Personal projects grouped by team -->
-                            <div v-else class="space-y-6">
-                                <div v-for="group in projectsByTeam" :key="group.teamName">
-                                    <h2 class="mb-3 flex items-center gap-2 text-sm font-semibold text-primary uppercase tracking-wide">
-                                        <span class="h-px flex-1 bg-primary/20"></span>
-                                        {{ group.teamName }}
-                                        <span class="h-px flex-1 bg-primary/20"></span>
-                                    </h2>
-                                    <div class="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-                                        <Card
-                                            v-for="project in group.projects"
-                                            :key="project.id"
-                                            class="hover:shadow-md transition-shadow"
-                                        >
-                                            <CardHeader class="pb-2">
-                                                <CardTitle class="text-sm font-medium leading-tight">{{ project.name }}</CardTitle>
-                                            </CardHeader>
-                                            <CardContent>
-                                                <div class="flex items-baseline justify-between">
-                                                    <span class="text-xs text-gray-500">Capaian bulan ini</span>
-                                                    <span :class="['text-xl font-bold', achievementColor(projectAvg(project))]">
-                                                        {{ projectAvg(project).toFixed(1) }}%
-                                                    </span>
-                                                </div>
-                                                <Progress
-                                                    :model-value="projectAvg(project)"
-                                                    :class="['mt-2 h-2', progressVariant(projectAvg(project))]"
-                                                />
-                                                <p class="mt-2 text-xs text-gray-400">
-                                                    {{ project.work_items.length }} item kerja
-                                                </p>
-                                            </CardContent>
-                                        </Card>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <!-- Team comparison (also visible from personal tab) -->
+                            <!-- Team comparison (right after stat cards) -->
                             <h2 class="mt-10 mb-4 flex items-center gap-2 text-sm font-semibold text-primary uppercase tracking-wide">
                                 <span class="h-px flex-1 bg-primary/20"></span>
                                 Perbandingan Kinerja Tim
@@ -751,6 +709,48 @@ const empByAchievementChartOptions = {
                                         </div>
                                     </CardContent>
                                 </Card>
+                            </div>
+
+                            <!-- No projects -->
+                            <div v-if="!projects?.length" class="mt-10 py-12 text-center text-gray-400">
+                                <p>Belum ada proyek untuk periode ini.</p>
+                            </div>
+
+                            <!-- Personal projects grouped by team -->
+                            <div v-else class="mt-10 space-y-6">
+                                <div v-for="group in projectsByTeam" :key="group.teamName">
+                                    <h2 class="mb-3 flex items-center gap-2 text-sm font-semibold text-primary uppercase tracking-wide">
+                                        <span class="h-px flex-1 bg-primary/20"></span>
+                                        {{ group.teamName }}
+                                        <span class="h-px flex-1 bg-primary/20"></span>
+                                    </h2>
+                                    <div class="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                                        <Card
+                                            v-for="project in group.projects"
+                                            :key="project.id"
+                                            class="hover:shadow-md transition-shadow"
+                                        >
+                                            <CardHeader class="pb-2">
+                                                <CardTitle class="text-sm font-medium leading-tight">{{ project.name }}</CardTitle>
+                                            </CardHeader>
+                                            <CardContent>
+                                                <div class="flex items-baseline justify-between">
+                                                    <span class="text-xs text-gray-500">Capaian bulan ini</span>
+                                                    <span :class="['text-xl font-bold', achievementColor(projectAvg(project))]">
+                                                        {{ projectAvg(project).toFixed(1) }}%
+                                                    </span>
+                                                </div>
+                                                <Progress
+                                                    :model-value="projectAvg(project)"
+                                                    :class="['mt-2 h-2', progressVariant(projectAvg(project))]"
+                                                />
+                                                <p class="mt-2 text-xs text-gray-400">
+                                                    {{ project.work_items.length }} item kerja
+                                                </p>
+                                            </CardContent>
+                                        </Card>
+                                    </div>
+                                </div>
                             </div>
                         </TabsContent>
                         <TabsContent value="team">
