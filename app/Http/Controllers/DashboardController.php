@@ -7,7 +7,6 @@ use App\Models\PerformanceReport;
 use App\Models\Project;
 use App\Models\Team;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -164,8 +163,19 @@ class DashboardController extends Controller
                 ->get()
             : collect();
 
-        $cacheKey = "team_progress:{$year}:{$month}";
-        $teamProgress = Cache::get($cacheKey, collect());
+        $teamProgress = DB::table('performance_reports')
+            ->join('work_items', 'work_items.id', '=', 'performance_reports.work_item_id')
+            ->join('projects', 'projects.id', '=', 'work_items.project_id')
+            ->where('performance_reports.period_month', $month)
+            ->where('performance_reports.period_year', $year)
+            ->groupBy('projects.team_id')
+            ->select(
+                'projects.team_id',
+                DB::raw('AVG(performance_reports.achievement_percentage) as avg_achievement'),
+                DB::raw('COUNT(performance_reports.id) as report_count')
+            )
+            ->get()
+            ->keyBy('team_id');
 
         $teams = Team::with(['employees' => fn ($q) => $q->select('employees.id', 'name', 'display_name', 'team_id')])
             ->orderBy('name')
@@ -289,8 +299,19 @@ class DashboardController extends Controller
 
     private function adminDashboard(int $year, int $month): Response
     {
-        $cacheKey = "team_progress:{$year}:{$month}";
-        $teamProgress = Cache::get($cacheKey, collect());
+        $teamProgress = DB::table('performance_reports')
+            ->join('work_items', 'work_items.id', '=', 'performance_reports.work_item_id')
+            ->join('projects', 'projects.id', '=', 'work_items.project_id')
+            ->where('performance_reports.period_month', $month)
+            ->where('performance_reports.period_year', $year)
+            ->groupBy('projects.team_id')
+            ->select(
+                'projects.team_id',
+                DB::raw('AVG(performance_reports.achievement_percentage) as avg_achievement'),
+                DB::raw('COUNT(performance_reports.id) as report_count')
+            )
+            ->get()
+            ->keyBy('team_id');
 
         $orgAvg = DB::table('performance_reports')
             ->join('work_items', 'work_items.id', '=', 'performance_reports.work_item_id')
