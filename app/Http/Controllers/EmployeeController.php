@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Actions\Employees\LinkEmployeeToUserAction;
 use App\Http\Requests\StoreMutationRequest;
 use App\Models\Employee;
+use App\Models\EmployeeEducation;
 use App\Models\EmployeeTeamHistory;
 use App\Models\Team;
 use App\Models\User;
@@ -142,5 +143,83 @@ class EmployeeController extends Controller
             ->get();
 
         return response()->json($mutations);
+    }
+
+    public function storeEducation(Request $request, Employee $employee): RedirectResponse
+    {
+        $this->authorize('update', $employee);
+
+        $validated = $request->validate([
+            'degree_front' => ['nullable', 'string', 'max:30'],
+            'degree_back' => ['nullable', 'string', 'max:30'],
+            'institution' => ['required', 'string', 'max:255'],
+            'field_of_study' => ['nullable', 'string', 'max:255'],
+            'graduated_year' => ['nullable', 'integer', 'min:1900', 'max:' . (now()->year + 5)],
+            'is_highest' => ['boolean'],
+        ]);
+
+        if (! empty($validated['is_highest'])) {
+            $employee->educations()->update(['is_highest' => false]);
+        }
+
+        $employee->educations()->create($validated);
+
+        $this->syncHighestEducationDisplay($employee);
+
+        return redirect()->back()->with('success', 'Riwayat pendidikan berhasil ditambahkan.');
+    }
+
+    public function updateEducation(Request $request, Employee $employee, EmployeeEducation $education): RedirectResponse
+    {
+        $this->authorize('update', $employee);
+        abort_unless($education->employee_id === $employee->id, 403);
+
+        $validated = $request->validate([
+            'degree_front' => ['nullable', 'string', 'max:30'],
+            'degree_back' => ['nullable', 'string', 'max:30'],
+            'institution' => ['required', 'string', 'max:255'],
+            'field_of_study' => ['nullable', 'string', 'max:255'],
+            'graduated_year' => ['nullable', 'integer', 'min:1900', 'max:' . (now()->year + 5)],
+            'is_highest' => ['boolean'],
+        ]);
+
+        if (! empty($validated['is_highest'])) {
+            $employee->educations()->where('id', '!=', $education->id)->update(['is_highest' => false]);
+        }
+
+        $education->update($validated);
+
+        $this->syncHighestEducationDisplay($employee);
+
+        return redirect()->back()->with('success', 'Riwayat pendidikan berhasil diperbarui.');
+    }
+
+    public function destroyEducation(Employee $employee, EmployeeEducation $education): RedirectResponse
+    {
+        $this->authorize('update', $employee);
+        abort_unless($education->employee_id === $employee->id, 403);
+
+        $education->delete();
+
+        $this->syncHighestEducationDisplay($employee);
+
+        return redirect()->back()->with('success', 'Riwayat pendidikan berhasil dihapus.');
+    }
+
+    private function syncHighestEducationDisplay(Employee $employee): void
+    {
+        $highest = $employee->educations()->where('is_highest', true)->first();
+        if (! $highest) {
+            $highest = $employee->educations()->orderByDesc('graduated_year')->first();
+        }
+
+        $parts = array_filter([
+            $highest?->degree_front,
+            $employee->name,
+            $highest?->degree_back,
+        ]);
+        $displayName = implode(', ', $parts) ?: $employee->name;
+
+        $employee->update(['display_name' => $displayName]);
     }
 }

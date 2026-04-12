@@ -99,8 +99,8 @@ function cellBgColor(pct: number): string {
             </Tabs>
 
             <Select v-model="teamId" @update:modelValue="applyFilters">
-                <SelectTrigger class="w-52">
-                    <SelectValue placeholder="Semua tim" />
+                <SelectTrigger class="min-w-[13rem] max-w-[22rem] overflow-hidden">
+                    <SelectValue placeholder="Semua tim" class="truncate" />
                 </SelectTrigger>
                 <SelectContent>
                     <SelectItem :value="null">Semua tim</SelectItem>

@@ -38,6 +38,11 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('/employees/{employee}/mutasi', [EmployeeController::class, 'storeMutation'])->name('employees.mutasi');
     Route::get('/employees/{employee}/mutasi', [EmployeeController::class, 'mutationHistory'])->name('employees.mutasi.history');
 
+    // Employee education history
+    Route::post('/employees/{employee}/educations', [EmployeeController::class, 'storeEducation'])->name('employees.educations.store');
+    Route::put('/employees/{employee}/educations/{education}', [EmployeeController::class, 'updateEducation'])->name('employees.educations.update');
+    Route::delete('/employees/{employee}/educations/{education}', [EmployeeController::class, 'destroyEducation'])->name('employees.educations.destroy');
+
     // Reports
     Route::get('/laporan/pegawai', [EmployeeReportController::class, 'index'])->name('laporan.pegawai');
 
