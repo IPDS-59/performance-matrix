@@ -3,6 +3,10 @@ import { Link, router, usePage } from '@inertiajs/vue3';
 import { computed, onMounted, onUnmounted, ref } from 'vue';
 import { useSidebarStore } from '@/stores/sidebar';
 import { Notivue, Notification, push } from 'notivue';
+import {
+    AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+    AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from '@/Components/ui/alert-dialog';
 
 const page = usePage();
 const sidebar = useSidebarStore();
@@ -37,11 +41,15 @@ function toggleDropdown() {
     if (showDropdown.value) fetchNotifications();
 }
 
+function csrfToken(): string {
+    return (document.querySelector('meta[name=csrf-token]') as HTMLMetaElement)?.content ?? '';
+}
+
 async function handleNotificationClick(n: { id: string; data: Record<string, unknown>; read_at: string | null }) {
     if (!n.read_at) {
         await fetch(route('notifications.read', n.id), {
             method: 'PATCH',
-            headers: { 'X-CSRF-TOKEN': (document.querySelector('meta[name=csrf-token]') as HTMLMetaElement)?.content ?? '' },
+            headers: { 'X-CSRF-TOKEN': csrfToken() },
         });
         n.read_at = new Date().toISOString();
         unreadCount.value = Math.max(0, unreadCount.value - 1);
@@ -49,6 +57,28 @@ async function handleNotificationClick(n: { id: string; data: Record<string, unk
     showDropdown.value = false;
     const url = n.data?.url as string | undefined;
     if (url) router.visit(url);
+}
+
+const deleteNotifDialogOpen = ref(false);
+const deleteNotifTarget = ref<{ id: string; read_at: string | null } | null>(null);
+
+function confirmDeleteNotif(n: { id: string; read_at: string | null }, event: MouseEvent) {
+    event.stopPropagation();
+    deleteNotifTarget.value = n;
+    deleteNotifDialogOpen.value = true;
+}
+
+async function executeDeleteNotif() {
+    const n = deleteNotifTarget.value;
+    if (!n) return;
+    deleteNotifDialogOpen.value = false;
+    deleteNotifTarget.value = null;
+    await fetch(route('notifications.destroy', n.id), {
+        method: 'DELETE',
+        headers: { 'X-CSRF-TOKEN': csrfToken() },
+    });
+    if (!n.read_at) unreadCount.value = Math.max(0, unreadCount.value - 1);
+    notifications.value = notifications.value.filter(x => x.id !== n.id);
 }
 
 let pollInterval: ReturnType<typeof setInterval> | null = null;
@@ -122,9 +152,8 @@ onUnmounted(() => {
                     <span v-if="sidebar.isOpen">Beranda</span>
                 </Link>
 
-                <!-- Matrix (admin + head) -->
+                <!-- Matrix (all roles) -->
                 <Link
-                    v-if="isAdmin || isHead"
                     :href="route('matrix')"
                     :class="route().current('matrix') ? 'bg-white/20' : 'hover:bg-white/10'"
                     class="flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors"
@@ -273,22 +302,41 @@ onUnmounted(() => {
                                     Tandai semua dibaca
                                 </button>
                             </div>
-                            <div class="max-h-80 overflow-y-auto divide-y divide-gray-100">
+                            <div class="divide-y divide-gray-100">
                                 <div v-if="!notifications.length" class="px-4 py-8 text-center text-sm text-gray-400">
                                     Tidak ada notifikasi
                                 </div>
                                 <div
                                     v-for="n in notifications"
                                     :key="n.id"
-                                    :class="['px-4 py-3 text-xs transition-colors', !n.read_at ? 'bg-blue-50' : '', n.data?.url ? 'cursor-pointer hover:bg-primary/5' : 'hover:bg-gray-50']"
+                                    :class="['group relative px-4 py-3 text-xs transition-colors', !n.read_at ? 'bg-blue-50' : '', n.data?.url ? 'cursor-pointer hover:bg-primary/5' : 'hover:bg-gray-50']"
                                     @click="handleNotificationClick(n)"
                                 >
-                                    <p :class="['leading-relaxed', !n.read_at ? 'font-medium text-gray-800' : 'text-gray-600']">{{ n.message }}</p>
+                                    <button
+                                        type="button"
+                                        class="absolute right-2 top-2 hidden h-5 w-5 items-center justify-center rounded text-gray-400 hover:bg-gray-200 hover:text-gray-600 group-hover:flex"
+                                        @click="confirmDeleteNotif(n, $event)"
+                                        title="Hapus"
+                                    >
+                                        <svg class="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                                        </svg>
+                                    </button>
+                                    <p :class="['leading-relaxed pr-4', !n.read_at ? 'font-medium text-gray-800' : 'text-gray-600']">{{ n.message }}</p>
                                     <div class="mt-1 flex items-center justify-between gap-2">
                                         <p class="text-gray-400">{{ new Date(n.created_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) }}</p>
                                         <span v-if="n.data?.url" class="text-[10px] text-primary">Lihat →</span>
                                     </div>
                                 </div>
+                            </div>
+                            <div class="border-t px-4 py-2 text-center">
+                                <Link
+                                    :href="route('notifications.page')"
+                                    class="text-xs text-primary hover:underline"
+                                    @click="showDropdown = false"
+                                >
+                                    Lihat semua notifikasi
+                                </Link>
                             </div>
                         </div>
                     </div>
@@ -306,4 +354,22 @@ onUnmounted(() => {
             </main>
         </div>
     </div>
+
+    <!-- Delete single notification confirmation -->
+    <AlertDialog :open="deleteNotifDialogOpen" @update:open="deleteNotifDialogOpen = $event">
+        <AlertDialogContent>
+            <AlertDialogHeader>
+                <AlertDialogTitle>Hapus notifikasi ini?</AlertDialogTitle>
+                <AlertDialogDescription>
+                    Notifikasi ini akan dihapus permanen.
+                </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+                <AlertDialogCancel>Batal</AlertDialogCancel>
+                <AlertDialogAction class="bg-red-600 hover:bg-red-700 focus:ring-red-600" @click="executeDeleteNotif">
+                    Hapus
+                </AlertDialogAction>
+            </AlertDialogFooter>
+        </AlertDialogContent>
+    </AlertDialog>
 </template>
