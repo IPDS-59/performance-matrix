@@ -32,14 +32,67 @@ class ProjectController extends Controller
         return Inertia::render('Projects/Index', compact('projects', 'teams', 'year', 'teamId'));
     }
 
-    public function create(): Response
+    public function create(Request $request): Response
     {
         $this->authorize('create', Project::class);
 
         $teams = Team::where('is_active', true)->orderBy('name')->get(['id', 'name']);
         $employees = Employee::where('is_active', true)->orderBy('name')->get(['id', 'name', 'display_name']);
 
-        return Inertia::render('Projects/Create', compact('teams', 'employees'));
+        // Projects from last year that can be copied
+        $copyYear = $request->integer('copy_year', now()->year - 1);
+        $previousProjects = Project::with('team:id,name')
+            ->where('year', $copyYear)
+            ->orderBy('name')
+            ->get(['id', 'name', 'team_id', 'year']);
+
+        return Inertia::render('Projects/Create', compact('teams', 'employees', 'previousProjects', 'copyYear'));
+    }
+
+    public function copy(Request $request, Project $project, SyncProjectMembersAction $syncMembers): RedirectResponse
+    {
+        $this->authorize('create', Project::class);
+
+        $validated = $request->validate([
+            'year' => ['required', 'integer', 'min:2020', 'max:2099'],
+            'copy_members' => ['boolean'],
+            'copy_work_items' => ['boolean'],
+        ]);
+
+        $targetYear = $validated['year'];
+
+        $project->load('workItems.assignments');
+
+        $newProject = $project->replicate(['id', 'created_at', 'updated_at']);
+        $newProject->year = $targetYear;
+        $newProject->status = 'active';
+        $newProject->save();
+
+        if ($validated['copy_members'] ?? true) {
+            $memberMap = $project->members()
+                ->get(['employees.id', 'project_members.role'])
+                ->mapWithKeys(fn ($m) => [$m->id => ['role' => $m->pivot->role]])
+                ->all();
+            $syncMembers->execute($newProject, $memberMap);
+        }
+
+        if ($validated['copy_work_items'] ?? true) {
+            foreach ($project->workItems as $wi) {
+                $newWi = $wi->replicate(['id', 'created_at', 'updated_at']);
+                $newWi->project_id = $newProject->id;
+                $newWi->save();
+
+                foreach ($wi->assignments as $assignment) {
+                    $newWi->assignments()->create([
+                        'employee_id' => $assignment->employee_id,
+                        'target' => $assignment->target,
+                        'target_unit' => $assignment->target_unit,
+                    ]);
+                }
+            }
+        }
+
+        return redirect()->route('projects.edit', $newProject)->with('success', "Proyek berhasil disalin dari {$project->year} ke {$targetYear}.");
     }
 
     public function store(Request $request, SyncProjectMembersAction $syncMembers): RedirectResponse

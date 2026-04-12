@@ -62,7 +62,7 @@ function executeDelete() {
                             </span>
                         </TableCell>
                         <TableCell class="text-right">
-                            <div class="flex justify-end gap-2">
+                            <div class="inline-flex gap-2">
                                 <Button variant="outline" size="sm" as-child>
                                     <Link :href="route('teams.edit', team.id)">Edit</Link>
                                 </Button>

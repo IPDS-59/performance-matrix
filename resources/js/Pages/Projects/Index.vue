@@ -176,7 +176,7 @@ const teamGroups = computed(() => {
                                         </span>
                                     </td>
                                     <td class="px-4 py-3 text-right">
-                                        <div class="flex justify-end gap-2">
+                                        <div class="inline-flex gap-2">
                                             <Button variant="outline" size="sm" as-child>
                                                 <Link :href="route('projects.edit', project.id)">Edit</Link>
                                             </Button>

@@ -18,7 +18,7 @@ class ProfileController extends Controller
      */
     public function edit(Request $request): Response
     {
-        $employee = $request->user()->employee?->load('team:id,name');
+        $employee = $request->user()->employee?->load('team:id,name', 'educations');
 
         return Inertia::render('Profile/Edit', [
             'mustVerifyEmail' => $request->user() instanceof MustVerifyEmail,

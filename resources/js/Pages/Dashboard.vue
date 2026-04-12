@@ -182,7 +182,7 @@ function avgIconColor(pct: number): string {
 function projectAvg(project: ProjectWithItems): number {
     const reports = project.work_items.flatMap(wi => wi.performance_reports);
     if (!reports.length) return 0;
-    return reports.reduce((s, r) => s + r.achievement_percentage, 0) / reports.length;
+    return reports.reduce((s, r) => s + Number(r.achievement_percentage), 0) / reports.length;
 }
 
 // Staff: group personal projects by team
@@ -1214,45 +1214,13 @@ const empByAchievementChartOptions = {
                     </div>
                 </div>
 
-                <!-- Personal projects for head (when they have assignments) -->
-                <template v-if="projectsByTeam.length">
-                    <div class="mb-4 flex items-center gap-3">
-                        <h2 class="text-base font-semibold text-gray-800">Proyek Saya</h2>
-                        <span class="h-px flex-1 bg-gray-200"></span>
-                    </div>
-                    <div class="mb-8 space-y-10">
-                        <div v-for="group in projectsByTeam" :key="group.teamName">
-                            <h3 class="mb-3 flex items-center gap-2 text-sm font-semibold text-primary uppercase tracking-wide">
-                                <span class="h-px flex-1 bg-primary/20"></span>
-                                {{ group.teamName }}
-                                <span class="h-px flex-1 bg-primary/20"></span>
-                            </h3>
-                            <div class="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-                                <Card v-for="project in group.projects" :key="project.id" class="transition-shadow hover:shadow-md">
-                                    <CardHeader class="pb-2">
-                                        <CardTitle class="text-sm font-medium leading-tight">{{ project.name }}</CardTitle>
-                                    </CardHeader>
-                                    <CardContent>
-                                        <div class="flex items-baseline justify-between">
-                                            <span class="text-xs text-gray-500">Capaian</span>
-                                            <span :class="['text-xl font-bold', achievementColor(projectAvg(project))]">
-                                                {{ projectAvg(project).toFixed(1) }}%
-                                            </span>
-                                        </div>
-                                        <Progress :model-value="projectAvg(project)" :class="['mt-2 h-2', progressVariant(projectAvg(project))]" />
-                                        <p class="mt-2 text-xs text-gray-400">{{ project.work_items.length }} item kerja</p>
-                                    </CardContent>
-                                </Card>
-                            </div>
-                        </div>
-                    </div>
-                </template>
-
-                <div class="mb-4 flex items-center gap-3">
-                    <h2 class="text-base font-semibold text-gray-800">Ringkasan Tim</h2>
-                    <span class="h-px flex-1 bg-gray-200"></span>
-                </div>
             </template>
+
+            <!-- Ringkasan Tim: always shown for head -->
+            <div class="mb-4 flex items-center gap-3">
+                <h2 class="text-base font-semibold text-gray-800">Ringkasan Tim</h2>
+                <span class="h-px flex-1 bg-gray-200"></span>
+            </div>
 
             <!-- No data state -->
             <div v-if="!teamList.length" class="py-16 text-center text-gray-400">
@@ -1416,6 +1384,40 @@ const empByAchievementChartOptions = {
                             </div>
                         </CardContent>
                     </Card>
+                </div>
+            </template>
+
+            <!-- Personal projects for head (shown after team summary) -->
+            <template v-if="projectsByTeam.length">
+                <div class="mt-8 mb-4 flex items-center gap-3">
+                    <h2 class="text-base font-semibold text-gray-800">Proyek Saya</h2>
+                    <span class="h-px flex-1 bg-gray-200"></span>
+                </div>
+                <div class="space-y-10">
+                    <div v-for="group in projectsByTeam" :key="group.teamName">
+                        <h3 class="mb-3 flex items-center gap-2 text-sm font-semibold text-primary uppercase tracking-wide">
+                            <span class="h-px flex-1 bg-primary/20"></span>
+                            {{ group.teamName }}
+                            <span class="h-px flex-1 bg-primary/20"></span>
+                        </h3>
+                        <div class="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                            <Card v-for="project in group.projects" :key="project.id" class="transition-shadow hover:shadow-md">
+                                <CardHeader class="pb-2">
+                                    <CardTitle class="text-sm font-medium leading-tight">{{ project.name }}</CardTitle>
+                                </CardHeader>
+                                <CardContent>
+                                    <div class="flex items-baseline justify-between">
+                                        <span class="text-xs text-gray-500">Capaian</span>
+                                        <span :class="['text-xl font-bold', achievementColor(projectAvg(project))]">
+                                            {{ projectAvg(project).toFixed(1) }}%
+                                        </span>
+                                    </div>
+                                    <Progress :model-value="projectAvg(project)" :class="['mt-2 h-2', progressVariant(projectAvg(project))]" />
+                                    <p class="mt-2 text-xs text-gray-400">{{ project.work_items.length }} item kerja</p>
+                                </CardContent>
+                            </Card>
+                        </div>
+                    </div>
                 </div>
             </template>
         </template>

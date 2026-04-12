@@ -242,8 +242,14 @@ function computePct(workItemId: number): number {
         .filter(r => r.period_month !== props.filters.month)
         .reduce((sum, r) => sum + Number(r.realization), 0);
 
-    // Add the current month's form input
-    const currentRealization = Number(getItem(workItemId).realization);
+    // Use the live form value only if the user has already opened this item;
+    // otherwise read the saved report value. Never seed form.items as a side effect.
+    const formItem = form.items.find(i => i.work_item_id === workItemId);
+    const savedRealization = wi.performance_reports
+        .find(r => r.period_month === props.filters.month)?.realization ?? 0;
+    const currentRealization = formItem !== undefined
+        ? Number(formItem.realization)
+        : Number(savedRealization);
 
     return Math.min(100, ((prevTotal + currentRealization) / Number(wi.target)) * 100);
 }
@@ -360,7 +366,6 @@ function openAdd(project: { id: number; work_items: Array<{ number: number }>; m
         display_name: m.display_name || m.name,
     }));
     addIncludedIds.clear();
-    for (const m of (project.members ?? [])) addIncludedIds.add(m.id);
     addForm.clearErrors();
     addMemberSearch.value = '';
     addingProjectId.value = project.id;
@@ -564,6 +569,8 @@ function attachmentStatusLabel(status: string): string {
 
 // ── Tim Saya: group by team ────────────────────────────────────────────────
 
+const teamProjectSearch = ref('');
+
 const teamProjectsByTeam = computed(() => {
     const groups: Record<number, { teamId: number; teamName: string; projects: TeamProjectWithMembers[] }> = {};
     for (const p of props.team_projects) {
@@ -573,6 +580,19 @@ const teamProjectsByTeam = computed(() => {
         groups[tid].projects.push(p);
     }
     return Object.values(groups).sort((a, b) => a.teamName.localeCompare(b.teamName));
+});
+
+const filteredTeamProjectsByTeam = computed(() => {
+    const q = teamProjectSearch.value.trim().toLowerCase();
+    if (!q) return teamProjectsByTeam.value;
+    return teamProjectsByTeam.value
+        .map(group => ({
+            ...group,
+            projects: group.projects.filter(
+                p => p.name.toLowerCase().includes(q) || group.teamName.toLowerCase().includes(q),
+            ),
+        }))
+        .filter(group => group.projects.length > 0);
 });
 
 // ── Team view helpers ──────────────────────────────────────────────────────
@@ -1033,8 +1053,19 @@ function projectSubmittedCount(project: TeamProjectWithMembers): number {
                     <p class="font-medium">Tidak ada proyek tim untuk periode ini.</p>
                 </div>
 
-                <div v-else class="space-y-8">
-                    <div v-for="group in teamProjectsByTeam" :key="group.teamId" class="space-y-4">
+                <div v-else class="space-y-5">
+                    <!-- Project search -->
+                    <Input
+                        v-model="teamProjectSearch"
+                        placeholder="Cari proyek atau tim..."
+                        class="max-w-sm"
+                    />
+
+                    <div v-if="!filteredTeamProjectsByTeam.length" class="py-12 text-center text-sm text-gray-400">
+                        Tidak ada proyek yang cocok dengan pencarian.
+                    </div>
+
+                    <div v-for="group in filteredTeamProjectsByTeam" :key="group.teamId" class="space-y-4">
                         <!-- Team header -->
                         <div class="flex items-center gap-3">
                             <h2 class="text-sm font-bold uppercase tracking-wide text-primary">{{ group.teamName }}</h2>
@@ -1141,7 +1172,7 @@ function projectSubmittedCount(project: TeamProjectWithMembers): number {
                                             </div>
                                             <div class="mb-2 flex items-center gap-4">
                                                 <Label class="text-xs shrink-0">Ditugaskan ke:</Label>
-                                                <RadioGroup v-model="editAssignTo" class="flex gap-4">
+                                                <RadioGroup v-model="editAssignTo" class="flex gap-4" @update:modelValue="(v) => { if (v === 'specific') editIncludedIds.clear(); }">
                                                     <div class="flex items-center gap-1.5">
                                                         <RadioGroupItem id="edit-all" value="all" />
                                                         <Label for="edit-all" class="cursor-pointer text-xs font-normal">Semua</Label>
@@ -1311,7 +1342,7 @@ function projectSubmittedCount(project: TeamProjectWithMembers): number {
                                             </div>
                                             <div class="mb-2 flex items-center gap-4">
                                                 <Label class="text-xs shrink-0">Ditugaskan ke:</Label>
-                                                <RadioGroup v-model="addAssignTo" class="flex gap-4">
+                                                <RadioGroup v-model="addAssignTo" class="flex gap-4" @update:modelValue="(v) => { if (v === 'specific') addIncludedIds.clear(); }">
                                                     <div class="flex items-center gap-1.5">
                                                         <RadioGroupItem id="add-all" value="all" />
                                                         <Label for="add-all" class="cursor-pointer text-xs font-normal">Semua</Label>

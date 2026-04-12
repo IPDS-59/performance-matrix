@@ -28,6 +28,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::resource('teams', TeamController::class)->except(['show']);
     Route::resource('employees', EmployeeController::class)->except(['show']);
     Route::resource('projects', ProjectController::class)->except(['show']);
+    Route::post('/projects/{project}/copy', [ProjectController::class, 'copy'])->name('projects.copy');
 
     // Work items (nested under project for create, standalone for update/delete)
     Route::post('/projects/{project}/work-items', [WorkItemController::class, 'store'])->name('work-items.store');

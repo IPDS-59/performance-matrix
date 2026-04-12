@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { Link, router, usePage } from '@inertiajs/vue3';
-import { computed, onMounted, ref } from 'vue';
+import { computed, onMounted, onUnmounted, ref } from 'vue';
 import { useSidebarStore } from '@/stores/sidebar';
 import { Notivue, Notification, push } from 'notivue';
 
@@ -37,17 +37,23 @@ function toggleDropdown() {
     if (showDropdown.value) fetchNotifications();
 }
 
+let pollInterval: ReturnType<typeof setInterval> | null = null;
+let removeSuccessListener: (() => void) | null = null;
+
 onMounted(() => {
     fetchNotifications();
-    // Poll every 60s for new notifications
-    setInterval(fetchNotifications, 60_000);
+    pollInterval = setInterval(fetchNotifications, 60_000);
 
-    // Show toast for Inertia flash success
-    router.on('success', (event: { detail: { page: { props: unknown } } }) => {
+    removeSuccessListener = router.on('success', (event: { detail: { page: { props: unknown } } }) => {
         const flash = (event.detail.page.props as Record<string, unknown>).flash as Record<string, string> | undefined;
         if (flash?.success) push.success(flash.success);
         if (flash?.error) push.error(flash.error);
     });
+});
+
+onUnmounted(() => {
+    if (pollInterval !== null) clearInterval(pollInterval);
+    removeSuccessListener?.();
 });
 </script>
 
