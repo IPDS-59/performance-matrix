@@ -75,6 +75,9 @@ interface TeamWorkItemReport {
     approval_status: 'pending' | 'approved' | 'rejected';
     review_note: string | null;
     reviewed_at: string | null;
+    issues: string | null;
+    solutions: string | null;
+    action_plan: string | null;
 }
 
 interface WorkItemAssignment {
@@ -182,14 +185,25 @@ type ItemState = {
 const itemStates = reactive(new Map<number, ItemState>());
 const itemProcessing = reactive(new Set<number>());
 const itemErrors = reactive(new Map<number, Partial<Record<string, string>>>());
+const itemActiveMonth = reactive(new Map<number, number>());
+
+function getActiveMonth(workItemId: number): number {
+    return itemActiveMonth.get(workItemId) ?? props.filters.month;
+}
+
+function setItemMonth(workItemId: number, m: number) {
+    itemActiveMonth.set(workItemId, m);
+    itemStates.delete(workItemId); // re-seed from the new month's report
+}
 
 function getItemState(workItemId: number): ItemState {
     if (!itemStates.has(workItemId)) {
+        const activeMonth = getActiveMonth(workItemId);
         let report: WorkItemWithReports['performance_reports'][number] | undefined;
         outer: for (const p of props.projects) {
             for (const wi of p.work_items) {
                 if (wi.id === workItemId) {
-                    report = wi.performance_reports.find(r => r.period_month === props.filters.month);
+                    report = wi.performance_reports.find(r => r.period_month === activeMonth);
                     break outer;
                 }
             }
@@ -206,13 +220,14 @@ function getItemState(workItemId: number): ItemState {
 
 function submitItem(workItemId: number) {
     const state = getItemState(workItemId);
+    const activeMonth = getActiveMonth(workItemId);
     itemProcessing.add(workItemId);
     itemErrors.delete(workItemId);
 
     router.post(
         route('performance.batch'),
         {
-            period_month: props.filters.month,
+            period_month: activeMonth,
             period_year: props.filters.year,
             items: [{
                 work_item_id: workItemId,
@@ -245,9 +260,10 @@ function getWorkItem(workItemId: number): WorkItemWithReports | undefined {
 }
 
 function getReport(workItemId: number) {
+    const activeMonth = getActiveMonth(workItemId);
     for (const p of props.projects) {
         const wi = p.work_items.find(w => w.id === workItemId);
-        if (wi) return wi.performance_reports.find(r => r.period_month === props.filters.month);
+        if (wi) return wi.performance_reports.find(r => r.period_month === activeMonth);
     }
     return undefined;
 }
@@ -256,14 +272,15 @@ function computePct(workItemId: number): number {
     const wi = getWorkItem(workItemId);
     if (!wi || !wi.target || Number(wi.target) <= 0) return 0;
 
+    const activeMonth = getActiveMonth(workItemId);
     // Sum all other months' saved realizations (cumulative progress)
     const prevTotal = wi.performance_reports
-        .filter(r => r.period_month !== props.filters.month)
+        .filter(r => r.period_month !== activeMonth)
         .reduce((sum, r) => sum + Number(r.realization), 0);
 
     const state = itemStates.get(workItemId);
     const savedRealization = wi.performance_reports
-        .find(r => r.period_month === props.filters.month)?.realization ?? 0;
+        .find(r => r.period_month === activeMonth)?.realization ?? 0;
     const currentRealization = state !== undefined
         ? Number(state.realization)
         : Number(savedRealization);
@@ -313,6 +330,7 @@ watch(
         itemStates.clear();
         itemProcessing.clear();
         itemErrors.clear();
+        itemActiveMonth.clear();
     },
 );
 
@@ -797,14 +815,14 @@ function projectSubmittedCount(project: TeamProjectWithMembers): number {
                                                         type="button"
                                                         :title="`${months[m-1].label}: ${wi.performance_reports.find(r => r.period_month === m) ? Number(wi.performance_reports.find(r => r.period_month === m)!.realization).toLocaleString('id') + ' ' + wi.target_unit : 'Belum diinput'}`"
                                                         :class="['h-3.5 w-3.5 shrink-0 rounded-full transition-all', monthDotClass(wi, m)]"
-                                                        @click.prevent="selectMonth(m)"
+                                                        @click.prevent="setItemMonth(wi.id, m)"
                                                     />
                                                 </div>
                                                 <div class="mt-1 flex items-center gap-1">
                                                     <span
                                                         v-for="m in 12"
                                                         :key="m"
-                                                        :class="['w-3.5 shrink-0 text-center text-[9px]', m === props.filters.month ? 'font-bold text-primary' : 'text-gray-400']"
+                                                        :class="['w-3.5 shrink-0 text-center text-[9px]', m === getActiveMonth(wi.id) ? 'font-bold text-primary' : 'text-gray-400']"
                                                     >{{ monthAbbr[m-1] }}</span>
                                                 </div>
                                             </div>
@@ -877,10 +895,10 @@ function projectSubmittedCount(project: TeamProjectWithMembers): number {
                                                 leave-active-class="transition-all duration-150 ease-in"
                                                 leave-to-class="opacity-0 -translate-y-1"
                                             >
-                                            <div v-if="getReport(wi.id)" class="mt-3 rounded-md border border-gray-200 bg-white p-3">
+                                            <div v-if="getReport(wi.id) || Number(getItemState(wi.id).realization) > 0" class="mt-3 rounded-md border border-gray-200 bg-white p-3">
                                                 <div class="mb-2 flex items-center justify-between">
                                                     <span class="text-xs font-medium text-gray-500">Bukti Dukung</span>
-                                                    <div class="flex gap-1.5">
+                                                    <div v-if="getReport(wi.id)" class="flex gap-1.5">
                                                         <button
                                                             type="button"
                                                             class="flex items-center gap-1 rounded border px-2 py-0.5 text-xs text-gray-600 hover:bg-gray-50"
@@ -900,79 +918,82 @@ function projectSubmittedCount(project: TeamProjectWithMembers): number {
                                                     </div>
                                                 </div>
 
-                                                <!-- Existing attachments -->
-                                                <div v-if="getReport(wi.id)!.attachments.length" class="mb-2 space-y-1.5">
-                                                    <div
-                                                        v-for="att in getReport(wi.id)!.attachments"
-                                                        :key="att.id"
-                                                        class="flex items-center gap-2 rounded border border-gray-100 bg-gray-50 px-2.5 py-1.5"
-                                                    >
-                                                        <svg v-if="att.type === 'file'" class="h-3.5 w-3.5 shrink-0 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
-                                                        <svg v-else class="h-3.5 w-3.5 shrink-0 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"/></svg>
-                                                        <a
-                                                            v-if="att.display_url"
-                                                            :href="att.display_url"
-                                                            target="_blank"
-                                                            rel="noopener"
-                                                            class="min-w-0 flex-1 truncate text-xs text-blue-600 hover:underline"
-                                                        >{{ att.title || att.file_name || att.url }}</a>
-                                                        <span v-else class="min-w-0 flex-1 truncate text-xs text-gray-600">{{ att.title || att.file_name || att.url }}</span>
-                                                        <span :class="['shrink-0 rounded border px-1.5 py-0.5 text-[10px]', attachmentStatusColor(att.status)]">
-                                                            {{ attachmentStatusLabel(att.status) }}
-                                                        </span>
-                                                        <button
-                                                            type="button"
-                                                            class="shrink-0 text-gray-300 hover:text-red-500"
-                                                            @click.prevent="deleteAttachment(att.id)"
+                                                <template v-if="getReport(wi.id)">
+                                                    <!-- Existing attachments -->
+                                                    <div v-if="getReport(wi.id)!.attachments.length" class="mb-2 space-y-1.5">
+                                                        <div
+                                                            v-for="att in getReport(wi.id)!.attachments"
+                                                            :key="att.id"
+                                                            class="flex items-center gap-2 rounded border border-gray-100 bg-gray-50 px-2.5 py-1.5"
                                                         >
-                                                            <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
-                                                        </button>
+                                                            <svg v-if="att.type === 'file'" class="h-3.5 w-3.5 shrink-0 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                                                            <svg v-else class="h-3.5 w-3.5 shrink-0 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"/></svg>
+                                                            <a
+                                                                v-if="att.display_url"
+                                                                :href="att.display_url"
+                                                                target="_blank"
+                                                                rel="noopener"
+                                                                class="min-w-0 flex-1 truncate text-xs text-blue-600 hover:underline"
+                                                            >{{ att.title || att.file_name || att.url }}</a>
+                                                            <span v-else class="min-w-0 flex-1 truncate text-xs text-gray-600">{{ att.title || att.file_name || att.url }}</span>
+                                                            <span :class="['shrink-0 rounded border px-1.5 py-0.5 text-[10px]', attachmentStatusColor(att.status)]">
+                                                                {{ attachmentStatusLabel(att.status) }}
+                                                            </span>
+                                                            <button
+                                                                type="button"
+                                                                class="shrink-0 text-gray-300 hover:text-red-500"
+                                                                @click.prevent="deleteAttachment(att.id)"
+                                                            >
+                                                                <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+                                                            </button>
+                                                        </div>
                                                     </div>
-                                                </div>
-                                                <p v-else-if="addingFileReportId !== getReport(wi.id)!.id && addingLinkReportId !== getReport(wi.id)!.id" class="mb-2 text-xs italic text-gray-400">Belum ada bukti dukung.</p>
+                                                    <p v-else-if="addingFileReportId !== getReport(wi.id)!.id && addingLinkReportId !== getReport(wi.id)!.id" class="mb-2 text-xs italic text-gray-400">Belum ada bukti dukung.</p>
 
-                                                <!-- Add file form -->
-                                                <Transition
-                                                    enter-from-class="opacity-0 -translate-y-1"
-                                                    enter-active-class="transition-all duration-200 ease-out"
-                                                    leave-active-class="transition-all duration-150 ease-in"
-                                                    leave-to-class="opacity-0 -translate-y-1"
-                                                >
-                                                <div v-if="addingFileReportId === getReport(wi.id)!.id" class="mt-2 space-y-1.5 rounded border border-dashed border-gray-200 p-2">
-                                                    <p class="text-[10px] font-medium text-gray-500 uppercase">Unggah File</p>
-                                                    <input
-                                                        type="file"
-                                                        accept=".pdf,.jpg,.jpeg,.png,.webp"
-                                                        class="block w-full text-xs text-gray-600 file:mr-2 file:rounded file:border file:border-gray-200 file:bg-gray-50 file:px-2 file:py-0.5 file:text-xs file:text-gray-600"
-                                                        @change="e => fileForm.file = (e.target as HTMLInputElement).files?.[0] ?? null"
-                                                    />
-                                                    <Input v-model="fileForm.title" placeholder="Judul (opsional)" class="text-xs" />
-                                                    <InputError :message="fileForm.errors.file" />
-                                                    <div class="flex gap-1.5">
-                                                        <button type="button" class="rounded px-3 py-1 text-xs text-gray-500 hover:bg-gray-100" @click.prevent="addingFileReportId = null">Batal</button>
-                                                        <button type="button" class="rounded bg-primary px-3 py-1 text-xs text-white hover:bg-primary/90" :disabled="fileForm.processing || !fileForm.file" @click.prevent="submitFile(getReport(wi.id)!.id)">Unggah</button>
+                                                    <!-- Add file form -->
+                                                    <Transition
+                                                        enter-from-class="opacity-0 -translate-y-1"
+                                                        enter-active-class="transition-all duration-200 ease-out"
+                                                        leave-active-class="transition-all duration-150 ease-in"
+                                                        leave-to-class="opacity-0 -translate-y-1"
+                                                    >
+                                                    <div v-if="addingFileReportId === getReport(wi.id)!.id" class="mt-2 space-y-1.5 rounded border border-dashed border-gray-200 p-2">
+                                                        <p class="text-[10px] font-medium text-gray-500 uppercase">Unggah File</p>
+                                                        <input
+                                                            type="file"
+                                                            accept=".pdf,.jpg,.jpeg,.png,.webp"
+                                                            class="block w-full text-xs text-gray-600 file:mr-2 file:rounded file:border file:border-gray-200 file:bg-gray-50 file:px-2 file:py-0.5 file:text-xs file:text-gray-600"
+                                                            @change="e => fileForm.file = (e.target as HTMLInputElement).files?.[0] ?? null"
+                                                        />
+                                                        <Input v-model="fileForm.title" placeholder="Judul (opsional)" class="text-xs" />
+                                                        <InputError :message="fileForm.errors.file" />
+                                                        <div class="flex gap-1.5">
+                                                            <button type="button" class="rounded px-3 py-1 text-xs text-gray-500 hover:bg-gray-100" @click.prevent="addingFileReportId = null">Batal</button>
+                                                            <button type="button" class="rounded bg-primary px-3 py-1 text-xs text-white hover:bg-primary/90" :disabled="fileForm.processing || !fileForm.file" @click.prevent="submitFile(getReport(wi.id)!.id)">Unggah</button>
+                                                        </div>
                                                     </div>
-                                                </div>
-                                                </Transition>
+                                                    </Transition>
 
-                                                <!-- Add link form -->
-                                                <Transition
-                                                    enter-from-class="opacity-0 -translate-y-1"
-                                                    enter-active-class="transition-all duration-200 ease-out"
-                                                    leave-active-class="transition-all duration-150 ease-in"
-                                                    leave-to-class="opacity-0 -translate-y-1"
-                                                >
-                                                <div v-if="addingLinkReportId === getReport(wi.id)!.id" class="mt-2 space-y-1.5 rounded border border-dashed border-gray-200 p-2">
-                                                    <p class="text-[10px] font-medium text-gray-500 uppercase">Tambah Tautan</p>
-                                                    <Input v-model="linkForm.url" placeholder="https://..." class="text-xs" />
-                                                    <Input v-model="linkForm.title" placeholder="Judul (opsional)" class="text-xs" />
-                                                    <InputError :message="linkForm.errors.url" />
-                                                    <div class="flex gap-1.5">
-                                                        <button type="button" class="rounded px-3 py-1 text-xs text-gray-500 hover:bg-gray-100" @click.prevent="addingLinkReportId = null">Batal</button>
-                                                        <button type="button" class="rounded bg-primary px-3 py-1 text-xs text-white hover:bg-primary/90" :disabled="linkForm.processing || !linkForm.url" @click.prevent="submitLink(getReport(wi.id)!.id)">Tambah</button>
+                                                    <!-- Add link form -->
+                                                    <Transition
+                                                        enter-from-class="opacity-0 -translate-y-1"
+                                                        enter-active-class="transition-all duration-200 ease-out"
+                                                        leave-active-class="transition-all duration-150 ease-in"
+                                                        leave-to-class="opacity-0 -translate-y-1"
+                                                    >
+                                                    <div v-if="addingLinkReportId === getReport(wi.id)!.id" class="mt-2 space-y-1.5 rounded border border-dashed border-gray-200 p-2">
+                                                        <p class="text-[10px] font-medium text-gray-500 uppercase">Tambah Tautan</p>
+                                                        <Input v-model="linkForm.url" placeholder="https://..." class="text-xs" />
+                                                        <Input v-model="linkForm.title" placeholder="Judul (opsional)" class="text-xs" />
+                                                        <InputError :message="linkForm.errors.url" />
+                                                        <div class="flex gap-1.5">
+                                                            <button type="button" class="rounded px-3 py-1 text-xs text-gray-500 hover:bg-gray-100" @click.prevent="addingLinkReportId = null">Batal</button>
+                                                            <button type="button" class="rounded bg-primary px-3 py-1 text-xs text-white hover:bg-primary/90" :disabled="linkForm.processing || !linkForm.url" @click.prevent="submitLink(getReport(wi.id)!.id)">Tambah</button>
+                                                        </div>
                                                     </div>
-                                                </div>
-                                                </Transition>
+                                                    </Transition>
+                                                </template>
+                                                <p v-else class="text-xs italic text-gray-400">Simpan laporan terlebih dahulu untuk menambahkan bukti dukung.</p>
                                             </div>
                                             </Transition>
                                         </div>
@@ -1289,6 +1310,21 @@ function projectSubmittedCount(project: TeamProjectWithMembers): number {
                                                         </div>
                                                         <!-- Current-month report details (attachments + approval) -->
                                                         <template v-for="currentReport in (getCurrentMonthReport(wi, member.id) ? [getCurrentMonthReport(wi, member.id)!] : [])" :key="currentReport.id">
+                                                            <!-- Kendala / Solusi / RTL -->
+                                                            <div v-if="currentReport.issues || currentReport.solutions || currentReport.action_plan" class="mt-2 grid gap-1.5 sm:grid-cols-3">
+                                                                <div v-if="currentReport.issues">
+                                                                    <p class="text-[10px] font-medium uppercase text-gray-400">Kendala</p>
+                                                                    <p class="mt-0.5 text-xs text-gray-700 whitespace-pre-line">{{ currentReport.issues }}</p>
+                                                                </div>
+                                                                <div v-if="currentReport.solutions">
+                                                                    <p class="text-[10px] font-medium uppercase text-gray-400">Solusi</p>
+                                                                    <p class="mt-0.5 text-xs text-gray-700 whitespace-pre-line">{{ currentReport.solutions }}</p>
+                                                                </div>
+                                                                <div v-if="currentReport.action_plan">
+                                                                    <p class="text-[10px] font-medium uppercase text-gray-400">Rencana Tindak Lanjut</p>
+                                                                    <p class="mt-0.5 text-xs text-gray-700 whitespace-pre-line">{{ currentReport.action_plan }}</p>
+                                                                </div>
+                                                            </div>
                                                             <!-- Attachments -->
                                                             <div v-if="currentReport.attachments?.length" class="mt-2 space-y-1">
                                                                 <div
@@ -1612,10 +1648,10 @@ function projectSubmittedCount(project: TeamProjectWithMembers): number {
                                             leave-active-class="transition-all duration-150 ease-in"
                                             leave-to-class="opacity-0 -translate-y-1"
                                         >
-                                        <div v-if="getReport(wi.id)" class="mt-3 rounded-md border border-gray-200 bg-white p-3">
+                                        <div v-if="getReport(wi.id) || Number(getItemState(wi.id).realization) > 0" class="mt-3 rounded-md border border-gray-200 bg-white p-3">
                                             <div class="mb-2 flex items-center justify-between">
                                                 <span class="text-xs font-medium text-gray-500">Bukti Dukung</span>
-                                                <div class="flex gap-1.5">
+                                                <div v-if="getReport(wi.id)" class="flex gap-1.5">
                                                     <button
                                                         type="button"
                                                         class="flex items-center gap-1 rounded border px-2 py-0.5 text-xs text-gray-600 hover:bg-gray-50"
@@ -1635,79 +1671,82 @@ function projectSubmittedCount(project: TeamProjectWithMembers): number {
                                                 </div>
                                             </div>
 
-                                            <!-- Existing attachments -->
-                                            <div v-if="getReport(wi.id)!.attachments.length" class="mb-2 space-y-1.5">
-                                                <div
-                                                    v-for="att in getReport(wi.id)!.attachments"
-                                                    :key="att.id"
-                                                    class="flex items-center gap-2 rounded border border-gray-100 bg-gray-50 px-2.5 py-1.5"
-                                                >
-                                                    <svg v-if="att.type === 'file'" class="h-3.5 w-3.5 shrink-0 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
-                                                    <svg v-else class="h-3.5 w-3.5 shrink-0 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"/></svg>
-                                                    <a
-                                                        v-if="att.display_url"
-                                                        :href="att.display_url"
-                                                        target="_blank"
-                                                        rel="noopener"
-                                                        class="min-w-0 flex-1 truncate text-xs text-blue-600 hover:underline"
-                                                    >{{ att.title || att.file_name || att.url }}</a>
-                                                    <span v-else class="min-w-0 flex-1 truncate text-xs text-gray-600">{{ att.title || att.file_name || att.url }}</span>
-                                                    <span :class="['shrink-0 rounded border px-1.5 py-0.5 text-[10px]', attachmentStatusColor(att.status)]">
-                                                        {{ attachmentStatusLabel(att.status) }}
-                                                    </span>
-                                                    <button
-                                                        type="button"
-                                                        class="shrink-0 text-gray-300 hover:text-red-500"
-                                                        @click.prevent="deleteAttachment(att.id)"
+                                            <template v-if="getReport(wi.id)">
+                                                <!-- Existing attachments -->
+                                                <div v-if="getReport(wi.id)!.attachments.length" class="mb-2 space-y-1.5">
+                                                    <div
+                                                        v-for="att in getReport(wi.id)!.attachments"
+                                                        :key="att.id"
+                                                        class="flex items-center gap-2 rounded border border-gray-100 bg-gray-50 px-2.5 py-1.5"
                                                     >
-                                                        <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
-                                                    </button>
+                                                        <svg v-if="att.type === 'file'" class="h-3.5 w-3.5 shrink-0 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                                                        <svg v-else class="h-3.5 w-3.5 shrink-0 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"/></svg>
+                                                        <a
+                                                            v-if="att.display_url"
+                                                            :href="att.display_url"
+                                                            target="_blank"
+                                                            rel="noopener"
+                                                            class="min-w-0 flex-1 truncate text-xs text-blue-600 hover:underline"
+                                                        >{{ att.title || att.file_name || att.url }}</a>
+                                                        <span v-else class="min-w-0 flex-1 truncate text-xs text-gray-600">{{ att.title || att.file_name || att.url }}</span>
+                                                        <span :class="['shrink-0 rounded border px-1.5 py-0.5 text-[10px]', attachmentStatusColor(att.status)]">
+                                                            {{ attachmentStatusLabel(att.status) }}
+                                                        </span>
+                                                        <button
+                                                            type="button"
+                                                            class="shrink-0 text-gray-300 hover:text-red-500"
+                                                            @click.prevent="deleteAttachment(att.id)"
+                                                        >
+                                                            <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+                                                        </button>
+                                                    </div>
                                                 </div>
-                                            </div>
-                                            <p v-else-if="addingFileReportId !== getReport(wi.id)!.id && addingLinkReportId !== getReport(wi.id)!.id" class="mb-2 text-xs italic text-gray-400">Belum ada bukti dukung.</p>
+                                                <p v-else-if="addingFileReportId !== getReport(wi.id)!.id && addingLinkReportId !== getReport(wi.id)!.id" class="mb-2 text-xs italic text-gray-400">Belum ada bukti dukung.</p>
 
-                                            <!-- Add file form -->
-                                            <Transition
-                                                enter-from-class="opacity-0 -translate-y-1"
-                                                enter-active-class="transition-all duration-200 ease-out"
-                                                leave-active-class="transition-all duration-150 ease-in"
-                                                leave-to-class="opacity-0 -translate-y-1"
-                                            >
-                                            <div v-if="addingFileReportId === getReport(wi.id)!.id" class="mt-2 space-y-1.5 rounded border border-dashed border-gray-200 p-2">
-                                                <p class="text-[10px] font-medium text-gray-500 uppercase">Unggah File</p>
-                                                <input
-                                                    type="file"
-                                                    accept=".pdf,.jpg,.jpeg,.png,.webp"
-                                                    class="block w-full text-xs text-gray-600 file:mr-2 file:rounded file:border file:border-gray-200 file:bg-gray-50 file:px-2 file:py-0.5 file:text-xs file:text-gray-600"
-                                                    @change="e => fileForm.file = (e.target as HTMLInputElement).files?.[0] ?? null"
-                                                />
-                                                <Input v-model="fileForm.title" placeholder="Judul (opsional)" class="text-xs" />
-                                                <InputError :message="fileForm.errors.file" />
-                                                <div class="flex gap-1.5">
-                                                    <button type="button" class="rounded px-3 py-1 text-xs text-gray-500 hover:bg-gray-100" @click.prevent="addingFileReportId = null">Batal</button>
-                                                    <button type="button" class="rounded bg-primary px-3 py-1 text-xs text-white hover:bg-primary/90" :disabled="fileForm.processing || !fileForm.file" @click.prevent="submitFile(getReport(wi.id)!.id)">Unggah</button>
+                                                <!-- Add file form -->
+                                                <Transition
+                                                    enter-from-class="opacity-0 -translate-y-1"
+                                                    enter-active-class="transition-all duration-200 ease-out"
+                                                    leave-active-class="transition-all duration-150 ease-in"
+                                                    leave-to-class="opacity-0 -translate-y-1"
+                                                >
+                                                <div v-if="addingFileReportId === getReport(wi.id)!.id" class="mt-2 space-y-1.5 rounded border border-dashed border-gray-200 p-2">
+                                                    <p class="text-[10px] font-medium text-gray-500 uppercase">Unggah File</p>
+                                                    <input
+                                                        type="file"
+                                                        accept=".pdf,.jpg,.jpeg,.png,.webp"
+                                                        class="block w-full text-xs text-gray-600 file:mr-2 file:rounded file:border file:border-gray-200 file:bg-gray-50 file:px-2 file:py-0.5 file:text-xs file:text-gray-600"
+                                                        @change="e => fileForm.file = (e.target as HTMLInputElement).files?.[0] ?? null"
+                                                    />
+                                                    <Input v-model="fileForm.title" placeholder="Judul (opsional)" class="text-xs" />
+                                                    <InputError :message="fileForm.errors.file" />
+                                                    <div class="flex gap-1.5">
+                                                        <button type="button" class="rounded px-3 py-1 text-xs text-gray-500 hover:bg-gray-100" @click.prevent="addingFileReportId = null">Batal</button>
+                                                        <button type="button" class="rounded bg-primary px-3 py-1 text-xs text-white hover:bg-primary/90" :disabled="fileForm.processing || !fileForm.file" @click.prevent="submitFile(getReport(wi.id)!.id)">Unggah</button>
+                                                    </div>
                                                 </div>
-                                            </div>
-                                            </Transition>
+                                                </Transition>
 
-                                            <!-- Add link form -->
-                                            <Transition
-                                                enter-from-class="opacity-0 -translate-y-1"
-                                                enter-active-class="transition-all duration-200 ease-out"
-                                                leave-active-class="transition-all duration-150 ease-in"
-                                                leave-to-class="opacity-0 -translate-y-1"
-                                            >
-                                            <div v-if="addingLinkReportId === getReport(wi.id)!.id" class="mt-2 space-y-1.5 rounded border border-dashed border-gray-200 p-2">
-                                                <p class="text-[10px] font-medium text-gray-500 uppercase">Tambah Tautan</p>
-                                                <Input v-model="linkForm.url" placeholder="https://..." class="text-xs" />
-                                                <Input v-model="linkForm.title" placeholder="Judul (opsional)" class="text-xs" />
-                                                <InputError :message="linkForm.errors.url" />
-                                                <div class="flex gap-1.5">
-                                                    <button type="button" class="rounded px-3 py-1 text-xs text-gray-500 hover:bg-gray-100" @click.prevent="addingLinkReportId = null">Batal</button>
-                                                    <button type="button" class="rounded bg-primary px-3 py-1 text-xs text-white hover:bg-primary/90" :disabled="linkForm.processing || !linkForm.url" @click.prevent="submitLink(getReport(wi.id)!.id)">Tambah</button>
+                                                <!-- Add link form -->
+                                                <Transition
+                                                    enter-from-class="opacity-0 -translate-y-1"
+                                                    enter-active-class="transition-all duration-200 ease-out"
+                                                    leave-active-class="transition-all duration-150 ease-in"
+                                                    leave-to-class="opacity-0 -translate-y-1"
+                                                >
+                                                <div v-if="addingLinkReportId === getReport(wi.id)!.id" class="mt-2 space-y-1.5 rounded border border-dashed border-gray-200 p-2">
+                                                    <p class="text-[10px] font-medium text-gray-500 uppercase">Tambah Tautan</p>
+                                                    <Input v-model="linkForm.url" placeholder="https://..." class="text-xs" />
+                                                    <Input v-model="linkForm.title" placeholder="Judul (opsional)" class="text-xs" />
+                                                    <InputError :message="linkForm.errors.url" />
+                                                    <div class="flex gap-1.5">
+                                                        <button type="button" class="rounded px-3 py-1 text-xs text-gray-500 hover:bg-gray-100" @click.prevent="addingLinkReportId = null">Batal</button>
+                                                        <button type="button" class="rounded bg-primary px-3 py-1 text-xs text-white hover:bg-primary/90" :disabled="linkForm.processing || !linkForm.url" @click.prevent="submitLink(getReport(wi.id)!.id)">Tambah</button>
+                                                    </div>
                                                 </div>
-                                            </div>
-                                            </Transition>
+                                                </Transition>
+                                            </template>
+                                            <p v-else class="text-xs italic text-gray-400">Simpan laporan terlebih dahulu untuk menambahkan bukti dukung.</p>
                                         </div>
                                         </Transition>
                                     </div>

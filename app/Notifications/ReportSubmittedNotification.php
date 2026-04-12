@@ -28,14 +28,17 @@ class ReportSubmittedNotification extends Notification
             'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
         $monthName = $monthNames[$this->periodMonth] ?? $this->periodMonth;
 
+        $reporterName = $this->reporter->display_name ?? $this->reporter->name;
+
         return [
             'type' => 'report_submitted',
             'reporter_id' => $this->reporter->id,
-            'reporter_name' => $this->reporter->display_name ?? $this->reporter->name,
+            'reporter_name' => $reporterName,
             'period_month' => $this->periodMonth,
             'period_year' => $this->periodYear,
             'report_count' => $this->reportCount,
-            'message' => "{$this->reporter->display_name ?? $this->reporter->name} telah mengumpulkan {$this->reportCount} laporan kinerja untuk {$monthName} {$this->periodYear}.",
+            'message' => "{$reporterName} telah mengumpulkan {$this->reportCount} laporan kinerja untuk {$monthName} {$this->periodYear}.",
+            'url' => route('performance.index'),
         ];
     }
 }
