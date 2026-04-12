@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import AppLayout from '@/Layouts/AppLayout.vue';
 import { Head, router, useForm } from '@inertiajs/vue3';
-import { ref, computed, reactive } from 'vue';
+import { ref, computed, reactive, nextTick } from 'vue';
 import { Badge } from '@/Components/ui/badge';
 import { Button } from '@/Components/ui/button';
 import { Input } from '@/Components/ui/input';
@@ -176,13 +176,22 @@ function openNewForm() {
 }
 
 function submitNew() {
+    const submittedMonth = newForm.period_month;
     router.post(route('performance.batch'), {
         period_month: newForm.period_month,
         period_year: props.year,
         items: [{ work_item_id: props.work_item.id, realization: newForm.realization, issues: newForm.issues, solutions: newForm.solutions, action_plan: newForm.action_plan }],
     }, {
         preserveScroll: true,
-        onSuccess: () => { showNewForm.value = false; newForm.reset(); },
+        onSuccess: async () => {
+            showNewForm.value = false;
+            newForm.reset();
+            await nextTick();
+            const newReport = (props.reports ?? []).find(r => r.period_month === submittedMonth);
+            if (newReport) {
+                document.getElementById(`report-${newReport.id}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }
+        },
     });
 }
 
@@ -270,6 +279,7 @@ function pct(realization: number, target: number): number {
                 <div
                     v-for="report in (reports ?? [])"
                     :key="report.id"
+                    :id="`report-${report.id}`"
                     class="rounded-lg border border-gray-200 bg-white shadow-sm"
                 >
                     <!-- Report header -->
@@ -458,9 +468,10 @@ function pct(realization: number, target: number): number {
                         <Label class="text-xs">Rencana Tindak Lanjut</Label>
                         <Textarea v-model="newForm.action_plan" class="mt-1 min-h-16 text-sm" />
                     </div>
-                    <div class="flex gap-2">
+                    <div class="flex flex-wrap items-center gap-2">
                         <Button size="sm" :disabled="newForm.processing" @click="submitNew">Simpan</Button>
                         <Button size="sm" variant="ghost" @click="showNewForm = false">Batal</Button>
+                        <span class="text-[11px] text-gray-400 ml-1">Bukti dukung dapat ditambahkan setelah laporan disimpan.</span>
                     </div>
                 </div>
 
