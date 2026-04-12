@@ -261,10 +261,12 @@ function progressBarColor(pct: number): string {
                                         {{ submittedPct(project) }}%
                                     </span>
                                 </div>
-                                <Progress
-                                    :value="submittedPct(project)"
-                                    :class="['h-1.5', progressColor(submittedPct(project))]"
-                                />
+                                <div class="h-1.5 w-full rounded-full bg-gray-200 overflow-hidden">
+                                    <div
+                                        :class="['h-full rounded-full transition-all', progressBarColor(submittedPct(project))]"
+                                        :style="`width: ${submittedPct(project)}%`"
+                                    />
+                                </div>
                             </div>
                             <p v-else class="text-xs text-gray-400">Belum ada rincian kegiatan.</p>
                         </a>

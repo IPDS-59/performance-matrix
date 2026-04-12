@@ -158,6 +158,7 @@ const availableMonths = computed(() =>
 );
 
 const showNewForm = ref(false);
+const newFormSubmitting = ref(false);
 const newForm = useForm({
     period_month: 1 as number,
     realization: '' as number | string,
@@ -166,33 +167,127 @@ const newForm = useForm({
     action_plan: '',
 });
 
+// ── Pending attachments for the new form ──────────────────────────────────
+
+interface PendingFile { kind: 'file'; file: File; title: string; localId: number }
+interface PendingUrl  { kind: 'url';  url: string; title: string; localId: number }
+type PendingAttachment = PendingFile | PendingUrl;
+
+let pendingIdCounter = 0;
+const newPendingAttachments = ref<PendingAttachment[]>([]);
+const newAttachTab = ref<'file' | 'url'>('file');
+const newAttachFile = ref<File | null>(null);
+const newAttachFileTitle = ref('');
+const newAttachFileError = ref('');
+const newAttachFileInput = ref<HTMLInputElement | null>(null);
+const newAttachUrl = ref('');
+const newAttachUrlTitle = ref('');
+const newAttachUrlError = ref('');
+
+const ALLOWED_MIME = ['application/pdf', 'image/jpeg', 'image/png', 'image/webp'];
+const MAX_BYTES = 10 * 1024 * 1024;
+
+function formatBytes(b: number): string {
+    return b < 1048576 ? `${(b / 1024).toFixed(1)} KB` : `${(b / 1048576).toFixed(1)} MB`;
+}
+
+function onNewAttachFileChange(e: Event) {
+    const f = (e.target as HTMLInputElement).files?.[0];
+    if (!f) return;
+    if (!ALLOWED_MIME.includes(f.type)) { newAttachFileError.value = 'Format tidak didukung. Gunakan PDF, JPG, PNG, atau WEBP.'; return; }
+    if (f.size > MAX_BYTES) { newAttachFileError.value = `Maks 10 MB (file ini ${formatBytes(f.size)}).`; return; }
+    newAttachFileError.value = '';
+    newAttachFile.value = f;
+}
+
+function addPendingFile() {
+    if (!newAttachFile.value) { newAttachFileError.value = 'Pilih file terlebih dahulu.'; return; }
+    newPendingAttachments.value.push({ kind: 'file', file: newAttachFile.value, title: newAttachFileTitle.value, localId: ++pendingIdCounter });
+    newAttachFile.value = null;
+    newAttachFileTitle.value = '';
+    newAttachFileError.value = '';
+    if (newAttachFileInput.value) newAttachFileInput.value.value = '';
+}
+
+function addPendingUrl() {
+    newAttachUrlError.value = '';
+    if (!newAttachUrl.value.trim()) { newAttachUrlError.value = 'URL tidak boleh kosong.'; return; }
+    try { new URL(newAttachUrl.value.trim()); } catch { newAttachUrlError.value = 'Format URL tidak valid.'; return; }
+    newPendingAttachments.value.push({ kind: 'url', url: newAttachUrl.value.trim(), title: newAttachUrlTitle.value, localId: ++pendingIdCounter });
+    newAttachUrl.value = '';
+    newAttachUrlTitle.value = '';
+}
+
+function removePending(localId: number) {
+    newPendingAttachments.value = newPendingAttachments.value.filter(a => a.localId !== localId);
+}
+
+function inertiaPost(url: string, data: Record<string, unknown> | FormData, options: Record<string, unknown> = {}): Promise<void> {
+    return new Promise<void>((resolve) => {
+        router.post(url, data as Parameters<typeof router.post>[1], { ...options, onFinish: () => resolve() });
+    });
+}
+
 function openNewForm() {
     newForm.period_month = availableMonths.value[0] ?? 1;
     newForm.realization = '';
     newForm.issues = '';
     newForm.solutions = '';
     newForm.action_plan = '';
+    newPendingAttachments.value = [];
+    newAttachFile.value = null;
+    newAttachFileTitle.value = '';
+    newAttachUrl.value = '';
+    newAttachUrlTitle.value = '';
     showNewForm.value = true;
 }
 
-function submitNew() {
+async function submitNew() {
     const submittedMonth = newForm.period_month;
-    router.post(route('performance.batch'), {
+    const pendingAtts = [...newPendingAttachments.value];
+    newFormSubmitting.value = true;
+
+    // Step 1: create the report
+    await inertiaPost(route('performance.batch'), {
         period_month: newForm.period_month,
         period_year: props.year,
         items: [{ work_item_id: props.work_item.id, realization: newForm.realization, issues: newForm.issues, solutions: newForm.solutions, action_plan: newForm.action_plan }],
-    }, {
-        preserveScroll: true,
-        onSuccess: async () => {
-            showNewForm.value = false;
-            newForm.reset();
-            await nextTick();
-            const newReport = (props.reports ?? []).find(r => r.period_month === submittedMonth);
-            if (newReport) {
-                document.getElementById(`report-${newReport.id}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    } as Record<string, unknown>, { preserveScroll: true });
+
+    showNewForm.value = false;
+    newForm.reset();
+    newPendingAttachments.value = [];
+
+    await nextTick();
+    const newReport = (props.reports ?? []).find(r => r.period_month === submittedMonth);
+
+    // Step 2: upload queued attachments sequentially
+    if (newReport && pendingAtts.length > 0) {
+        for (const att of pendingAtts) {
+            if (att.kind === 'file') {
+                const fd = new FormData();
+                fd.append('type', 'file');
+                fd.append('file', att.file);
+                if (att.title) fd.append('title', att.title);
+                await inertiaPost(route('report-attachments.store', newReport.id), fd, { forceFormData: true, preserveScroll: true });
+            } else {
+                await inertiaPost(route('report-attachments.store', newReport.id), {
+                    type: 'link',
+                    url: att.url,
+                    title: att.title || null,
+                } as Record<string, unknown>, { preserveScroll: true });
             }
-        },
-    });
+        }
+    }
+
+    newFormSubmitting.value = false;
+
+    // Scroll to the newly created report card
+    await nextTick();
+    const finalReport = (props.reports ?? []).find(r => r.period_month === submittedMonth);
+    if (finalReport) {
+        document.getElementById(`report-${finalReport.id}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
 }
 
 // ── Lead: review form state ────────────────────────────────────────────────
@@ -468,10 +563,98 @@ function pct(realization: number, target: number): number {
                         <Label class="text-xs">Rencana Tindak Lanjut</Label>
                         <Textarea v-model="newForm.action_plan" class="mt-1 min-h-16 text-sm" />
                     </div>
-                    <div class="flex flex-wrap items-center gap-2">
-                        <Button size="sm" :disabled="newForm.processing" @click="submitNew">Simpan</Button>
-                        <Button size="sm" variant="ghost" @click="showNewForm = false">Batal</Button>
-                        <span class="text-[11px] text-gray-400 ml-1">Bukti dukung dapat ditambahkan setelah laporan disimpan.</span>
+
+                    <!-- ── Bukti dukung queue ──────────────────────────────── -->
+                    <div class="rounded-lg border border-gray-200 bg-white p-3 space-y-2">
+                        <p class="text-[10px] font-semibold uppercase tracking-wide text-gray-400">Bukti Dukung (opsional)</p>
+
+                        <!-- Tab toggle -->
+                        <div class="flex gap-1 rounded-lg bg-gray-100 p-0.5 w-fit">
+                            <button
+                                type="button"
+                                :class="['rounded-md px-3 py-1 text-xs transition-colors', newAttachTab === 'file' ? 'bg-white shadow-sm font-medium text-gray-700' : 'text-gray-500 hover:text-gray-700']"
+                                @click="newAttachTab = 'file'"
+                            >File</button>
+                            <button
+                                type="button"
+                                :class="['rounded-md px-3 py-1 text-xs transition-colors', newAttachTab === 'url' ? 'bg-white shadow-sm font-medium text-gray-700' : 'text-gray-500 hover:text-gray-700']"
+                                @click="newAttachTab = 'url'"
+                            >URL</button>
+                        </div>
+
+                        <!-- File input -->
+                        <div v-if="newAttachTab === 'file'" class="space-y-1.5">
+                            <div
+                                class="flex cursor-pointer items-center gap-3 rounded-lg border border-dashed border-gray-200 bg-gray-50 px-4 py-3 hover:border-blue-300 hover:bg-blue-50/50 transition-colors"
+                                @click="newAttachFileInput?.click()"
+                            >
+                                <svg class="h-4 w-4 shrink-0 text-gray-400" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5m-13.5-9L12 3m0 0 4.5 4.5M12 3v13.5" />
+                                </svg>
+                                <span class="text-xs text-gray-500">
+                                    <span v-if="newAttachFile">{{ newAttachFile.name }} <span class="text-gray-400">({{ formatBytes(newAttachFile.size) }})</span></span>
+                                    <span v-else><span class="text-blue-600">Klik pilih file</span> · PDF, JPG, PNG, WEBP · Maks 10 MB</span>
+                                </span>
+                                <input ref="newAttachFileInput" type="file" accept=".pdf,.jpg,.jpeg,.png,.webp" class="sr-only" @change="onNewAttachFileChange" />
+                            </div>
+                            <InputError :message="newAttachFileError" />
+                            <div v-if="newAttachFile" class="flex items-center gap-2">
+                                <Input v-model="newAttachFileTitle" placeholder="Label (opsional)" class="h-7 text-xs flex-1" />
+                                <Button type="button" size="sm" class="h-7 text-xs px-2.5" @click="addPendingFile">Tambah</Button>
+                            </div>
+                        </div>
+
+                        <!-- URL input -->
+                        <div v-else class="space-y-1.5">
+                            <div class="flex items-center gap-2">
+                                <div class="relative flex-1">
+                                    <div class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-2.5">
+                                        <svg class="h-3 w-3 text-gray-400" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                                            <path stroke-linecap="round" stroke-linejoin="round" d="M13.19 8.688a4.5 4.5 0 011.242 7.244l-4.5 4.5a4.5 4.5 0 01-6.364-6.364l1.757-1.757m13.35-.622l1.757-1.757a4.5 4.5 0 00-6.364-6.364l-4.5 4.5a4.5 4.5 0 001.242 7.244" />
+                                        </svg>
+                                    </div>
+                                    <Input v-model="newAttachUrl" type="url" placeholder="https://…" class="h-7 pl-7 text-xs" @keydown.enter.prevent="addPendingUrl" />
+                                </div>
+                                <Input v-model="newAttachUrlTitle" placeholder="Label (opsional)" class="h-7 text-xs w-32" />
+                                <Button type="button" size="sm" class="h-7 text-xs px-2.5" @click="addPendingUrl">Tambah</Button>
+                            </div>
+                            <InputError :message="newAttachUrlError" />
+                        </div>
+
+                        <!-- Queued list -->
+                        <div v-if="newPendingAttachments.length" class="space-y-1 pt-1">
+                            <div
+                                v-for="att in newPendingAttachments"
+                                :key="att.localId"
+                                class="flex items-center gap-2 rounded-md border border-gray-100 bg-gray-50 px-2.5 py-1.5 text-xs"
+                            >
+                                <svg v-if="att.kind === 'file'" class="h-3 w-3 shrink-0 text-gray-400" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M18.375 12.739l-7.693 7.693a4.5 4.5 0 01-6.364-6.364l10.94-10.94A3 3 0 1119.5 7.372L8.552 18.32m.009-.01-.01.01m5.699-9.941-7.81 7.81a1.5 1.5 0 002.112 2.13" />
+                                </svg>
+                                <svg v-else class="h-3 w-3 shrink-0 text-gray-400" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M13.19 8.688a4.5 4.5 0 011.242 7.244l-4.5 4.5a4.5 4.5 0 01-6.364-6.364l1.757-1.757m13.35-.622l1.757-1.757a4.5 4.5 0 00-6.364-6.364l-4.5 4.5a4.5 4.5 0 001.242 7.244" />
+                                </svg>
+                                <span class="flex-1 truncate text-gray-700">
+                                    {{ att.title || (att.kind === 'file' ? att.file.name : att.url) }}
+                                </span>
+                                <button type="button" class="shrink-0 text-gray-400 hover:text-red-500 transition-colors" @click="removePending(att.localId)">
+                                    <svg class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                                    </svg>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="flex gap-2">
+                        <Button size="sm" :disabled="newFormSubmitting" @click="submitNew">
+                            <svg v-if="newFormSubmitting" class="mr-1.5 h-3.5 w-3.5 animate-spin" fill="none" viewBox="0 0 24 24">
+                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
+                                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/>
+                            </svg>
+                            {{ newFormSubmitting ? 'Menyimpan…' : 'Simpan' }}
+                        </Button>
+                        <Button size="sm" variant="ghost" :disabled="newFormSubmitting" @click="showNewForm = false">Batal</Button>
                     </div>
                 </div>
 
