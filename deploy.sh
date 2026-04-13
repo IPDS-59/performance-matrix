@@ -186,19 +186,43 @@ if [ "$ZIP" = true ]; then
     info "Creating deployment archive: ${ZIP_NAME} ..."
 
     EXCLUDES=(
-        # VCS / tooling
+        # VCS / tooling directories
         ".git/*"
         ".github/*"
         ".beads/*"
         ".dolt/*"
         ".claude/*"
+        # IDE / editor config (not needed on server)
+        ".fleet/*"
+        ".idea/*"
+        ".nova/*"
+        ".vscode/*"
+        ".zed/*"
+        ".editorconfig"
+        ".gitignore"
+        ".gitattributes"
+        # OS junk
+        ".DS_Store"
+        "Thumbs.db"
         # Dev dependencies
         "node_modules/*"
         # Test / dev-only files
         "tests/*"
         "docs/*"
         "example_static/*"
-        # Env files — .env.example is intentionally kept (serves as template on server)
+        # Dev tooling files
+        "phpunit.xml"
+        ".phpunit.result.cache"
+        ".phpunit.cache/*"
+        ".phpactor.json"
+        "_ide_helper.php"
+        "Homestead.json"
+        "Homestead.yaml"
+        "auth.json"
+        "*.db"
+        ".beads-credential-key"
+        "storage/pail/*"
+        # Env files — .env.example intentionally kept as template
         ".env"
         ".env.prod"
         ".env.production"
@@ -210,7 +234,6 @@ if [ "$ZIP" = true ]; then
         "deploy.sh"
         "migrate-prod.sh"
         "*.md"
-        "phpunit.xml"
         # JS build source (compiled output in public/build/ is kept)
         "pnpm-lock.yaml"
         "package.json"
@@ -222,13 +245,13 @@ if [ "$ZIP" = true ]; then
         "components.json"
         "resources/js/*"
         "resources/css/*"
-        # Runtime-generated storage (server creates its own)
+        # Runtime-generated storage (dirs are re-injected below as empty)
         "storage/logs/*"
         "storage/framework/cache/*"
         "storage/framework/sessions/*"
         "storage/framework/views/*"
         "storage/app/public/*"
-        "${ZIP_NAME}"
+        "matriks-kinerja_*.zip"
     )
 
     EXCLUDE_ARGS=()
@@ -249,6 +272,28 @@ if [ "$ZIP" = true ]; then
     else
         warn ".env.production not found — zip will not contain a .env file."
     fi
+
+    # Re-inject required Laravel runtime directories stripped by the excludes above.
+    # Without these directories the app 500s immediately on first request.
+    info "Ensuring Laravel runtime directories are present in archive..."
+    TMP_DIRS=$(mktemp -d)
+    mkdir -p \
+        "${TMP_DIRS}/storage/framework/cache" \
+        "${TMP_DIRS}/storage/framework/sessions" \
+        "${TMP_DIRS}/storage/framework/views" \
+        "${TMP_DIRS}/storage/logs"
+    touch \
+        "${TMP_DIRS}/storage/framework/cache/.gitkeep" \
+        "${TMP_DIRS}/storage/framework/sessions/.gitkeep" \
+        "${TMP_DIRS}/storage/framework/views/.gitkeep" \
+        "${TMP_DIRS}/storage/logs/.gitkeep"
+    (cd "${TMP_DIRS}" && zip "${ZIP_PATH}" \
+        storage/framework/cache/.gitkeep \
+        storage/framework/sessions/.gitkeep \
+        storage/framework/views/.gitkeep \
+        storage/logs/.gitkeep -q)
+    rm -rf "${TMP_DIRS}"
+    success "Runtime directories injected."
 
     echo "  Size: $(du -sh "${ZIP_PATH}" | cut -f1)"
 
