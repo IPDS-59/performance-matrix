@@ -40,7 +40,6 @@ class RolePermissionSeeder extends Seeder
 
         $head = Role::firstOrCreate(['name' => 'head']);
         $head->syncPermissions([
-            'create-project',
             'view-matrix',
             'view-reports',
             'enter-performance',
