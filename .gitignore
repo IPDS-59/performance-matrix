@@ -6,6 +6,7 @@
 .env.prod
 migrate-prod.sh
 database/seeders/data/*.prod.json
+public/setup.php
 .phpactor.json
 .phpunit.result.cache
 /.fleet
