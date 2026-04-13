@@ -43,35 +43,14 @@ done
 # ── Prerequisites ─────────────────────────────────────────────────────────────
 command -v zip >/dev/null 2>&1 || die "'zip' is not installed."
 
-# ── Load .env.prod to resolve APP_URL / BASE_URL ─────────────────────────────
-ENV_FILE=".env.prod"
-APP_URL=""
-if [ -f "$ENV_FILE" ]; then
-    while IFS='=' read -r key value; do
-        [[ "$key" =~ ^[[:space:]]*# ]] && continue
-        [[ -z "$key" ]] && continue
-        value="${value%%#*}"
-        value="${value#\"}" ; value="${value%\"}"
-        value="${value#\'}" ; value="${value%\'}"
-        value="${value// /}"
-        export "$key=$value"
-    done < "$ENV_FILE"
-    # Strip protocol and trailing slash from APP_URL → tes.bpssulteng.id
-    BASE_URL="${APP_URL#https://}"
-    BASE_URL="${BASE_URL#http://}"
-    BASE_URL="${BASE_URL%/}"
-    info "Using APP_URL from ${ENV_FILE}: ${APP_URL}"
-else
-    warn "${ENV_FILE} not found — BASE_URL will be a placeholder in the output."
-    BASE_URL="your-domain.com"
-fi
-
 TIMESTAMP=$(date +%Y%m%d_%H%M%S)
 ZIP_NAME="matriks-kinerja_${TIMESTAMP}.zip"
 ZIP_PATH="$(pwd)/${ZIP_NAME}"
 
 # ─────────────────────────────────────────────────────────────────────────────
 # STEP 1 — Build frontend assets
+# (runs BEFORE loading .env.production so prod DB vars don't bleed into
+#  composer's post-autoload-dump hook → php artisan package:discover)
 # ─────────────────────────────────────────────────────────────────────────────
 if [ "$BUILD" = true ]; then
     info "Installing JS dependencies..."
@@ -84,6 +63,32 @@ if [ "$BUILD" = true ]; then
     info "Installing Composer dependencies (no-dev)..."
     composer install --no-dev --optimize-autoloader --no-interaction --quiet
     success "Composer install complete."
+fi
+
+# ── Load .env.production to resolve BASE_URL (after build, before zip) ───────
+# Loading here avoids prod DB vars leaking into the build step above.
+ENV_FILE=".env.production"
+APP_URL=""
+if [ -f "$ENV_FILE" ]; then
+    while IFS='=' read -r key value; do
+        [[ "$key" =~ ^[[:space:]]*# ]] && continue
+        [[ -z "$key" ]] && continue
+        value="${value%%#*}"
+        value="${value#\"}" ; value="${value%\"}"
+        value="${value#\'}" ; value="${value%\'}"
+        # Trim leading/trailing whitespace only (not internal spaces)
+        value="${value#"${value%%[! $'\t']*}"}"
+        value="${value%"${value##*[! $'\t']}"}"
+        export "$key=$value"
+    done < "$ENV_FILE"
+    # Strip protocol and trailing slash → tes.bpssulteng.id
+    BASE_URL="${APP_URL#https://}"
+    BASE_URL="${BASE_URL#http://}"
+    BASE_URL="${BASE_URL%/}"
+    info "Using APP_URL from ${ENV_FILE}: ${APP_URL}"
+else
+    warn "${ENV_FILE} not found — BASE_URL will be a placeholder in the output."
+    BASE_URL="your-domain.com"
 fi
 
 # ─────────────────────────────────────────────────────────────────────────────
