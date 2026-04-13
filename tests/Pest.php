@@ -1,10 +1,17 @@
 <?php
 
+if (class_exists(DuskTestCase::class)) {
+    pest()->extend(DuskTestCase::class)
+    //  ->use(Illuminate\Foundation\Testing\DatabaseMigrations::class)
+        ->in('Browser');
+}
+
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Spatie\Permission\Models\Permission;
 use Spatie\Permission\Models\Role;
 use Spatie\Permission\PermissionRegistrar;
+use Tests\DuskTestCase;
 use Tests\TestCase;
 
 /*
@@ -53,7 +60,7 @@ function seedRolesAndPermissions(): void
     app()[PermissionRegistrar::class]->forgetCachedPermissions();
 
     $permissions = [
-        'manage-teams', 'manage-employees', 'manage-projects',
+        'manage-teams', 'manage-employees', 'manage-projects', 'create-project',
         'manage-work-items', 'view-matrix', 'view-reports', 'enter-performance',
     ];
 
@@ -65,7 +72,7 @@ function seedRolesAndPermissions(): void
         ->syncPermissions(['manage-teams', 'manage-employees', 'manage-projects', 'manage-work-items', 'view-matrix', 'view-reports']);
 
     Role::firstOrCreate(['name' => 'head', 'guard_name' => 'web'])
-        ->syncPermissions(['view-matrix', 'view-reports']);
+        ->syncPermissions(['view-matrix', 'view-reports', 'enter-performance']);
 
     Role::firstOrCreate(['name' => 'staff', 'guard_name' => 'web'])
         ->syncPermissions(['enter-performance']);

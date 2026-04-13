@@ -8,6 +8,7 @@ use App\Events\PerformanceReportSaved;
 use App\Events\ProjectMembersUpdated;
 use App\Listeners\AssignStaffRole;
 use App\Listeners\LogPerformanceActivity;
+use App\Listeners\NotifyTeamLeadOnReportSubmitted;
 use App\Listeners\RecalculateTeamProgress;
 use App\Listeners\SyncProjectLeaderRole;
 use App\Models\PerformanceReport;
@@ -31,6 +32,7 @@ class AppServiceProvider extends ServiceProvider
         Event::listen(PerformanceReportSaved::class, RecalculateTeamProgress::class);
         Event::listen(PerformanceBatchSubmitted::class, LogPerformanceActivity::class);
         Event::listen(PerformanceBatchSubmitted::class, RecalculateTeamProgress::class);
+        Event::listen(PerformanceBatchSubmitted::class, NotifyTeamLeadOnReportSubmitted::class);
         Event::listen(ProjectMembersUpdated::class, SyncProjectLeaderRole::class);
         Event::listen(EmployeeLinkedToUser::class, AssignStaffRole::class);
     }

@@ -18,6 +18,7 @@ class RolePermissionSeeder extends Seeder
             'manage-employees',
             'manage-projects',
             'manage-work-items',
+            'create-project',
             'view-matrix',
             'view-reports',
             'enter-performance',
@@ -41,6 +42,7 @@ class RolePermissionSeeder extends Seeder
         $head->syncPermissions([
             'view-matrix',
             'view-reports',
+            'enter-performance',
         ]);
 
         $staff = Role::firstOrCreate(['name' => 'staff']);

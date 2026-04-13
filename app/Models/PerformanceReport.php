@@ -5,6 +5,8 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class PerformanceReport extends Model
 {
@@ -20,6 +22,10 @@ class PerformanceReport extends Model
         'issues',
         'solutions',
         'action_plan',
+        'approval_status',
+        'reviewed_by',
+        'reviewed_at',
+        'review_note',
     ];
 
     protected $casts = [
@@ -27,6 +33,7 @@ class PerformanceReport extends Model
         'period_year' => 'integer',
         'realization' => 'decimal:2',
         'achievement_percentage' => 'decimal:2',
+        'reviewed_at' => 'datetime',
     ];
 
     public function workItem(): BelongsTo
@@ -37,5 +44,40 @@ class PerformanceReport extends Model
     public function reporter(): BelongsTo
     {
         return $this->belongsTo(Employee::class, 'reported_by');
+    }
+
+    public function attachments(): HasMany
+    {
+        return $this->hasMany(ReportAttachment::class);
+    }
+
+    public function reviewer(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'reviewed_by');
+    }
+
+    public function reviews(): HasMany
+    {
+        return $this->hasMany(PerformanceReportReview::class)->orderBy('created_at');
+    }
+
+    public function latestReview(): HasOne
+    {
+        return $this->hasOne(PerformanceReportReview::class)->latestOfMany('created_at');
+    }
+
+    public function isPending(): bool
+    {
+        return $this->approval_status === 'pending';
+    }
+
+    public function isApproved(): bool
+    {
+        return $this->approval_status === 'approved';
+    }
+
+    public function isRejected(): bool
+    {
+        return $this->approval_status === 'rejected';
     }
 }

@@ -84,3 +84,49 @@ it('denies staff from updating a report for a project they are not in', function
 
     expect((new PerformancePolicy)->update($user, $report))->toBeFalse();
 });
+
+it('allows staff to delete their own non-approved report', function () {
+    $user = User::factory()->create();
+    $user->assignRole('staff');
+    $employee = Employee::factory()->create(['user_id' => $user->id]);
+
+    $workItem = WorkItem::factory()->create();
+    $report = PerformanceReport::factory()->create([
+        'work_item_id' => $workItem->id,
+        'reported_by' => $employee->id,
+        'approval_status' => 'pending',
+    ]);
+
+    expect((new PerformancePolicy)->delete($user, $report))->toBeTrue();
+});
+
+it('denies deleting an approved report', function () {
+    $user = User::factory()->create();
+    $user->assignRole('staff');
+    $employee = Employee::factory()->create(['user_id' => $user->id]);
+
+    $workItem = WorkItem::factory()->create();
+    $report = PerformanceReport::factory()->create([
+        'work_item_id' => $workItem->id,
+        'reported_by' => $employee->id,
+        'approval_status' => 'approved',
+    ]);
+
+    expect((new PerformancePolicy)->delete($user, $report))->toBeFalse();
+});
+
+it('denies deleting another employee\'s report', function () {
+    $user = User::factory()->create();
+    $user->assignRole('staff');
+    $employee = Employee::factory()->create(['user_id' => $user->id]);
+
+    $otherEmployee = Employee::factory()->create();
+    $workItem = WorkItem::factory()->create();
+    $report = PerformanceReport::factory()->create([
+        'work_item_id' => $workItem->id,
+        'reported_by' => $otherEmployee->id,
+        'approval_status' => 'pending',
+    ]);
+
+    expect((new PerformancePolicy)->delete($user, $report))->toBeFalse();
+});

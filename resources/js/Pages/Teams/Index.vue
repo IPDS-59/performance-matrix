@@ -4,12 +4,24 @@ import { Head, Link, router } from '@inertiajs/vue3';
 import type { Team } from '@/types';
 import { Button } from '@/Components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/Components/ui/table';
+import ConfirmDialog from '@/Components/ConfirmDialog.vue';
+import { ref } from 'vue';
 
 defineProps<{ teams: Team[] }>();
 
+const confirmOpen = ref(false);
+const pendingId = ref<number | null>(null);
+const pendingName = ref('');
+
 function confirmDelete(id: number, name: string) {
-    if (confirm(`Hapus tim "${name}"?`)) {
-        router.delete(route('teams.destroy', id));
+    pendingId.value = id;
+    pendingName.value = name;
+    confirmOpen.value = true;
+}
+
+function executeDelete() {
+    if (pendingId.value !== null) {
+        router.delete(route('teams.destroy', pendingId.value));
     }
 }
 </script>
@@ -50,7 +62,7 @@ function confirmDelete(id: number, name: string) {
                             </span>
                         </TableCell>
                         <TableCell class="text-right">
-                            <div class="flex justify-end gap-2">
+                            <div class="inline-flex gap-2">
                                 <Button variant="outline" size="sm" as-child>
                                     <Link :href="route('teams.edit', team.id)">Edit</Link>
                                 </Button>
@@ -63,5 +75,13 @@ function confirmDelete(id: number, name: string) {
                 </TableBody>
             </Table>
         </div>
+
+        <ConfirmDialog
+            v-model:open="confirmOpen"
+            title="Hapus Tim"
+            :description="`Tim &quot;${pendingName}&quot; akan dihapus secara permanen. Tindakan ini tidak dapat dibatalkan.`"
+            confirm-label="Hapus Tim"
+            @confirm="executeDelete"
+        />
     </AppLayout>
 </template>

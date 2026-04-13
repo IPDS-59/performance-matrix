@@ -50,6 +50,17 @@ class PerformancePolicy
         return $this->employeeOwnsWorkItem($employee, $workItem);
     }
 
+    public function delete(User $user, PerformanceReport $report): bool
+    {
+        if (! $user->hasPermissionTo('enter-performance')) {
+            return false;
+        }
+
+        $employee = $user->employee;
+
+        return $employee && (int) $report->reported_by === $employee->id && ! $report->isApproved();
+    }
+
     private function employeeOwnsWorkItem(Employee $employee, WorkItem $workItem): bool
     {
         return $workItem->project->members()->where('employees.id', $employee->id)->exists();

@@ -13,9 +13,15 @@ it('renders index for admin', function () {
         ->assertInertia(fn ($page) => $page->component('Projects/Index')->has('projects')->has('teams'));
 });
 
-it('denies index for staff', function () {
+it('allows index for staff', function () {
     $this->actingAs(staffUser())
         ->get(route('projects.index'))
+        ->assertInertia(fn ($page) => $page->component('Projects/Index')->has('projects')->has('teams'));
+});
+
+it('denies project creation for staff', function () {
+    $this->actingAs(staffUser())
+        ->get(route('projects.create'))
         ->assertForbidden();
 });
 
@@ -25,7 +31,7 @@ it('renders create form', function () {
         ->assertInertia(fn ($page) => $page->component('Projects/Create')->has('teams')->has('employees'));
 });
 
-it('stores a project and redirects', function () {
+it('stores a project and redirects to edit', function () {
     $team = Team::factory()->create();
 
     $this->actingAs(adminUser())
@@ -36,7 +42,7 @@ it('stores a project and redirects', function () {
             'status' => 'active',
             'members' => [],
         ])
-        ->assertRedirect(route('projects.index'));
+        ->assertRedirect(route('projects.edit', Project::where('name', 'Sensus Penduduk')->firstOrFail()));
 
     expect(Project::where('name', 'Sensus Penduduk')->exists())->toBeTrue();
 });

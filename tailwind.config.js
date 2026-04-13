@@ -1,5 +1,6 @@
 import defaultTheme from 'tailwindcss/defaultTheme';
 import forms from '@tailwindcss/forms';
+import animate from 'tailwindcss-animate';
 
 /** @type {import('tailwindcss').Config} */
 export default {
@@ -18,6 +19,15 @@ export default {
     				'Figtree',
                     ...defaultTheme.fontFamily.sans
                 ]
+    		},
+    		animation: {
+    			'bounce-x': 'bounceX 1s ease-in-out infinite',
+    		},
+    		keyframes: {
+    			bounceX: {
+    				'0%, 100%': { transform: 'translateX(0)', animationTimingFunction: 'cubic-bezier(0.8,0,1,1)' },
+    				'50%': { transform: 'translateX(5px)', animationTimingFunction: 'cubic-bezier(0,0,0.2,1)' },
+    			},
     		},
     		borderRadius: {
     			lg: 'var(--radius)',
@@ -69,5 +79,5 @@ export default {
     	}
     },
 
-    plugins: [forms],
+    plugins: [forms, animate],
 };

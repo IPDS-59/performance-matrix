@@ -13,7 +13,17 @@ class ProjectSeeder extends Seeder
 {
     public function run(): void
     {
-        $data = json_decode(File::get(database_path('seeders/data/seeder_data.json')), true);
+        $path = database_path('seeders/data/seeder_data.prod.json');
+        if (! File::exists($path)) {
+            $path = database_path('seeders/data/seeder_data.json');
+        }
+        if (! File::exists($path)) {
+            $this->command->warn('seeder_data.json not found — skipping ProjectSeeder');
+
+            return;
+        }
+
+        $data = json_decode(File::get($path), true);
 
         // Build team annual plans: collect unique objectives per team
         $teamObjectives = [];

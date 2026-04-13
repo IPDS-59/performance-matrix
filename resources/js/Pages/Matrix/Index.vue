@@ -6,6 +6,7 @@ import { ref, computed } from 'vue';
 import { Badge } from '@/Components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/Components/ui/select';
 import { Tabs, TabsList, TabsTrigger } from '@/Components/ui/tabs';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/Components/ui/tooltip';
 
 interface Assignment {
     project_id: number;
@@ -17,7 +18,7 @@ const props = defineProps<{
     employees: Employee[];
     projects: Project[];
     assignments: Record<number, Assignment[]>;
-    progress: Record<number, number>;
+    progress: Record<string, number>;
     teams: Team[];
     year: number;
     month: number;
@@ -57,8 +58,23 @@ function isAssigned(employeeId: number, projectId: number): boolean {
     return assignmentSet.value.has(`${employeeId}:${projectId}`);
 }
 
-function getProgress(projectId: number): number {
-    return Number(props.progress[projectId] ?? 0);
+// Track which employee:project pairs have leader role
+const leaderSet = computed(() => {
+    const set = new Set<string>();
+    Object.entries(props.assignments).forEach(([projectId, members]) => {
+        members.forEach(m => {
+            if (m.role === 'leader') set.add(`${m.employee_id}:${projectId}`);
+        });
+    });
+    return set;
+});
+
+function isLeader(employeeId: number, projectId: number): boolean {
+    return leaderSet.value.has(`${employeeId}:${projectId}`);
+}
+
+function getEmployeeProgress(employeeId: number, projectId: number): number {
+    return Number(props.progress[`${employeeId}:${projectId}`] ?? 0);
 }
 
 function cellBgColor(pct: number): string {
@@ -83,8 +99,8 @@ function cellBgColor(pct: number): string {
             </Tabs>
 
             <Select v-model="teamId" @update:modelValue="applyFilters">
-                <SelectTrigger class="w-52">
-                    <SelectValue placeholder="Semua tim" />
+                <SelectTrigger class="min-w-[13rem] max-w-[22rem] overflow-hidden">
+                    <SelectValue placeholder="Semua tim" class="truncate" />
                 </SelectTrigger>
                 <SelectContent>
                     <SelectItem :value="null">Semua tim</SelectItem>
@@ -111,11 +127,26 @@ function cellBgColor(pct: number): string {
             </Select>
         </div>
 
-        <!-- Legend -->
+        <!-- Legend for progress mode -->
         <div v-if="viewMode === 'progress'" class="mb-3 flex items-center gap-4 text-xs">
             <span class="flex items-center gap-1"><span class="inline-block h-3 w-3 rounded bg-green-200"></span> ≥80%</span>
             <span class="flex items-center gap-1"><span class="inline-block h-3 w-3 rounded bg-yellow-200"></span> 50–79%</span>
             <span class="flex items-center gap-1"><span class="inline-block h-3 w-3 rounded bg-red-200"></span> &lt;50%</span>
+        </div>
+        <!-- Legend for assignment mode -->
+        <div v-else class="mb-3 flex items-center gap-4 text-xs">
+            <span class="flex items-center gap-1">
+                <span class="inline-flex h-5 w-5 items-center justify-center rounded-full bg-green-500 text-white text-[10px] font-bold">✓</span>
+                Anggota
+            </span>
+            <span class="flex items-center gap-1">
+                <span class="inline-flex h-5 w-5 items-center justify-center rounded-full bg-amber-400 text-white text-[10px] font-bold">★</span>
+                Ketua Tim
+            </span>
+            <span class="flex items-center gap-1">
+                <span class="inline-block h-2 w-2 rounded-full bg-gray-200"></span>
+                Tidak Ditugaskan
+            </span>
         </div>
 
         <!-- Grid (virtual scroll via overflow) -->
@@ -131,17 +162,25 @@ function cellBgColor(pct: number): string {
                             :key="project.id"
                             class="border-b border-r px-2 py-2 font-medium text-center max-w-[100px]"
                         >
-                            <div class="w-20 overflow-hidden text-ellipsis whitespace-nowrap" :title="project.name">
-                                {{ project.name }}
-                            </div>
+                            <TooltipProvider>
+                                <Tooltip>
+                                    <TooltipTrigger as-child>
+                                        <div class="w-20 cursor-default overflow-hidden text-ellipsis whitespace-nowrap">
+                                            {{ project.name }}
+                                        </div>
+                                    </TooltipTrigger>
+                                    <TooltipContent class="max-w-xs text-center text-xs">
+                                        {{ project.name }}
+                                    </TooltipContent>
+                                </Tooltip>
+                            </TooltipProvider>
                         </th>
                     </tr>
                 </thead>
                 <tbody>
                     <tr v-for="employee in employees" :key="employee.id" class="border-b hover:bg-gray-50">
                         <td class="sticky left-0 bg-white border-r px-3 py-1.5 font-medium">
-                            <div>{{ employee.display_name || employee.name }}</div>
-                            <div class="text-gray-400">{{ employee.team?.name }}</div>
+                            {{ employee.display_name || employee.name }}
                         </td>
                         <td
                             v-for="project in projects"
@@ -150,19 +189,31 @@ function cellBgColor(pct: number): string {
                         >
                             <!-- Assignment mode -->
                             <template v-if="viewMode === 'assignment'">
-                                <span v-if="isAssigned(employee.id, project.id)" class="text-[#1B4B8A]">✓</span>
-                                <span v-else class="text-gray-200">·</span>
+                                <!-- Team lead: gold star circle -->
+                                <span
+                                    v-if="isLeader(employee.id, project.id)"
+                                    class="inline-flex h-6 w-6 items-center justify-center rounded-full bg-amber-400 text-white text-xs font-bold"
+                                    title="Ketua Tim"
+                                >★</span>
+                                <!-- Regular member: green check circle -->
+                                <span
+                                    v-else-if="isAssigned(employee.id, project.id)"
+                                    class="inline-flex h-6 w-6 items-center justify-center rounded-full bg-green-500 text-white text-xs font-bold"
+                                    title="Anggota"
+                                >✓</span>
+                                <!-- Not assigned -->
+                                <span v-else class="inline-block h-2 w-2 rounded-full bg-gray-100"></span>
                             </template>
 
                             <!-- Progress mode -->
                             <template v-else>
                                 <span
                                     v-if="isAssigned(employee.id, project.id)"
-                                    :class="['inline-block rounded px-1 font-semibold tabular-nums', cellBgColor(getProgress(project.id))]"
+                                    :class="['inline-block rounded px-1 font-semibold tabular-nums', cellBgColor(getEmployeeProgress(employee.id, project.id))]"
                                 >
-                                    {{ getProgress(project.id).toFixed(0) }}%
+                                    {{ getEmployeeProgress(employee.id, project.id).toFixed(0) }}%
                                 </span>
-                                <span v-else class="text-gray-200">·</span>
+                                <span v-else class="inline-block h-2 w-2 rounded-full bg-gray-100"></span>
                             </template>
                         </td>
                     </tr>

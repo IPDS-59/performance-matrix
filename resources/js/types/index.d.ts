@@ -66,6 +66,14 @@ export interface PerformanceReport {
     action_plan?: string | null;
 }
 
+export interface ReviewEvent {
+    id: number;
+    action: 'submitted' | 'resubmitted' | 'approved' | 'rejected';
+    note: string | null;
+    created_at: string;
+    actor: { id: number; name: string } | null;
+}
+
 export type PageProps<
     T extends Record<string, unknown> = Record<string, unknown>,
 > = T & {

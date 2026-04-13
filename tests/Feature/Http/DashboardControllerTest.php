@@ -71,8 +71,8 @@ it('renders matrix for head', function () {
         ->assertInertia(fn ($page) => $page->component('Matrix/Index'));
 });
 
-it('denies matrix for staff', function () {
+it('renders matrix for staff', function () {
     $this->actingAs(staffUser())
         ->get(route('matrix'))
-        ->assertForbidden();
+        ->assertInertia(fn ($page) => $page->component('Matrix/Index'));
 });

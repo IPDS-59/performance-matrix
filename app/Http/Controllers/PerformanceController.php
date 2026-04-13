@@ -4,55 +4,21 @@ namespace App\Http\Controllers;
 
 use App\Actions\Performance\SavePerformanceBatchAction;
 use App\Models\PerformanceReport;
-use App\Models\Project;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Inertia\Inertia;
-use Inertia\Response;
+use Illuminate\Support\Facades\DB;
 
 class PerformanceController extends Controller
 {
-    public function index(Request $request): Response
-    {
-        $this->authorize('create', PerformanceReport::class);
-
-        $employee = $request->user()->employee;
-
-        abort_if(! $employee, 403, 'Akun belum terhubung ke data pegawai.');
-
-        $year = $request->integer('year', now()->year);
-        $month = $request->integer('month', now()->month);
-
-        // Projects where this employee is a member, ordered by team then project name
-        $projects = Project::with([
-            'workItems.performanceReports' => fn ($q) => $q->where('period_year', $year)->where('period_month', $month),
-            'team:id,name',
-        ])
-            ->whereHas('members', fn ($q) => $q->where('employees.id', $employee->id))
-            ->where('year', $year)
-            ->join('teams', 'teams.id', '=', 'projects.team_id')
-            ->orderBy('teams.name')
-            ->orderBy('projects.name')
-            ->select('projects.*')
-            ->get();
-
-        return Inertia::render('Performance/Index', [
-            'employee' => $employee->only('id', 'name', 'display_name'),
-            'projects' => $projects,
-            'filters' => ['year' => $year, 'month' => $month],
-        ]);
-    }
-
     public function storeBatch(Request $request, SavePerformanceBatchAction $action): RedirectResponse
     {
         $this->authorize('create', PerformanceReport::class);
 
         $employee = $request->user()->employee;
-
-        abort_if(! $employee, 403, 'Akun belum terhubung ke data pegawai.');
+        abort_if(! $employee, 403);
 
         $validated = $request->validate([
-            'period_month' => ['required', 'integer', 'min:1', 'max:12'],
+            'period_month' => ['required', 'integer', 'between:1,12'],
             'period_year' => ['required', 'integer', 'min:2020'],
             'items' => ['required', 'array', 'min:1'],
             'items.*.work_item_id' => ['required', 'exists:work_items,id'],
@@ -70,5 +36,18 @@ class PerformanceController extends Controller
         );
 
         return back()->with('success', 'Laporan kinerja berhasil disimpan.');
+    }
+
+    public function destroy(PerformanceReport $report): RedirectResponse
+    {
+        $this->authorize('delete', $report);
+
+        DB::transaction(function () use ($report) {
+            $report->attachments()->each(fn ($a) => $a->delete());
+            $report->reviews()->delete();
+            $report->delete();
+        });
+
+        return back()->with('success', 'Laporan kinerja berhasil dihapus.');
     }
 }
