@@ -838,9 +838,9 @@ const empByAchievementChartOptions = {
                                                     v-if="isProjectLeader(member)"
                                                     class="flex shrink-0 items-center gap-1.5 rounded-full border border-amber-300 bg-amber-50 px-3 py-1 text-xs text-amber-800"
                                                 >
-                                                    <span class="text-amber-500" aria-label="Ketua">&#9733;</span>
+                                                    <span class="text-amber-500" aria-label="Ketua Proyek">&#9733;</span>
                                                     <span>{{ member.display_name || member.name }}</span>
-                                                    <Badge class="ml-0.5 h-4 bg-amber-500 px-1.5 text-[10px] text-white hover:bg-amber-500">Ketua</Badge>
+                                                    <Badge class="ml-0.5 h-4 bg-amber-500 px-1.5 text-[10px] text-white hover:bg-amber-500">Ketua Proyek</Badge>
                                                 </div>
                                             </template>
 
