@@ -177,6 +177,94 @@ echo '</body></html>';
 SETUP_SCRIPT
 
     success "setup.php generated."
+
+    # ── Diagnostic script — helps debug server issues without booting Laravel ──
+    DIAG_TOKEN=$(openssl rand -hex 16 2>/dev/null \
+        || python3 -c "import secrets; print(secrets.token_hex(16))" 2>/dev/null \
+        || echo "diagtoken")
+
+    cat > public/diag.php << DIAG_SCRIPT
+<?php
+// Server diagnostic — DELETE AFTER USE.
+// Access: https://yourdomain.com/diag.php?token=YOUR_TOKEN
+if ((\$_GET['token'] ?? '') !== '${DIAG_TOKEN}') { http_response_code(403); die('Forbidden'); }
+
+header('Content-Type: text/html; charset=utf-8');
+\$root = dirname(__DIR__);
+\$checks = [];
+
+// PHP version
+\$phpOk = version_compare(PHP_VERSION, '8.2.0', '>=');
+\$checks[] = ['PHP ' . PHP_VERSION, \$phpOk, \$phpOk ? 'OK' : 'Need >= 8.2'];
+
+// Required extensions
+foreach (['pdo', 'pdo_mysql', 'pdo_pgsql', 'mbstring', 'openssl', 'tokenizer', 'xml', 'ctype', 'json', 'bcmath', 'fileinfo'] as \$ext) {
+    \$ok = extension_loaded(\$ext);
+    \$checks[] = ["ext: \$ext", \$ok, \$ok ? 'loaded' : 'MISSING'];
+}
+
+// Critical paths
+foreach ([
+    'vendor/autoload.php'      => 'Composer autoloader',
+    'bootstrap/app.php'        => 'Bootstrap',
+    '.env'                     => '.env file',
+    'storage/framework/views'  => 'storage/framework/views (dir)',
+    'storage/framework/cache'  => 'storage/framework/cache (dir)',
+    'storage/framework/sessions' => 'storage/framework/sessions (dir)',
+    'storage/logs'             => 'storage/logs (dir)',
+    'bootstrap/cache'          => 'bootstrap/cache (dir)',
+] as \$rel => \$label) {
+    \$full = \$root . '/' . \$rel;
+    \$exists = file_exists(\$full);
+    \$writable = \$exists && is_writable(\$full);
+    \$checks[] = [\$label, \$exists, \$exists ? (\$writable ? 'exists + writable' : 'exists but NOT writable') : 'MISSING'];
+}
+
+// Try loading autoloader
+\$autoErr = '';
+if (file_exists(\$root . '/vendor/autoload.php')) {
+    try {
+        ob_start();
+        require \$root . '/vendor/autoload.php';
+        ob_end_clean();
+        \$checks[] = ['autoload require', true, 'OK'];
+    } catch (\Throwable \$e) {
+        ob_end_clean();
+        \$autoErr = \$e->getMessage();
+        \$checks[] = ['autoload require', false, \$autoErr];
+    }
+}
+
+// Try booting Laravel
+\$bootErr = '';
+if (empty(\$autoErr) && file_exists(\$root . '/bootstrap/app.php')) {
+    try {
+        ob_start();
+        \$app = require \$root . '/bootstrap/app.php';
+        ob_end_clean();
+        \$checks[] = ['Laravel bootstrap', true, 'OK'];
+    } catch (\Throwable \$e) {
+        ob_end_clean();
+        \$bootErr = \$e->getMessage();
+        \$checks[] = ['Laravel bootstrap', false, htmlspecialchars(\$bootErr)];
+    }
+}
+
+echo '<!doctype html><html><head><title>Diagnostics</title>
+<style>body{font-family:monospace;padding:2rem;max-width:900px}
+table{border-collapse:collapse;width:100%}td,th{padding:.4rem .8rem;border:1px solid #ddd;text-align:left}
+.ok{background:#dcfce7}.fail{background:#fee2e2}</style></head><body>
+<h2>Server Diagnostics</h2><table><tr><th>Check</th><th>Status</th><th>Detail</th></tr>';
+foreach (\$checks as [\$name,\$ok,\$detail]) {
+    \$cls = \$ok ? 'ok' : 'fail';
+    echo "<tr class='\$cls'><td>\$name</td><td>" . (\$ok?'✓':'✗') . "</td><td>\$detail</td></tr>";
+}
+echo '</table>';
+if (\$bootErr) echo '<h3>Boot error detail</h3><pre style="background:#fee2e2;padding:1rem">' . htmlspecialchars(\$bootErr) . '</pre>';
+echo '<p style="color:#888;font-size:.85em">Delete this file after use: public/diag.php</p></body></html>';
+DIAG_SCRIPT
+
+    success "diag.php generated (token: ${DIAG_TOKEN})."
 fi
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -297,9 +385,9 @@ if [ "$ZIP" = true ]; then
 
     echo "  Size: $(du -sh "${ZIP_PATH}" | cut -f1)"
 
-    # Remove setup.php from the working directory — it's inside the zip, not needed locally.
-    rm -f public/setup.php
-    success "Cleaned up public/setup.php from local directory."
+    # Remove generated scripts from working directory — they're inside the zip.
+    rm -f public/setup.php public/diag.php
+    success "Cleaned up public/setup.php and public/diag.php from local directory."
 fi
 
 # ─────────────────────────────────────────────────────────────────────────────
