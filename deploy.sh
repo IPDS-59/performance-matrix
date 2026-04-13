@@ -251,27 +251,35 @@ if (empty(\$autoErr) && file_exists(\$root . '/bootstrap/app.php')) {
     }
 }
 
-// Test DB connection (the most common cause of 500 after successful bootstrap)
-if (\$app) {
-    try {
-        \$db = \$app->make('db');
-        \$db->connection()->getPdo();
-        \$driver = \$db->connection()->getDriverName();
-        \$checks[] = ['DB connection (' . \$driver . ')', true, 'Connected OK'];
-    } catch (\Throwable \$e) {
-        \$checks[] = ['DB connection', false, htmlspecialchars(\$e->getMessage())];
-    }
+// Test DB connection via raw PDO (no app booting needed — avoids container issues)
+\$envRaw = file_exists(\$root . '/.env') ? file_get_contents(\$root . '/.env') : '';
+\$envGet = function(string \$key, string \$default = '') use (\$envRaw): string {
+    preg_match('/^' . preg_quote(\$key, '/') . '=(.*)$/m', \$envRaw, \$m);
+    return isset(\$m[1]) ? trim(\$m[1], " \t\r\n\"'") : \$default;
+};
 
-    // Test session store
-    try {
-        \$cfg = \$app->make('config');
-        \$sessionDriver = \$cfg->get('session.driver', '?');
-        \$cacheStore    = \$cfg->get('cache.default', '?');
-        \$checks[] = ['SESSION_DRIVER', true, \$sessionDriver];
-        \$checks[] = ['CACHE_STORE',    true, \$cacheStore];
-    } catch (\Throwable \$e) {
-        \$checks[] = ['Config read', false, htmlspecialchars(\$e->getMessage())];
-    }
+\$dbConn = \$envGet('DB_CONNECTION', 'mysql');
+\$dbHost = \$envGet('DB_HOST', '127.0.0.1');
+\$dbPort = \$envGet('DB_PORT', \$dbConn === 'pgsql' ? '5432' : '3306');
+\$dbName = \$envGet('DB_DATABASE');
+\$dbUser = \$envGet('DB_USERNAME');
+\$dbPass = \$envGet('DB_PASSWORD');
+\$sessionDriver = \$envGet('SESSION_DRIVER', '?');
+\$cacheStore    = \$envGet('CACHE_STORE', '?');
+
+\$checks[] = ['DB_HOST', true, \$dbHost];
+\$checks[] = ['DB_CONNECTION', true, \$dbConn];
+\$checks[] = ['SESSION_DRIVER', true, \$sessionDriver];
+\$checks[] = ['CACHE_STORE', true, \$cacheStore];
+
+try {
+    \$dsn = \$dbConn === 'pgsql'
+        ? "pgsql:host={\$dbHost};port={\$dbPort};dbname={\$dbName}"
+        : "mysql:host={\$dbHost};port={\$dbPort};dbname={\$dbName};charset=utf8mb4";
+    \$pdo = new PDO(\$dsn, \$dbUser, \$dbPass, [PDO::ATTR_TIMEOUT => 5, PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION]);
+    \$checks[] = ['DB connection', true, "Connected to {\$dbConn}://{\$dbHost}:{\$dbPort}/{\$dbName}"];
+} catch (\Throwable \$e) {
+    \$checks[] = ['DB connection', false, htmlspecialchars(\$e->getMessage())];
 }
 
 echo '<!doctype html><html><head><title>Diagnostics</title>
