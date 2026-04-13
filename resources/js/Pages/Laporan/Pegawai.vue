@@ -105,13 +105,36 @@ const achievementChartOptions = {
     },
 };
 
-// Chart 2 — top 10 by total projects (all-time)
+// Chart 2 — top 10 by project role (year-filtered)
+const projectTab = ref<'semua' | 'ketua' | 'anggota'>('semua');
+
+const projectFiltered = computed(() => {
+    const all = props.top10ByProjects;
+    if (projectTab.value === 'ketua') {
+        return [...all].sort((a, b) => b.leader_count - a.leader_count).slice(0, 10);
+    }
+    if (projectTab.value === 'anggota') {
+        return [...all].sort((a, b) => b.member_count - a.member_count).slice(0, 10);
+    }
+    return all.slice(0, 10);
+});
+
+const projectTabLabel = computed(() => {
+    if (projectTab.value === 'ketua') return 'sebagai ketua';
+    if (projectTab.value === 'anggota') return 'sebagai anggota';
+    return 'proyek';
+});
+
 const projectChartData = computed(() => ({
-    labels: props.top10ByProjects.map((e) => e.display_name ?? e.name),
+    labels: projectFiltered.value.map((e) => e.display_name ?? e.name),
     datasets: [
         {
-            label: 'Total Proyek',
-            data: props.top10ByProjects.map((e) => e.total_projects),
+            label: 'Proyek',
+            data: projectFiltered.value.map((e) =>
+                projectTab.value === 'ketua' ? e.leader_count :
+                projectTab.value === 'anggota' ? e.member_count :
+                e.total_projects
+            ),
             backgroundColor: 'rgba(5, 150, 105, 0.75)',
             borderColor: 'rgba(5, 150, 105, 1)',
             borderWidth: 1,
@@ -120,11 +143,14 @@ const projectChartData = computed(() => ({
     ],
 }));
 
-const maxProjects = computed(() =>
-    props.top10ByProjects.length
-        ? Math.ceil(Math.max(...props.top10ByProjects.map((e) => e.total_projects)) * 1.2)
-        : 10,
-);
+const maxProjects = computed(() => {
+    const vals = projectFiltered.value.map((e) =>
+        projectTab.value === 'ketua' ? e.leader_count :
+        projectTab.value === 'anggota' ? e.member_count :
+        e.total_projects
+    );
+    return vals.length ? Math.ceil(Math.max(...vals) * 1.2) : 10;
+});
 
 const projectChartOptions = computed(() => ({
     indexAxis: 'y' as const,
@@ -135,7 +161,7 @@ const projectChartOptions = computed(() => ({
         legend: { display: false },
         tooltip: {
             callbacks: {
-                label: (ctx: import('chart.js').TooltipItem<'bar'>) => ` ${ctx.parsed.x ?? 0} proyek`,
+                label: (ctx: import('chart.js').TooltipItem<'bar'>) => ` ${ctx.parsed.x ?? 0} ${projectTabLabel.value}`,
             },
         },
     },
@@ -216,12 +242,19 @@ function achievementColor(val: number | null) {
 
             <!-- Chart 2: Top 10 proyek terbanyak -->
             <div class="rounded-lg border bg-white p-6">
-                <div class="mb-1 flex items-center gap-2">
-                    <span class="inline-block h-3 w-3 rounded-full bg-emerald-600" />
-                    <h2 class="text-sm font-semibold text-gray-700">Top 10 Proyek Terbanyak</h2>
+                <div class="mb-1 flex items-center justify-between gap-2">
+                    <div class="flex items-center gap-2">
+                        <span class="inline-block h-3 w-3 rounded-full bg-emerald-600" />
+                        <h2 class="text-sm font-semibold text-gray-700">Top 10 Proyek Terbanyak</h2>
+                    </div>
+                    <div class="flex divide-x rounded-md border text-xs overflow-hidden">
+                        <button @click="projectTab = 'semua'" :class="[projectTab === 'semua' ? 'bg-emerald-600 text-white' : 'text-gray-500 hover:bg-gray-50', 'px-2 py-1']">Semua</button>
+                        <button @click="projectTab = 'ketua'" :class="[projectTab === 'ketua' ? 'bg-emerald-600 text-white' : 'text-gray-500 hover:bg-gray-50', 'px-2 py-1']">Ketua</button>
+                        <button @click="projectTab = 'anggota'" :class="[projectTab === 'anggota' ? 'bg-emerald-600 text-white' : 'text-gray-500 hover:bg-gray-50', 'px-2 py-1']">Anggota</button>
+                    </div>
                 </div>
                 <p class="mb-4 text-xs text-gray-400">Total keterlibatan proyek — {{ filters.year }}</p>
-                <div v-if="top10ByProjects.length" style="height: 300px;">
+                <div v-if="projectFiltered.length" style="height: 300px;">
                     <Bar :data="projectChartData" :options="projectChartOptions" />
                 </div>
                 <p v-else class="py-10 text-center text-sm text-gray-400">

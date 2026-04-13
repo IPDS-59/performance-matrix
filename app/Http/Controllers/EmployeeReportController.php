@@ -40,7 +40,7 @@ class EmployeeReportController extends Controller
             ])
             ->get();
 
-        // Top 10 employees by total project count for the selected year.
+        // Top employees by project count for the selected year (no limit — frontend slices per tab).
         $top10ByProjects = DB::table('employees')
             ->join('project_members', 'employees.id', '=', 'project_members.employee_id')
             ->join('projects', 'project_members.project_id', '=', 'projects.id')
@@ -48,7 +48,6 @@ class EmployeeReportController extends Controller
             ->where('projects.year', $year)
             ->groupBy('employees.id', 'employees.name', 'employees.display_name')
             ->orderByDesc('total_projects')
-            ->limit(10)
             ->select([
                 'employees.id',
                 'employees.name',
