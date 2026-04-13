@@ -1,0 +1,11 @@
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+
+    # Route all requests through the Laravel public/ directory.
+    # This is only needed when the hosting document root cannot be set
+    # to public/ directly. If you can point the domain directly at public/,
+    # remove this file — public/.htaccess handles everything from there.
+
+    RewriteRule ^$ public/ [L]
+    RewriteRule ((?!public/).+) public/$1 [L]
+</IfModule>
