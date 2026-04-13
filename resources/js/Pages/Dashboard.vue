@@ -369,18 +369,17 @@ const lineChartOptions = {
 
 // ── Employee ranking charts ────────────────────────────────────────────────
 
-const empByProjectsChartData = computed(() => ({
-    labels: (props.top_employees_by_projects ?? []).map(e => e.display_name || e.name),
-    datasets: [{
-        label: 'Proyek',
-        data: (props.top_employees_by_projects ?? []).map(e => e.project_count ?? 0),
-        backgroundColor: (props.top_employees_by_projects ?? []).map(e =>
-            e.id === props.employee?.id ? 'rgba(27,75,138,0.9)' : 'rgba(99,102,241,0.65)'
-        ),
-        borderRadius: 4,
-        borderSkipped: false,
-    }],
-}));
+const empByProjectsChartData = computed(() => {
+    const labels: string[] = [];
+    const data: number[] = [];
+    const backgroundColor: string[] = [];
+    for (const e of props.top_employees_by_projects ?? []) {
+        labels.push(e.display_name || e.name);
+        data.push(e.project_count ?? 0);
+        backgroundColor.push(e.id === props.employee?.id ? 'rgba(27,75,138,0.9)' : 'rgba(99,102,241,0.65)');
+    }
+    return { labels, datasets: [{ label: 'Proyek', data, backgroundColor, borderRadius: 4, borderSkipped: false }] };
+});
 
 const empByProjectsChartOptions = {
     indexAxis: 'y' as const,
@@ -407,10 +406,8 @@ const empByProjectsChartOptions = {
             ticks: {
                 font: { size: 10 },
                 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                callback: (val: any, idx: number) => {
-                    const label = (props.top_employees_by_projects ?? [])[idx]?.display_name
-                        || (props.top_employees_by_projects ?? [])[idx]?.name
-                        || '';
+                callback: (_val: any, idx: number) => {
+                    const label = empByProjectsChartData.value.labels[idx] ?? '';
                     return label.length > 16 ? label.substring(0, 14) + '…' : label;
                 },
             },
@@ -418,21 +415,23 @@ const empByProjectsChartOptions = {
     },
 };
 
-const empByAchievementChartData = computed(() => ({
-    labels: (props.top_employees_by_achievement ?? []).map(e => e.display_name || e.name),
-    datasets: [{
-        label: 'Capaian (%)',
-        data: (props.top_employees_by_achievement ?? []).map(e => e.avg_achievement ?? 0),
-        backgroundColor: (props.top_employees_by_achievement ?? []).map(e =>
+const empByAchievementChartData = computed(() => {
+    const labels: string[] = [];
+    const data: number[] = [];
+    const backgroundColor: string[] = [];
+    for (const e of props.top_employees_by_achievement ?? []) {
+        const pct = e.avg_achievement ?? 0;
+        labels.push(e.display_name || e.name);
+        data.push(pct);
+        backgroundColor.push(
             e.id === props.employee?.id ? 'rgba(27,75,138,0.9)' :
-            (e.avg_achievement ?? 0) >= 80 ? 'rgba(34,197,94,0.65)' :
-            (e.avg_achievement ?? 0) >= 50 ? 'rgba(234,179,8,0.65)' :
+            pct >= 80 ? 'rgba(34,197,94,0.65)' :
+            pct >= 50 ? 'rgba(234,179,8,0.65)' :
             'rgba(239,68,68,0.65)'
-        ),
-        borderRadius: 4,
-        borderSkipped: false,
-    }],
-}));
+        );
+    }
+    return { labels, datasets: [{ label: 'Capaian (%)', data, backgroundColor, borderRadius: 4, borderSkipped: false }] };
+});
 
 const empByAchievementChartOptions = {
     indexAxis: 'y' as const,
@@ -460,10 +459,8 @@ const empByAchievementChartOptions = {
             ticks: {
                 font: { size: 10 },
                 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                callback: (val: any, idx: number) => {
-                    const label = (props.top_employees_by_achievement ?? [])[idx]?.display_name
-                        || (props.top_employees_by_achievement ?? [])[idx]?.name
-                        || '';
+                callback: (_val: any, idx: number) => {
+                    const label = empByAchievementChartData.value.labels[idx] ?? '';
                     return label.length > 16 ? label.substring(0, 14) + '…' : label;
                 },
             },

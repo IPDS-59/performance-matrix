@@ -86,7 +86,9 @@ let removeSuccessListener: (() => void) | null = null;
 
 onMounted(() => {
     fetchNotifications();
-    pollInterval = setInterval(fetchNotifications, 60_000);
+    pollInterval = setInterval(() => {
+        if (document.visibilityState === 'visible') fetchNotifications();
+    }, 60_000);
 
     removeSuccessListener = router.on('success', (event: { detail: { page: { props: unknown } } }) => {
         const flash = (event.detail.page.props as Record<string, unknown>).flash as Record<string, string> | undefined;

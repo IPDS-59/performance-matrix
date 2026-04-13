@@ -172,7 +172,7 @@ function achievementColor(val: number | null) {
                         <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                        <SelectItem v-for="(m, idx) in MONTHS" :key="idx" :value="idx + 1">{{ m }}</SelectItem>
+                        <SelectItem v-for="(m, idx) in MONTHS" :key="m" :value="idx + 1">{{ m }}</SelectItem>
                     </SelectContent>
                 </Select>
             </div>
