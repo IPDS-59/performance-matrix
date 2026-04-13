@@ -584,7 +584,7 @@ const empByAchievementChartOptions = {
                                             </p>
                                             <Progress
                                                 :model-value="personal_stats.avg_achievement"
-                                                :class="['mt-2 h-1.5', progressVariant(personal_stats.avg_achievement)]"
+                                                class="mt-2 h-1.5" :indicator-class="progressVariant(personal_stats.avg_achievement)"
                                             />
                                         </div>
                                     </div>
@@ -723,7 +723,7 @@ const empByAchievementChartOptions = {
                                                         <div class="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-green-100 text-[10px] font-bold text-green-700">{{ (emp.display_name || emp.name).charAt(0).toUpperCase() }}</div>
                                                         <div class="min-w-0 flex-1">
                                                             <p :class="['truncate text-xs', emp.id === employee?.id ? 'font-semibold text-primary' : 'text-gray-700']">{{ emp.display_name || emp.name }}<span v-if="emp.id === employee?.id" class="ml-1 font-normal text-primary/70">(Anda)</span></p>
-                                                            <Progress :model-value="emp.avg_achievement ?? 0" :class="['mt-0.5 h-1', progressVariant(emp.avg_achievement ?? 0)]" />
+                                                            <Progress :model-value="emp.avg_achievement ?? 0" class="mt-0.5 h-1" :indicator-class="progressVariant(emp.avg_achievement ?? 0)" />
                                                         </div>
                                                         <span :class="['shrink-0 text-xs font-bold', achievementColor(emp.avg_achievement ?? 0)]">{{ (emp.avg_achievement ?? 0).toFixed(1) }}%</span>
                                                     </div>
@@ -766,7 +766,7 @@ const empByAchievementChartOptions = {
                                                 </div>
                                                 <Progress
                                                     :model-value="projectAvg(project)"
-                                                    :class="['mt-2 h-2', progressVariant(projectAvg(project))]"
+                                                    class="mt-2 h-2" :indicator-class="progressVariant(projectAvg(project))"
                                                 />
                                                 <p class="mt-2 text-xs text-gray-400">
                                                     {{ project.work_items.length }} item kerja
@@ -903,7 +903,7 @@ const empByAchievementChartOptions = {
                                     </p>
                                     <Progress
                                         :model-value="personal_stats.avg_achievement"
-                                        :class="['mt-2 h-1.5', progressVariant(personal_stats.avg_achievement)]"
+                                        class="mt-2 h-1.5" :indicator-class="progressVariant(personal_stats.avg_achievement)"
                                     />
                                 </div>
                             </div>
@@ -1094,7 +1094,7 @@ const empByAchievementChartOptions = {
                                                     </p>
                                                     <Progress
                                                         :model-value="emp.avg_achievement ?? 0"
-                                                        :class="['mt-0.5 h-1', progressVariant(emp.avg_achievement ?? 0)]"
+                                                        class="mt-0.5 h-1" :indicator-class="progressVariant(emp.avg_achievement ?? 0)"
                                                     />
                                                 </div>
                                                 <span :class="['shrink-0 text-xs font-bold', achievementColor(emp.avg_achievement ?? 0)]">
@@ -1147,7 +1147,7 @@ const empByAchievementChartOptions = {
                                         </div>
                                         <Progress
                                             :model-value="projectAvg(project)"
-                                            :class="['mt-2 h-2', progressVariant(projectAvg(project))]"
+                                            class="mt-2 h-2" :indicator-class="progressVariant(projectAvg(project))"
                                         />
                                         <p class="mt-2 text-xs text-gray-400">
                                             {{ project.work_items.length }} item kerja
@@ -1233,7 +1233,7 @@ const empByAchievementChartOptions = {
                                 </p>
                                 <Progress
                                     :model-value="personal_stats.avg_achievement"
-                                    :class="['mt-2 h-1.5', progressVariant(personal_stats.avg_achievement)]"
+                                    class="mt-2 h-1.5" :indicator-class="progressVariant(personal_stats.avg_achievement)"
                                 />
                             </div>
                         </div>
@@ -1289,7 +1289,7 @@ const empByAchievementChartOptions = {
                                             </span>
                                             <div class="min-w-0 flex-1">
                                                 <p class="truncate text-sm font-medium">{{ team.name }}</p>
-                                                <Progress :model-value="team.avg" :class="['mt-1 h-1.5', progressVariant(team.avg)]" />
+                                                <Progress :model-value="team.avg" class="mt-1 h-1.5" :indicator-class="progressVariant(team.avg)" />
                                             </div>
                                             <span :class="['shrink-0 text-sm font-bold', achievementColor(team.avg)]">
                                                 {{ team.avg.toFixed(1) }}%
@@ -1398,7 +1398,7 @@ const empByAchievementChartOptions = {
                                             </div>
                                             <div class="min-w-0 flex-1">
                                                 <p class="truncate text-xs text-gray-700">{{ emp.display_name || emp.name }}</p>
-                                                <Progress :model-value="emp.avg_achievement ?? 0" :class="['mt-0.5 h-1', progressVariant(emp.avg_achievement ?? 0)]" />
+                                                <Progress :model-value="emp.avg_achievement ?? 0" class="mt-0.5 h-1" :indicator-class="progressVariant(emp.avg_achievement ?? 0)" />
                                             </div>
                                             <span :class="['shrink-0 text-xs font-bold', achievementColor(emp.avg_achievement ?? 0)]">
                                                 {{ (emp.avg_achievement ?? 0).toFixed(1) }}%
@@ -1438,7 +1438,7 @@ const empByAchievementChartOptions = {
                                             {{ projectAvg(project).toFixed(1) }}%
                                         </span>
                                     </div>
-                                    <Progress :model-value="projectAvg(project)" :class="['mt-2 h-2', progressVariant(projectAvg(project))]" />
+                                    <Progress :model-value="projectAvg(project)" class="mt-2 h-2" :indicator-class="progressVariant(projectAvg(project))" />
                                     <p class="mt-2 text-xs text-gray-400">{{ project.work_items.length }} item kerja</p>
                                 </CardContent>
                             </Card>
@@ -1462,7 +1462,7 @@ const empByAchievementChartOptions = {
                         <p :class="['text-3xl font-bold', achievementColor(org_avg ?? 0)]">
                             {{ (org_avg ?? 0).toFixed(1) }}%
                         </p>
-                        <Progress :model-value="org_avg ?? 0" :class="['mt-2 h-1.5', progressVariant(org_avg ?? 0)]" />
+                        <Progress :model-value="org_avg ?? 0" class="mt-2 h-1.5" :indicator-class="progressVariant(org_avg ?? 0)" />
                     </CardContent>
                 </Card>
                 <Card>
@@ -1532,7 +1532,7 @@ const empByAchievementChartOptions = {
                                             </span>
                                             <div class="min-w-0 flex-1">
                                                 <p class="truncate text-sm font-medium">{{ team.name }}</p>
-                                                <Progress :model-value="team.avg" :class="['mt-1 h-1.5', progressVariant(team.avg)]" />
+                                                <Progress :model-value="team.avg" class="mt-1 h-1.5" :indicator-class="progressVariant(team.avg)" />
                                             </div>
                                             <span :class="['shrink-0 text-sm font-bold', achievementColor(team.avg)]">
                                                 {{ team.avg.toFixed(1) }}%

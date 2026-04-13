@@ -17,6 +17,7 @@ class ReportSubmittedNotification extends Notification
         public readonly int $periodYear,
         public readonly int $reportCount,
         public readonly ?Project $project = null,
+        public readonly ?int $workItemId = null,
     ) {}
 
     public function via(object $notifiable): array
@@ -42,9 +43,11 @@ class ReportSubmittedNotification extends Notification
             'project_id' => $this->project?->id,
             'project_name' => $this->project?->name,
             'message' => "{$reporterName} telah mengumpulkan {$this->reportCount} laporan kinerja untuk {$monthName} {$this->periodYear}.",
-            'url' => $this->project
-                ? route('performance.projects.show', $this->project->id)
-                : route('performance.index'),
+            'url' => $this->workItemId
+                ? route('performance.work-items.show', $this->workItemId)
+                : ($this->project
+                    ? route('performance.projects.show', $this->project->id)
+                    : route('performance.index')),
         ];
     }
 }
