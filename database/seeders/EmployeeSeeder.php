@@ -13,7 +13,10 @@ class EmployeeSeeder extends Seeder
 {
     public function run(): void
     {
-        $path = database_path('seeders/data/seeder_data.json');
+        $path = database_path('seeders/data/seeder_data.prod.json');
+        if (! File::exists($path)) {
+            $path = database_path('seeders/data/seeder_data.json');
+        }
         if (! File::exists($path)) {
             $this->command->warn('seeder_data.json not found — skipping EmployeeSeeder');
 
