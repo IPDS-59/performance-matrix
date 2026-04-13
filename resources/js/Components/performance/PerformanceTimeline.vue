@@ -1,11 +1,5 @@
 <script setup lang="ts">
-export interface ReviewEvent {
-    id: number;
-    action: 'submitted' | 'resubmitted' | 'approved' | 'rejected';
-    note: string | null;
-    created_at: string;
-    actor: { id: number; name: string } | null;
-}
+import type { ReviewEvent } from '@/types';
 
 const props = defineProps<{
     reviews: ReviewEvent[];

@@ -99,7 +99,7 @@ function submitUrl() {
         preserveScroll: true,
         onSuccess: () => { urlValue.value = ''; urlTitle.value = ''; },
         onFinish: () => { urlProcessing.value = false; },
-        onError: (errors) => { urlError.value = errors.url ?? errors.title ?? 'Terjadi kesalahan.'; },
+        onError: (errors: Record<string, string>) => { urlError.value = errors.url ?? errors.title ?? 'Terjadi kesalahan.'; },
     });
 }
 </script>

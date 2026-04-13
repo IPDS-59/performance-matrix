@@ -9,7 +9,7 @@ import { Label } from '@/Components/ui/label';
 import { Textarea } from '@/Components/ui/textarea';
 import InputError from '@/Components/InputError.vue';
 import PerformanceTimeline from '@/Components/Performance/PerformanceTimeline.vue';
-import type { ReviewEvent } from '@/Components/Performance/PerformanceTimeline.vue';
+import type { ReviewEvent } from '@/types';
 import BuktiDukungPicker from '@/Components/Performance/BuktiDukungPicker.vue';
 import {
     AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
@@ -132,11 +132,11 @@ function saveEdit(report: ReportData) {
         preserveScroll: true,
         onSuccess: () => closeForm(report.id),
         onFinish: () => { state.processing = false; },
-        onError: (errors) => {
+        onError: (errors: Record<string, string>) => {
             state.errors = {};
             for (const [key, val] of Object.entries(errors)) {
                 const match = key.match(/^items\.0\.(.+)$/);
-                state.errors[match ? match[1] : key] = val as string;
+                state.errors[match ? match[1] : key] = val;
             }
         },
     });
@@ -186,7 +186,7 @@ function saveResubmit(report: ReportData) {
         preserveScroll: true,
         onSuccess: () => closeForm(report.id),
         onFinish: () => { state.processing = false; },
-        onError: (errors) => { state.errors = errors; },
+        onError: (errors: Record<string, string>) => { state.errors = errors; },
     });
 }
 
