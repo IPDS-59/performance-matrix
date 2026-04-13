@@ -237,6 +237,7 @@ if (file_exists(\$root . '/vendor/autoload.php')) {
 
 // Try booting Laravel
 \$bootErr = '';
+\$app = null;
 if (empty(\$autoErr) && file_exists(\$root . '/bootstrap/app.php')) {
     try {
         ob_start();
@@ -247,6 +248,29 @@ if (empty(\$autoErr) && file_exists(\$root . '/bootstrap/app.php')) {
         ob_end_clean();
         \$bootErr = \$e->getMessage();
         \$checks[] = ['Laravel bootstrap', false, htmlspecialchars(\$bootErr)];
+    }
+}
+
+// Test DB connection (the most common cause of 500 after successful bootstrap)
+if (\$app) {
+    try {
+        \$db = \$app->make('db');
+        \$db->connection()->getPdo();
+        \$driver = \$db->connection()->getDriverName();
+        \$checks[] = ['DB connection (' . \$driver . ')', true, 'Connected OK'];
+    } catch (\Throwable \$e) {
+        \$checks[] = ['DB connection', false, htmlspecialchars(\$e->getMessage())];
+    }
+
+    // Test session store
+    try {
+        \$cfg = \$app->make('config');
+        \$sessionDriver = \$cfg->get('session.driver', '?');
+        \$cacheStore    = \$cfg->get('cache.default', '?');
+        \$checks[] = ['SESSION_DRIVER', true, \$sessionDriver];
+        \$checks[] = ['CACHE_STORE',    true, \$cacheStore];
+    } catch (\Throwable \$e) {
+        \$checks[] = ['Config read', false, htmlspecialchars(\$e->getMessage())];
     }
 }
 
