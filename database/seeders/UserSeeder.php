@@ -10,72 +10,84 @@ use Illuminate\Support\Str;
 
 class UserSeeder extends Seeder
 {
-    /** Derive email from employee name: "Sukma Nirmala Dewi" → "sukma@bpssulteng.id" */
-    private function emailFromName(string $name): string
+    /**
+     * Derive email from employee name: "Sukma Nirmala Dewi" → "sukma@bpssulteng.id"
+     * Appends a counter to resolve collisions: "sukma2@bpssulteng.id", etc.
+     *
+     * @param  array<string>  $usedEmails
+     */
+    private function emailFromName(string $name, array &$usedEmails): string
     {
         $firstName = Str::lower(Str::before($name, ' '));
+        $base = "{$firstName}@bpssulteng.id";
 
-        return "{$firstName}@bpssulteng.id";
-    }
+        if (! in_array($base, $usedEmails, true)) {
+            $usedEmails[] = $base;
 
-    private function linkEmployee(User $user, string $employeeName, ?array $extraUpdate = null): void
-    {
-        $employee = Employee::where('name', $employeeName)->first();
-        if ($employee && ! $employee->user_id) {
-            $employee->update(array_merge(['user_id' => $user->id], $extraUpdate ?? []));
-            $user->update(['name' => $employee->display_name ?? $employee->name]);
+            return $base;
         }
+
+        $counter = 2;
+        do {
+            $candidate = "{$firstName}{$counter}@bpssulteng.id";
+            $counter++;
+        } while (in_array($candidate, $usedEmails, true));
+
+        $usedEmails[] = $candidate;
+
+        return $candidate;
     }
 
     public function run(): void
     {
-        // Admin — no linked employee
+        // Track emails already allocated so we can handle first-name collisions.
+        $usedEmails = ['admin@bpssulteng.id'];
+
+        // ── Admin — no linked employee ────────────────────────────────────────
         $admin = User::firstOrCreate(
             ['email' => 'admin@bpssulteng.id'],
             [
-                'name' => 'Administrator',
+                'name'     => 'Administrator',
                 'password' => Hash::make('password'),
-                'role' => 'admin',
+                'role'     => 'admin',
             ]
         );
         $admin->syncRoles('admin');
 
-        // Kepala BPS Provinsi — andi@bpssulteng.id → Andi Kurniawan
-        $head = User::firstOrCreate(
-            ['email' => $this->emailFromName('Andi Kurniawan')],
-            [
-                'name' => 'Andi Kurniawan',
-                'password' => Hash::make('password'),
-                'role' => 'head',
-            ]
-        );
-        $head->syncRoles('head');
-        $this->linkEmployee($head, 'Andi Kurniawan', [
-            'position' => 'Kepala BPS Provinsi Sulawesi Tengah',
-        ]);
+        // ── One user per employee ─────────────────────────────────────────────
+        $employees = Employee::where('is_active', true)->orderBy('name')->get();
 
-        // Ketua Tim — bagas@bpssulteng.id → Bagas Wicaksono
-        $lead = User::firstOrCreate(
-            ['email' => $this->emailFromName('Bagas Wicaksono')],
-            [
-                'name' => 'Bagas Wicaksono',
-                'password' => Hash::make('password'),
-                'role' => 'staff',
-            ]
-        );
-        $lead->syncRoles('staff');
-        $this->linkEmployee($lead, 'Bagas Wicaksono');
+        foreach ($employees as $employee) {
+            $email = $this->emailFromName($employee->name, $usedEmails);
 
-        // Staff demo — citra@bpssulteng.id → Citra Dewanti
-        $staff = User::firstOrCreate(
-            ['email' => $this->emailFromName('Citra Dewanti')],
-            [
-                'name' => 'Citra Dewanti',
-                'password' => Hash::make('password'),
-                'role' => 'staff',
-            ]
-        );
-        $staff->syncRoles('staff');
-        $this->linkEmployee($staff, 'Citra Dewanti');
+            // Determine role: first employee in the list seeded as 'head', rest as 'staff'.
+            // Override: if the employee already has a linked user, keep that role.
+            $existingUser = $employee->user_id ? User::find($employee->user_id) : null;
+            if ($existingUser) {
+                // Already linked — just ensure the role is synced and email is tracked.
+                if (! in_array($existingUser->email, $usedEmails, true)) {
+                    $usedEmails[] = $existingUser->email;
+                }
+                continue;
+            }
+
+            $role = 'staff';
+
+            $user = User::firstOrCreate(
+                ['email' => $email],
+                [
+                    'name'     => $employee->display_name ?? $employee->name,
+                    'password' => Hash::make('password'),
+                    'role'     => $role,
+                ]
+            );
+            $user->syncRoles($role);
+
+            // Link employee → user (write-through display_name cache)
+            if (! $employee->user_id) {
+                $employee->update(['user_id' => $user->id]);
+                $user->update(['name' => $employee->display_name ?? $employee->name]);
+            }
+        }
     }
 }
