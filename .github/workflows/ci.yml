@@ -20,3 +20,4 @@ jobs:
       php-version: '8.5'
       node-version: '20'
       run-coverage: false
+      test-command: php artisan test --testsuite=Unit,Feature

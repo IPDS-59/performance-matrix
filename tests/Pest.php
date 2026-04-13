@@ -1,8 +1,10 @@
 <?php
 
-pest()->extend(DuskTestCase::class)
-//  ->use(Illuminate\Foundation\Testing\DatabaseMigrations::class)
-    ->in('Browser');
+if (class_exists(DuskTestCase::class)) {
+    pest()->extend(DuskTestCase::class)
+    //  ->use(Illuminate\Foundation\Testing\DatabaseMigrations::class)
+        ->in('Browser');
+}
 
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
