@@ -238,6 +238,18 @@ if [ "$ZIP" = true ]; then
 
     zip -r "${ZIP_PATH}" . "${EXCLUDE_ARGS[@]}" -q
     success "Archive created: ${ZIP_PATH}"
+
+    # Inject .env.production into the zip as .env (never touches the local dev .env)
+    if [ -f ".env.production" ]; then
+        TMP_ENV_DIR=$(mktemp -d)
+        cp .env.production "${TMP_ENV_DIR}/.env"
+        (cd "${TMP_ENV_DIR}" && zip "${ZIP_PATH}" .env -q)
+        rm -rf "${TMP_ENV_DIR}"
+        success ".env.production included in zip as .env"
+    else
+        warn ".env.production not found — zip will not contain a .env file."
+    fi
+
     echo "  Size: $(du -sh "${ZIP_PATH}" | cut -f1)"
 
     # Remove setup.php from the working directory — it's inside the zip, not needed locally.
@@ -261,7 +273,7 @@ echo "     of ${BASE_URL} to point to the public/ subfolder, e.g.:"
 echo "       ~/tes/public"
 echo "     (Without this, every URL including setup.php will return 404.)"
 echo ""
-echo "  5. Copy .env.example → .env and fill in your values:"
+echo "  5. .env is already included (from .env.production). Verify its values:"
 cat << ENV_HINT
        APP_ENV=production
        APP_DEBUG=false
