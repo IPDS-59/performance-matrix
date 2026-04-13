@@ -11,15 +11,26 @@ use Illuminate\Support\Str;
 class UserSeeder extends Seeder
 {
     /**
-     * Derive email from employee name: "Sukma Nirmala Dewi" → "sukma@bpssulteng.id"
-     * Appends a counter to resolve collisions: "sukma2@bpssulteng.id", etc.
+     * Derive email from employee name.
      *
+     * If the employee's first name is shared with any other employee,
+     * use first+second name: "Muhammad Andi" → "muhammadandi@bpssulteng.id".
+     * Otherwise use first name only: "Sukma Nirmala Dewi" → "sukma@bpssulteng.id".
+     * Appends a counter to resolve any remaining collisions.
+     *
+     * @param  array<string>  $duplicateFirstNames  first names that appear on >1 employee
      * @param  array<string>  $usedEmails
      */
-    private function emailFromName(string $name, array &$usedEmails): string
+    private function emailFromName(string $name, array $duplicateFirstNames, array &$usedEmails): string
     {
-        $firstName = Str::lower(Str::before($name, ' '));
-        $base = "{$firstName}@bpssulteng.id";
+        $firstName = preg_replace('/[^a-z0-9]/', '', Str::lower(Str::before($name, ' ')));
+        $secondName = preg_replace('/[^a-z0-9]/', '', Str::lower(Str::before(Str::after($name, ' '), ' ')));
+
+        $localPart = in_array($firstName, $duplicateFirstNames, true)
+            ? $firstName.$secondName
+            : $firstName;
+
+        $base = "{$localPart}@bpssulteng.id";
 
         if (! in_array($base, $usedEmails, true)) {
             $usedEmails[] = $base;
@@ -29,7 +40,7 @@ class UserSeeder extends Seeder
 
         $counter = 2;
         do {
-            $candidate = "{$firstName}{$counter}@bpssulteng.id";
+            $candidate = "{$localPart}{$counter}@bpssulteng.id";
             $counter++;
         } while (in_array($candidate, $usedEmails, true));
 
@@ -47,9 +58,9 @@ class UserSeeder extends Seeder
         $admin = User::firstOrCreate(
             ['email' => 'admin@bpssulteng.id'],
             [
-                'name'     => 'Administrator',
+                'name' => 'Administrator',
                 'password' => Hash::make('password'),
-                'role'     => 'admin',
+                'role' => 'admin',
             ]
         );
         $admin->syncRoles('admin');
@@ -57,8 +68,17 @@ class UserSeeder extends Seeder
         // ── One user per employee ─────────────────────────────────────────────
         $employees = Employee::where('is_active', true)->orderBy('name')->get();
 
+        // Pre-scan: find which first names are shared across multiple employees.
+        // For those, we'll use first+second name in the email to avoid collisions.
+        $firstNameCounts = [];
         foreach ($employees as $employee) {
-            $email = $this->emailFromName($employee->name, $usedEmails);
+            $first = preg_replace('/[^a-z0-9]/', '', Str::lower(Str::before($employee->name, ' ')));
+            $firstNameCounts[$first] = ($firstNameCounts[$first] ?? 0) + 1;
+        }
+        $duplicateFirstNames = array_keys(array_filter($firstNameCounts, fn ($c) => $c > 1));
+
+        foreach ($employees as $employee) {
+            $email = $this->emailFromName($employee->name, $duplicateFirstNames, $usedEmails);
 
             // Determine role: first employee in the list seeded as 'head', rest as 'staff'.
             // Override: if the employee already has a linked user, keep that role.
@@ -68,6 +88,7 @@ class UserSeeder extends Seeder
                 if (! in_array($existingUser->email, $usedEmails, true)) {
                     $usedEmails[] = $existingUser->email;
                 }
+
                 continue;
             }
 
@@ -76,9 +97,9 @@ class UserSeeder extends Seeder
             $user = User::firstOrCreate(
                 ['email' => $email],
                 [
-                    'name'     => $employee->display_name ?? $employee->name,
+                    'name' => $employee->display_name ?? $employee->name,
                     'password' => Hash::make('password'),
-                    'role'     => $role,
+                    'role' => $role,
                 ]
             );
             $user->syncRoles($role);
