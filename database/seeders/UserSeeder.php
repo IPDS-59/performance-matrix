@@ -40,42 +40,42 @@ class UserSeeder extends Seeder
         );
         $admin->syncRoles('admin');
 
-        // Kepala BPS Provinsi — imron@bpssulteng.id → Imron Taufik J Musa
+        // Kepala BPS Provinsi — andi@bpssulteng.id → Andi Kurniawan
         $head = User::firstOrCreate(
-            ['email' => $this->emailFromName('Imron Taufik J Musa')],
+            ['email' => $this->emailFromName('Andi Kurniawan')],
             [
-                'name' => 'Imron Taufik J Musa',
+                'name' => 'Andi Kurniawan',
                 'password' => Hash::make('password'),
                 'role' => 'head',
             ]
         );
         $head->syncRoles('head');
-        $this->linkEmployee($head, 'Imron Taufik J Musa', [
+        $this->linkEmployee($head, 'Andi Kurniawan', [
             'position' => 'Kepala BPS Provinsi Sulawesi Tengah',
         ]);
 
-        // Ketua Tim — hespri@bpssulteng.id → Hespri Yomeldi
-        $hespri = User::firstOrCreate(
-            ['email' => $this->emailFromName('Hespri Yomeldi')],
+        // Ketua Tim — bagas@bpssulteng.id → Bagas Wicaksono
+        $lead = User::firstOrCreate(
+            ['email' => $this->emailFromName('Bagas Wicaksono')],
             [
-                'name' => 'Hespri Yomeldi',
+                'name' => 'Bagas Wicaksono',
                 'password' => Hash::make('password'),
                 'role' => 'staff',
             ]
         );
-        $hespri->syncRoles('staff');
-        $this->linkEmployee($hespri, 'Hespri Yomeldi');
+        $lead->syncRoles('staff');
+        $this->linkEmployee($lead, 'Bagas Wicaksono');
 
-        // Staff demo — sukma@bpssulteng.id → Sukma Nirmala Dewi
+        // Staff demo — citra@bpssulteng.id → Citra Dewanti
         $staff = User::firstOrCreate(
-            ['email' => $this->emailFromName('Sukma Nirmala Dewi')],
+            ['email' => $this->emailFromName('Citra Dewanti')],
             [
-                'name' => 'Sukma Nirmala Dewi',
+                'name' => 'Citra Dewanti',
                 'password' => Hash::make('password'),
                 'role' => 'staff',
             ]
         );
         $staff->syncRoles('staff');
-        $this->linkEmployee($staff, 'Sukma Nirmala Dewi');
+        $this->linkEmployee($staff, 'Citra Dewanti');
     }
 }

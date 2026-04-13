@@ -77,9 +77,9 @@ pnpm run dev
 | Email | Password | Peran |
 |---|---|---|
 | `admin@bpssulteng.id` | `password` | admin |
-| `imrontaufikjmusa@bpssulteng.id` | `password` | head |
-| `hespriYomeldi@bpssulteng.id` | `password` | staff (ketua tim) |
-| `sukmanirmaladewi@bpssulteng.id` | `password` | staff |
+| `andi@bpssulteng.id` | `password` | head |
+| `bagas@bpssulteng.id` | `password` | staff (ketua tim) |
+| `citra@bpssulteng.id` | `password` | staff |
 
 ## Pengujian
 

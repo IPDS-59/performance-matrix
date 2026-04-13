@@ -29,9 +29,6 @@ CLAUDE-LARAVEL-INERTIA.md
 .claude/
 *.claude.md
 
-# Private seeder data (real employee/project data — never commit)
-database/seeders/data/
-
 # Beads / Dolt files (added by bd init)
 .dolt/
 *.db
