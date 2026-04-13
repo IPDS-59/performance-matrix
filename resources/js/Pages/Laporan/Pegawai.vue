@@ -220,7 +220,7 @@ function achievementColor(val: number | null) {
                     <span class="inline-block h-3 w-3 rounded-full bg-emerald-600" />
                     <h2 class="text-sm font-semibold text-gray-700">Top 10 Proyek Terbanyak</h2>
                 </div>
-                <p class="mb-4 text-xs text-gray-400">Total keterlibatan proyek (semua tahun)</p>
+                <p class="mb-4 text-xs text-gray-400">Total keterlibatan proyek — {{ filters.year }}</p>
                 <div v-if="top10ByProjects.length" style="height: 300px;">
                     <Bar :data="projectChartData" :options="projectChartOptions" />
                 </div>

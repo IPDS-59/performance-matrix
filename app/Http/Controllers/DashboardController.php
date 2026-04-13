@@ -223,9 +223,15 @@ class DashboardController extends Controller
             ->where('projects.year', $year)
             ->where('employees.is_active', true)
             ->groupBy('employees.id', 'employees.name', 'employees.display_name')
-            ->select('employees.id', 'employees.name', 'employees.display_name', DB::raw('COUNT(DISTINCT project_members.project_id) as project_count'))
+            ->select(
+                'employees.id',
+                'employees.name',
+                'employees.display_name',
+                DB::raw('COUNT(DISTINCT project_members.project_id) as project_count'),
+                DB::raw("SUM(CASE WHEN project_members.role = 'leader' THEN 1 ELSE 0 END) as leader_count"),
+                DB::raw("SUM(CASE WHEN project_members.role = 'member' THEN 1 ELSE 0 END) as member_count"),
+            )
             ->orderByDesc('project_count')
-            ->limit(10)
             ->get();
 
         $topByAchievement = DB::table('employees')
@@ -288,9 +294,15 @@ class DashboardController extends Controller
             ->where('projects.year', $year)
             ->where('employees.is_active', true)
             ->groupBy('employees.id', 'employees.name', 'employees.display_name')
-            ->select('employees.id', 'employees.name', 'employees.display_name', DB::raw('COUNT(DISTINCT project_members.project_id) as project_count'))
+            ->select(
+                'employees.id',
+                'employees.name',
+                'employees.display_name',
+                DB::raw('COUNT(DISTINCT project_members.project_id) as project_count'),
+                DB::raw("SUM(CASE WHEN project_members.role = 'leader' THEN 1 ELSE 0 END) as leader_count"),
+                DB::raw("SUM(CASE WHEN project_members.role = 'member' THEN 1 ELSE 0 END) as member_count"),
+            )
             ->orderByDesc('project_count')
-            ->limit(10)
             ->get();
 
         $topByAchievement = DB::table('employees')

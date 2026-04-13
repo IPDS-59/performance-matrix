@@ -40,10 +40,12 @@ class EmployeeReportController extends Controller
             ])
             ->get();
 
-        // Top 10 employees by total project count (all-time, not period-filtered).
+        // Top 10 employees by total project count for the selected year.
         $top10ByProjects = DB::table('employees')
             ->join('project_members', 'employees.id', '=', 'project_members.employee_id')
+            ->join('projects', 'project_members.project_id', '=', 'projects.id')
             ->where('employees.is_active', true)
+            ->where('projects.year', $year)
             ->groupBy('employees.id', 'employees.name', 'employees.display_name')
             ->orderByDesc('total_projects')
             ->limit(10)
@@ -51,7 +53,7 @@ class EmployeeReportController extends Controller
                 'employees.id',
                 'employees.name',
                 'employees.display_name',
-                DB::raw('COUNT(project_members.project_id) as total_projects'),
+                DB::raw('COUNT(DISTINCT project_members.project_id) as total_projects'),
                 DB::raw("SUM(CASE WHEN project_members.role = 'leader' THEN 1 ELSE 0 END) as leader_count"),
                 DB::raw("SUM(CASE WHEN project_members.role = 'member' THEN 1 ELSE 0 END) as member_count"),
             ])

@@ -104,6 +104,8 @@ interface EmployeeRankItem {
     name: string;
     display_name: string | null;
     project_count?: number;
+    leader_count?: number;
+    member_count?: number;
     avg_achievement?: number;
 }
 
@@ -369,13 +371,38 @@ const lineChartOptions = {
 
 // ── Employee ranking charts ────────────────────────────────────────────────
 
+const topByProjectsTab = ref<'semua' | 'ketua' | 'anggota'>('semua');
+
+const topByProjectsFiltered = computed(() => {
+    const all = props.top_employees_by_projects ?? [];
+    if (topByProjectsTab.value === 'ketua') {
+        return [...all].sort((a, b) => (b.leader_count ?? 0) - (a.leader_count ?? 0)).slice(0, 10);
+    }
+    if (topByProjectsTab.value === 'anggota') {
+        return [...all].sort((a, b) => (b.member_count ?? 0) - (a.member_count ?? 0)).slice(0, 10);
+    }
+    return all.slice(0, 10);
+});
+
+function topByProjectsCount(e: EmployeeRankItem): number {
+    if (topByProjectsTab.value === 'ketua') return e.leader_count ?? 0;
+    if (topByProjectsTab.value === 'anggota') return e.member_count ?? 0;
+    return e.project_count ?? 0;
+}
+
+function topByProjectsLabel(): string {
+    if (topByProjectsTab.value === 'ketua') return 'ketua';
+    if (topByProjectsTab.value === 'anggota') return 'anggota';
+    return 'proyek';
+}
+
 const empByProjectsChartData = computed(() => {
     const labels: string[] = [];
     const data: number[] = [];
     const backgroundColor: string[] = [];
-    for (const e of props.top_employees_by_projects ?? []) {
+    for (const e of topByProjectsFiltered.value) {
         labels.push(e.display_name || e.name);
-        data.push(e.project_count ?? 0);
+        data.push(topByProjectsCount(e));
         backgroundColor.push(e.id === props.employee?.id ? 'rgba(27,75,138,0.9)' : 'rgba(99,102,241,0.65)');
     }
     return { labels, datasets: [{ label: 'Proyek', data, backgroundColor, borderRadius: 4, borderSkipped: false }] };
@@ -680,10 +707,17 @@ const empByAchievementChartOptions = {
                             <div class="grid gap-4 md:grid-cols-2">
                                 <Card>
                                     <CardHeader class="pb-2">
-                                        <CardTitle class="text-sm font-semibold">Top 10 Proyek Terbanyak</CardTitle>
+                                        <div class="flex items-center justify-between gap-2">
+                                            <CardTitle class="text-sm font-semibold">Top 10 Proyek Terbanyak</CardTitle>
+                                            <div class="flex divide-x rounded-md border text-xs overflow-hidden">
+                                                <button @click="topByProjectsTab = 'semua'" :class="[topByProjectsTab === 'semua' ? 'bg-primary text-white' : 'text-gray-500 hover:bg-gray-50', 'px-2 py-1']">Semua</button>
+                                                <button @click="topByProjectsTab = 'ketua'" :class="[topByProjectsTab === 'ketua' ? 'bg-primary text-white' : 'text-gray-500 hover:bg-gray-50', 'px-2 py-1']">Ketua</button>
+                                                <button @click="topByProjectsTab = 'anggota'" :class="[topByProjectsTab === 'anggota' ? 'bg-primary text-white' : 'text-gray-500 hover:bg-gray-50', 'px-2 py-1']">Anggota</button>
+                                            </div>
+                                        </div>
                                     </CardHeader>
                                     <CardContent>
-                                        <div v-if="top_employees_by_projects?.length" class="mb-3 h-52">
+                                        <div v-if="topByProjectsFiltered.length" class="mb-3 h-52">
                                             <Bar :data="empByProjectsChartData" :options="empByProjectsChartOptions" />
                                         </div>
                                         <div v-else class="mb-3 flex h-52 items-center justify-center rounded-lg border border-dashed border-gray-200 bg-gray-50">
@@ -691,12 +725,12 @@ const empByAchievementChartOptions = {
                                         </div>
                                         <div class="relative">
                                             <div class="max-h-52 overflow-y-auto divide-y divide-gray-100 rounded-md border [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-gray-200 [&::-webkit-scrollbar-track]:bg-transparent">
-                                                <template v-if="top_employees_by_projects?.length">
-                                                    <div v-for="(emp, idx) in top_employees_by_projects" :key="emp.id" :class="['flex items-center gap-3 px-3 py-2', emp.id === employee?.id ? 'bg-primary/5' : '']">
+                                                <template v-if="topByProjectsFiltered.length">
+                                                    <div v-for="(emp, idx) in topByProjectsFiltered" :key="emp.id" :class="['flex items-center gap-3 px-3 py-2', emp.id === employee?.id ? 'bg-primary/5' : '']">
                                                         <span class="w-5 shrink-0 text-right text-xs font-bold text-gray-400">{{ idx + 1 }}</span>
                                                         <div class="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-indigo-100 text-[10px] font-bold text-indigo-700">{{ (emp.display_name || emp.name).charAt(0).toUpperCase() }}</div>
                                                         <span :class="['min-w-0 flex-1 truncate text-xs', emp.id === employee?.id ? 'font-semibold text-primary' : 'text-gray-700']">{{ emp.display_name || emp.name }}<span v-if="emp.id === employee?.id" class="ml-1 font-normal text-primary/70">(Anda)</span></span>
-                                                        <span class="shrink-0 text-xs font-bold text-indigo-600">{{ emp.project_count }} proyek</span>
+                                                        <span class="shrink-0 text-xs font-bold text-indigo-600">{{ topByProjectsCount(emp) }} {{ topByProjectsLabel() }}</span>
                                                     </div>
                                                 </template>
                                                 <div v-else class="px-4 py-6 text-center text-xs text-gray-400">Belum ada data</div>
@@ -1018,11 +1052,18 @@ const empByAchievementChartOptions = {
                         <!-- Top 10 by project count -->
                         <Card>
                             <CardHeader class="pb-2">
-                                <CardTitle class="text-sm font-semibold">Top 10 Proyek Terbanyak</CardTitle>
+                                <div class="flex items-center justify-between gap-2">
+                                    <CardTitle class="text-sm font-semibold">Top 10 Proyek Terbanyak</CardTitle>
+                                    <div class="flex divide-x rounded-md border text-xs overflow-hidden">
+                                        <button @click="topByProjectsTab = 'semua'" :class="[topByProjectsTab === 'semua' ? 'bg-primary text-white' : 'text-gray-500 hover:bg-gray-50', 'px-2 py-1']">Semua</button>
+                                        <button @click="topByProjectsTab = 'ketua'" :class="[topByProjectsTab === 'ketua' ? 'bg-primary text-white' : 'text-gray-500 hover:bg-gray-50', 'px-2 py-1']">Ketua</button>
+                                        <button @click="topByProjectsTab = 'anggota'" :class="[topByProjectsTab === 'anggota' ? 'bg-primary text-white' : 'text-gray-500 hover:bg-gray-50', 'px-2 py-1']">Anggota</button>
+                                    </div>
+                                </div>
                             </CardHeader>
                             <CardContent>
                                 <!-- Chart -->
-                                <div v-if="top_employees_by_projects?.length" class="mb-3 h-52">
+                                <div v-if="topByProjectsFiltered.length" class="mb-3 h-52">
                                     <Bar :data="empByProjectsChartData" :options="empByProjectsChartOptions" />
                                 </div>
                                 <div v-else class="mb-3 flex h-52 items-center justify-center rounded-lg border border-dashed border-gray-200 bg-gray-50">
@@ -1031,9 +1072,9 @@ const empByAchievementChartOptions = {
                                 <!-- Scrollable list -->
                                 <div class="relative">
                                     <div class="max-h-52 overflow-y-auto divide-y divide-gray-100 rounded-md border [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-gray-200 [&::-webkit-scrollbar-track]:bg-transparent">
-                                        <template v-if="top_employees_by_projects?.length">
+                                        <template v-if="topByProjectsFiltered.length">
                                             <div
-                                                v-for="(emp, idx) in top_employees_by_projects"
+                                                v-for="(emp, idx) in topByProjectsFiltered"
                                                 :key="emp.id"
                                                 :class="['flex items-center gap-3 px-3 py-2', emp.id === employee?.id ? 'bg-primary/5' : '']"
                                             >
@@ -1045,14 +1086,14 @@ const empByAchievementChartOptions = {
                                                     {{ emp.display_name || emp.name }}
                                                     <span v-if="emp.id === employee?.id" class="ml-1 font-normal text-primary/70">(Anda)</span>
                                                 </span>
-                                                <span class="shrink-0 text-xs font-bold text-indigo-600">{{ emp.project_count }} proyek</span>
+                                                <span class="shrink-0 text-xs font-bold text-indigo-600">{{ topByProjectsCount(emp) }} {{ topByProjectsLabel() }}</span>
                                             </div>
                                         </template>
                                         <div v-else class="px-4 py-6 text-center text-xs text-gray-400">
                                             Belum ada data
                                         </div>
                                     </div>
-                                    <div v-if="(top_employees_by_projects?.length ?? 0) > 6" class="pointer-events-none absolute inset-x-0 bottom-0 flex justify-center rounded-b-md bg-gradient-to-t from-white via-white/60 to-transparent py-1">
+                                    <div v-if="topByProjectsFiltered.length > 6" class="pointer-events-none absolute inset-x-0 bottom-0 flex justify-center rounded-b-md bg-gradient-to-t from-white via-white/60 to-transparent py-1">
                                         <svg class="h-3.5 w-3.5 animate-bounce text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                                             <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/>
                                         </svg>
@@ -1350,10 +1391,17 @@ const empByAchievementChartOptions = {
                     <!-- Top 10 by project count -->
                     <Card>
                         <CardHeader class="pb-2">
-                            <CardTitle class="text-sm font-semibold">Top 10 Proyek Terbanyak</CardTitle>
+                            <div class="flex items-center justify-between gap-2">
+                                <CardTitle class="text-sm font-semibold">Top 10 Proyek Terbanyak</CardTitle>
+                                <div class="flex divide-x rounded-md border text-xs overflow-hidden">
+                                    <button @click="topByProjectsTab = 'semua'" :class="[topByProjectsTab === 'semua' ? 'bg-primary text-white' : 'text-gray-500 hover:bg-gray-50', 'px-2 py-1']">Semua</button>
+                                    <button @click="topByProjectsTab = 'ketua'" :class="[topByProjectsTab === 'ketua' ? 'bg-primary text-white' : 'text-gray-500 hover:bg-gray-50', 'px-2 py-1']">Ketua</button>
+                                    <button @click="topByProjectsTab = 'anggota'" :class="[topByProjectsTab === 'anggota' ? 'bg-primary text-white' : 'text-gray-500 hover:bg-gray-50', 'px-2 py-1']">Anggota</button>
+                                </div>
+                            </div>
                         </CardHeader>
                         <CardContent>
-                            <div v-if="top_employees_by_projects?.length" class="mb-3 h-52">
+                            <div v-if="topByProjectsFiltered.length" class="mb-3 h-52">
                                 <Bar :data="empByProjectsChartData" :options="empByProjectsChartOptions" />
                             </div>
                             <div v-else class="mb-3 flex h-52 items-center justify-center rounded-lg border border-dashed border-gray-200 bg-gray-50">
@@ -1361,14 +1409,14 @@ const empByAchievementChartOptions = {
                             </div>
                             <div class="relative">
                                 <div class="max-h-52 overflow-y-auto divide-y divide-gray-100 rounded-md border [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-gray-200 [&::-webkit-scrollbar-track]:bg-transparent">
-                                    <template v-if="top_employees_by_projects?.length">
-                                        <div v-for="(emp, idx) in top_employees_by_projects" :key="emp.id" class="flex items-center gap-3 px-3 py-2">
+                                    <template v-if="topByProjectsFiltered.length">
+                                        <div v-for="(emp, idx) in topByProjectsFiltered" :key="emp.id" class="flex items-center gap-3 px-3 py-2">
                                             <span class="w-5 shrink-0 text-right text-xs font-bold text-gray-400">{{ idx + 1 }}</span>
                                             <div class="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-indigo-100 text-[10px] font-bold text-indigo-700">
                                                 {{ (emp.display_name || emp.name).charAt(0).toUpperCase() }}
                                             </div>
                                             <span class="min-w-0 flex-1 truncate text-xs text-gray-700">{{ emp.display_name || emp.name }}</span>
-                                            <span class="shrink-0 text-xs font-bold text-indigo-600">{{ emp.project_count }} proyek</span>
+                                            <span class="shrink-0 text-xs font-bold text-indigo-600">{{ topByProjectsCount(emp) }} {{ topByProjectsLabel() }}</span>
                                         </div>
                                     </template>
                                     <div v-else class="px-4 py-6 text-center text-xs text-gray-400">Belum ada data</div>
