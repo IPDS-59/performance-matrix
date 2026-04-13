@@ -60,7 +60,7 @@ function seedRolesAndPermissions(): void
     app()[PermissionRegistrar::class]->forgetCachedPermissions();
 
     $permissions = [
-        'manage-teams', 'manage-employees', 'manage-projects',
+        'manage-teams', 'manage-employees', 'manage-projects', 'create-project',
         'manage-work-items', 'view-matrix', 'view-reports', 'enter-performance',
     ];
 

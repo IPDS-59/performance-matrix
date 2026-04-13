@@ -31,7 +31,7 @@ it('renders create form', function () {
         ->assertInertia(fn ($page) => $page->component('Projects/Create')->has('teams')->has('employees'));
 });
 
-it('stores a project and redirects', function () {
+it('stores a project and redirects to edit', function () {
     $team = Team::factory()->create();
 
     $this->actingAs(adminUser())
@@ -42,7 +42,7 @@ it('stores a project and redirects', function () {
             'status' => 'active',
             'members' => [],
         ])
-        ->assertRedirect(route('projects.index'));
+        ->assertRedirect(route('projects.edit', Project::where('name', 'Sensus Penduduk')->firstOrFail()));
 
     expect(Project::where('name', 'Sensus Penduduk')->exists())->toBeTrue();
 });
