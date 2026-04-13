@@ -15,5 +15,6 @@ class PerformanceBatchSubmitted
         public readonly int $periodMonth,
         public readonly int $periodYear,
         public readonly array $reportIds,
+        public readonly array $workItemIds = [],
     ) {}
 }

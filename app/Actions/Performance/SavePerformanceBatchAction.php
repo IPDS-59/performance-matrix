@@ -47,6 +47,7 @@ class SavePerformanceBatchAction
             periodMonth: $periodMonth,
             periodYear: $periodYear,
             reportIds: $reports->pluck('id')->all(),
+            workItemIds: $reports->pluck('work_item_id')->all(),
         );
 
         return $reports;

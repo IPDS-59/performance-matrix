@@ -21,13 +21,14 @@ it('notifies the project lead when a member submits reports', function () {
     ]);
     $project->members()->attach($memberEmployee->id, ['role' => 'member']);
 
-    WorkItem::factory()->create(['project_id' => $project->id]);
+    $workItem = WorkItem::factory()->create(['project_id' => $project->id]);
 
     PerformanceBatchSubmitted::dispatch(
         reporter: $memberEmployee,
         periodMonth: 3,
         periodYear: 2026,
         reportIds: [1],
+        workItemIds: [$workItem->id],
     );
 
     Notification::assertSentTo($leadUser, ReportSubmittedNotification::class);

@@ -3,8 +3,8 @@
 namespace App\Listeners;
 
 use App\Events\PerformanceBatchSubmitted;
-use App\Models\PerformanceReport;
 use App\Models\Project;
+use App\Models\WorkItem;
 use App\Notifications\ReportSubmittedNotification;
 
 class NotifyTeamLeadOnReportSubmitted
@@ -35,10 +35,10 @@ class NotifyTeamLeadOnReportSubmitted
                 continue;
             }
 
-            // Find the work item from this batch that belongs to this project (usually one)
-            $workItemId = PerformanceReport::whereIn('id', $event->reportIds)
-                ->whereHas('workItem', fn ($q) => $q->where('project_id', $project->id))
-                ->value('work_item_id');
+            // Find the work item from this batch that belongs to this project
+            $workItemId = WorkItem::where('project_id', $project->id)
+                ->whereIn('id', $event->workItemIds)
+                ->value('id');
 
             $project->leader->user->notify(new ReportSubmittedNotification(
                 $event->reporter,

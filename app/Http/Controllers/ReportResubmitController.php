@@ -61,7 +61,7 @@ class ReportResubmitController extends Controller
             'action' => 'resubmitted',
         ]);
 
-        PerformanceBatchSubmitted::dispatch($employee, $report->period_month, $report->period_year, [$report->id]);
+        PerformanceBatchSubmitted::dispatch($employee, $report->period_month, $report->period_year, [$report->id], [$report->work_item_id]);
 
         return back()->with('success', 'Laporan berhasil diajukan ulang.');
     }
