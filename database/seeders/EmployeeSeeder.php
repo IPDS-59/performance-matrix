@@ -13,7 +13,14 @@ class EmployeeSeeder extends Seeder
 {
     public function run(): void
     {
-        $data = json_decode(File::get(database_path('seeders/data/seeder_data.json')), true);
+        $path = database_path('seeders/data/seeder_data.json');
+        if (! File::exists($path)) {
+            $this->command->warn('seeder_data.json not found — skipping EmployeeSeeder');
+
+            return;
+        }
+
+        $data = json_decode(File::get($path), true);
 
         foreach ($data['employees'] as $emp) {
             $teamName = trim(preg_replace('/\s+/', ' ', $emp['team']));
