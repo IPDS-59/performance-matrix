@@ -3,7 +3,6 @@
 namespace App\Http\Controllers;
 
 use App\Models\Employee;
-use App\Models\PerformanceReport;
 use App\Models\Project;
 use App\Models\Team;
 use Illuminate\Http\Request;
@@ -343,7 +342,7 @@ class DashboardController extends Controller
                 ->orderBy('projects.name')
                 ->select('projects.*')
                 ->get()
-                ->map(function ($project) use ($employee) {
+                ->map(function ($project) {
                     $project->workItems->transform(function ($wi) {
                         $assignment = $wi->assignments->first();
                         $wi->target = $assignment?->target ?? $wi->target;

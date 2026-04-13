@@ -52,7 +52,7 @@ class SavePerformanceReportAction
             ->where('reported_by', $reporter?->id)
             ->where(function ($q) use ($periodMonth, $periodYear) {
                 $q->where('period_year', '!=', $periodYear)
-                  ->orWhere('period_month', '!=', $periodMonth);
+                    ->orWhere('period_month', '!=', $periodMonth);
             })
             ->sum('realization');
 

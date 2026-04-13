@@ -154,7 +154,7 @@ class EmployeeController extends Controller
             'degree_back' => ['nullable', 'string', 'max:30'],
             'institution' => ['required', 'string', 'max:255'],
             'field_of_study' => ['nullable', 'string', 'max:255'],
-            'graduated_year' => ['nullable', 'integer', 'min:1900', 'max:' . (now()->year + 5)],
+            'graduated_year' => ['nullable', 'integer', 'min:1900', 'max:'.(now()->year + 5)],
             'is_highest' => ['boolean'],
         ]);
 
@@ -179,7 +179,7 @@ class EmployeeController extends Controller
             'degree_back' => ['nullable', 'string', 'max:30'],
             'institution' => ['required', 'string', 'max:255'],
             'field_of_study' => ['nullable', 'string', 'max:255'],
-            'graduated_year' => ['nullable', 'integer', 'min:1900', 'max:' . (now()->year + 5)],
+            'graduated_year' => ['nullable', 'integer', 'min:1900', 'max:'.(now()->year + 5)],
             'is_highest' => ['boolean'],
         ]);
 

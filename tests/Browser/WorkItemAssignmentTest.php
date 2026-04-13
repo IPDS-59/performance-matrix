@@ -67,7 +67,7 @@ class WorkItemAssignmentTest extends DuskTestCase
                 ->screenshot('after-tertentu-click');
 
             $states = $browser->script(
-                'return [...document.querySelectorAll("button[role=\'checkbox\']")]' .
+                'return [...document.querySelectorAll("button[role=\'checkbox\']")]'.
                 '.map(cb => cb.getAttribute("data-state"))'
             )[0];
 
@@ -75,8 +75,8 @@ class WorkItemAssignmentTest extends DuskTestCase
             foreach ($states as $state) {
                 $this->assertSame(
                     'checked', $state,
-                    "Expected checkbox data-state=checked but got '$state'. " .
-                    "The reactive(Set) fix may not have been applied correctly."
+                    "Expected checkbox data-state=checked but got '$state'. ".
+                    'The reactive(Set) fix may not have been applied correctly.'
                 );
             }
         });
@@ -99,7 +99,7 @@ class WorkItemAssignmentTest extends DuskTestCase
 
             // Verify checkboxes rendered in Tertentu mode
             $states = $browser->script(
-                'return [...document.querySelectorAll("button[role=\'checkbox\']")]' .
+                'return [...document.querySelectorAll("button[role=\'checkbox\']")]'.
                 '.map(cb => cb.getAttribute("data-state"))'
             )[0];
             $this->assertNotEmpty($states, 'No checkboxes rendered in Tertentu mode');
@@ -113,7 +113,7 @@ class WorkItemAssignmentTest extends DuskTestCase
 
             // Verify first checkbox is now unchecked
             $statesAfter = $browser->script(
-                'return [...document.querySelectorAll("button[role=\'checkbox\']")]' .
+                'return [...document.querySelectorAll("button[role=\'checkbox\']")]'.
                 '.map(cb => cb.getAttribute("data-state"))'
             )[0];
             $this->assertSame('unchecked', $statesAfter[0], 'Checkbox did not toggle to unchecked after click');
@@ -134,9 +134,9 @@ class WorkItemAssignmentTest extends DuskTestCase
             $this->assertSame(
                 $memberCount - 1,
                 $item->assignments()->count(),
-                "Expected {$memberCount} - 1 = " . ($memberCount - 1) . " assignments (1 excluded), " .
-                "got " . $item->assignments()->count() . ". " .
-                "Bug: Tertentu mode still assigns to all members."
+                "Expected {$memberCount} - 1 = ".($memberCount - 1).' assignments (1 excluded), '.
+                'got '.$item->assignments()->count().'. '.
+                'Bug: Tertentu mode still assigns to all members.'
             );
         });
     }

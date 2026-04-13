@@ -4,8 +4,10 @@ use App\Models\Employee;
 use App\Models\PerformanceReport;
 use App\Models\PerformanceReportReview;
 use App\Models\Project;
+use App\Models\User;
 use App\Models\WorkItem;
 use App\Models\WorkItemAssignment;
+use App\Notifications\ReportSubmittedNotification;
 use Illuminate\Support\Facades\Notification;
 
 it('allows employee to resubmit a rejected report', function () {
@@ -89,7 +91,7 @@ it('forbids resubmitting another employee report', function () {
 it('notifies the team lead when a report is resubmitted', function () {
     Notification::fake();
 
-    $leadUser = \App\Models\User::factory()->create();
+    $leadUser = User::factory()->create();
     $leadEmployee = Employee::factory()->create(['user_id' => $leadUser->id]);
 
     $user = staffUser();
@@ -115,7 +117,7 @@ it('notifies the team lead when a report is resubmitted', function () {
         ->patch(route('performance.resubmit', $report), ['realization' => 5])
         ->assertRedirect();
 
-    Notification::assertSentTo($leadUser, \App\Notifications\ReportSubmittedNotification::class);
+    Notification::assertSentTo($leadUser, ReportSubmittedNotification::class);
 });
 
 it('recalculates achievement percentage on resubmit', function () {

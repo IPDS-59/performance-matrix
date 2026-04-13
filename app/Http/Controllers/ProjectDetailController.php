@@ -81,7 +81,7 @@ class ProjectDetailController extends Controller
             ->where('project_id', $project->id)
             ->orderBy('number')
             ->get()
-            ->map(function (WorkItem $wi) use ($year) {
+            ->map(function (WorkItem $wi) {
                 $assignment = $wi->assignments->first();
                 $reports = $wi->performanceReports;
                 $target = (float) ($assignment?->target ?? $wi->target);
