@@ -234,9 +234,14 @@ function deleteItem(itemId: number) {
     router.delete(route('work-items.destroy', itemId), { preserveScroll: true });
 }
 
+const memberNamesMap = computed<Record<number, string>>(() => {
+    const map: Record<number, string> = {};
+    for (const m of projectMembers.value) map[m.id] = m.display_name || m.name;
+    return map;
+});
+
 function memberName(employeeId: number): string {
-    const m = projectMembers.value.find(m => m.id === employeeId);
-    return m ? (m.display_name || m.name) : `#${employeeId}`;
+    return memberNamesMap.value[employeeId] ?? `#${employeeId}`;
 }
 </script>
 

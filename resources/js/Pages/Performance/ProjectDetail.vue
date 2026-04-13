@@ -91,8 +91,14 @@ function pctTextColor(pct: number): string {
 const employeeItems = () => props.work_items as EmployeeWorkItem[];
 const leadItems = () => props.work_items as LeadWorkItem[];
 
+const memberNamesMap = computed<Record<number, string>>(() => {
+    const m: Record<number, string> = {};
+    for (const member of props.members) m[member.id] = member.name;
+    return m;
+});
+
 function memberName(id: number): string {
-    return props.members.find(m => m.id === id)?.name ?? '—';
+    return memberNamesMap.value[id] ?? '—';
 }
 
 // ── Add / Edit work item dialogs ───────────────────────────────────────────
