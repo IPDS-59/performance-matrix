@@ -43,6 +43,29 @@ done
 # ── Prerequisites ─────────────────────────────────────────────────────────────
 command -v zip >/dev/null 2>&1 || die "'zip' is not installed."
 
+# ── Load .env.prod to resolve APP_URL / BASE_URL ─────────────────────────────
+ENV_FILE=".env.prod"
+APP_URL=""
+if [ -f "$ENV_FILE" ]; then
+    while IFS='=' read -r key value; do
+        [[ "$key" =~ ^[[:space:]]*# ]] && continue
+        [[ -z "$key" ]] && continue
+        value="${value%%#*}"
+        value="${value#\"}" ; value="${value%\"}"
+        value="${value#\'}" ; value="${value%\'}"
+        value="${value// /}"
+        export "$key=$value"
+    done < "$ENV_FILE"
+    # Strip protocol and trailing slash from APP_URL → tes.bpssulteng.id
+    BASE_URL="${APP_URL#https://}"
+    BASE_URL="${BASE_URL#http://}"
+    BASE_URL="${BASE_URL%/}"
+    info "Using APP_URL from ${ENV_FILE}: ${APP_URL}"
+else
+    warn "${ENV_FILE} not found — BASE_URL will be a placeholder in the output."
+    BASE_URL="your-domain.com"
+fi
+
 TIMESTAMP=$(date +%Y%m%d_%H%M%S)
 ZIP_NAME="matriks-kinerja_${TIMESTAMP}.zip"
 ZIP_PATH="$(pwd)/${ZIP_NAME}"
@@ -216,10 +239,10 @@ echo ""
 echo "  2. Upload ${ZIP_NAME} via cPanel File Manager or FTP."
 echo "  3. Extract into your app directory (e.g. ~/matriks/)."
 echo "  4. Create / update .env with at minimum:"
-cat <<'ENV_HINT'
+cat << ENV_HINT
        APP_ENV=production
        APP_DEBUG=false
-       APP_URL=https://matriks.bpssulteng.id
+       APP_URL=https://${BASE_URL}
        APP_KEY=          ← generate locally: php artisan key:generate --show
 
        DB_CONNECTION=mysql
@@ -241,7 +264,7 @@ echo ""
 if [ "$ZIP" = true ]; then
     echo "  6. Run setup (storage link + caches) by visiting:"
     echo ""
-    echo -e "     ${GREEN}https://matriks.bpssulteng.id/setup.php?token=${SETUP_TOKEN}${NC}"
+    echo -e "     ${GREEN}https://${BASE_URL}/setup.php?token=${SETUP_TOKEN}${NC}"
     echo ""
     echo "     The script self-deletes after a successful run."
 fi
