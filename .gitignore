@@ -3,6 +3,9 @@
 .env
 .env.backup
 .env.production
+.env.prod
+migrate-prod.sh
+database/seeders/data/*.prod.json
 .phpactor.json
 .phpunit.result.cache
 /.fleet
