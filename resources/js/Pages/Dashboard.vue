@@ -1365,7 +1365,7 @@ const empByAchievementChartOptions = {
                                                     <Badge
                                                         v-if="isProjectLeaderById(member.id)"
                                                         class="ml-0.5 h-3.5 bg-amber-500 px-1 text-[9px] leading-none text-white hover:bg-amber-500"
-                                                    >Ketua</Badge>
+                                                    >Ketua Proyek</Badge>
                                                 </span>
                                             </div>
                                         </div>
@@ -1614,7 +1614,7 @@ const empByAchievementChartOptions = {
                                                     <Badge
                                                         v-if="isProjectLeaderById(member.id)"
                                                         class="ml-0.5 h-3.5 bg-amber-500 px-1 text-[9px] leading-none text-white hover:bg-amber-500"
-                                                    >Ketua</Badge>
+                                                    >Ketua Proyek</Badge>
                                                 </span>
                                             </div>
                                         </div>
