@@ -186,20 +186,32 @@ if [ "$ZIP" = true ]; then
     info "Creating deployment archive: ${ZIP_NAME} ..."
 
     EXCLUDES=(
+        # VCS / tooling
         ".git/*"
         ".github/*"
         ".beads/*"
         ".dolt/*"
+        ".claude/*"
+        # Dev dependencies
         "node_modules/*"
+        # Test / dev-only files
         "tests/*"
         "docs/*"
         "example_static/*"
+        # Env files — .env.example is intentionally kept (serves as template on server)
         ".env"
-        ".env.*"
+        ".env.prod"
+        ".env.production"
+        ".env.local"
+        ".env.testing"
+        ".env.staging"
+        ".env.backup"
+        # Deploy / CI scripts
         "deploy.sh"
         "migrate-prod.sh"
         "*.md"
         "phpunit.xml"
+        # JS build source (compiled output in public/build/ is kept)
         "pnpm-lock.yaml"
         "package.json"
         "package-lock.json"
@@ -210,6 +222,7 @@ if [ "$ZIP" = true ]; then
         "components.json"
         "resources/js/*"
         "resources/css/*"
+        # Runtime-generated storage (server creates its own)
         "storage/logs/*"
         "storage/framework/cache/*"
         "storage/framework/sessions/*"
@@ -242,8 +255,13 @@ echo "  1. (Local) Run new migrations first if any:"
 echo "       ./migrate-prod.sh migrate --force"
 echo ""
 echo "  2. Upload ${ZIP_NAME} via cPanel File Manager or FTP."
-echo "  3. Extract into your app directory (e.g. ~/matriks/)."
-echo "  4. Create / update .env with at minimum:"
+echo "  3. Extract into your app directory (e.g. ~/tes/)."
+echo "  4. In cPanel → Subdomains (or Addon Domains), set the document root"
+echo "     of ${BASE_URL} to point to the public/ subfolder, e.g.:"
+echo "       ~/tes/public"
+echo "     (Without this, every URL including setup.php will return 404.)"
+echo ""
+echo "  5. Copy .env.example → .env and fill in your values:"
 cat << ENV_HINT
        APP_ENV=production
        APP_DEBUG=false
@@ -262,12 +280,12 @@ cat << ENV_HINT
        QUEUE_CONNECTION=database
 ENV_HINT
 echo ""
-echo "  5. Set permissions (cPanel File Manager → right-click → Change Permissions):"
-echo "       storage/           → 775"
-echo "       bootstrap/cache/   → 775"
+echo "  6. Set permissions (cPanel File Manager → right-click → Change Permissions):"
+echo "       storage/           → (recursive) Read & Write"
+echo "       bootstrap/cache/   → (recursive) Read & Write"
 echo ""
 if [ "$ZIP" = true ]; then
-    echo "  6. Run setup (storage link + caches) by visiting:"
+    echo "  7. Run setup (storage link + caches) by visiting:"
     echo ""
     echo -e "     ${GREEN}https://${BASE_URL}/setup.php?token=${SETUP_TOKEN}${NC}"
     echo ""
