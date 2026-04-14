@@ -266,7 +266,7 @@ const barColor = (d: BarChartDatum) =>
     d.value >= 80 ? 'rgba(34,197,94,0.75)' :
     d.value >= 50 ? 'rgba(234,179,8,0.75)' :
     'rgba(239,68,68,0.75)';
-const barXTickFormat = (_tick: number, i: number) => barChartUnovisData.value[i]?.label ?? '';
+const barXTickFormat = (tick: number) => barChartUnovisData.value[tick]?.label ?? '';
 const barYTickFormat = (v: number) => `${v}%`;
 const barTooltipTriggers = {
     [GroupedBar.selectors.bar]: (d: BarChartDatum) =>
@@ -332,7 +332,8 @@ function topByProjectsLabel(): string {
 interface EmpProjectsDatum { label: string; value: number; isCurrentUser: boolean }
 
 const empByProjectsUnovisData = computed<EmpProjectsDatum[]>(() =>
-    topByProjectsFiltered.value.map(e => ({
+    // Reverse so highest value renders at top in horizontal bar chart
+    [...topByProjectsFiltered.value].reverse().map(e => ({
         label: e.display_name || e.name,
         value: topByProjectsCount(e),
         isCurrentUser: e.id === props.employee?.id,
@@ -343,10 +344,8 @@ const empProjectsX = (_d: EmpProjectsDatum, i: number) => i;
 const empProjectsY = [(d: EmpProjectsDatum) => d.value];
 const empProjectsColor = (d: EmpProjectsDatum) =>
     d.isCurrentUser ? 'rgba(27,75,138,0.9)' : 'rgba(99,102,241,0.65)';
-const empProjectsYTickFormat = (_tick: number, i: number) => {
-    const label = empByProjectsUnovisData.value[i]?.label ?? '';
-    return label.length > 16 ? label.substring(0, 14) + '\u2026' : label;
-};
+const empProjectsYTickFormat = (tick: number) =>
+    empByProjectsUnovisData.value[tick]?.label ?? '';
 const empProjectsXTickFormat = (v: number) => `${v}`;
 const empProjectsTooltipTriggers = {
     [GroupedBar.selectors.bar]: (d: EmpProjectsDatum) =>
@@ -358,7 +357,8 @@ const empProjectsTooltipTriggers = {
 interface EmpAchievementDatum { label: string; value: number; isCurrentUser: boolean }
 
 const empByAchievementUnovisData = computed<EmpAchievementDatum[]>(() =>
-    (props.top_employees_by_achievement ?? []).map(e => ({
+    // Reverse so highest value renders at top in horizontal bar chart
+    [...(props.top_employees_by_achievement ?? [])].reverse().map(e => ({
         label: e.display_name || e.name,
         value: e.avg_achievement ?? 0,
         isCurrentUser: e.id === props.employee?.id,
@@ -372,10 +372,8 @@ const empAchievementColor = (d: EmpAchievementDatum) =>
     d.value >= 80 ? 'rgba(34,197,94,0.65)' :
     d.value >= 50 ? 'rgba(234,179,8,0.65)' :
     'rgba(239,68,68,0.65)';
-const empAchievementYTickFormat = (_tick: number, i: number) => {
-    const label = empByAchievementUnovisData.value[i]?.label ?? '';
-    return label.length > 16 ? label.substring(0, 14) + '\u2026' : label;
-};
+const empAchievementYTickFormat = (tick: number) =>
+    empByAchievementUnovisData.value[tick]?.label ?? '';
 const empAchievementXTickFormat = (v: number) => `${v}%`;
 const empAchievementTooltipTriggers = {
     [GroupedBar.selectors.bar]: (d: EmpAchievementDatum) =>
@@ -519,7 +517,7 @@ const empAchievementTooltipTriggers = {
                                     <CardContent>
                                         <div v-if="teamList.length" class="h-64">
                                             <VisXYContainer :data="barChartUnovisData" :yDomain="[0, 100]" :style="{ height: '100%' }">
-                                                <VisGroupedBar :x="barX" :y="barY" :color="barColor" :roundedCorners="6" />
+                                                <VisGroupedBar :x="barX" :y="barY" :color="barColor" :roundedCorners="6" :barMinHeight="0" />
                                                 <VisAxis type="x" :tickFormat="barXTickFormat" :gridLine="false" :tickTextFontSize="'11px'" :tickTextAngle="-30" />
                                                 <VisAxis type="y" :tickFormat="barYTickFormat" />
                                                 <VisTooltip :triggers="barTooltipTriggers" />
@@ -611,7 +609,7 @@ const empAchievementTooltipTriggers = {
                                     <CardContent>
                                         <div v-if="topByProjectsFiltered.length" class="mb-3 h-52">
                                             <VisXYContainer :data="empByProjectsUnovisData" :style="{ height: '100%' }">
-                                                <VisGroupedBar orientation="horizontal" :x="empProjectsX" :y="empProjectsY" :color="empProjectsColor" :roundedCorners="4" />
+                                                <VisGroupedBar orientation="horizontal" :x="empProjectsX" :y="empProjectsY" :color="empProjectsColor" :roundedCorners="4" :barMinHeight="0" />
                                                 <VisAxis type="x" :tickFormat="empProjectsXTickFormat" />
                                                 <VisAxis type="y" :tickFormat="empProjectsYTickFormat" :gridLine="false" :tickTextFontSize="'10px'" />
                                                 <VisTooltip :triggers="empProjectsTooltipTriggers" />
@@ -642,7 +640,7 @@ const empAchievementTooltipTriggers = {
                                     <CardContent>
                                         <div v-if="top_employees_by_achievement?.length" class="mb-3 h-52">
                                             <VisXYContainer :data="empByAchievementUnovisData" :yDomain="[0, 100]" :style="{ height: '100%' }">
-                                                <VisGroupedBar orientation="horizontal" :x="empAchievementX" :y="empAchievementY" :color="empAchievementColor" :roundedCorners="4" />
+                                                <VisGroupedBar orientation="horizontal" :x="empAchievementX" :y="empAchievementY" :color="empAchievementColor" :roundedCorners="4" :barMinHeight="0" />
                                                 <VisAxis type="x" :tickFormat="empAchievementXTickFormat" />
                                                 <VisAxis type="y" :tickFormat="empAchievementYTickFormat" :gridLine="false" :tickTextFontSize="'10px'" />
                                                 <VisTooltip :triggers="empAchievementTooltipTriggers" />
@@ -861,7 +859,7 @@ const empAchievementTooltipTriggers = {
                             <CardContent>
                                 <div v-if="teamList.length" class="h-64">
                                     <VisXYContainer :data="barChartUnovisData" :yDomain="[0, 100]" :style="{ height: '100%' }">
-                                                <VisGroupedBar :x="barX" :y="barY" :color="barColor" :roundedCorners="6" />
+                                                <VisGroupedBar :x="barX" :y="barY" :color="barColor" :roundedCorners="6" :barMinHeight="0" />
                                                 <VisAxis type="x" :tickFormat="barXTickFormat" :gridLine="false" :tickTextFontSize="'11px'" :tickTextAngle="-30" />
                                                 <VisAxis type="y" :tickFormat="barYTickFormat" />
                                                 <VisTooltip :triggers="barTooltipTriggers" />
@@ -972,7 +970,7 @@ const empAchievementTooltipTriggers = {
                                 <!-- Chart -->
                                 <div v-if="topByProjectsFiltered.length" class="mb-3 h-52">
                                     <VisXYContainer :data="empByProjectsUnovisData" :style="{ height: '100%' }">
-                                                <VisGroupedBar orientation="horizontal" :x="empProjectsX" :y="empProjectsY" :color="empProjectsColor" :roundedCorners="4" />
+                                                <VisGroupedBar orientation="horizontal" :x="empProjectsX" :y="empProjectsY" :color="empProjectsColor" :roundedCorners="4" :barMinHeight="0" />
                                                 <VisAxis type="x" :tickFormat="empProjectsXTickFormat" />
                                                 <VisAxis type="y" :tickFormat="empProjectsYTickFormat" :gridLine="false" :tickTextFontSize="'10px'" />
                                                 <VisTooltip :triggers="empProjectsTooltipTriggers" />
@@ -1023,7 +1021,7 @@ const empAchievementTooltipTriggers = {
                                 <!-- Chart -->
                                 <div v-if="top_employees_by_achievement?.length" class="mb-3 h-52">
                                     <VisXYContainer :data="empByAchievementUnovisData" :yDomain="[0, 100]" :style="{ height: '100%' }">
-                                                <VisGroupedBar orientation="horizontal" :x="empAchievementX" :y="empAchievementY" :color="empAchievementColor" :roundedCorners="4" />
+                                                <VisGroupedBar orientation="horizontal" :x="empAchievementX" :y="empAchievementY" :color="empAchievementColor" :roundedCorners="4" :barMinHeight="0" />
                                                 <VisAxis type="x" :tickFormat="empAchievementXTickFormat" />
                                                 <VisAxis type="y" :tickFormat="empAchievementYTickFormat" :gridLine="false" :tickTextFontSize="'10px'" />
                                                 <VisTooltip :triggers="empAchievementTooltipTriggers" />
@@ -1222,7 +1220,7 @@ const empAchievementTooltipTriggers = {
                         <CardContent>
                             <div class="h-64">
                                 <VisXYContainer :data="barChartUnovisData" :yDomain="[0, 100]" :style="{ height: '100%' }">
-                                                <VisGroupedBar :x="barX" :y="barY" :color="barColor" :roundedCorners="6" />
+                                                <VisGroupedBar :x="barX" :y="barY" :color="barColor" :roundedCorners="6" :barMinHeight="0" />
                                                 <VisAxis type="x" :tickFormat="barXTickFormat" :gridLine="false" :tickTextFontSize="'11px'" :tickTextAngle="-30" />
                                                 <VisAxis type="y" :tickFormat="barYTickFormat" />
                                                 <VisTooltip :triggers="barTooltipTriggers" />
@@ -1325,7 +1323,7 @@ const empAchievementTooltipTriggers = {
                         <CardContent>
                             <div v-if="topByProjectsFiltered.length" class="mb-3 h-52">
                                 <VisXYContainer :data="empByProjectsUnovisData" :style="{ height: '100%' }">
-                                                <VisGroupedBar orientation="horizontal" :x="empProjectsX" :y="empProjectsY" :color="empProjectsColor" :roundedCorners="4" />
+                                                <VisGroupedBar orientation="horizontal" :x="empProjectsX" :y="empProjectsY" :color="empProjectsColor" :roundedCorners="4" :barMinHeight="0" />
                                                 <VisAxis type="x" :tickFormat="empProjectsXTickFormat" />
                                                 <VisAxis type="y" :tickFormat="empProjectsYTickFormat" :gridLine="false" :tickTextFontSize="'10px'" />
                                                 <VisTooltip :triggers="empProjectsTooltipTriggers" />
@@ -1359,7 +1357,7 @@ const empAchievementTooltipTriggers = {
                         <CardContent>
                             <div v-if="top_employees_by_achievement?.length" class="mb-3 h-52">
                                 <VisXYContainer :data="empByAchievementUnovisData" :yDomain="[0, 100]" :style="{ height: '100%' }">
-                                                <VisGroupedBar orientation="horizontal" :x="empAchievementX" :y="empAchievementY" :color="empAchievementColor" :roundedCorners="4" />
+                                                <VisGroupedBar orientation="horizontal" :x="empAchievementX" :y="empAchievementY" :color="empAchievementColor" :roundedCorners="4" :barMinHeight="0" />
                                                 <VisAxis type="x" :tickFormat="empAchievementXTickFormat" />
                                                 <VisAxis type="y" :tickFormat="empAchievementYTickFormat" :gridLine="false" :tickTextFontSize="'10px'" />
                                                 <VisTooltip :triggers="empAchievementTooltipTriggers" />
@@ -1488,7 +1486,7 @@ const empAchievementTooltipTriggers = {
                         <CardContent>
                             <div class="h-64">
                                 <VisXYContainer :data="barChartUnovisData" :yDomain="[0, 100]" :style="{ height: '100%' }">
-                                                <VisGroupedBar :x="barX" :y="barY" :color="barColor" :roundedCorners="6" />
+                                                <VisGroupedBar :x="barX" :y="barY" :color="barColor" :roundedCorners="6" :barMinHeight="0" />
                                                 <VisAxis type="x" :tickFormat="barXTickFormat" :gridLine="false" :tickTextFontSize="'11px'" :tickTextAngle="-30" />
                                                 <VisAxis type="y" :tickFormat="barYTickFormat" />
                                                 <VisTooltip :triggers="barTooltipTriggers" />

@@ -177,7 +177,7 @@ function achievementColor(val: number | null) {
                 </p>
                 <div v-if="top10.length" style="height: 300px;">
                     <VisXYContainer :data="achievementUnovisData" :yDomain="[0, 100]" :style="{ height: '100%' }">
-                        <VisGroupedBar orientation="horizontal" :x="achX" :y="achY" :color="achColor" :roundedCorners="4" />
+                        <VisGroupedBar orientation="horizontal" :x="achX" :y="achY" :color="achColor" :roundedCorners="4" :barMinHeight="0" />
                         <VisAxis type="x" :tickFormat="achXTickFormat" />
                         <VisAxis type="y" :tickFormat="achYTickFormat" :gridLine="false" :tickTextFontSize="'12px'" />
                         <VisTooltip :triggers="achTooltipTriggers" />
@@ -204,7 +204,7 @@ function achievementColor(val: number | null) {
                 <p class="mb-4 text-xs text-gray-400">Total keterlibatan proyek — {{ filters.year }}</p>
                 <div v-if="projectFiltered.length" style="height: 300px;">
                     <VisXYContainer :data="projectUnovisData" :style="{ height: '100%' }">
-                        <VisGroupedBar orientation="horizontal" :x="projX" :y="projY" :color="projColor" :roundedCorners="4" />
+                        <VisGroupedBar orientation="horizontal" :x="projX" :y="projY" :color="projColor" :roundedCorners="4" :barMinHeight="0" />
                         <VisAxis type="x" :tickFormat="projXTickFormat" />
                         <VisAxis type="y" :tickFormat="projYTickFormat" :gridLine="false" :tickTextFontSize="'12px'" />
                         <VisTooltip :triggers="projTooltipTriggers" />
