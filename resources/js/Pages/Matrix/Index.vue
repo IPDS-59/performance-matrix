@@ -152,7 +152,7 @@ function cellBgColor(pct: number): string {
 
         <!-- Grid (virtual scroll via overflow) -->
         <div class="overflow-auto rounded-md border bg-white" style="max-height: calc(100vh - 260px)">
-            <table class="min-w-max text-xs">
+            <table class="min-w-max text-xs border-separate border-spacing-0">
                 <thead class="sticky top-0 z-20 bg-white">
                     <tr>
                         <th class="sticky left-0 z-30 bg-white px-3 py-2 text-left font-medium border-b border-r min-w-[160px]">
