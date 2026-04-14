@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import AppLayout from '@/Layouts/AppLayout.vue';
 import { Head, router } from '@inertiajs/vue3';
-import { computed, reactive, ref } from 'vue';
+import { computed, nextTick, onMounted, reactive, ref } from 'vue';
 import type { Employee, Team } from '@/types';
 import { Card, CardContent, CardHeader, CardTitle } from '@/Components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/Components/ui/tabs';
@@ -156,6 +156,19 @@ function avgIconColor(pct: number): string {
     if (pct >= 50) return 'text-yellow-500';
     return 'text-red-500';
 }
+
+// ── Auto-scroll to current user in ranking lists ─────────────────────────
+
+onMounted(() => {
+    nextTick(() => {
+        document.querySelectorAll<HTMLElement>('[data-current-user]').forEach(el => {
+            const container = el.closest('.overflow-y-auto');
+            if (container) {
+                el.scrollIntoView({ block: 'center', behavior: 'smooth' });
+            }
+        });
+    });
+});
 
 // ── Personal stats helpers ─────────────────────────────────────────────────
 
@@ -625,7 +638,7 @@ const empAchievementTooltipTriggers = {
                                         <div class="relative">
                                             <div class="max-h-52 overflow-y-auto divide-y divide-gray-100 rounded-md border [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-gray-200 [&::-webkit-scrollbar-track]:bg-transparent">
                                                 <template v-if="topByProjectsFiltered.length">
-                                                    <div v-for="(emp, idx) in topByProjectsFiltered" :key="emp.id" :class="['flex items-center gap-3 px-3 py-2', emp.id === employee?.id ? 'bg-primary/5' : '']">
+                                                    <div v-for="(emp, idx) in topByProjectsFiltered" :key="emp.id" :class="['flex items-center gap-3 px-3 py-2', emp.id === employee?.id ? 'bg-primary/5' : '']" :data-current-user="emp.id === employee?.id || undefined">
                                                         <span class="w-5 shrink-0 text-right text-xs font-bold text-gray-400">{{ idx + 1 }}</span>
                                                         <div class="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-indigo-100 text-[10px] font-bold text-indigo-700">{{ (emp.display_name || emp.name).charAt(0).toUpperCase() }}</div>
                                                         <span :class="['min-w-0 flex-1 truncate text-xs', emp.id === employee?.id ? 'font-semibold text-primary' : 'text-gray-700']">{{ emp.display_name || emp.name }}<span v-if="emp.id === employee?.id" class="ml-1 font-normal text-primary/70">(Anda)</span></span>
@@ -656,7 +669,7 @@ const empAchievementTooltipTriggers = {
                                         <div class="relative">
                                             <div class="max-h-52 overflow-y-auto divide-y divide-gray-100 rounded-md border [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-gray-200 [&::-webkit-scrollbar-track]:bg-transparent">
                                                 <template v-if="top_employees_by_achievement?.length">
-                                                    <div v-for="(emp, idx) in top_employees_by_achievement" :key="emp.id" :class="['flex items-center gap-3 px-3 py-2', emp.id === employee?.id ? 'bg-primary/5' : '']">
+                                                    <div v-for="(emp, idx) in top_employees_by_achievement" :key="emp.id" :class="['flex items-center gap-3 px-3 py-2', emp.id === employee?.id ? 'bg-primary/5' : '']" :data-current-user="emp.id === employee?.id || undefined">
                                                         <span class="w-5 shrink-0 text-right text-xs font-bold text-gray-400">{{ idx + 1 }}</span>
                                                         <div class="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-green-100 text-[10px] font-bold text-green-700">{{ (emp.display_name || emp.name).charAt(0).toUpperCase() }}</div>
                                                         <div class="min-w-0 flex-1">
@@ -990,7 +1003,7 @@ const empAchievementTooltipTriggers = {
                                             <div
                                                 v-for="(emp, idx) in topByProjectsFiltered"
                                                 :key="emp.id"
-                                                :class="['flex items-center gap-3 px-3 py-2', emp.id === employee?.id ? 'bg-primary/5' : '']"
+                                                :class="['flex items-center gap-3 px-3 py-2', emp.id === employee?.id ? 'bg-primary/5' : '']" :data-current-user="emp.id === employee?.id || undefined"
                                             >
                                                 <span class="w-5 shrink-0 text-right text-xs font-bold text-gray-400">{{ idx + 1 }}</span>
                                                 <div class="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-indigo-100 text-[10px] font-bold text-indigo-700">
@@ -1041,7 +1054,7 @@ const empAchievementTooltipTriggers = {
                                             <div
                                                 v-for="(emp, idx) in top_employees_by_achievement"
                                                 :key="emp.id"
-                                                :class="['flex items-center gap-3 px-3 py-2', emp.id === employee?.id ? 'bg-primary/5' : '']"
+                                                :class="['flex items-center gap-3 px-3 py-2', emp.id === employee?.id ? 'bg-primary/5' : '']" :data-current-user="emp.id === employee?.id || undefined"
                                             >
                                                 <span class="w-5 shrink-0 text-right text-xs font-bold text-gray-400">{{ idx + 1 }}</span>
                                                 <div class="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-green-100 text-[10px] font-bold text-green-700">
