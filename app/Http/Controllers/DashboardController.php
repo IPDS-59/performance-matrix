@@ -74,8 +74,10 @@ class DashboardController extends Controller
 
         $teams = Team::where('is_active', true)->orderBy('name')->get(['id', 'name']);
 
+        $currentEmployeeId = $request->user()->employee?->id;
+
         return Inertia::render('Matrix/Index', compact(
-            'employees', 'projects', 'assignments', 'progress', 'teams', 'year', 'month', 'teamId'
+            'employees', 'projects', 'assignments', 'progress', 'teams', 'year', 'month', 'teamId', 'currentEmployeeId'
         ));
     }
 

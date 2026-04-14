@@ -23,6 +23,7 @@ const props = defineProps<{
     year: number;
     month: number;
     teamId: number | null;
+    currentEmployeeId: number | null;
 }>();
 
 const viewMode = ref<'assignment' | 'progress'>('assignment');
@@ -178,9 +179,9 @@ function cellBgColor(pct: number): string {
                     </tr>
                 </thead>
                 <tbody>
-                    <tr v-for="employee in employees" :key="employee.id" class="border-b hover:bg-gray-50">
-                        <td class="sticky left-0 bg-white border-r px-3 py-1.5 font-medium">
-                            {{ employee.display_name || employee.name }}
+                    <tr v-for="employee in employees" :key="employee.id" :class="['border-b', employee.id === currentEmployeeId ? 'bg-primary/5 hover:bg-primary/10' : 'hover:bg-gray-50']">
+                        <td :class="['sticky left-0 border-r px-3 py-1.5 font-medium', employee.id === currentEmployeeId ? 'bg-primary/5 text-primary font-semibold' : 'bg-white']">
+                            {{ employee.display_name || employee.name }}<span v-if="employee.id === currentEmployeeId" class="ml-1 text-xs font-normal text-primary/70">(Anda)</span>
                         </td>
                         <td
                             v-for="project in projects"
