@@ -1,19 +1,10 @@
 <script setup lang="ts">
 import AppLayout from '@/Layouts/AppLayout.vue';
 import { Head, router } from '@inertiajs/vue3';
-import { Bar } from 'vue-chartjs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/Components/ui/select';
-import {
-    BarElement,
-    CategoryScale,
-    Chart as ChartJS,
-    LinearScale,
-    Title,
-    Tooltip,
-} from 'chart.js';
+import { VisXYContainer, VisGroupedBar, VisAxis, VisTooltip } from '@unovis/vue';
+import { GroupedBar } from '@unovis/ts';
 import { computed, ref } from 'vue';
-
-ChartJS.register(Title, Tooltip, BarElement, CategoryScale, LinearScale);
 
 interface TopEmployee {
     id: number;
@@ -66,43 +57,24 @@ function applyFilter() {
     router.get(route('laporan.pegawai'), { year: year.value, month: month.value }, { preserveState: true });
 }
 
-// Chart 1 — top 10 by achievement (period-filtered)
-const achievementChartData = computed(() => ({
-    labels: props.top10.map((e) => e.display_name ?? e.name),
-    datasets: [
-        {
-            label: 'Rata-rata Capaian (%)',
-            data: props.top10.map((e) => Math.round(e.avg_achievement * 10) / 10),
-            backgroundColor: 'rgba(27, 75, 138, 0.75)',
-            borderColor: 'rgba(27, 75, 138, 1)',
-            borderWidth: 1,
-            borderRadius: 4,
-        },
-    ],
-}));
+// Chart 1 — top 10 by achievement (period-filtered, Unovis)
+interface AchievementDatum { label: string; value: number }
 
-const achievementChartOptions = {
-    indexAxis: 'y' as const,
-    responsive: true,
-    maintainAspectRatio: false,
-    plugins: {
-        title: { display: false },
-        legend: { display: false },
-        tooltip: {
-            callbacks: {
-                label: (ctx: import('chart.js').TooltipItem<'bar'>) => ` ${ctx.parsed.x ?? 0}%`,
-            },
-        },
-    },
-    scales: {
-        x: {
-            min: 0,
-            max: 100,
-            ticks: { callback: (v: unknown) => `${v}%` },
-            grid: { color: 'rgba(0,0,0,0.05)' },
-        },
-        y: { ticks: { font: { size: 12 } } },
-    },
+const achievementUnovisData = computed<AchievementDatum[]>(() =>
+    props.top10.map(e => ({
+        label: e.display_name ?? e.name,
+        value: Math.round(e.avg_achievement * 10) / 10,
+    })),
+);
+
+const achX = (_d: AchievementDatum, i: number) => i;
+const achY = [(d: AchievementDatum) => d.value];
+const achColor = 'rgba(27, 75, 138, 0.75)';
+const achYTickFormat = (_tick: number, i: number) => achievementUnovisData.value[i]?.label ?? '';
+const achXTickFormat = (v: number) => `${v}%`;
+const achTooltipTriggers = {
+    [GroupedBar.selectors.bar]: (d: AchievementDatum) =>
+        `<div style="padding:4px 8px;font-size:13px"><strong>${d.label}</strong><br/>${d.value}%</div>`,
 };
 
 // Chart 2 — top 10 by project role (year-filtered)
@@ -125,55 +97,26 @@ const projectTabLabel = computed(() => {
     return 'proyek';
 });
 
-const projectChartData = computed(() => ({
-    labels: projectFiltered.value.map((e) => e.display_name ?? e.name),
-    datasets: [
-        {
-            label: 'Proyek',
-            data: projectFiltered.value.map((e) =>
-                projectTab.value === 'ketua' ? e.leader_count :
-                projectTab.value === 'anggota' ? e.member_count :
-                e.total_projects
-            ),
-            backgroundColor: 'rgba(5, 150, 105, 0.75)',
-            borderColor: 'rgba(5, 150, 105, 1)',
-            borderWidth: 1,
-            borderRadius: 4,
-        },
-    ],
-}));
+// Chart 2 — top 10 by project role (Unovis)
+interface ProjectDatum { label: string; value: number }
 
-const maxProjects = computed(() => {
-    const vals = projectFiltered.value.map((e) =>
-        projectTab.value === 'ketua' ? e.leader_count :
-        projectTab.value === 'anggota' ? e.member_count :
-        e.total_projects
-    );
-    return vals.length ? Math.ceil(Math.max(...vals) * 1.2) : 10;
-});
+const projectUnovisData = computed<ProjectDatum[]>(() =>
+    projectFiltered.value.map(e => ({
+        label: e.display_name ?? e.name,
+        value: projectTab.value === 'ketua' ? e.leader_count :
+               projectTab.value === 'anggota' ? e.member_count :
+               e.total_projects,
+    })),
+);
 
-const projectChartOptions = computed(() => ({
-    indexAxis: 'y' as const,
-    responsive: true,
-    maintainAspectRatio: false,
-    plugins: {
-        title: { display: false },
-        legend: { display: false },
-        tooltip: {
-            callbacks: {
-                label: (ctx: import('chart.js').TooltipItem<'bar'>) => ` ${ctx.parsed.x ?? 0} ${projectTabLabel.value}`,
-            },
-        },
-    },
-    scales: {
-        x: {
-            min: 0,
-            max: maxProjects.value,
-            ticks: { stepSize: 1, callback: (v: unknown) => String(v) },
-            grid: { color: 'rgba(0,0,0,0.05)' },
-        },
-        y: { ticks: { font: { size: 12 } } },
-    },
+const projX = (_d: ProjectDatum, i: number) => i;
+const projY = [(d: ProjectDatum) => d.value];
+const projColor = 'rgba(5, 150, 105, 0.75)';
+const projYTickFormat = (_tick: number, i: number) => projectUnovisData.value[i]?.label ?? '';
+const projXTickFormat = (v: number) => `${v}`;
+const projTooltipTriggers = computed(() => ({
+    [GroupedBar.selectors.bar]: (d: ProjectDatum) =>
+        `<div style="padding:4px 8px;font-size:13px"><strong>${d.label}</strong><br/>${d.value} ${projectTabLabel.value}</div>`,
 }));
 
 function achievementColor(val: number | null) {
@@ -233,7 +176,12 @@ function achievementColor(val: number | null) {
                     Rata-rata capaian — {{ MONTHS[filters.month - 1] }} {{ filters.year }}
                 </p>
                 <div v-if="top10.length" style="height: 300px;">
-                    <Bar :data="achievementChartData" :options="achievementChartOptions" />
+                    <VisXYContainer :data="achievementUnovisData" :yDomain="[0, 100]" :style="{ height: '100%' }">
+                        <VisGroupedBar orientation="horizontal" :x="achX" :y="achY" :color="achColor" :roundedCorners="4" />
+                        <VisAxis type="x" :tickFormat="achXTickFormat" />
+                        <VisAxis type="y" :tickFormat="achYTickFormat" :gridLine="false" :tickTextFontSize="'12px'" />
+                        <VisTooltip :triggers="achTooltipTriggers" />
+                    </VisXYContainer>
                 </div>
                 <p v-else class="py-10 text-center text-sm text-gray-400">
                     Belum ada data capaian untuk periode ini.
@@ -255,7 +203,12 @@ function achievementColor(val: number | null) {
                 </div>
                 <p class="mb-4 text-xs text-gray-400">Total keterlibatan proyek — {{ filters.year }}</p>
                 <div v-if="projectFiltered.length" style="height: 300px;">
-                    <Bar :data="projectChartData" :options="projectChartOptions" />
+                    <VisXYContainer :data="projectUnovisData" :style="{ height: '100%' }">
+                        <VisGroupedBar orientation="horizontal" :x="projX" :y="projY" :color="projColor" :roundedCorners="4" />
+                        <VisAxis type="x" :tickFormat="projXTickFormat" />
+                        <VisAxis type="y" :tickFormat="projYTickFormat" :gridLine="false" :tickTextFontSize="'12px'" />
+                        <VisTooltip :triggers="projTooltipTriggers" />
+                    </VisXYContainer>
                 </div>
                 <p v-else class="py-10 text-center text-sm text-gray-400">
                     Belum ada data proyek.

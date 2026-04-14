@@ -34,14 +34,12 @@
         "@unovis/ts": "^1.6.4",
         "@unovis/vue": "^1.6.4",
         "@vueuse/core": "^14.2.1",
-        "chart.js": "^4.5.1",
         "class-variance-authority": "^0.7.1",
         "clsx": "^2.1.1",
         "lucide-vue-next": "^1.0.0",
         "notivue": "^2.4.5",
         "pinia": "^3.0.4",
         "reka-ui": "^2.9.5",
-        "tailwind-merge": "^3.5.0",
-        "vue-chartjs": "^5.3.3"
+        "tailwind-merge": "^3.5.0"
     }
 }
