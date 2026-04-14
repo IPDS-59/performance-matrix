@@ -344,8 +344,10 @@ const empProjectsX = (_d: EmpProjectsDatum, i: number) => i;
 const empProjectsY = [(d: EmpProjectsDatum) => d.value];
 const empProjectsColor = (d: EmpProjectsDatum) =>
     d.isCurrentUser ? 'rgba(27,75,138,0.9)' : 'rgba(99,102,241,0.65)';
-const empProjectsYTickFormat = (tick: number) =>
-    empByProjectsUnovisData.value[tick]?.label ?? '';
+const empProjectsYTickFormat = (tick: number) => {
+    const label = empByProjectsUnovisData.value[tick]?.label ?? '';
+    return label.length > 20 ? label.substring(0, 18) + '\u2026' : label;
+};
 const empProjectsXTickFormat = (v: number) => `${v}`;
 const empProjectsTooltipTriggers = {
     [GroupedBar.selectors.bar]: (d: EmpProjectsDatum) =>
@@ -372,8 +374,10 @@ const empAchievementColor = (d: EmpAchievementDatum) =>
     d.value >= 80 ? 'rgba(34,197,94,0.65)' :
     d.value >= 50 ? 'rgba(234,179,8,0.65)' :
     'rgba(239,68,68,0.65)';
-const empAchievementYTickFormat = (tick: number) =>
-    empByAchievementUnovisData.value[tick]?.label ?? '';
+const empAchievementYTickFormat = (tick: number) => {
+    const label = empByAchievementUnovisData.value[tick]?.label ?? '';
+    return label.length > 20 ? label.substring(0, 18) + '\u2026' : label;
+};
 const empAchievementXTickFormat = (v: number) => `${v}%`;
 const empAchievementTooltipTriggers = {
     [GroupedBar.selectors.bar]: (d: EmpAchievementDatum) =>
