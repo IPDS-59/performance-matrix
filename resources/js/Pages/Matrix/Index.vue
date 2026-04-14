@@ -179,14 +179,14 @@ function cellBgColor(pct: number): string {
                     </tr>
                 </thead>
                 <tbody>
-                    <tr v-for="employee in employees" :key="employee.id" :class="['border-b', employee.id === currentEmployeeId ? 'bg-primary/5 hover:bg-primary/10' : 'hover:bg-gray-50']">
-                        <td :class="['sticky left-0 z-10 border-r px-3 py-1.5 font-medium', employee.id === currentEmployeeId ? 'bg-blue-50 text-primary font-semibold' : 'bg-white']">
+                    <tr v-for="employee in employees" :key="employee.id" :class="[employee.id === currentEmployeeId ? 'bg-primary/5 hover:bg-primary/10' : 'hover:bg-gray-50']">
+                        <td :class="['sticky left-0 z-10 border-b border-r px-3 py-1.5 font-medium', employee.id === currentEmployeeId ? 'bg-blue-50 text-primary font-semibold' : 'bg-white']">
                             {{ employee.display_name || employee.name }}<span v-if="employee.id === currentEmployeeId" class="ml-1 text-xs font-normal text-primary/70">(Anda)</span>
                         </td>
                         <td
                             v-for="project in projects"
                             :key="project.id"
-                            class="border-r px-1 py-1.5 text-center"
+                            class="border-b border-r px-1 py-1.5 text-center"
                         >
                             <!-- Assignment mode -->
                             <template v-if="viewMode === 'assignment'">
