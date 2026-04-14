@@ -522,7 +522,7 @@ const empAchievementTooltipTriggers = {
                                         <div v-if="teamList.length" class="h-64">
                                             <VisXYContainer :data="barChartUnovisData" :yDomain="[0, 100]" :style="{ height: '100%' }">
                                                 <VisGroupedBar :x="barX" :y="barY" :color="barColor" :roundedCorners="6" :barMinHeight="0" />
-                                                <VisAxis type="x" :tickFormat="barXTickFormat" :gridLine="false" :tickTextFontSize="'11px'" :tickTextAngle="-30" :numTicks="barChartUnovisData.length" />
+                                                <VisAxis type="x" :tickFormat="barXTickFormat" :gridLine="false" :tickTextFontSize="'11px'" :numTicks="barChartUnovisData.length" />
                                                 <VisAxis type="y" :tickFormat="barYTickFormat" />
                                                 <VisTooltip :triggers="barTooltipTriggers" />
                                             </VisXYContainer>
@@ -864,7 +864,7 @@ const empAchievementTooltipTriggers = {
                                 <div v-if="teamList.length" class="h-64">
                                     <VisXYContainer :data="barChartUnovisData" :yDomain="[0, 100]" :style="{ height: '100%' }">
                                                 <VisGroupedBar :x="barX" :y="barY" :color="barColor" :roundedCorners="6" :barMinHeight="0" />
-                                                <VisAxis type="x" :tickFormat="barXTickFormat" :gridLine="false" :tickTextFontSize="'11px'" :tickTextAngle="-30" :numTicks="barChartUnovisData.length" />
+                                                <VisAxis type="x" :tickFormat="barXTickFormat" :gridLine="false" :tickTextFontSize="'11px'" :numTicks="barChartUnovisData.length" />
                                                 <VisAxis type="y" :tickFormat="barYTickFormat" />
                                                 <VisTooltip :triggers="barTooltipTriggers" />
                                             </VisXYContainer>
@@ -1225,7 +1225,7 @@ const empAchievementTooltipTriggers = {
                             <div class="h-64">
                                 <VisXYContainer :data="barChartUnovisData" :yDomain="[0, 100]" :style="{ height: '100%' }">
                                                 <VisGroupedBar :x="barX" :y="barY" :color="barColor" :roundedCorners="6" :barMinHeight="0" />
-                                                <VisAxis type="x" :tickFormat="barXTickFormat" :gridLine="false" :tickTextFontSize="'11px'" :tickTextAngle="-30" :numTicks="barChartUnovisData.length" />
+                                                <VisAxis type="x" :tickFormat="barXTickFormat" :gridLine="false" :tickTextFontSize="'11px'" :numTicks="barChartUnovisData.length" />
                                                 <VisAxis type="y" :tickFormat="barYTickFormat" />
                                                 <VisTooltip :triggers="barTooltipTriggers" />
                                             </VisXYContainer>
@@ -1491,7 +1491,7 @@ const empAchievementTooltipTriggers = {
                             <div class="h-64">
                                 <VisXYContainer :data="barChartUnovisData" :yDomain="[0, 100]" :style="{ height: '100%' }">
                                                 <VisGroupedBar :x="barX" :y="barY" :color="barColor" :roundedCorners="6" :barMinHeight="0" />
-                                                <VisAxis type="x" :tickFormat="barXTickFormat" :gridLine="false" :tickTextFontSize="'11px'" :tickTextAngle="-30" :numTicks="barChartUnovisData.length" />
+                                                <VisAxis type="x" :tickFormat="barXTickFormat" :gridLine="false" :tickTextFontSize="'11px'" :numTicks="barChartUnovisData.length" />
                                                 <VisAxis type="y" :tickFormat="barYTickFormat" />
                                                 <VisTooltip :triggers="barTooltipTriggers" />
                                             </VisXYContainer>
