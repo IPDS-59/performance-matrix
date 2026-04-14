@@ -97,17 +97,17 @@ class UserSeeder extends Seeder
             $user = User::firstOrCreate(
                 ['email' => $email],
                 [
-                    'name' => $employee->display_name ?? $employee->name,
+                    'name' => $employee->name,
                     'password' => Hash::make('password'),
                     'role' => $role,
                 ]
             );
             $user->syncRoles($role);
 
-            // Link employee → user (write-through display_name cache)
+            // Link employee → user
             if (! $employee->user_id) {
                 $employee->update(['user_id' => $user->id]);
-                $user->update(['name' => $employee->display_name ?? $employee->name]);
+                $user->update(['name' => $employee->name]);
             }
         }
     }

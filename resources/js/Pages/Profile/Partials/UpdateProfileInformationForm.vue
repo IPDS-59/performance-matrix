@@ -5,15 +5,18 @@ import { Input } from '@/Components/ui/input';
 import { Label } from '@/Components/ui/label';
 import { Link, useForm, usePage } from '@inertiajs/vue3';
 
-defineProps<{
+import type { Employee } from '@/types';
+
+const props = defineProps<{
     mustVerifyEmail?: boolean;
     status?: string;
+    employee?: Employee | null;
 }>();
 
 const user = usePage().props.auth.user;
 
 const form = useForm({
-    name: user.name,
+    name: props.employee?.name ?? user.name,
     email: user.email,
 });
 </script>

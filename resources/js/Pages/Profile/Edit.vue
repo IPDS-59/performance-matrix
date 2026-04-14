@@ -189,6 +189,7 @@ function deleteEdu(employeeId: number, eduId: number) {
                 <UpdateProfileInformationForm
                     :must-verify-email="mustVerifyEmail"
                     :status="status"
+                    :employee="employee"
                 />
             </div>
 
