@@ -74,9 +74,134 @@ class DashboardController extends Controller
 
         $teams = Team::where('is_active', true)->orderBy('name')->get(['id', 'name']);
 
+        $currentEmployeeId = $request->user()->employee?->id;
+
         return Inertia::render('Matrix/Index', compact(
-            'employees', 'projects', 'assignments', 'progress', 'teams', 'year', 'month', 'teamId'
+            'employees', 'projects', 'assignments', 'progress', 'teams', 'year', 'month', 'teamId', 'currentEmployeeId'
         ));
+    }
+
+    /**
+     * Compute team achievement as: avg of per-project averages.
+     *
+     * A flat AVG across all reports inflates teams whose one active project
+     * has many 100% reports. By averaging per-project first we ensure each
+     * project contributes equally. Projects with zero reports in the period
+     * count as 0% so a team with 10 projects and only 1 reporting 100%
+     * won't show 100%.
+     */
+    private function computeTeamProgress(int $year, int $month): Collection
+    {
+        // Per-project averages for the requested period
+        $projectAvgs = DB::table('performance_reports')
+            ->join('work_items', 'work_items.id', '=', 'performance_reports.work_item_id')
+            ->join('projects', 'projects.id', '=', 'work_items.project_id')
+            ->where('performance_reports.period_year', $year)
+            ->where('performance_reports.period_month', $month)
+            ->where('projects.year', $year)
+            ->groupBy('projects.team_id', 'projects.id')
+            ->select(
+                'projects.team_id',
+                'projects.id as project_id',
+                DB::raw('AVG(performance_reports.achievement_percentage) as project_avg'),
+                DB::raw('COUNT(performance_reports.id) as report_count')
+            )
+            ->get();
+
+        // Total projects per team (including those with no reports)
+        $totalProjectsByTeam = DB::table('projects')
+            ->where('year', $year)
+            ->groupBy('team_id')
+            ->select('team_id', DB::raw('COUNT(*) as total'))
+            ->get()
+            ->keyBy('team_id');
+
+        // Roll up: team avg = sum(project avgs) / total projects in team
+        return $projectAvgs
+            ->groupBy('team_id')
+            ->map(function ($rows, $teamId) use ($totalProjectsByTeam) {
+                $sumAvg = $rows->sum('project_avg');
+                $totalProjects = $totalProjectsByTeam[$teamId]->total ?? $rows->count();
+                $reportCount = $rows->sum('report_count');
+
+                return (object) [
+                    'team_id' => (int) $teamId,
+                    'avg_achievement' => $totalProjects > 0 ? $sumAvg / $totalProjects : 0,
+                    'report_count' => $reportCount,
+                ];
+            })
+            ->keyBy('team_id');
+    }
+
+    /**
+     * Compute organisation average as: avg of team averages.
+     */
+    private function computeOrgAvg(Collection $teamProgress): float
+    {
+        if ($teamProgress->isEmpty()) {
+            return 0;
+        }
+
+        return $teamProgress->avg('avg_achievement');
+    }
+
+    /**
+     * Top employees ranked by achievement: per-project avg ÷ total assigned projects.
+     *
+     * An employee assigned to 5 projects who only reported on 1 at 100%
+     * gets 20%, not 100%.
+     */
+    private function topEmployeesByAchievement(int $year, int $month, int $limit = 10): Collection
+    {
+        // Per-employee per-project averages
+        $perProject = DB::table('performance_reports')
+            ->join('work_items', 'work_items.id', '=', 'performance_reports.work_item_id')
+            ->join('projects', 'projects.id', '=', 'work_items.project_id')
+            ->where('performance_reports.period_year', $year)
+            ->where('performance_reports.period_month', $month)
+            ->where('projects.year', $year)
+            ->groupBy('performance_reports.reported_by', 'projects.id')
+            ->select(
+                'performance_reports.reported_by',
+                'projects.id as project_id',
+                DB::raw('AVG(performance_reports.achievement_percentage) as project_avg')
+            )
+            ->get();
+
+        // Total assigned projects per employee
+        $assignedCounts = DB::table('project_members')
+            ->join('projects', 'projects.id', '=', 'project_members.project_id')
+            ->where('projects.year', $year)
+            ->groupBy('project_members.employee_id')
+            ->select('project_members.employee_id', DB::raw('COUNT(DISTINCT project_members.project_id) as total'))
+            ->get()
+            ->keyBy('employee_id');
+
+        $employees = DB::table('employees')
+            ->where('is_active', true)
+            ->get(['id', 'name', 'display_name'])
+            ->keyBy('id');
+
+        return $perProject
+            ->groupBy('reported_by')
+            ->map(function ($rows, $employeeId) use ($assignedCounts, $employees) {
+                $emp = $employees[$employeeId] ?? null;
+                if (! $emp) {
+                    return null;
+                }
+                $total = $assignedCounts[$employeeId]->total ?? $rows->count();
+
+                return (object) [
+                    'id' => (int) $employeeId,
+                    'name' => $emp->name,
+                    'display_name' => $emp->display_name,
+                    'avg_achievement' => $total > 0 ? $rows->sum('project_avg') / $total : 0,
+                ];
+            })
+            ->filter()
+            ->sortByDesc('avg_achievement')
+            ->take($limit)
+            ->values();
     }
 
     /**
@@ -130,11 +255,20 @@ class DashboardController extends Controller
             ->whereIn('project_id', $projectIds)
             ->pluck('id');
 
-        $avgAchievement = DB::table('performance_reports')
-            ->whereIn('work_item_id', $workItemIds)
-            ->where('period_year', $year)
-            ->where('period_month', $month)
-            ->avg('achievement_percentage');
+        // Per-project avg → employee avg (projects without reports count as 0%)
+        $projectAvgs = DB::table('performance_reports')
+            ->join('work_items', 'work_items.id', '=', 'performance_reports.work_item_id')
+            ->whereIn('work_items.project_id', $projectIds)
+            ->where('performance_reports.period_year', $year)
+            ->where('performance_reports.period_month', $month)
+            ->groupBy('work_items.project_id')
+            ->select(DB::raw('AVG(performance_reports.achievement_percentage) as project_avg'))
+            ->get();
+
+        $totalAssigned = $projectIds->count();
+        $avgAchievement = $totalAssigned > 0
+            ? $projectAvgs->sum('project_avg') / $totalAssigned
+            : 0;
 
         $isTeamLead = Project::where('leader_id', $employee->id)
             ->where('year', $year)
@@ -194,19 +328,7 @@ class DashboardController extends Controller
                 ->get()
             : collect();
 
-        $teamProgress = DB::table('performance_reports')
-            ->join('work_items', 'work_items.id', '=', 'performance_reports.work_item_id')
-            ->join('projects', 'projects.id', '=', 'work_items.project_id')
-            ->where('performance_reports.period_month', $month)
-            ->where('performance_reports.period_year', $year)
-            ->groupBy('projects.team_id')
-            ->select(
-                'projects.team_id',
-                DB::raw('AVG(performance_reports.achievement_percentage) as avg_achievement'),
-                DB::raw('COUNT(performance_reports.id) as report_count')
-            )
-            ->get()
-            ->keyBy('team_id');
+        $teamProgress = $this->computeTeamProgress($year, $month);
 
         $teams = $this->loadTeamsWithMembers($year);
 
@@ -234,19 +356,7 @@ class DashboardController extends Controller
             ->orderByDesc('project_count')
             ->get();
 
-        $topByAchievement = DB::table('employees')
-            ->join('performance_reports', 'performance_reports.reported_by', '=', 'employees.id')
-            ->join('work_items', 'work_items.id', '=', 'performance_reports.work_item_id')
-            ->join('projects', 'projects.id', '=', 'work_items.project_id')
-            ->where('performance_reports.period_year', $year)
-            ->where('performance_reports.period_month', $month)
-            ->where('projects.year', $year)
-            ->where('employees.is_active', true)
-            ->groupBy('employees.id', 'employees.name', 'employees.display_name')
-            ->select('employees.id', 'employees.name', 'employees.display_name', DB::raw('AVG(performance_reports.achievement_percentage) as avg_achievement'))
-            ->orderByDesc('avg_achievement')
-            ->limit(10)
-            ->get();
+        $topByAchievement = $this->topEmployeesByAchievement($year, $month);
 
         return Inertia::render('Dashboard', [
             'role' => 'staff',
@@ -265,19 +375,7 @@ class DashboardController extends Controller
 
     private function headDashboard($user, int $year, int $month): Response
     {
-        $teamProgress = DB::table('performance_reports')
-            ->join('work_items', 'work_items.id', '=', 'performance_reports.work_item_id')
-            ->join('projects', 'projects.id', '=', 'work_items.project_id')
-            ->where('performance_reports.period_month', $month)
-            ->where('performance_reports.period_year', $year)
-            ->groupBy('projects.team_id')
-            ->select(
-                'projects.team_id',
-                DB::raw('AVG(performance_reports.achievement_percentage) as avg_achievement'),
-                DB::raw('COUNT(performance_reports.id) as report_count')
-            )
-            ->get()
-            ->keyBy('team_id');
+        $teamProgress = $this->computeTeamProgress($year, $month);
 
         $projectLeaderIds = DB::table('projects')
             ->where('year', $year)
@@ -305,19 +403,7 @@ class DashboardController extends Controller
             ->orderByDesc('project_count')
             ->get();
 
-        $topByAchievement = DB::table('employees')
-            ->join('performance_reports', 'performance_reports.reported_by', '=', 'employees.id')
-            ->join('work_items', 'work_items.id', '=', 'performance_reports.work_item_id')
-            ->join('projects', 'projects.id', '=', 'work_items.project_id')
-            ->where('performance_reports.period_year', $year)
-            ->where('performance_reports.period_month', $month)
-            ->where('projects.year', $year)
-            ->where('employees.is_active', true)
-            ->groupBy('employees.id', 'employees.name', 'employees.display_name')
-            ->select('employees.id', 'employees.name', 'employees.display_name', DB::raw('AVG(performance_reports.achievement_percentage) as avg_achievement'))
-            ->orderByDesc('avg_achievement')
-            ->limit(10)
-            ->get();
+        $topByAchievement = $this->topEmployeesByAchievement($year, $month);
 
         $data = [
             'role' => 'head',
@@ -373,38 +459,35 @@ class DashboardController extends Controller
 
     private function adminDashboard(int $year, int $month): Response
     {
-        $teamProgress = DB::table('performance_reports')
+        $teamProgress = $this->computeTeamProgress($year, $month);
+        $orgAvg = $this->computeOrgAvg($teamProgress);
+
+        // 12-month trend: per-project avg → per-month avg
+        $projectMonthAvgs = DB::table('performance_reports')
             ->join('work_items', 'work_items.id', '=', 'performance_reports.work_item_id')
             ->join('projects', 'projects.id', '=', 'work_items.project_id')
-            ->where('performance_reports.period_month', $month)
             ->where('performance_reports.period_year', $year)
-            ->groupBy('projects.team_id')
+            ->where('projects.year', $year)
+            ->groupBy('performance_reports.period_month', 'projects.id')
             ->select(
-                'projects.team_id',
-                DB::raw('AVG(performance_reports.achievement_percentage) as avg_achievement'),
-                DB::raw('COUNT(performance_reports.id) as report_count')
+                'performance_reports.period_month',
+                'projects.id as project_id',
+                DB::raw('AVG(achievement_percentage) as project_avg')
             )
-            ->get()
-            ->keyBy('team_id');
-
-        $orgAvg = DB::table('performance_reports')
-            ->join('work_items', 'work_items.id', '=', 'performance_reports.work_item_id')
-            ->join('projects', 'projects.id', '=', 'work_items.project_id')
-            ->where('performance_reports.period_year', $year)
-            ->where('performance_reports.period_month', $month)
-            ->where('projects.year', $year)
-            ->avg('performance_reports.achievement_percentage');
-
-        // 12-month trend
-        $trend = DB::table('performance_reports')
-            ->join('work_items', 'work_items.id', '=', 'performance_reports.work_item_id')
-            ->join('projects', 'projects.id', '=', 'work_items.project_id')
-            ->where('performance_reports.period_year', $year)
-            ->where('projects.year', $year)
-            ->groupBy('performance_reports.period_month')
-            ->orderBy('performance_reports.period_month')
-            ->select('performance_reports.period_month', DB::raw('AVG(achievement_percentage) as avg_achievement'))
             ->get();
+
+        $totalProjects = DB::table('projects')->where('year', $year)->count();
+
+        $trend = $projectMonthAvgs
+            ->groupBy('period_month')
+            ->map(fn ($rows, $m) => (object) [
+                'period_month' => (int) $m,
+                'avg_achievement' => $totalProjects > 0
+                    ? $rows->sum('project_avg') / $totalProjects
+                    : 0,
+            ])
+            ->sortBy('period_month')
+            ->values();
 
         $projectLeaderIds = DB::table('projects')
             ->where('year', $year)

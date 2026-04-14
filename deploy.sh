@@ -309,6 +309,7 @@ if [ "$ZIP" = true ]; then
         # VCS / tooling directories
         ".git/*"
         ".github/*"
+        ".codegraph/*"
         ".beads/*"
         ".dolt/*"
         ".claude/*"
@@ -371,6 +372,7 @@ if [ "$ZIP" = true ]; then
         "storage/framework/sessions/*"
         "storage/framework/views/*"
         "storage/app/public/*"
+        "public/hot"
         "matriks-kinerja_*.zip"
     )
 

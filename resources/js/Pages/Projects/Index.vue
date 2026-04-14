@@ -5,6 +5,7 @@ import type { Project, Team } from '@/types';
 import { Button } from '@/Components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/Components/ui/select';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/Components/ui/accordion';
+import ConfirmDialog from '@/Components/ConfirmDialog.vue';
 import { ref, computed } from 'vue';
 
 interface ProjectWithCount extends Project {
@@ -26,9 +27,19 @@ function applyFilters() {
     router.get(route('projects.index'), { year: year.value, team_id: teamId.value ?? '' }, { preserveState: true });
 }
 
+const deleteOpen = ref(false);
+const pendingId = ref<number | null>(null);
+const pendingName = ref('');
+
 function confirmDelete(id: number, name: string) {
-    if (confirm(`Hapus proyek "${name}"?`)) {
-        router.delete(route('projects.destroy', id));
+    pendingId.value = id;
+    pendingName.value = name;
+    deleteOpen.value = true;
+}
+
+function executeDelete() {
+    if (pendingId.value !== null) {
+        router.delete(route('projects.destroy', pendingId.value));
     }
 }
 
@@ -193,5 +204,12 @@ const teamGroups = computed(() => {
                 </AccordionContent>
             </AccordionItem>
         </Accordion>
+        <ConfirmDialog
+            v-model:open="deleteOpen"
+            title="Hapus Proyek"
+            :description="`Proyek &quot;${pendingName}&quot; akan dihapus secara permanen. Tindakan ini tidak dapat dibatalkan.`"
+            confirm-label="Hapus Proyek"
+            @confirm="executeDelete"
+        />
     </AppLayout>
 </template>

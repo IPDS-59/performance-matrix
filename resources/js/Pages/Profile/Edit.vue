@@ -9,6 +9,7 @@ import { Input } from '@/Components/ui/input';
 import { Label } from '@/Components/ui/label';
 import { Checkbox } from '@/Components/ui/checkbox';
 import InputError from '@/Components/InputError.vue';
+import ConfirmDialog from '@/Components/ConfirmDialog.vue';
 import type { Employee } from '@/types';
 import { ref } from 'vue';
 
@@ -73,9 +74,21 @@ function submitEdu(employeeId: number) {
     }
 }
 
-function deleteEdu(employeeId: number, eduId: number) {
-    if (!confirm('Hapus riwayat pendidikan ini?')) return;
-    router.delete(route('employees.educations.destroy', { employee: employeeId, education: eduId }), { preserveScroll: true });
+const deleteEduOpen = ref(false);
+const pendingEduDelete = ref<{ employeeId: number; eduId: number } | null>(null);
+
+function confirmDeleteEdu(employeeId: number, eduId: number) {
+    pendingEduDelete.value = { employeeId, eduId };
+    deleteEduOpen.value = true;
+}
+
+function executeDeleteEdu() {
+    if (pendingEduDelete.value) {
+        router.delete(route('employees.educations.destroy', {
+            employee: pendingEduDelete.value.employeeId,
+            education: pendingEduDelete.value.eduId,
+        }), { preserveScroll: true });
+    }
 }
 </script>
 
@@ -177,7 +190,7 @@ function deleteEdu(employeeId: number, eduId: number) {
                         </div>
                         <div class="inline-flex shrink-0 gap-1.5">
                             <Button size="sm" variant="ghost" class="h-7 px-2 text-xs" @click="openEditEdu(edu)">Edit</Button>
-                            <Button size="sm" variant="ghost" class="h-7 px-2 text-xs text-red-500 hover:text-red-600" @click="deleteEdu(employee.id, edu.id)">Hapus</Button>
+                            <Button size="sm" variant="ghost" class="h-7 px-2 text-xs text-red-500 hover:text-red-600" @click="confirmDeleteEdu(employee.id, edu.id)">Hapus</Button>
                         </div>
                     </div>
                 </div>
@@ -189,6 +202,7 @@ function deleteEdu(employeeId: number, eduId: number) {
                 <UpdateProfileInformationForm
                     :must-verify-email="mustVerifyEmail"
                     :status="status"
+                    :employee="employee"
                 />
             </div>
 
@@ -198,9 +212,17 @@ function deleteEdu(employeeId: number, eduId: number) {
             </div>
 
             <!-- Danger zone -->
-            <div class="rounded-lg border bg-white p-6">
+            <div class="rounded-lg border border-red-200 bg-white p-6">
                 <DeleteUserForm />
             </div>
         </div>
+
+        <ConfirmDialog
+            v-model:open="deleteEduOpen"
+            title="Hapus Pendidikan"
+            description="Riwayat pendidikan ini akan dihapus secara permanen. Tindakan ini tidak dapat dibatalkan."
+            confirm-label="Hapus"
+            @confirm="executeDeleteEdu"
+        />
     </AppLayout>
 </template>

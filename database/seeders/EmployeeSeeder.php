@@ -6,11 +6,14 @@ use App\Models\Employee;
 use App\Models\EmployeeEducation;
 use App\Models\EmployeeTeamHistory;
 use App\Models\Team;
+use Database\Seeders\Concerns\StripsFrontDegree;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\File;
 
 class EmployeeSeeder extends Seeder
 {
+    use StripsFrontDegree;
+
     public function run(): void
     {
         $path = database_path('seeders/data/seeder_data.prod.json');
@@ -30,23 +33,25 @@ class EmployeeSeeder extends Seeder
             $team = Team::where('name', $teamName)->first();
 
             $degreeBack = $emp['degree_back'] ?? null;
-            $displayName = $this->buildDisplayName($emp['name'], null, $degreeBack);
+            [$degreeFront, $cleanName] = $this->extractFrontDegree($emp['name']);
+            $displayName = $this->buildDisplayName($cleanName, $degreeFront, $degreeBack);
 
             $employee = Employee::firstOrCreate(
-                ['name' => $emp['name']],
+                ['name' => $cleanName],
                 [
                     'team_id' => $team?->id,
-                    'full_name' => $emp['name'],
+                    'full_name' => $cleanName,
                     'position' => null,
                     'display_name' => $displayName,
                     'is_active' => true,
                 ]
             );
 
-            // Seed education if degree_back present
-            if ($degreeBack && $employee->wasRecentlyCreated) {
-                $education = EmployeeEducation::create([
+            // Seed education if any degree present
+            if (($degreeFront || $degreeBack) && $employee->wasRecentlyCreated) {
+                EmployeeEducation::create([
                     'employee_id' => $employee->id,
+                    'degree_front' => $degreeFront,
                     'degree_back' => $degreeBack,
                     'is_highest' => true,
                 ]);

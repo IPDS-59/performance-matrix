@@ -1,38 +1,16 @@
 <script setup lang="ts">
 import AppLayout from '@/Layouts/AppLayout.vue';
 import { Head, router } from '@inertiajs/vue3';
-import { computed, reactive, ref } from 'vue';
+import { computed, nextTick, onMounted, reactive, ref } from 'vue';
 import type { Employee, Team } from '@/types';
 import { Card, CardContent, CardHeader, CardTitle } from '@/Components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/Components/ui/tabs';
 import { Badge } from '@/Components/ui/badge';
 import { Progress } from '@/Components/ui/progress';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/Components/ui/select';
-import { Bar, Line } from 'vue-chartjs';
-import {
-    Chart as ChartJS,
-    CategoryScale,
-    LinearScale,
-    BarElement,
-    LineElement,
-    PointElement,
-    Title,
-    Tooltip,
-    Legend,
-    Filler,
-} from 'chart.js';
-
-ChartJS.register(
-    CategoryScale,
-    LinearScale,
-    BarElement,
-    LineElement,
-    PointElement,
-    Title,
-    Tooltip,
-    Legend,
-    Filler,
-);
+import { VisXYContainer, VisGroupedBar, VisLine, VisArea, VisAxis, VisTooltip } from '@unovis/vue';
+import { GroupedBar, Line as UnovisLine, Area as UnovisArea } from '@unovis/ts';
+import { CurveType } from '@unovis/ts';
 
 // ── Types ──────────────────────────────────────────────────────────────────
 
@@ -179,6 +157,19 @@ function avgIconColor(pct: number): string {
     return 'text-red-500';
 }
 
+// ── Auto-scroll to current user in ranking lists ─────────────────────────
+
+onMounted(() => {
+    nextTick(() => {
+        document.querySelectorAll<HTMLElement>('[data-current-user]').forEach(el => {
+            const container = el.closest('.overflow-y-auto');
+            if (container) {
+                el.scrollIntoView({ block: 'center', behavior: 'smooth' });
+            }
+        });
+    });
+});
+
 // ── Personal stats helpers ─────────────────────────────────────────────────
 
 function projectAvg(project: ProjectWithItems): number {
@@ -274,100 +265,53 @@ function initChipScrollable(el: HTMLElement | null, projectId: number) {
     chipResizeObservers.set(projectId, ro);
 }
 
-// ── Bar chart ──────────────────────────────────────────────────────────────
+// ── Bar chart (Unovis) ────────────────────────────────────────────────────
 
-const barChartData = computed(() => ({
-    labels: teamList.value.map(t => t.name),
-    datasets: [{
-        label: 'Capaian (%)',
-        data: teamList.value.map(t => t.avg),
-        backgroundColor: teamList.value.map(t =>
-            t.avg >= 80 ? 'rgba(34,197,94,0.75)' :
-            t.avg >= 50 ? 'rgba(234,179,8,0.75)' :
-            'rgba(239,68,68,0.75)'
-        ),
-        borderRadius: 6,
-        borderSkipped: false,
-    }],
-}));
+interface BarChartDatum { label: string; code: string; value: number }
 
-const barChartOptions = {
-    responsive: true,
-    maintainAspectRatio: false,
-    plugins: {
-        legend: { display: false },
-        tooltip: {
-            callbacks: {
-                // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                label: (ctx: any) => ` ${ctx.parsed.y.toFixed(1)}%`,
-            },
-        },
-    },
-    scales: {
-        y: {
-            min: 0,
-            max: 100,
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            ticks: { callback: (v: any) => `${v}%` },
-            grid: { color: 'rgba(0,0,0,0.05)' },
-        },
-        x: {
-            grid: { display: false },
-            ticks: {
-                maxRotation: 30,
-                font: { size: 11 },
-            },
-        },
-    },
+const barChartUnovisData = computed<BarChartDatum[]>(() =>
+    teamList.value.map(t => ({ label: t.name, code: t.code ?? t.name, value: t.avg })),
+);
+
+const barX = (_d: BarChartDatum, i: number) => i;
+const barY = [(d: BarChartDatum) => d.value];
+const barColor = (d: BarChartDatum) =>
+    d.value >= 80 ? 'rgba(34,197,94,0.75)' :
+    d.value >= 50 ? 'rgba(234,179,8,0.75)' :
+    'rgba(239,68,68,0.75)';
+const barXTickFormat = (tick: number) => barChartUnovisData.value[tick]?.code ?? '';
+const barYTickFormat = (v: number) => `${v}%`;
+const barTooltipTriggers = {
+    [GroupedBar.selectors.bar]: (d: BarChartDatum) =>
+        `<div style="padding:4px 8px;font-size:13px"><strong>${d.label}</strong><br/>${d.value.toFixed(1)}%</div>`,
 };
 
-// ── Line chart ─────────────────────────────────────────────────────────────
+// ── Line/Area chart (Unovis) ──────────────────────────────────────────────
 
 const trendLabels = months.map(m => m.label.substring(0, 3));
 
-const lineChartData = computed(() => {
+interface TrendDatum { month: number; label: string; value: number | null }
+
+const trendUnovisData = computed<TrendDatum[]>(() => {
     const dataByMonth: (number | null)[] = Array(12).fill(null);
     for (const point of props.trend ?? []) {
         dataByMonth[point.period_month - 1] = point.avg_achievement;
     }
-    return {
-        labels: trendLabels,
-        datasets: [{
-            label: 'Rata-rata Capaian',
-            data: dataByMonth,
-            borderColor: '#1B4B8A',
-            backgroundColor: 'rgba(27,75,138,0.08)',
-            fill: true,
-            tension: 0.4,
-            pointRadius: 4,
-            pointBackgroundColor: '#1B4B8A',
-        }],
-    };
+    return dataByMonth.map((v, i) => ({ month: i, label: trendLabels[i], value: v }));
 });
 
-const lineChartOptions = {
-    responsive: true,
-    maintainAspectRatio: false,
-    plugins: {
-        legend: { display: false },
-        tooltip: {
-            callbacks: {
-                // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                label: (ctx: any) => ` ${ctx.parsed.y?.toFixed(1) ?? '-'}%`,
-            },
-        },
-    },
-    scales: {
-        y: {
-            min: 0,
-            max: 100,
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            ticks: { callback: (v: any) => `${v}%` },
-            grid: { color: 'rgba(0,0,0,0.05)' },
-        },
-        x: { grid: { display: false } },
-    },
-};
+const trendX = (d: TrendDatum) => d.month;
+const trendY = [(d: TrendDatum) => d.value ?? undefined];
+const trendXTickFormat = (_tick: number, i: number) => trendUnovisData.value[i]?.label ?? '';
+const trendYTickFormat = (v: number) => `${v}%`;
+const trendLineColor = '#1B4B8A';
+const trendAreaColor = 'rgba(27,75,138,0.08)';
+const trendTooltipTriggers = computed(() => ({
+    [UnovisLine.selectors.line]: (d: TrendDatum) =>
+        `<div style="padding:4px 8px;font-size:13px"><strong>${d.label}</strong><br/>${d.value?.toFixed(1) ?? '-'}%</div>`,
+    [UnovisArea.selectors.area]: (d: TrendDatum) =>
+        `<div style="padding:4px 8px;font-size:13px"><strong>${d.label}</strong><br/>${d.value?.toFixed(1) ?? '-'}%</div>`,
+}));
 
 // ── Employee ranking charts ────────────────────────────────────────────────
 
@@ -396,103 +340,61 @@ function topByProjectsLabel(): string {
     return 'proyek';
 }
 
-const empByProjectsChartData = computed(() => {
-    const labels: string[] = [];
-    const data: number[] = [];
-    const backgroundColor: string[] = [];
-    for (const e of topByProjectsFiltered.value) {
-        labels.push(e.display_name || e.name);
-        data.push(topByProjectsCount(e));
-        backgroundColor.push(e.id === props.employee?.id ? 'rgba(27,75,138,0.9)' : 'rgba(99,102,241,0.65)');
-    }
-    return { labels, datasets: [{ label: 'Proyek', data, backgroundColor, borderRadius: 4, borderSkipped: false }] };
-});
+// ── Employee by projects chart (Unovis, horizontal) ──────────────────────
 
-const empByProjectsChartOptions = {
-    indexAxis: 'y' as const,
-    responsive: true,
-    maintainAspectRatio: false,
-    plugins: {
-        legend: { display: false },
-        tooltip: {
-            callbacks: {
-                // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                label: (ctx: any) => ` ${ctx.parsed.x} proyek`,
-            },
-        },
-    },
-    scales: {
-        x: {
-            min: 0,
-            grid: { color: 'rgba(0,0,0,0.04)' },
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            ticks: { callback: (v: any) => `${v}` },
-        },
-        y: {
-            grid: { display: false },
-            ticks: {
-                font: { size: 10 },
-                // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                callback: (_val: any, idx: number) => {
-                    const label = empByProjectsChartData.value.labels[idx] ?? '';
-                    return label.length > 16 ? label.substring(0, 14) + '…' : label;
-                },
-            },
-        },
-    },
+interface EmpProjectsDatum { label: string; value: number; isCurrentUser: boolean }
+
+const empByProjectsUnovisData = computed<EmpProjectsDatum[]>(() =>
+    // Reverse so highest value renders at top in horizontal bar chart
+    [...topByProjectsFiltered.value].reverse().map(e => ({
+        label: e.display_name || e.name,
+        value: topByProjectsCount(e),
+        isCurrentUser: e.id === props.employee?.id,
+    })),
+);
+
+const empProjectsX = (_d: EmpProjectsDatum, i: number) => i;
+const empProjectsY = [(d: EmpProjectsDatum) => d.value];
+const empProjectsColor = (d: EmpProjectsDatum) =>
+    d.isCurrentUser ? 'rgba(27,75,138,0.9)' : 'rgba(99,102,241,0.65)';
+const empProjectsYTickFormat = (tick: number) => {
+    const label = empByProjectsUnovisData.value[tick]?.label ?? '';
+    return label.length > 20 ? label.substring(0, 18) + '\u2026' : label;
+};
+const empProjectsXTickFormat = (v: number) => `${v}`;
+const empProjectsTooltipTriggers = {
+    [GroupedBar.selectors.bar]: (d: EmpProjectsDatum) =>
+        `<div style="padding:4px 8px;font-size:13px"><strong>${d.label}</strong><br/>${d.value} proyek</div>`,
 };
 
-const empByAchievementChartData = computed(() => {
-    const labels: string[] = [];
-    const data: number[] = [];
-    const backgroundColor: string[] = [];
-    for (const e of props.top_employees_by_achievement ?? []) {
-        const pct = e.avg_achievement ?? 0;
-        labels.push(e.display_name || e.name);
-        data.push(pct);
-        backgroundColor.push(
-            e.id === props.employee?.id ? 'rgba(27,75,138,0.9)' :
-            pct >= 80 ? 'rgba(34,197,94,0.65)' :
-            pct >= 50 ? 'rgba(234,179,8,0.65)' :
-            'rgba(239,68,68,0.65)'
-        );
-    }
-    return { labels, datasets: [{ label: 'Capaian (%)', data, backgroundColor, borderRadius: 4, borderSkipped: false }] };
-});
+// ── Employee by achievement chart (Unovis, horizontal) ───────────────────
 
-const empByAchievementChartOptions = {
-    indexAxis: 'y' as const,
-    responsive: true,
-    maintainAspectRatio: false,
-    plugins: {
-        legend: { display: false },
-        tooltip: {
-            callbacks: {
-                // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                label: (ctx: any) => ` ${ctx.parsed.x?.toFixed(1) ?? '-'}%`,
-            },
-        },
-    },
-    scales: {
-        x: {
-            min: 0,
-            max: 100,
-            grid: { color: 'rgba(0,0,0,0.04)' },
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            ticks: { callback: (v: any) => `${v}%` },
-        },
-        y: {
-            grid: { display: false },
-            ticks: {
-                font: { size: 10 },
-                // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                callback: (_val: any, idx: number) => {
-                    const label = empByAchievementChartData.value.labels[idx] ?? '';
-                    return label.length > 16 ? label.substring(0, 14) + '…' : label;
-                },
-            },
-        },
-    },
+interface EmpAchievementDatum { label: string; value: number; isCurrentUser: boolean }
+
+const empByAchievementUnovisData = computed<EmpAchievementDatum[]>(() =>
+    // Reverse so highest value renders at top in horizontal bar chart
+    [...(props.top_employees_by_achievement ?? [])].reverse().map(e => ({
+        label: e.display_name || e.name,
+        value: e.avg_achievement ?? 0,
+        isCurrentUser: e.id === props.employee?.id,
+    })),
+);
+
+const empAchievementX = (_d: EmpAchievementDatum, i: number) => i;
+const empAchievementY = [(d: EmpAchievementDatum) => d.value];
+const empAchievementColor = (d: EmpAchievementDatum) =>
+    d.isCurrentUser ? 'rgba(27,75,138,0.9)' :
+    d.value >= 80 ? 'rgba(34,197,94,0.65)' :
+    d.value >= 50 ? 'rgba(234,179,8,0.65)' :
+    'rgba(239,68,68,0.65)';
+const empAchievementYTickFormat = (tick: number) => {
+    const label = empByAchievementUnovisData.value[tick]?.label ?? '';
+    return label.length > 20 ? label.substring(0, 18) + '\u2026' : label;
+};
+const empAchievementXTickFormat = (v: number) => `${v}%`;
+const empAchievementTooltipTriggers = {
+    [GroupedBar.selectors.bar]: (d: EmpAchievementDatum) =>
+        `<div style="padding:4px 8px;font-size:13px"><strong>${d.label}</strong><br/>${d.value.toFixed(1)}%</div>`,
 };
 </script>
 
@@ -631,7 +533,12 @@ const empByAchievementChartOptions = {
                                     </CardHeader>
                                     <CardContent>
                                         <div v-if="teamList.length" class="h-64">
-                                            <Bar :data="barChartData" :options="barChartOptions" />
+                                            <VisXYContainer :data="barChartUnovisData" :yDomain="[0, 100]" :style="{ height: '100%' }">
+                                                <VisGroupedBar :x="barX" :y="barY" :color="barColor" :roundedCorners="6" :barMinHeight="0" />
+                                                <VisAxis type="x" :tickFormat="barXTickFormat" :gridLine="false" :tickTextFontSize="'11px'" :numTicks="barChartUnovisData.length" />
+                                                <VisAxis type="y" :tickFormat="barYTickFormat" />
+                                                <VisTooltip :triggers="barTooltipTriggers" />
+                                            </VisXYContainer>
                                         </div>
                                         <div v-else class="flex h-64 items-center justify-center rounded-lg border border-dashed border-gray-200 bg-gray-50">
                                             <p class="text-sm text-gray-400">Belum ada data capaian tim bulan ini</p>
@@ -718,7 +625,12 @@ const empByAchievementChartOptions = {
                                     </CardHeader>
                                     <CardContent>
                                         <div v-if="topByProjectsFiltered.length" class="mb-3 h-52">
-                                            <Bar :data="empByProjectsChartData" :options="empByProjectsChartOptions" />
+                                            <VisXYContainer :data="empByProjectsUnovisData" :style="{ height: '100%' }">
+                                                <VisGroupedBar orientation="horizontal" :x="empProjectsX" :y="empProjectsY" :color="empProjectsColor" :roundedCorners="4" :barMinHeight="0" />
+                                                <VisAxis type="x" :tickFormat="empProjectsXTickFormat" />
+                                                <VisAxis type="y" :tickFormat="empProjectsYTickFormat" :gridLine="false" :tickTextFontSize="'10px'" :numTicks="empByProjectsUnovisData.length" />
+                                                <VisTooltip :triggers="empProjectsTooltipTriggers" />
+                                            </VisXYContainer>
                                         </div>
                                         <div v-else class="mb-3 flex h-52 items-center justify-center rounded-lg border border-dashed border-gray-200 bg-gray-50">
                                             <p class="text-sm text-gray-400">Belum ada data proyek bulan ini</p>
@@ -726,7 +638,7 @@ const empByAchievementChartOptions = {
                                         <div class="relative">
                                             <div class="max-h-52 overflow-y-auto divide-y divide-gray-100 rounded-md border [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-gray-200 [&::-webkit-scrollbar-track]:bg-transparent">
                                                 <template v-if="topByProjectsFiltered.length">
-                                                    <div v-for="(emp, idx) in topByProjectsFiltered" :key="emp.id" :class="['flex items-center gap-3 px-3 py-2', emp.id === employee?.id ? 'bg-primary/5' : '']">
+                                                    <div v-for="(emp, idx) in topByProjectsFiltered" :key="emp.id" :class="['flex items-center gap-3 px-3 py-2', emp.id === employee?.id ? 'bg-primary/5' : '']" :data-current-user="emp.id === employee?.id || undefined">
                                                         <span class="w-5 shrink-0 text-right text-xs font-bold text-gray-400">{{ idx + 1 }}</span>
                                                         <div class="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-indigo-100 text-[10px] font-bold text-indigo-700">{{ (emp.display_name || emp.name).charAt(0).toUpperCase() }}</div>
                                                         <span :class="['min-w-0 flex-1 truncate text-xs', emp.id === employee?.id ? 'font-semibold text-primary' : 'text-gray-700']">{{ emp.display_name || emp.name }}<span v-if="emp.id === employee?.id" class="ml-1 font-normal text-primary/70">(Anda)</span></span>
@@ -744,7 +656,12 @@ const empByAchievementChartOptions = {
                                     </CardHeader>
                                     <CardContent>
                                         <div v-if="top_employees_by_achievement?.length" class="mb-3 h-52">
-                                            <Bar :data="empByAchievementChartData" :options="empByAchievementChartOptions" />
+                                            <VisXYContainer :data="empByAchievementUnovisData" :yDomain="[0, 100]" :style="{ height: '100%' }">
+                                                <VisGroupedBar orientation="horizontal" :x="empAchievementX" :y="empAchievementY" :color="empAchievementColor" :roundedCorners="4" :barMinHeight="0" />
+                                                <VisAxis type="x" :tickFormat="empAchievementXTickFormat" />
+                                                <VisAxis type="y" :tickFormat="empAchievementYTickFormat" :gridLine="false" :tickTextFontSize="'10px'" :numTicks="empByAchievementUnovisData.length" />
+                                                <VisTooltip :triggers="empAchievementTooltipTriggers" />
+                                            </VisXYContainer>
                                         </div>
                                         <div v-else class="mb-3 flex h-52 items-center justify-center rounded-lg border border-dashed border-gray-200 bg-gray-50">
                                             <p class="text-sm text-gray-400">Belum ada data capaian bulan ini</p>
@@ -752,7 +669,7 @@ const empByAchievementChartOptions = {
                                         <div class="relative">
                                             <div class="max-h-52 overflow-y-auto divide-y divide-gray-100 rounded-md border [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-gray-200 [&::-webkit-scrollbar-track]:bg-transparent">
                                                 <template v-if="top_employees_by_achievement?.length">
-                                                    <div v-for="(emp, idx) in top_employees_by_achievement" :key="emp.id" :class="['flex items-center gap-3 px-3 py-2', emp.id === employee?.id ? 'bg-primary/5' : '']">
+                                                    <div v-for="(emp, idx) in top_employees_by_achievement" :key="emp.id" :class="['flex items-center gap-3 px-3 py-2', emp.id === employee?.id ? 'bg-primary/5' : '']" :data-current-user="emp.id === employee?.id || undefined">
                                                         <span class="w-5 shrink-0 text-right text-xs font-bold text-gray-400">{{ idx + 1 }}</span>
                                                         <div class="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-green-100 text-[10px] font-bold text-green-700">{{ (emp.display_name || emp.name).charAt(0).toUpperCase() }}</div>
                                                         <div class="min-w-0 flex-1">
@@ -958,7 +875,12 @@ const empByAchievementChartOptions = {
                             </CardHeader>
                             <CardContent>
                                 <div v-if="teamList.length" class="h-64">
-                                    <Bar :data="barChartData" :options="barChartOptions" />
+                                    <VisXYContainer :data="barChartUnovisData" :yDomain="[0, 100]" :style="{ height: '100%' }">
+                                                <VisGroupedBar :x="barX" :y="barY" :color="barColor" :roundedCorners="6" :barMinHeight="0" />
+                                                <VisAxis type="x" :tickFormat="barXTickFormat" :gridLine="false" :tickTextFontSize="'11px'" :numTicks="barChartUnovisData.length" />
+                                                <VisAxis type="y" :tickFormat="barYTickFormat" />
+                                                <VisTooltip :triggers="barTooltipTriggers" />
+                                            </VisXYContainer>
                                 </div>
                                 <div v-else class="flex h-64 items-center justify-center rounded-lg border border-dashed border-gray-200 bg-gray-50">
                                     <p class="text-sm text-gray-400">Belum ada data capaian tim bulan ini</p>
@@ -1064,7 +986,12 @@ const empByAchievementChartOptions = {
                             <CardContent>
                                 <!-- Chart -->
                                 <div v-if="topByProjectsFiltered.length" class="mb-3 h-52">
-                                    <Bar :data="empByProjectsChartData" :options="empByProjectsChartOptions" />
+                                    <VisXYContainer :data="empByProjectsUnovisData" :style="{ height: '100%' }">
+                                                <VisGroupedBar orientation="horizontal" :x="empProjectsX" :y="empProjectsY" :color="empProjectsColor" :roundedCorners="4" :barMinHeight="0" />
+                                                <VisAxis type="x" :tickFormat="empProjectsXTickFormat" />
+                                                <VisAxis type="y" :tickFormat="empProjectsYTickFormat" :gridLine="false" :tickTextFontSize="'10px'" :numTicks="empByProjectsUnovisData.length" />
+                                                <VisTooltip :triggers="empProjectsTooltipTriggers" />
+                                            </VisXYContainer>
                                 </div>
                                 <div v-else class="mb-3 flex h-52 items-center justify-center rounded-lg border border-dashed border-gray-200 bg-gray-50">
                                     <p class="text-sm text-gray-400">Belum ada data proyek bulan ini</p>
@@ -1076,7 +1003,7 @@ const empByAchievementChartOptions = {
                                             <div
                                                 v-for="(emp, idx) in topByProjectsFiltered"
                                                 :key="emp.id"
-                                                :class="['flex items-center gap-3 px-3 py-2', emp.id === employee?.id ? 'bg-primary/5' : '']"
+                                                :class="['flex items-center gap-3 px-3 py-2', emp.id === employee?.id ? 'bg-primary/5' : '']" :data-current-user="emp.id === employee?.id || undefined"
                                             >
                                                 <span class="w-5 shrink-0 text-right text-xs font-bold text-gray-400">{{ idx + 1 }}</span>
                                                 <div class="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-indigo-100 text-[10px] font-bold text-indigo-700">
@@ -1110,7 +1037,12 @@ const empByAchievementChartOptions = {
                             <CardContent>
                                 <!-- Chart -->
                                 <div v-if="top_employees_by_achievement?.length" class="mb-3 h-52">
-                                    <Bar :data="empByAchievementChartData" :options="empByAchievementChartOptions" />
+                                    <VisXYContainer :data="empByAchievementUnovisData" :yDomain="[0, 100]" :style="{ height: '100%' }">
+                                                <VisGroupedBar orientation="horizontal" :x="empAchievementX" :y="empAchievementY" :color="empAchievementColor" :roundedCorners="4" :barMinHeight="0" />
+                                                <VisAxis type="x" :tickFormat="empAchievementXTickFormat" />
+                                                <VisAxis type="y" :tickFormat="empAchievementYTickFormat" :gridLine="false" :tickTextFontSize="'10px'" :numTicks="empByAchievementUnovisData.length" />
+                                                <VisTooltip :triggers="empAchievementTooltipTriggers" />
+                                            </VisXYContainer>
                                 </div>
                                 <div v-else class="mb-3 flex h-52 items-center justify-center rounded-lg border border-dashed border-gray-200 bg-gray-50">
                                     <p class="text-sm text-gray-400">Belum ada data capaian bulan ini</p>
@@ -1122,7 +1054,7 @@ const empByAchievementChartOptions = {
                                             <div
                                                 v-for="(emp, idx) in top_employees_by_achievement"
                                                 :key="emp.id"
-                                                :class="['flex items-center gap-3 px-3 py-2', emp.id === employee?.id ? 'bg-primary/5' : '']"
+                                                :class="['flex items-center gap-3 px-3 py-2', emp.id === employee?.id ? 'bg-primary/5' : '']" :data-current-user="emp.id === employee?.id || undefined"
                                             >
                                                 <span class="w-5 shrink-0 text-right text-xs font-bold text-gray-400">{{ idx + 1 }}</span>
                                                 <div class="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-green-100 text-[10px] font-bold text-green-700">
@@ -1304,7 +1236,12 @@ const empByAchievementChartOptions = {
                         </CardHeader>
                         <CardContent>
                             <div class="h-64">
-                                <Bar :data="barChartData" :options="barChartOptions" />
+                                <VisXYContainer :data="barChartUnovisData" :yDomain="[0, 100]" :style="{ height: '100%' }">
+                                                <VisGroupedBar :x="barX" :y="barY" :color="barColor" :roundedCorners="6" :barMinHeight="0" />
+                                                <VisAxis type="x" :tickFormat="barXTickFormat" :gridLine="false" :tickTextFontSize="'11px'" :numTicks="barChartUnovisData.length" />
+                                                <VisAxis type="y" :tickFormat="barYTickFormat" />
+                                                <VisTooltip :triggers="barTooltipTriggers" />
+                                            </VisXYContainer>
                             </div>
                         </CardContent>
                     </Card>
@@ -1402,7 +1339,12 @@ const empByAchievementChartOptions = {
                         </CardHeader>
                         <CardContent>
                             <div v-if="topByProjectsFiltered.length" class="mb-3 h-52">
-                                <Bar :data="empByProjectsChartData" :options="empByProjectsChartOptions" />
+                                <VisXYContainer :data="empByProjectsUnovisData" :style="{ height: '100%' }">
+                                                <VisGroupedBar orientation="horizontal" :x="empProjectsX" :y="empProjectsY" :color="empProjectsColor" :roundedCorners="4" :barMinHeight="0" />
+                                                <VisAxis type="x" :tickFormat="empProjectsXTickFormat" />
+                                                <VisAxis type="y" :tickFormat="empProjectsYTickFormat" :gridLine="false" :tickTextFontSize="'10px'" :numTicks="empByProjectsUnovisData.length" />
+                                                <VisTooltip :triggers="empProjectsTooltipTriggers" />
+                                            </VisXYContainer>
                             </div>
                             <div v-else class="mb-3 flex h-52 items-center justify-center rounded-lg border border-dashed border-gray-200 bg-gray-50">
                                 <p class="text-sm text-gray-400">Belum ada data proyek bulan ini</p>
@@ -1431,7 +1373,12 @@ const empByAchievementChartOptions = {
                         </CardHeader>
                         <CardContent>
                             <div v-if="top_employees_by_achievement?.length" class="mb-3 h-52">
-                                <Bar :data="empByAchievementChartData" :options="empByAchievementChartOptions" />
+                                <VisXYContainer :data="empByAchievementUnovisData" :yDomain="[0, 100]" :style="{ height: '100%' }">
+                                                <VisGroupedBar orientation="horizontal" :x="empAchievementX" :y="empAchievementY" :color="empAchievementColor" :roundedCorners="4" :barMinHeight="0" />
+                                                <VisAxis type="x" :tickFormat="empAchievementXTickFormat" />
+                                                <VisAxis type="y" :tickFormat="empAchievementYTickFormat" :gridLine="false" :tickTextFontSize="'10px'" :numTicks="empByAchievementUnovisData.length" />
+                                                <VisTooltip :triggers="empAchievementTooltipTriggers" />
+                                            </VisXYContainer>
                             </div>
                             <div v-else class="mb-3 flex h-52 items-center justify-center rounded-lg border border-dashed border-gray-200 bg-gray-50">
                                 <p class="text-sm text-gray-400">Belum ada data capaian bulan ini</p>
@@ -1555,7 +1502,12 @@ const empByAchievementChartOptions = {
                         </CardHeader>
                         <CardContent>
                             <div class="h-64">
-                                <Bar :data="barChartData" :options="barChartOptions" />
+                                <VisXYContainer :data="barChartUnovisData" :yDomain="[0, 100]" :style="{ height: '100%' }">
+                                                <VisGroupedBar :x="barX" :y="barY" :color="barColor" :roundedCorners="6" :barMinHeight="0" />
+                                                <VisAxis type="x" :tickFormat="barXTickFormat" :gridLine="false" :tickTextFontSize="'11px'" :numTicks="barChartUnovisData.length" />
+                                                <VisAxis type="y" :tickFormat="barYTickFormat" />
+                                                <VisTooltip :triggers="barTooltipTriggers" />
+                                            </VisXYContainer>
                             </div>
                         </CardContent>
                     </Card>
@@ -1637,7 +1589,13 @@ const empByAchievementChartOptions = {
                     </CardHeader>
                     <CardContent>
                         <div class="h-52">
-                            <Line :data="lineChartData" :options="lineChartOptions" />
+                            <VisXYContainer :data="trendUnovisData" :yDomain="[0, 100]" :style="{ height: '100%' }">
+                                <VisArea :x="trendX" :y="trendY" :color="trendAreaColor" :curveType="CurveType.MonotoneX" :opacity="1" />
+                                <VisLine :x="trendX" :y="trendY" :color="trendLineColor" :curveType="CurveType.MonotoneX" />
+                                <VisAxis type="x" :tickFormat="trendXTickFormat" :numTicks="12" :gridLine="false" />
+                                <VisAxis type="y" :tickFormat="trendYTickFormat" />
+                                <VisTooltip :triggers="trendTooltipTriggers" />
+                            </VisXYContainer>
                         </div>
                     </CardContent>
                 </Card>
