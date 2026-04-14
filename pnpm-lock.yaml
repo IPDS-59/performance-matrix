@@ -43,8 +43,8 @@ importers:
         version: 3.5.0
     devDependencies:
       '@inertiajs/vue3':
-        specifier: ^2.0.0
-        version: 2.3.21(vue@3.5.32(typescript@6.0.2))
+        specifier: ^3.0.3
+        version: 3.0.3(axios@1.15.0)(vue@3.5.32(typescript@6.0.2))
       '@tailwindcss/vite':
         specifier: ^4.0.0
         version: 4.2.2(vite@8.0.8(jiti@2.6.1))
@@ -259,11 +259,16 @@ packages:
   '@floating-ui/vue@1.1.11':
     resolution: {integrity: sha512-HzHKCNVxnGS35r9fCHBc3+uCnjw9IWIlCPL683cGgM9Kgj2BiAl8x1mS7vtvP6F9S/e/q4O6MApwSHj8hNLGfw==}
 
-  '@inertiajs/core@2.3.21':
-    resolution: {integrity: sha512-grHSCUiWDBWqpRxaobyxUJu0FV6HLkkuJwvoNLVkHwkexLvoaLhb9BmtoQydlIYL5pk2O3jcKaGtWJ83JwTB4A==}
+  '@inertiajs/core@3.0.3':
+    resolution: {integrity: sha512-/4sW/cfNpvujjVOZlB5UNypLGNySs7X7V8IMLNSK8+3j1KsUYGS5wpLd9EqAu8wy8RiW7PPra2rPwB6Lx/ACow==}
+    peerDependencies:
+      axios: ^1.13.2
+    peerDependenciesMeta:
+      axios:
+        optional: true
 
-  '@inertiajs/vue3@2.3.21':
-    resolution: {integrity: sha512-gJuOD9HrB6WXpTCUB6yLDHA2yI5YGzhYcGlHCPB6mzt6Lvm7CsQA06CNOyk8eEooz0MYJhFF2V092hU1i866qg==}
+  '@inertiajs/vue3@3.0.3':
+    resolution: {integrity: sha512-bhJN+GS66g1tYH1p6flKkG1N8oaT5J7ZLqBkavN9mHC6bVfoQCUG6sCuA07WTDfo9tDaxU89wsSSAf4mhn3SuA==}
     peerDependencies:
       vue: ^3.0.0
 
@@ -674,12 +679,6 @@ packages:
   '@types/leaflet@1.7.6':
     resolution: {integrity: sha512-Emkz3V08QnlelSbpT46OEAx+TBZYTOX2r1yM7W+hWg5+djHtQ1GbEXBDRLaqQDOYcDI51Ss0ayoqoKD4CtLUDA==}
 
-  '@types/lodash-es@4.17.12':
-    resolution: {integrity: sha512-0NgftHUcV4v34VhXm8QBSftKVXtbkBG3ViCjs6+eJ5a6y6Mi/jiFGPc1sC7QK+9BFhWrURE3EOggmWaSxL9OzQ==}
-
-  '@types/lodash@4.17.24':
-    resolution: {integrity: sha512-gIW7lQLZbue7lRSWEFql49QJJWThrTFFeIMJdp3eH4tKoxm1OvEPg02rm4wCCSHS0cL3/Fizimb35b7k8atwsQ==}
-
   '@types/mapbox__point-geometry@0.1.4':
     resolution: {integrity: sha512-mUWlSxAmYLfwnRBmgYV86tgYmMIICX4kza8YnE/eIlywGe2XoOxlpVnXWwir92xRLjwyarqwpu2EJKD2pk0IUA==}
 
@@ -907,10 +906,6 @@ packages:
 
   call-bind-apply-helpers@1.0.2:
     resolution: {integrity: sha512-Sp1ablJ0ivDkSzjcaJdxEunN5/XvksFJ2sMBFfq6x0ryhQV/2b/KwFe21cMpmHtPOSij8K99/wSfoEuTObmuMQ==}
-    engines: {node: '>= 0.4'}
-
-  call-bound@1.0.4:
-    resolution: {integrity: sha512-+ys997U96po4Kx/ABpBCqhA9EuxJaQWDQg7295H4hBphv3IZg0boBKuwYpt4YXp6MZ5AmZQnU/tyMTlRpaSejg==}
     engines: {node: '>= 0.4'}
 
   callsites@3.1.0:
@@ -1245,6 +1240,9 @@ packages:
     resolution: {integrity: sha512-j6vWzfrGVfyXxge+O0x5sh6cvxAog0a/4Rdd2K36zCMV5eJ+/+tOAngRO8cODMNWbVRdVlmGZQL2YS3yR8bIUA==}
     engines: {node: '>= 0.4'}
 
+  es-toolkit@1.45.1:
+    resolution: {integrity: sha512-/jhoOj/Fx+A+IIyDNOvO3TItGmlMKhtX8ISAHKE90c4b/k1tqaqEZ+uUqfpU8DMnW5cgNJv606zS55jGvza0Xw==}
+
   escalade@3.2.0:
     resolution: {integrity: sha512-WUj2qlxaQtO4g6Pq5c29GTcWGDyd8itL8zTlipgECz3JesAiiOKotd8JU6otB3PACgG6xkJUyVhboMS+bje/jA==}
     engines: {node: '>=6'}
@@ -1472,8 +1470,13 @@ packages:
     resolution: {integrity: sha512-dcS1ul+9tmeD95T+x28/ehLgd9mENa3LsvDTtzm3vyBEO7RPptvAD+t44WVXaUjTBRcrpFeFlC8WCruUR456hw==}
     engines: {node: '>=0.10.0'}
 
-  laravel-precognition@1.0.2:
-    resolution: {integrity: sha512-0H08JDdMWONrL/N314fvsO3FATJwGGlFKGkMF3nNmizVFJaWs17816iM+sX7Rp8d5hUjYCx6WLfsehSKfaTxjg==}
+  laravel-precognition@2.0.0:
+    resolution: {integrity: sha512-dmA4HGc9m+TsVNsJs9/XQBI8u6j7coilN+qKkBuhuXQzH3HypwS/c5dFQ4UqUGjBbcxIM7zdk91kM/SRZwIvWQ==}
+    peerDependencies:
+      axios: ^1.4.0
+    peerDependenciesMeta:
+      axios:
+        optional: true
 
   laravel-vite-plugin@3.0.1:
     resolution: {integrity: sha512-Bx8sVcLIaZT1d0eisABcmjQ1GZdJpaXcV66A8RhXGp9JgR3iL8jDnvakVDXuH87Tn5S9KNx3VOhmJZW1CSexOg==}
@@ -1648,10 +1651,6 @@ packages:
       defu:
         optional: true
 
-  object-inspect@1.13.4:
-    resolution: {integrity: sha512-W67iLl4J2EXEGTbfeHCffrjDfitvLANg0UlX3wFUUSTx92KXRFegMHUVgSqE+wvhAbi4WqjGg9czysTV2Epbew==}
-    engines: {node: '>= 0.4'}
-
   obug@2.1.1:
     resolution: {integrity: sha512-uTqF9MuPraAQ+IsnPf366RG4cP9RtUi7MLO1N3KEc+wb0a6yKpeL0lmk2IB1jY5KHPAlTc6T/JRdC/YqxHNwkQ==}
 
@@ -1745,10 +1744,6 @@ packages:
     resolution: {integrity: sha512-8jbjCR0PPbqoQcv83C2K/zvVeytRPwPpt3WPDbq51qyLAxcWGtXVRjSe6GHtLCoVbg9+NEFkv7GyUxqjcDIJzw==}
     engines: {node: '>=18'}
 
-  qs@6.15.1:
-    resolution: {integrity: sha512-6YHEFRL9mfgcAvql/XhwTvf5jKcOiiupt2FiJxHkiX1z4j7WL8J/jRHYLluORvc1XxB5rV20KoeK00gVJamspg==}
-    engines: {node: '>=0.6'}
-
   quickselect@2.0.0:
     resolution: {integrity: sha512-RKJ22hX8mHe3Y6wH/N3wCM6BWtjaxIyyUIkpHOvfFnxdI4yD4tBXEBKSbriGujF6jnSVkJrffuo6vxACiSSxIw==}
 
@@ -1816,22 +1811,6 @@ packages:
 
   shell-quote@1.8.3:
     resolution: {integrity: sha512-ObmnIF4hXNg1BqhnHmgbDETF8dLPCggZWBjkQfhZpbszZnYur5DUljTcCHii5LC3J5E0yeO/1LIMyH+UvHQgyw==}
-    engines: {node: '>= 0.4'}
-
-  side-channel-list@1.0.1:
-    resolution: {integrity: sha512-mjn/0bi/oUURjc5Xl7IaWi/OJJJumuoJFQJfDDyO46+hBWsfaVM65TBHq2eoZBhzl9EchxOijpkbRC8SVBQU0w==}
-    engines: {node: '>= 0.4'}
-
-  side-channel-map@1.0.1:
-    resolution: {integrity: sha512-VCjCNfgMsby3tTdo02nbjtM/ewra6jPHmpThenkTYh8pG9ucZ/1P8So4u4FGBek/BjpOVsDCMoLA/iuBKIFXRA==}
-    engines: {node: '>= 0.4'}
-
-  side-channel-weakmap@1.0.2:
-    resolution: {integrity: sha512-WPS/HvHQTYnHisLo9McqBHOJk2FkHO/tlpvldyrnem4aeQp4hai3gythswg6p01oSoTl58rcpiFAjF2br2Ak2A==}
-    engines: {node: '>= 0.4'}
-
-  side-channel@1.1.0:
-    resolution: {integrity: sha512-ZX99e6tRweoUXqR+VBrslhda51Nh5MTQwou5tnUDgbtyM0dBgmhEDtWGP/xbKn6hqfPRHujUNwz5fy/wbbhnpw==}
     engines: {node: '>= 0.4'}
 
   siginfo@2.0.0:
@@ -2379,25 +2358,22 @@ snapshots:
       - '@vue/composition-api'
       - vue
 
-  '@inertiajs/core@2.3.21':
+  '@inertiajs/core@3.0.3(axios@1.15.0)':
     dependencies:
-      '@types/lodash-es': 4.17.12
+      '@jridgewell/trace-mapping': 0.3.31
+      es-toolkit: 1.45.1
+      laravel-precognition: 2.0.0(axios@1.15.0)
+    optionalDependencies:
       axios: 1.15.0
-      laravel-precognition: 1.0.2
-      lodash-es: 4.18.1
-      qs: 6.15.1
-    transitivePeerDependencies:
-      - debug
 
-  '@inertiajs/vue3@2.3.21(vue@3.5.32(typescript@6.0.2))':
+  '@inertiajs/vue3@3.0.3(axios@1.15.0)(vue@3.5.32(typescript@6.0.2))':
     dependencies:
-      '@inertiajs/core': 2.3.21
-      '@types/lodash-es': 4.17.12
-      laravel-precognition: 1.0.2
-      lodash-es: 4.18.1
+      '@inertiajs/core': 3.0.3(axios@1.15.0)
+      es-toolkit: 1.45.1
+      laravel-precognition: 2.0.0(axios@1.15.0)
       vue: 3.5.32(typescript@6.0.2)
     transitivePeerDependencies:
-      - debug
+      - axios
 
   '@internationalized/date@3.12.0':
     dependencies:
@@ -2763,12 +2739,6 @@ snapshots:
   '@types/leaflet@1.7.6':
     dependencies:
       '@types/geojson': 7946.0.16
-
-  '@types/lodash-es@4.17.12':
-    dependencies:
-      '@types/lodash': 4.17.24
-
-  '@types/lodash@4.17.24': {}
 
   '@types/mapbox__point-geometry@0.1.4': {}
 
@@ -3140,11 +3110,6 @@ snapshots:
       es-errors: 1.3.0
       function-bind: 1.1.2
 
-  call-bound@1.0.4:
-    dependencies:
-      call-bind-apply-helpers: 1.0.2
-      get-intrinsic: 1.3.0
-
   callsites@3.1.0: {}
 
   cfb@1.2.2:
@@ -3489,6 +3454,8 @@ snapshots:
       has-tostringtag: 1.0.2
       hasown: 2.0.2
 
+  es-toolkit@1.45.1: {}
+
   escalade@3.2.0: {}
 
   escape-string-regexp@4.0.0: {}
@@ -3698,12 +3665,11 @@ snapshots:
 
   kind-of@6.0.3: {}
 
-  laravel-precognition@1.0.2:
+  laravel-precognition@2.0.0(axios@1.15.0):
     dependencies:
+      es-toolkit: 1.45.1
+    optionalDependencies:
       axios: 1.15.0
-      lodash-es: 4.18.1
-    transitivePeerDependencies:
-      - debug
 
   laravel-vite-plugin@3.0.1(vite@8.0.8(jiti@2.6.1)):
     dependencies:
@@ -3852,8 +3818,6 @@ snapshots:
     optionalDependencies:
       defu: 6.1.7
 
-  object-inspect@1.13.4: {}
-
   obug@2.1.1: {}
 
   ohash@2.0.11: {}
@@ -3927,10 +3891,6 @@ snapshots:
   punycode@2.3.1: {}
 
   qs-esm@7.0.3: {}
-
-  qs@6.15.1:
-    dependencies:
-      side-channel: 1.1.0
 
   quickselect@2.0.0: {}
 
@@ -4013,34 +3973,6 @@ snapshots:
   shebang-regex@3.0.0: {}
 
   shell-quote@1.8.3: {}
-
-  side-channel-list@1.0.1:
-    dependencies:
-      es-errors: 1.3.0
-      object-inspect: 1.13.4
-
-  side-channel-map@1.0.1:
-    dependencies:
-      call-bound: 1.0.4
-      es-errors: 1.3.0
-      get-intrinsic: 1.3.0
-      object-inspect: 1.13.4
-
-  side-channel-weakmap@1.0.2:
-    dependencies:
-      call-bound: 1.0.4
-      es-errors: 1.3.0
-      get-intrinsic: 1.3.0
-      object-inspect: 1.13.4
-      side-channel-map: 1.0.1
-
-  side-channel@1.1.0:
-    dependencies:
-      es-errors: 1.3.0
-      object-inspect: 1.13.4
-      side-channel-list: 1.0.1
-      side-channel-map: 1.0.1
-      side-channel-weakmap: 1.0.2
 
   siginfo@2.0.0: {}
 
