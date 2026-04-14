@@ -8,6 +8,7 @@ import { Label } from '@/Components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/Components/ui/select';
 import { Checkbox } from '@/Components/ui/checkbox';
 import InputError from '@/Components/InputError.vue';
+import ConfirmDialog from '@/Components/ConfirmDialog.vue';
 import { ref } from 'vue';
 
 interface User {
@@ -102,9 +103,18 @@ function submitEdu() {
     }
 }
 
-function deleteEdu(eduId: number) {
-    if (!confirm('Hapus riwayat pendidikan ini?')) return;
-    router.delete(route('employees.educations.destroy', { employee: props.employee.id, education: eduId }), { preserveScroll: true });
+const deleteEduOpen = ref(false);
+const pendingEduId = ref<number | null>(null);
+
+function confirmDeleteEdu(eduId: number) {
+    pendingEduId.value = eduId;
+    deleteEduOpen.value = true;
+}
+
+function executeDeleteEdu() {
+    if (pendingEduId.value !== null) {
+        router.delete(route('employees.educations.destroy', { employee: props.employee.id, education: pendingEduId.value }), { preserveScroll: true });
+    }
 }
 
 function submit() {
@@ -351,11 +361,18 @@ function formatDate(dateStr: string) {
                     </div>
                     <div class="flex shrink-0 gap-1.5">
                         <Button size="sm" variant="ghost" class="h-7 px-2 text-xs" @click="openEditEdu(edu)">Edit</Button>
-                        <Button size="sm" variant="ghost" class="h-7 px-2 text-xs text-red-500 hover:text-red-600" @click="deleteEdu(edu.id)">Hapus</Button>
+                        <Button size="sm" variant="ghost" class="h-7 px-2 text-xs text-red-500 hover:text-red-600" @click="confirmDeleteEdu(edu.id)">Hapus</Button>
                     </div>
                 </div>
             </div>
             <p v-else class="text-sm text-gray-400">Belum ada riwayat pendidikan.</p>
         </div>
+        <ConfirmDialog
+            v-model:open="deleteEduOpen"
+            title="Hapus Pendidikan"
+            description="Riwayat pendidikan ini akan dihapus secara permanen. Tindakan ini tidak dapat dibatalkan."
+            confirm-label="Hapus"
+            @confirm="executeDeleteEdu"
+        />
     </AppLayout>
 </template>
