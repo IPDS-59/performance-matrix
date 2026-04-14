@@ -1,0 +1,72 @@
+{
+    "teams": [
+        { "code": "TIM-01", "name": "Tim Sosial" },
+        { "code": "TIM-02", "name": "Tim Produksi" },
+        { "code": "TIM-03", "name": "Tim IPDS" },
+        { "code": "TIM-04", "name": "Tim Distribusi" }
+    ],
+    "employees": [
+        { "name": "Andi Kurniawan",   "team": "Tim Sosial",     "degree_back": null },
+        { "name": "Bagas Wicaksono",  "team": "Tim IPDS",       "degree_back": "S.ST" },
+        { "name": "Citra Dewanti",    "team": "Tim IPDS",       "degree_back": null },
+        { "name": "Dimas Prasetyo",   "team": "Tim IPDS",       "degree_back": "S.T" },
+        { "name": "Eka Fitriani",     "team": "Tim Produksi",   "degree_back": null },
+        { "name": "Fajar Nugroho",    "team": "Tim Produksi",   "degree_back": "S.Si" },
+        { "name": "Galih Saputra",    "team": "Tim Distribusi", "degree_back": null },
+        { "name": "Hani Ramadhani",   "team": "Tim Distribusi", "degree_back": null }
+    ],
+    "projects": [
+        {
+            "name": "Pengelolaan Website dan Sistem Informasi",
+            "year": 2026,
+            "team": "Tim IPDS",
+            "leader": "Bagas Wicaksono",
+            "objective": "Meningkatkan kualitas pelayanan data BPS",
+            "kpi": "Uptime sistem >= 99%",
+            "objectives": [
+                "Pengelolaan dan pemeliharaan website BPS",
+                "Pengembangan sistem informasi internal"
+            ],
+            "members": ["Citra Dewanti", "Dimas Prasetyo"]
+        },
+        {
+            "name": "Survei Sosial Ekonomi",
+            "year": 2026,
+            "team": "Tim Produksi",
+            "leader": "Eka Fitriani",
+            "objective": "Tersedianya data sosial ekonomi yang akurat",
+            "kpi": "Tingkat respons >= 90%",
+            "objectives": [
+                "Pengumpulan data survei sosial",
+                "Pengolahan dan validasi data"
+            ],
+            "members": ["Fajar Nugroho"]
+        }
+    ],
+    "work_items": [
+        {
+            "project": "Pengelolaan Website dan Sistem Informasi",
+            "year": 2026,
+            "number": 1,
+            "description": "Pemeliharaan dan pembaruan konten website BPS"
+        },
+        {
+            "project": "Pengelolaan Website dan Sistem Informasi",
+            "year": 2026,
+            "number": 2,
+            "description": "Pengelolaan jaringan dan infrastruktur TIK"
+        },
+        {
+            "project": "Survei Sosial Ekonomi",
+            "year": 2026,
+            "number": 1,
+            "description": "Pelatihan petugas lapangan"
+        },
+        {
+            "project": "Survei Sosial Ekonomi",
+            "year": 2026,
+            "number": 2,
+            "description": "Pengumpulan data di lapangan"
+        }
+    ]
+}

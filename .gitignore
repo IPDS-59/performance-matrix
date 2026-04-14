@@ -3,6 +3,11 @@
 .env
 .env.backup
 .env.production
+.env.prod
+migrate-prod.sh
+database/seeders/data/*.prod.json
+public/setup.php
+public/diag.php
 .phpactor.json
 .phpunit.result.cache
 /.fleet
@@ -26,6 +31,10 @@ Thumbs.db
 
 # AI / Claude
 CLAUDE-LARAVEL-INERTIA.md
-seeder_data.json
 .claude/
 *.claude.md
+
+# Beads / Dolt files (added by bd init)
+.dolt/
+*.db
+.beads-credential-key

@@ -1,0 +1,22 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - develop
+      - 'hotfix/**'
+      - 'release/**'
+  pull_request:
+    branches:
+      - develop
+      - main
+
+jobs:
+  ci:
+    uses: banua-coder/banua-coder-workflow/.github/workflows/ci-laravel.yml@main
+    secrets: inherit
+    with:
+      php-version: '8.5'
+      node-version: '20'
+      run-coverage: false
+      test-command: php artisan test --testsuite=Unit,Feature

@@ -1,0 +1,106 @@
+<?php
+
+if (class_exists(DuskTestCase::class)) {
+    pest()->extend(DuskTestCase::class)
+    //  ->use(Illuminate\Foundation\Testing\DatabaseMigrations::class)
+        ->in('Browser');
+}
+
+use App\Models\User;
+use Illuminate\Foundation\Testing\RefreshDatabase;
+use Spatie\Permission\Models\Permission;
+use Spatie\Permission\Models\Role;
+use Spatie\Permission\PermissionRegistrar;
+use Tests\DuskTestCase;
+use Tests\TestCase;
+
+/*
+|--------------------------------------------------------------------------
+| Test Case
+|--------------------------------------------------------------------------
+|
+| The closure you provide to your test functions is always bound to a specific PHPUnit test
+| case class. By default, that class is "PHPUnit\Framework\TestCase". Of course, you may
+| need to change it using the "pest()" function to bind different classes or traits.
+|
+*/
+
+pest()->extend(TestCase::class)
+    ->use(RefreshDatabase::class)
+    ->in('Feature', 'Unit');
+
+/*
+|--------------------------------------------------------------------------
+| Expectations
+|--------------------------------------------------------------------------
+|
+| When you're writing tests, you often need to check that values meet certain conditions. The
+| "expect()" function gives you access to a set of "expectations" methods that you can use
+| to assert different things. Of course, you may extend the Expectation API at any time.
+|
+*/
+
+expect()->extend('toBeOne', function () {
+    return $this->toBe(1);
+});
+
+/*
+|--------------------------------------------------------------------------
+| Functions
+|--------------------------------------------------------------------------
+|
+| While Pest is very powerful out-of-the-box, you may have some testing code specific to your
+| project that you don't want to repeat in every file. Here you can also expose helpers as
+| global functions to help you to reduce the number of lines of code in your test files.
+|
+*/
+
+function seedRolesAndPermissions(): void
+{
+    app()[PermissionRegistrar::class]->forgetCachedPermissions();
+
+    $permissions = [
+        'manage-teams', 'manage-employees', 'manage-projects', 'create-project',
+        'manage-work-items', 'view-matrix', 'view-reports', 'enter-performance',
+    ];
+
+    foreach ($permissions as $perm) {
+        Permission::firstOrCreate(['name' => $perm, 'guard_name' => 'web']);
+    }
+
+    Role::firstOrCreate(['name' => 'admin', 'guard_name' => 'web'])
+        ->syncPermissions(['manage-teams', 'manage-employees', 'manage-projects', 'manage-work-items', 'view-matrix', 'view-reports']);
+
+    Role::firstOrCreate(['name' => 'head', 'guard_name' => 'web'])
+        ->syncPermissions(['view-matrix', 'view-reports', 'enter-performance']);
+
+    Role::firstOrCreate(['name' => 'staff', 'guard_name' => 'web'])
+        ->syncPermissions(['enter-performance']);
+}
+
+function adminUser(): User
+{
+    seedRolesAndPermissions();
+    $user = User::factory()->create();
+    $user->assignRole('admin');
+
+    return $user;
+}
+
+function headUser(): User
+{
+    seedRolesAndPermissions();
+    $user = User::factory()->create();
+    $user->assignRole('head');
+
+    return $user;
+}
+
+function staffUser(): User
+{
+    seedRolesAndPermissions();
+    $user = User::factory()->create();
+    $user->assignRole('staff');
+
+    return $user;
+}
