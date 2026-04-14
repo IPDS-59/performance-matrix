@@ -153,9 +153,9 @@ function cellBgColor(pct: number): string {
         <!-- Grid (virtual scroll via overflow) -->
         <div class="overflow-auto rounded-md border bg-white" style="max-height: calc(100vh - 260px)">
             <table class="min-w-max text-xs">
-                <thead class="sticky top-0 z-10 bg-white">
+                <thead class="sticky top-0 z-20 bg-white">
                     <tr>
-                        <th class="sticky left-0 z-20 bg-white px-3 py-2 text-left font-medium border-b border-r-2 border-r-gray-200 min-w-[160px]">
+                        <th class="sticky left-0 z-30 bg-white px-3 py-2 text-left font-medium border-b border-r min-w-[160px]">
                             Pegawai
                         </th>
                         <th
@@ -180,13 +180,13 @@ function cellBgColor(pct: number): string {
                 </thead>
                 <tbody>
                     <tr v-for="employee in employees" :key="employee.id" :class="['border-b', employee.id === currentEmployeeId ? 'bg-primary/5 hover:bg-primary/10' : 'hover:bg-gray-50']">
-                        <td :class="['sticky left-0 z-10 border-r-2 border-r-gray-200 px-3 py-1.5 font-medium', employee.id === currentEmployeeId ? 'bg-blue-50 text-primary font-semibold' : 'bg-white']">
+                        <td :class="['sticky left-0 z-10 border-r px-3 py-1.5 font-medium', employee.id === currentEmployeeId ? 'bg-blue-50 text-primary font-semibold' : 'bg-white']">
                             {{ employee.display_name || employee.name }}<span v-if="employee.id === currentEmployeeId" class="ml-1 text-xs font-normal text-primary/70">(Anda)</span>
                         </td>
                         <td
                             v-for="project in projects"
                             :key="project.id"
-                            class="relative z-0 border-r px-1 py-1.5 text-center"
+                            class="border-r px-1 py-1.5 text-center"
                         >
                             <!-- Assignment mode -->
                             <template v-if="viewMode === 'assignment'">
