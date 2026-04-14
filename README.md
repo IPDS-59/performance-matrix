@@ -18,7 +18,7 @@ Aplikasi web untuk pencatatan dan pemantauan kinerja pegawai BPS Provinsi Sulawe
 |---|---|
 | Backend | PHP 8.4, Laravel 13, Spatie Permission |
 | Frontend | Vue 3 (Composition API), Inertia.js, TypeScript |
-| UI | Tailwind CSS v3, shadcn-vue (reka-ui), tailwindcss-animate |
+| UI | Tailwind CSS v4, shadcn-vue (reka-ui), tailwindcss-animate |
 | Build | Vite 6, pnpm |
 | Database | MySQL / SQLite (testing) |
 | Testing | Pest, PHPUnit |
