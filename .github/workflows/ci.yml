@@ -11,6 +11,10 @@ on:
       - develop
       - main
 
+concurrency:
+  group: ci-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
 jobs:
   ci:
     uses: banua-coder/banua-coder-workflow/.github/workflows/ci-laravel.yml@main
