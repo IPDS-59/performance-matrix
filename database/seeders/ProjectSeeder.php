@@ -6,11 +6,14 @@ use App\Models\Employee;
 use App\Models\Project;
 use App\Models\Team;
 use App\Models\TeamAnnualPlan;
+use Database\Seeders\Concerns\StripsFrontDegree;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\File;
 
 class ProjectSeeder extends Seeder
 {
+    use StripsFrontDegree;
+
     public function run(): void
     {
         $path = database_path('seeders/data/seeder_data.prod.json');
@@ -63,7 +66,7 @@ class ProjectSeeder extends Seeder
             }
 
             $leader = $projectData['leader']
-                ? Employee::where('name', $projectData['leader'])->first()
+                ? Employee::where('name', $this->stripFrontDegree($projectData['leader']))->first()
                 : null;
 
             $project = Project::firstOrCreate(
@@ -87,7 +90,7 @@ class ProjectSeeder extends Seeder
 
                 // Attach members
                 foreach ($projectData['members'] ?? [] as $memberName) {
-                    $member = Employee::where('name', $memberName)->first();
+                    $member = Employee::where('name', $this->stripFrontDegree($memberName))->first();
                     if ($member) {
                         $project->members()->syncWithoutDetaching([
                             $member->id => ['role' => 'member'],

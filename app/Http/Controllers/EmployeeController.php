@@ -213,12 +213,13 @@ class EmployeeController extends Controller
             $highest = $employee->educations()->orderByDesc('graduated_year')->first();
         }
 
-        $parts = array_filter([
-            $highest?->degree_front,
-            $employee->name,
-            $highest?->degree_back,
-        ]);
-        $displayName = implode(', ', $parts) ?: $employee->name;
+        $namePart = $highest?->degree_front
+            ? $highest->degree_front.' '.$employee->name
+            : $employee->name;
+
+        $displayName = $highest?->degree_back
+            ? $namePart.', '.$highest->degree_back
+            : $namePart;
 
         $employee->update(['display_name' => $displayName]);
     }
