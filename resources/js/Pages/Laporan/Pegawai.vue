@@ -61,7 +61,7 @@ function applyFilter() {
 interface AchievementDatum { label: string; value: number }
 
 const achievementUnovisData = computed<AchievementDatum[]>(() =>
-    props.top10.map(e => ({
+    [...props.top10].reverse().map(e => ({
         label: e.display_name ?? e.name,
         value: Math.round(e.avg_achievement * 10) / 10,
     })),
@@ -70,7 +70,10 @@ const achievementUnovisData = computed<AchievementDatum[]>(() =>
 const achX = (_d: AchievementDatum, i: number) => i;
 const achY = [(d: AchievementDatum) => d.value];
 const achColor = 'rgba(27, 75, 138, 0.75)';
-const achYTickFormat = (_tick: number, i: number) => achievementUnovisData.value[i]?.label ?? '';
+const achYTickFormat = (tick: number) => {
+    const label = achievementUnovisData.value[tick]?.label ?? '';
+    return label.length > 20 ? label.substring(0, 18) + '\u2026' : label;
+};
 const achXTickFormat = (v: number) => `${v}%`;
 const achTooltipTriggers = {
     [GroupedBar.selectors.bar]: (d: AchievementDatum) =>
@@ -101,7 +104,7 @@ const projectTabLabel = computed(() => {
 interface ProjectDatum { label: string; value: number }
 
 const projectUnovisData = computed<ProjectDatum[]>(() =>
-    projectFiltered.value.map(e => ({
+    [...projectFiltered.value].reverse().map(e => ({
         label: e.display_name ?? e.name,
         value: projectTab.value === 'ketua' ? e.leader_count :
                projectTab.value === 'anggota' ? e.member_count :
@@ -112,7 +115,10 @@ const projectUnovisData = computed<ProjectDatum[]>(() =>
 const projX = (_d: ProjectDatum, i: number) => i;
 const projY = [(d: ProjectDatum) => d.value];
 const projColor = 'rgba(5, 150, 105, 0.75)';
-const projYTickFormat = (_tick: number, i: number) => projectUnovisData.value[i]?.label ?? '';
+const projYTickFormat = (tick: number) => {
+    const label = projectUnovisData.value[tick]?.label ?? '';
+    return label.length > 20 ? label.substring(0, 18) + '\u2026' : label;
+};
 const projXTickFormat = (v: number) => `${v}`;
 const projTooltipTriggers = computed(() => ({
     [GroupedBar.selectors.bar]: (d: ProjectDatum) =>
@@ -179,7 +185,7 @@ function achievementColor(val: number | null) {
                     <VisXYContainer :data="achievementUnovisData" :yDomain="[0, 100]" :style="{ height: '100%' }">
                         <VisGroupedBar orientation="horizontal" :x="achX" :y="achY" :color="achColor" :roundedCorners="4" :barMinHeight="0" />
                         <VisAxis type="x" :tickFormat="achXTickFormat" />
-                        <VisAxis type="y" :tickFormat="achYTickFormat" :gridLine="false" :tickTextFontSize="'12px'" />
+                        <VisAxis type="y" :tickFormat="achYTickFormat" :gridLine="false" :tickTextFontSize="'12px'" :numTicks="achievementUnovisData.length" />
                         <VisTooltip :triggers="achTooltipTriggers" />
                     </VisXYContainer>
                 </div>
@@ -206,7 +212,7 @@ function achievementColor(val: number | null) {
                     <VisXYContainer :data="projectUnovisData" :style="{ height: '100%' }">
                         <VisGroupedBar orientation="horizontal" :x="projX" :y="projY" :color="projColor" :roundedCorners="4" :barMinHeight="0" />
                         <VisAxis type="x" :tickFormat="projXTickFormat" />
-                        <VisAxis type="y" :tickFormat="projYTickFormat" :gridLine="false" :tickTextFontSize="'12px'" />
+                        <VisAxis type="y" :tickFormat="projYTickFormat" :gridLine="false" :tickTextFontSize="'12px'" :numTicks="projectUnovisData.length" />
                         <VisTooltip :triggers="projTooltipTriggers" />
                     </VisXYContainer>
                 </div>
