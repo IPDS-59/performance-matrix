@@ -199,7 +199,7 @@ function deleteEdu(employeeId: number, eduId: number) {
             </div>
 
             <!-- Danger zone -->
-            <div class="rounded-lg border bg-white p-6">
+            <div class="rounded-lg border border-red-200 bg-white p-6">
                 <DeleteUserForm />
             </div>
         </div>
