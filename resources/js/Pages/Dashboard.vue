@@ -2,7 +2,7 @@
 import AppLayout from '@/Layouts/AppLayout.vue';
 import { Head, router } from '@inertiajs/vue3';
 import { computed, nextTick, onMounted, reactive, ref } from 'vue';
-import type { Employee, Team, PersonalStats, TeamProgress, TrendPoint, EmployeeRankItem, TeamMember, TeamWithMembers, ProjectWithItems, TeamProjectWithMembers } from '@/types';
+import type { Employee, PersonalStats, TeamProgress, TrendPoint, EmployeeRankItem, TeamMember, TeamWithMembers, ProjectWithItems, TeamProjectWithMembers } from '@/types';
 import { Card, CardContent, CardHeader, CardTitle } from '@/Components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/Components/ui/tabs';
 import { Badge } from '@/Components/ui/badge';

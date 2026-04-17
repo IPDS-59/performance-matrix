@@ -114,6 +114,11 @@ export interface TeamWithMembers extends Team {
     employees?: TeamMember[];
 }
 
+export interface TeamRankItem extends TeamWithMembers {
+    avg: number;
+    count: number;
+}
+
 export interface ProjectWithItems {
     id: number;
     team_id: number;

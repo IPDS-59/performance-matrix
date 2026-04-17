@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue';
-import type { Employee, Team, TeamWithMembers } from '@/types';
+import type { TeamRankItem } from '@/types';
 import { useAchievementColor } from '@/composables/useAchievementColor';
 import { Card, CardContent, CardHeader, CardTitle } from '@/Components/ui/card';
 import { Badge } from '@/Components/ui/badge';
@@ -15,7 +15,7 @@ interface BarChartDatum { label: string; code: string; value: number }
 // ── Props ──────────────────────────────────────────────────────────────────
 
 const props = withDefaults(defineProps<{
-    teamList: TeamWithMembers[];
+    teamList: TeamRankItem[];
     title?: string;
     monthLabel?: string;
     projectLeaderIds?: number[];
