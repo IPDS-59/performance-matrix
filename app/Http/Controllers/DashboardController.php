@@ -212,7 +212,7 @@ class DashboardController extends Controller
      */
     private function loadTeamsWithMembers(int $year): Collection
     {
-        $teams = Team::orderBy('name')->get(['id', 'name', 'code']);
+        $teams = Team::orderBy('name')->get(['id', 'name', 'code', 'leader_id']);
 
         $membersByTeam = DB::table('employees')
             ->select('employees.id', 'employees.name', 'employees.display_name', 'projects.team_id')

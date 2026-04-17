@@ -12,6 +12,7 @@ export interface Team {
     code: string;
     description?: string | null;
     is_active: boolean;
+    leader_id?: number | null;
 }
 
 export interface Employee {

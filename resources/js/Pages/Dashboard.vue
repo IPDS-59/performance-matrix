@@ -250,6 +250,20 @@ function isProjectLeaderById(employeeId: number): boolean {
     return props.project_leader_ids?.includes(employeeId) ?? false;
 }
 
+const teamLeaderIds = computed(() => {
+    const set = new Set<number>();
+    props.teams?.forEach(t => { if (t.leader_id) set.add(t.leader_id); });
+    return set;
+});
+
+function isTeamLeaderById(employeeId: number): boolean {
+    return teamLeaderIds.value.has(employeeId);
+}
+
+function leaderBadgeLabel(employeeId: number): string {
+    return isTeamLeaderById(employeeId) ? 'Ketua Tim' : 'Ketua Proyek';
+}
+
 // ── Chip scroll indicator (always visible when container is scrollable) ────
 
 const chipScrollable = reactive<Record<number, boolean>>({});
@@ -588,12 +602,12 @@ const empAchievementTooltipTriggers = {
                                                                             : 'border-gray-200 bg-white text-gray-600'
                                                                     ]"
                                                                 >
-                                                                    <span v-if="isProjectLeaderById(member.id)" class="text-amber-500" aria-label="Ketua Proyek">&#9733;</span>
+                                                                    <span v-if="isProjectLeaderById(member.id)" class="text-amber-500" :aria-label="leaderBadgeLabel(member.id)">&#9733;</span>
                                                                     {{ member.display_name || member.name }}
                                                                     <Badge
                                                                         v-if="isProjectLeaderById(member.id)"
                                                                         class="ml-0.5 h-3.5 bg-amber-500 px-1 text-[9px] leading-none text-white hover:bg-amber-500"
-                                                                    >Ketua Proyek</Badge>
+                                                                    >{{ leaderBadgeLabel(member.id) }}</Badge>
                                                                 </span>
                                                             </div>
                                                         </div>
@@ -755,9 +769,9 @@ const empAchievementTooltipTriggers = {
                                                     v-if="isProjectLeader(member)"
                                                     class="flex shrink-0 items-center gap-1.5 rounded-full border border-amber-300 bg-amber-50 px-3 py-1 text-xs text-amber-800"
                                                 >
-                                                    <span class="text-amber-500" aria-label="Ketua Proyek">&#9733;</span>
+                                                    <span class="text-amber-500" :aria-label="leaderBadgeLabel(member.id)">&#9733;</span>
                                                     <span>{{ member.display_name || member.name }}</span>
-                                                    <Badge class="ml-0.5 h-4 bg-amber-500 px-1.5 text-[10px] text-white hover:bg-amber-500">Ketua Proyek</Badge>
+                                                    <Badge class="ml-0.5 h-4 bg-amber-500 px-1.5 text-[10px] text-white hover:bg-amber-500">{{ leaderBadgeLabel(member.id) }}</Badge>
                                                 </div>
                                             </template>
 
@@ -939,12 +953,12 @@ const empAchievementTooltipTriggers = {
                                                                     : 'border-gray-200 bg-white text-gray-600'
                                                             ]"
                                                         >
-                                                            <span v-if="isProjectLeaderById(member.id)" class="text-amber-500" aria-label="Ketua Proyek">&#9733;</span>
+                                                            <span v-if="isProjectLeaderById(member.id)" class="text-amber-500" :aria-label="leaderBadgeLabel(member.id)">&#9733;</span>
                                                             {{ member.display_name || member.name }}
                                                             <Badge
                                                                 v-if="isProjectLeaderById(member.id)"
                                                                 class="ml-0.5 h-3.5 bg-amber-500 px-1 text-[9px] leading-none text-white hover:bg-amber-500"
-                                                            >Ketua Proyek</Badge>
+                                                            >{{ leaderBadgeLabel(member.id) }}</Badge>
                                                         </span>
                                                     </div>
                                                 </div>
@@ -1297,12 +1311,12 @@ const empAchievementTooltipTriggers = {
                                                             : 'border-gray-200 bg-white text-gray-600'
                                                     ]"
                                                 >
-                                                    <span v-if="isProjectLeaderById(member.id)" class="text-amber-500" aria-label="Ketua Proyek">&#9733;</span>
+                                                    <span v-if="isProjectLeaderById(member.id)" class="text-amber-500" :aria-label="leaderBadgeLabel(member.id)">&#9733;</span>
                                                     {{ member.display_name || member.name }}
                                                     <Badge
                                                         v-if="isProjectLeaderById(member.id)"
                                                         class="ml-0.5 h-3.5 bg-amber-500 px-1 text-[9px] leading-none text-white hover:bg-amber-500"
-                                                    >Ketua Proyek</Badge>
+                                                    >{{ leaderBadgeLabel(member.id) }}</Badge>
                                                 </span>
                                             </div>
                                         </div>
@@ -1561,12 +1575,12 @@ const empAchievementTooltipTriggers = {
                                                             : 'border-gray-200 bg-white text-gray-600'
                                                     ]"
                                                 >
-                                                    <span v-if="isProjectLeaderById(member.id)" class="text-amber-500" aria-label="Ketua Proyek">&#9733;</span>
+                                                    <span v-if="isProjectLeaderById(member.id)" class="text-amber-500" :aria-label="leaderBadgeLabel(member.id)">&#9733;</span>
                                                     {{ member.display_name || member.name }}
                                                     <Badge
                                                         v-if="isProjectLeaderById(member.id)"
                                                         class="ml-0.5 h-3.5 bg-amber-500 px-1 text-[9px] leading-none text-white hover:bg-amber-500"
-                                                    >Ketua Proyek</Badge>
+                                                    >{{ leaderBadgeLabel(member.id) }}</Badge>
                                                 </span>
                                             </div>
                                         </div>
