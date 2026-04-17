@@ -2,7 +2,7 @@
 import AppLayout from '@/Layouts/AppLayout.vue';
 import { Head, router } from '@inertiajs/vue3';
 import { computed, nextTick, onMounted, reactive, ref } from 'vue';
-import type { Employee, Team } from '@/types';
+import type { Employee, Team, PersonalStats, TeamProgress, TrendPoint, EmployeeRankItem, TeamMember, TeamWithMembers, ProjectWithItems, TeamProjectWithMembers } from '@/types';
 import { Card, CardContent, CardHeader, CardTitle } from '@/Components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/Components/ui/tabs';
 import { Badge } from '@/Components/ui/badge';
@@ -18,79 +18,7 @@ import DashboardEmployeeRankings from '@/Components/Dashboard/DashboardEmployeeR
 import DashboardPersonalProjects from '@/Components/Dashboard/DashboardPersonalProjects.vue';
 
 // ── Types ──────────────────────────────────────────────────────────────────
-
-interface TeamProgress {
-    team_id: number;
-    avg_achievement: number;
-    report_count: number;
-}
-
-interface TrendPoint {
-    period_month: number;
-    avg_achievement: number;
-}
-
-interface PersonalStats {
-    teams_count: number;
-    projects_count: number;
-    items_count: number;
-    avg_achievement: number;
-    is_team_lead: boolean;
-}
-
-interface WorkItemReport {
-    id: number;
-    realization: number;
-    achievement_percentage: number;
-    reported_by: number | null;
-    reporter: { id: number; name: string; display_name: string | null } | null;
-}
-
-interface TeamWorkItem {
-    id: number;
-    description: string;
-    target: number;
-    target_unit: string;
-    performance_reports: WorkItemReport[];
-}
-
-interface TeamMember extends Employee {
-    pivot: { role: string };
-}
-
-interface TeamProjectWithMembers {
-    id: number;
-    name: string;
-    team: { id: number; name: string } | null;
-    members: TeamMember[];
-    work_items: TeamWorkItem[];
-}
-
-interface ProjectWithItems {
-    id: number;
-    team_id: number;
-    name: string;
-    team?: { id: number; name: string } | null;
-    work_items: Array<{
-        id: number;
-        description: string;
-        performance_reports: Array<{ achievement_percentage: number }>;
-    }>;
-}
-
-interface TeamWithMembers extends Team {
-    employees?: TeamMember[];
-}
-
-interface EmployeeRankItem {
-    id: number;
-    name: string;
-    display_name: string | null;
-    project_count?: number;
-    leader_count?: number;
-    member_count?: number;
-    avg_achievement?: number;
-}
+// All dashboard types are imported from @/types.
 
 // ── Props ──────────────────────────────────────────────────────────────────
 

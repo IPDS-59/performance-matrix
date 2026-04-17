@@ -75,6 +75,77 @@ export interface ReviewEvent {
     actor: { id: number; name: string } | null;
 }
 
+// ── Dashboard types ───────────────────────────────────────────────────────
+
+export interface PersonalStats {
+    teams_count: number;
+    projects_count: number;
+    items_count: number;
+    avg_achievement: number;
+    is_team_lead: boolean;
+}
+
+export interface TeamProgress {
+    team_id: number;
+    avg_achievement: number;
+    report_count: number;
+}
+
+export interface TrendPoint {
+    period_month: number;
+    avg_achievement: number;
+}
+
+export interface EmployeeRankItem {
+    id: number;
+    name: string;
+    display_name: string | null;
+    project_count?: number;
+    leader_count?: number;
+    member_count?: number;
+    avg_achievement?: number;
+}
+
+export interface TeamMember extends Employee {
+    pivot: { role: string };
+}
+
+export interface TeamWithMembers extends Team {
+    employees?: TeamMember[];
+}
+
+export interface ProjectWithItems {
+    id: number;
+    team_id: number;
+    name: string;
+    team?: { id: number; name: string } | null;
+    work_items: Array<{
+        id: number;
+        description: string;
+        performance_reports: Array<{ achievement_percentage: number }>;
+    }>;
+}
+
+export interface TeamProjectWithMembers {
+    id: number;
+    name: string;
+    team: { id: number; name: string } | null;
+    members: TeamMember[];
+    work_items: Array<{
+        id: number;
+        description: string;
+        target: number;
+        target_unit: string;
+        performance_reports: Array<{
+            id: number;
+            realization: number;
+            achievement_percentage: number;
+            reported_by: number | null;
+            reporter: { id: number; name: string; display_name: string | null } | null;
+        }>;
+    }>;
+}
+
 export type PageProps<
     T extends Record<string, unknown> = Record<string, unknown>,
 > = T & {

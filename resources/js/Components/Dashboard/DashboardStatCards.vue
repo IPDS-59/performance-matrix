@@ -1,14 +1,7 @@
 <script setup lang="ts">
+import type { PersonalStats } from '@/types';
 import { useAchievementColor } from '@/composables/useAchievementColor';
 import { Progress } from '@/Components/ui/progress';
-
-interface PersonalStats {
-    teams_count: number;
-    projects_count: number;
-    items_count: number;
-    avg_achievement: number;
-    is_team_lead: boolean;
-}
 
 defineProps<{
     stats: PersonalStats;

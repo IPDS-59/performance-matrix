@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue';
-import type { Employee, Team } from '@/types';
+import type { Employee, Team, TeamWithMembers } from '@/types';
 import { useAchievementColor } from '@/composables/useAchievementColor';
 import { Card, CardContent, CardHeader, CardTitle } from '@/Components/ui/card';
 import { Badge } from '@/Components/ui/badge';
@@ -9,12 +9,6 @@ import { VisXYContainer, VisGroupedBar, VisAxis, VisTooltip } from '@unovis/vue'
 import { GroupedBar } from '@unovis/ts';
 
 // ── Types ──────────────────────────────────────────────────────────────────
-
-interface TeamWithMembers extends Team {
-    employees?: (Employee & { pivot: { role: string } })[];
-    avg: number;
-    count: number;
-}
 
 interface BarChartDatum { label: string; code: string; value: number }
 

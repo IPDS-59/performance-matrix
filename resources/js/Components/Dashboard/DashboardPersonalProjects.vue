@@ -3,18 +3,7 @@ import { computed } from 'vue';
 import { useAchievementColor } from '@/composables/useAchievementColor';
 import { Card, CardHeader, CardTitle, CardContent } from '@/Components/ui/card';
 import { Progress } from '@/Components/ui/progress';
-
-interface ProjectWithItems {
-    id: number;
-    team_id: number;
-    name: string;
-    team?: { id: number; name: string } | null;
-    work_items: Array<{
-        id: number;
-        description: string;
-        performance_reports: Array<{ achievement_percentage: number }>;
-    }>;
-}
+import type { ProjectWithItems } from '@/types';
 
 const props = defineProps<{
     projects: ProjectWithItems[];

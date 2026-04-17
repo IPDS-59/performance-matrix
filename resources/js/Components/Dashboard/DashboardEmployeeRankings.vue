@@ -5,16 +5,7 @@ import { Card, CardHeader, CardTitle, CardContent } from '@/Components/ui/card';
 import { Progress } from '@/Components/ui/progress';
 import { VisXYContainer, VisGroupedBar, VisAxis, VisTooltip } from '@unovis/vue';
 import { GroupedBar } from '@unovis/ts';
-
-interface EmployeeRankItem {
-    id: number;
-    name: string;
-    display_name: string | null;
-    project_count?: number;
-    leader_count?: number;
-    member_count?: number;
-    avg_achievement?: number;
-}
+import type { EmployeeRankItem } from '@/types';
 
 const props = defineProps<{
     topByProjects: EmployeeRankItem[];
