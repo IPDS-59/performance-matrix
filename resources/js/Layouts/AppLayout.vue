@@ -15,6 +15,7 @@ const user = computed(() => page.props.auth.user as { name: string; email: strin
 const isAdmin = computed(() => user.value.role === 'admin');
 const isHead = computed(() => user.value.role === 'head');
 const isStaff = computed(() => user.value.role === 'staff');
+const canViewProjects = computed(() => (page.props.can as Record<string, boolean>)?.view_projects ?? false);
 
 // ── Notifications ─────────────────────────────────────────────────────────
 const unreadCount = ref(0);
@@ -221,17 +222,20 @@ onUnmounted(() => {
                         </svg>
                         <span v-if="sidebar.isOpen">Pegawai</span>
                     </Link>
-                    <Link
-                        :href="route('projects.index')"
-                        :class="route().current('projects.*') ? 'bg-white/20' : 'hover:bg-white/10'"
-                        class="flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors"
-                    >
-                        <svg class="h-5 w-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
-                        </svg>
-                        <span v-if="sidebar.isOpen">Proyek</span>
-                    </Link>
                 </template>
+
+                <!-- Projects link (admin + team leads) -->
+                <Link
+                    v-if="canViewProjects"
+                    :href="route('projects.index')"
+                    :class="route().current('projects.*') ? 'bg-white/20' : 'hover:bg-white/10'"
+                    class="flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors"
+                >
+                    <svg class="h-5 w-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
+                    </svg>
+                    <span v-if="sidebar.isOpen">Proyek</span>
+                </Link>
             </nav>
 
             <!-- User footer -->
