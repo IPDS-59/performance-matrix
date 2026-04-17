@@ -55,8 +55,16 @@ const barTooltipTriggers = {
 
 const gridClass = computed(() =>
     props.chartColSpan === 3 && props.rankColSpan === 2
-        ? 'grid gap-4 lg:grid-cols-5'
+        ? 'grid gap-6 lg:grid-cols-5'
         : 'grid gap-4 lg:grid-cols-3',
+);
+
+const chartClass = computed(() =>
+    props.chartColSpan === 3 ? 'lg:col-span-3' : 'lg:col-span-2',
+);
+
+const rankClass = computed(() =>
+    props.rankColSpan === 2 ? 'lg:col-span-2' : '',
 );
 
 // ── Team expand/collapse ──────────────────────────────────────────────────
@@ -95,7 +103,7 @@ function leaderBadgeLabel(employeeId: number): string {
 <template>
     <div :class="gridClass">
         <!-- Bar chart card -->
-        <Card :class="`lg:col-span-${chartColSpan}`">
+        <Card :class="chartClass">
             <CardHeader class="pb-2">
                 <CardTitle class="text-base">{{ title }}{{ monthLabel ? ` — ${monthLabel}` : '' }}</CardTitle>
             </CardHeader>
@@ -115,7 +123,7 @@ function leaderBadgeLabel(employeeId: number): string {
         </Card>
 
         <!-- Team ranking list card -->
-        <Card :class="`lg:col-span-${rankColSpan}`">
+        <Card :class="rankClass">
             <CardHeader>
                 <CardTitle class="text-base">Peringkat Tim</CardTitle>
             </CardHeader>
