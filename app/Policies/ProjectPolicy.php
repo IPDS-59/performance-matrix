@@ -3,6 +3,7 @@
 namespace App\Policies;
 
 use App\Models\Project;
+use App\Models\Team;
 use App\Models\User;
 
 class ProjectPolicy
@@ -23,10 +24,18 @@ class ProjectPolicy
             return true;
         }
 
-        // Staff who already lead a project may create new ones for their team.
         $employee = $user->employee;
+        if ($employee === null) {
+            return false;
+        }
 
-        return $employee !== null && Project::where('leader_id', $employee->id)->exists();
+        // Team leads can create projects for their team.
+        if (Team::where('leader_id', $employee->id)->exists()) {
+            return true;
+        }
+
+        // Staff who already lead a project may create new ones.
+        return Project::where('leader_id', $employee->id)->exists();
     }
 
     public function update(User $user, Project $project): bool

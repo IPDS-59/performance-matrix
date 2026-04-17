@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Team extends Model
@@ -15,11 +16,17 @@ class Team extends Model
         'code',
         'description',
         'is_active',
+        'leader_id',
     ];
 
     protected $casts = [
         'is_active' => 'boolean',
     ];
+
+    public function leader(): BelongsTo
+    {
+        return $this->belongsTo(Employee::class, 'leader_id');
+    }
 
     public function employees(): HasMany
     {
