@@ -19,7 +19,6 @@ const props = withDefaults(defineProps<{
     title?: string;
     monthLabel?: string;
     projectLeaderIds?: number[];
-    teamLeaderIds: Set<number>;
     chartColSpan?: 2 | 3;
     rankColSpan?: 1 | 2;
 }>(), {
@@ -91,12 +90,12 @@ function isProjectLeaderById(employeeId: number): boolean {
     return props.projectLeaderIds?.includes(employeeId) ?? false;
 }
 
-function isTeamLeaderById(employeeId: number): boolean {
-    return props.teamLeaderIds.has(employeeId);
+function isTeamLeaderOf(employeeId: number, teamLeaderId: number | null | undefined): boolean {
+    return teamLeaderId != null && employeeId === teamLeaderId;
 }
 
-function leaderBadgeLabel(employeeId: number): string {
-    return isTeamLeaderById(employeeId) ? 'Ketua Tim' : 'Ketua Proyek';
+function leaderBadgeLabel(employeeId: number, teamLeaderId: number | null | undefined): string {
+    return isTeamLeaderOf(employeeId, teamLeaderId) ? 'Ketua Tim' : 'Ketua Proyek';
 }
 </script>
 
@@ -169,12 +168,12 @@ function leaderBadgeLabel(employeeId: number): string {
                                                     : 'border-gray-200 bg-white text-gray-600'
                                             ]"
                                         >
-                                            <span v-if="isProjectLeaderById(member.id)" class="text-amber-500" :aria-label="leaderBadgeLabel(member.id)">&#9733;</span>
+                                            <span v-if="isProjectLeaderById(member.id)" class="text-amber-500" :aria-label="leaderBadgeLabel(member.id, team.leader_id)">&#9733;</span>
                                             {{ member.display_name || member.name }}
                                             <Badge
                                                 v-if="isProjectLeaderById(member.id)"
                                                 class="ml-0.5 h-3.5 bg-amber-500 px-1 text-[9px] leading-none text-white hover:bg-amber-500"
-                                            >{{ leaderBadgeLabel(member.id) }}</Badge>
+                                            >{{ leaderBadgeLabel(member.id, team.leader_id) }}</Badge>
                                         </span>
                                     </div>
                                 </div>

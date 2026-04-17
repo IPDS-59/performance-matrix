@@ -84,10 +84,10 @@ const teamList = computed(() => {
     })).sort((a, b) => b.avg - a.avg);
 });
 
-const teamLeaderIds = computed(() => {
-    const set = new Set<number>();
-    props.teams?.forEach(t => { if (t.leader_id) set.add(t.leader_id); });
-    return set;
+const teamLeaderMap = computed(() => {
+    const map = new Map<number, number>();
+    props.teams?.forEach(t => { if (t.leader_id) map.set(t.id, t.leader_id); });
+    return map;
 });
 
 // ── Led project helpers ──────────────────────────────────────────────────
@@ -96,8 +96,9 @@ function isProjectLeader(member: TeamMember): boolean {
     return member.pivot.role === 'leader' || member.pivot.role === 'ketua';
 }
 
-function leaderBadgeLabel(employeeId: number): string {
-    return teamLeaderIds.value.has(employeeId) ? 'Ketua Tim' : 'Ketua Proyek';
+function leaderBadgeLabel(employeeId: number, teamId: number | null | undefined): string {
+    if (teamId != null && teamLeaderMap.value.get(teamId) === employeeId) return 'Ketua Tim';
+    return 'Ketua Proyek';
 }
 
 function ledProjectMemberCount(project: TeamProjectWithMembers): number {
@@ -223,7 +224,6 @@ const trendTooltipTriggers = computed(() => ({
                             <DashboardTeamRanking
                                 :team-list="teamList"
                                 :project-leader-ids="project_leader_ids"
-                                :team-leader-ids="teamLeaderIds"
                             />
 
                             <h2 class="mt-10 mb-4 flex items-center gap-2 text-sm font-semibold text-primary uppercase tracking-wide">
@@ -264,9 +264,9 @@ const trendTooltipTriggers = computed(() => ({
                                                     v-if="isProjectLeader(member)"
                                                     class="flex shrink-0 items-center gap-1.5 rounded-full border border-amber-300 bg-amber-50 px-3 py-1 text-xs text-amber-800"
                                                 >
-                                                    <span class="text-amber-500" :aria-label="leaderBadgeLabel(member.id)">&#9733;</span>
+                                                    <span class="text-amber-500" :aria-label="leaderBadgeLabel(member.id, ledProject.team?.id)">&#9733;</span>
                                                     <span>{{ member.display_name || member.name }}</span>
-                                                    <Badge class="ml-0.5 h-4 bg-amber-500 px-1.5 text-[10px] text-white hover:bg-amber-500">{{ leaderBadgeLabel(member.id) }}</Badge>
+                                                    <Badge class="ml-0.5 h-4 bg-amber-500 px-1.5 text-[10px] text-white hover:bg-amber-500">{{ leaderBadgeLabel(member.id, ledProject.team?.id) }}</Badge>
                                                 </div>
                                             </template>
                                             <span
@@ -312,7 +312,6 @@ const trendTooltipTriggers = computed(() => ({
                     <DashboardTeamRanking
                         :team-list="teamList"
                         :project-leader-ids="project_leader_ids"
-                        :team-leader-ids="teamLeaderIds"
                     />
 
                     <h2 class="mt-10 mb-4 flex items-center gap-2 text-sm font-semibold text-primary uppercase tracking-wide">
@@ -360,7 +359,7 @@ const trendTooltipTriggers = computed(() => ({
                 <DashboardTeamRanking
                     :team-list="teamList"
                     :project-leader-ids="project_leader_ids"
-                    :team-leader-ids="teamLeaderIds"
+
                     :month-label="monthLabel"
                     :chart-col-span="3"
                     :rank-col-span="2"
@@ -421,7 +420,7 @@ const trendTooltipTriggers = computed(() => ({
                 <DashboardTeamRanking
                     :team-list="teamList"
                     :project-leader-ids="project_leader_ids"
-                    :team-leader-ids="teamLeaderIds"
+
                     :month-label="monthLabel"
                     :chart-col-span="3"
                     :rank-col-span="2"
