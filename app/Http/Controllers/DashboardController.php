@@ -319,8 +319,8 @@ class DashboardController extends Controller
                 'members:id,name,display_name',
                 'team:id,name',
             ])
-                ->where('leader_id', $employee->id)
-                ->where('year', $year)
+                ->where('projects.leader_id', $employee->id)
+                ->where('projects.year', $year)
                 ->join('teams', 'teams.id', 'projects.team_id')
                 ->orderBy('teams.name')
                 ->orderBy('projects.name')

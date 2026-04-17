@@ -86,8 +86,8 @@ class ProjectListController extends Controller
             'performanceReports as total_reports_count' => fn ($q) => $q
                 ->where('period_year', $year),
         ])
-            ->where('leader_id', $employee->id)
-            ->where('year', $year)
+            ->where('projects.leader_id', $employee->id)
+            ->where('projects.year', $year)
             ->with('team:id,name')
             ->join('teams', 'teams.id', '=', 'projects.team_id')
             ->orderBy('teams.name')
