@@ -44,7 +44,18 @@ class ProjectPolicy
             return true;
         }
 
-        return $user->employee !== null && $user->employee->id === $project->leader_id;
+        $employee = $user->employee;
+        if ($employee === null) {
+            return false;
+        }
+
+        // Project leader can edit their own project
+        if ($employee->id === $project->leader_id) {
+            return true;
+        }
+
+        // Team lead can edit any project in their team
+        return Team::where('id', $project->team_id)->where('leader_id', $employee->id)->exists();
     }
 
     public function delete(User $user, Project $project): bool
