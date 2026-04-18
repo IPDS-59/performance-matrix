@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Employee;
 use App\Models\Team;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -23,7 +24,9 @@ class TeamController extends Controller
     {
         $this->authorize('create', Team::class);
 
-        return Inertia::render('Teams/Create');
+        $employees = Employee::where('is_active', true)->orderBy('name')->get(['id', 'name', 'display_name']);
+
+        return Inertia::render('Teams/Create', compact('employees'));
     }
 
     public function store(Request $request): RedirectResponse
@@ -35,6 +38,7 @@ class TeamController extends Controller
             'code' => ['required', 'string', 'max:20', 'unique:teams,code'],
             'description' => ['nullable', 'string'],
             'is_active' => ['boolean'],
+            'leader_id' => ['nullable', 'exists:employees,id'],
         ]);
 
         Team::create($validated);
@@ -46,7 +50,10 @@ class TeamController extends Controller
     {
         $this->authorize('update', $team);
 
-        return Inertia::render('Teams/Edit', compact('team'));
+        $team->load('leader:id,name,display_name');
+        $employees = Employee::where('is_active', true)->orderBy('name')->get(['id', 'name', 'display_name']);
+
+        return Inertia::render('Teams/Edit', compact('team', 'employees'));
     }
 
     public function update(Request $request, Team $team): RedirectResponse
@@ -58,6 +65,7 @@ class TeamController extends Controller
             'code' => ['required', 'string', 'max:20', "unique:teams,code,{$team->id}"],
             'description' => ['nullable', 'string'],
             'is_active' => ['boolean'],
+            'leader_id' => ['nullable', 'exists:employees,id'],
         ]);
 
         $team->update($validated);

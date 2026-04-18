@@ -17,8 +17,15 @@ class ProjectController extends Controller
     {
         $this->authorize('viewAny', Project::class);
 
+        $user = $request->user();
+        $isAdmin = $user->hasPermissionTo('manage-projects');
         $year = $request->integer('year', now()->year);
         $teamId = $request->integer('team_id');
+
+        // Non-admin: restrict to their own team
+        if (! $isAdmin && ! $teamId) {
+            $teamId = $user->employee?->team_id;
+        }
 
         $projects = Project::with('team:id,name', 'leader:id,name,display_name')
             ->withCount('members')
@@ -27,9 +34,11 @@ class ProjectController extends Controller
             ->orderBy('name')
             ->get();
 
-        $teams = Team::where('is_active', true)->orderBy('name')->get(['id', 'name']);
+        $teams = $isAdmin
+            ? Team::where('is_active', true)->orderBy('name')->get(['id', 'name'])
+            : Team::where('id', $teamId)->get(['id', 'name']);
 
-        $canCreate = $request->user()->can('create', Project::class);
+        $canCreate = $user->can('create', Project::class);
 
         return Inertia::render('Projects/Index', compact('projects', 'teams', 'year', 'teamId', 'canCreate'));
     }
@@ -127,7 +136,7 @@ class ProjectController extends Controller
 
         $validated = $request->validate([
             'team_id' => $isAdmin ? ['required', 'exists:teams,id'] : ['sometimes'],
-            'leader_id' => $isAdmin ? ['nullable', 'exists:employees,id'] : ['sometimes'],
+            'leader_id' => ['nullable', 'exists:employees,id'],
             'name' => ['required', 'string', 'max:255'],
             'description' => ['nullable', 'string'],
             'objective' => ['nullable', 'string'],
@@ -143,14 +152,19 @@ class ProjectController extends Controller
             $employee = $request->user()->employee;
             abort_if(! $employee || ! $employee->team_id, 403, 'Akun belum terhubung ke tim.');
             $validated['team_id'] = $employee->team_id;
-            $validated['leader_id'] = $employee->id;
+            $validated['leader_id'] = $validated['leader_id'] ?? $employee->id;
         }
 
         $project = Project::create($validated);
 
         if (! $isAdmin) {
-            // Auto-add the lead as a member with leader role
-            $syncMembers->execute($project, [$validated['leader_id'] => ['role' => 'leader']]);
+            $memberMap = [$validated['leader_id'] => ['role' => 'leader']];
+            if (! empty($validated['members'])) {
+                foreach ($validated['members'] as $m) {
+                    $memberMap[$m['employee_id']] = ['role' => $m['role']];
+                }
+            }
+            $syncMembers->execute($project, $memberMap);
         } elseif (! empty($validated['members'])) {
             $memberMap = collect($validated['members'])
                 ->keyBy('employee_id')
@@ -167,13 +181,23 @@ class ProjectController extends Controller
         $this->authorize('update', $project);
 
         $user = $request->user();
-        $isLeader = ! $user->hasPermissionTo('manage-projects')
-            && $user->employee !== null
-            && $user->employee->id === $project->leader_id;
+        $isAdmin = $user->hasPermissionTo('manage-projects');
 
         $project->load('members:id,name,display_name', 'team:id,name', 'workItems.assignments');
-        $teams = Team::where('is_active', true)->orderBy('name')->get(['id', 'name']);
-        $employees = Employee::where('is_active', true)->orderBy('name')->get(['id', 'name', 'display_name']);
+
+        if ($isAdmin) {
+            $teams = Team::where('is_active', true)->orderBy('name')->get(['id', 'name']);
+            $employees = Employee::where('is_active', true)->orderBy('name')->get(['id', 'name', 'display_name']);
+        } else {
+            $teamId = $user->employee?->team_id;
+            $teams = Team::where('id', $teamId)->get(['id', 'name']);
+            $employees = Employee::where('is_active', true)
+                ->where('team_id', $teamId)
+                ->orderBy('name')
+                ->get(['id', 'name', 'display_name']);
+        }
+
+        $isLeader = ! $isAdmin;
 
         return Inertia::render('Projects/Edit', compact('project', 'teams', 'employees', 'isLeader'));
     }
@@ -207,12 +231,17 @@ class ProjectController extends Controller
                 ->all();
             $syncMembers->execute($project, $memberMap);
         } else {
-            // Project leader: only allowed to update members
+            // Team lead / project leader: can update leader, name, and members
             $validated = $request->validate([
+                'leader_id' => ['nullable', 'exists:employees,id'],
+                'name' => ['sometimes', 'string', 'max:255'],
+                'description' => ['nullable', 'string'],
                 'members' => ['array'],
                 'members.*.employee_id' => ['exists:employees,id'],
                 'members.*.role' => ['in:leader,member'],
             ]);
+
+            $project->update(collect($validated)->only(['leader_id', 'name', 'description'])->filter()->all());
 
             $memberMap = collect($validated['members'] ?? [])
                 ->keyBy('employee_id')
