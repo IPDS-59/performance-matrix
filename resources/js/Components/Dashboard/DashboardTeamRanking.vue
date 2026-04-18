@@ -18,7 +18,7 @@ const props = withDefaults(defineProps<{
     teamList: TeamRankItem[];
     title?: string;
     monthLabel?: string;
-    projectLeaderIds?: number[];
+    projectLeadersByTeam?: Record<number, number[]>;
     chartColSpan?: 2 | 3;
     rankColSpan?: 1 | 2;
 }>(), {
@@ -86,16 +86,20 @@ function isTeamExpanded(teamId: number): boolean {
 
 // ── Leader helpers ────────────────────────────────────────────────────────
 
-function isProjectLeaderById(employeeId: number): boolean {
-    return props.projectLeaderIds?.includes(employeeId) ?? false;
+function isProjectLeaderInTeam(employeeId: number, teamId: number): boolean {
+    return props.projectLeadersByTeam?.[teamId]?.includes(employeeId) ?? false;
 }
 
 function isTeamLeaderOf(employeeId: number, teamLeaderId: number | null | undefined): boolean {
     return teamLeaderId != null && employeeId === teamLeaderId;
 }
 
-function leaderBadgeLabel(employeeId: number, teamLeaderId: number | null | undefined): string {
-    return isTeamLeaderOf(employeeId, teamLeaderId) ? 'Ketua Tim' : 'Ketua Proyek';
+function hasLeaderBadge(employeeId: number, team: { id: number; leader_id?: number | null }): boolean {
+    return isTeamLeaderOf(employeeId, team.leader_id) || isProjectLeaderInTeam(employeeId, team.id);
+}
+
+function leaderBadgeLabel(employeeId: number, team: { id: number; leader_id?: number | null }): string {
+    return isTeamLeaderOf(employeeId, team.leader_id) ? 'Ketua Tim' : 'Ketua Proyek';
 }
 </script>
 
@@ -163,17 +167,17 @@ function leaderBadgeLabel(employeeId: number, teamLeaderId: number | null | unde
                                             :key="member.id"
                                             :class="[
                                                 'inline-flex items-center gap-1 rounded-full border px-2.5 py-0.5 text-xs',
-                                                isProjectLeaderById(member.id)
+                                                hasLeaderBadge(member.id, team)
                                                     ? 'border-amber-300 bg-amber-50 text-amber-800'
                                                     : 'border-gray-200 bg-white text-gray-600'
                                             ]"
                                         >
-                                            <span v-if="isProjectLeaderById(member.id)" class="text-amber-500" :aria-label="leaderBadgeLabel(member.id, team.leader_id)">&#9733;</span>
+                                            <span v-if="hasLeaderBadge(member.id, team)" class="text-amber-500" :aria-label="leaderBadgeLabel(member.id, team)">&#9733;</span>
                                             {{ member.display_name || member.name }}
                                             <Badge
-                                                v-if="isProjectLeaderById(member.id)"
+                                                v-if="hasLeaderBadge(member.id, team)"
                                                 class="ml-0.5 h-3.5 bg-amber-500 px-1 text-[9px] leading-none text-white hover:bg-amber-500"
-                                            >{{ leaderBadgeLabel(member.id, team.leader_id) }}</Badge>
+                                            >{{ leaderBadgeLabel(member.id, team) }}</Badge>
                                         </span>
                                     </div>
                                 </div>

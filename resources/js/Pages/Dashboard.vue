@@ -29,7 +29,7 @@ const props = defineProps<{
     projects?: ProjectWithItems[];
     team_projects?: TeamProjectWithMembers[];
     teams?: TeamWithMembers[];
-    project_leader_ids?: number[];
+    project_leaders_by_team?: Record<number, number[]>;
     team_progress?: Record<string, TeamProgress>;
     org_avg?: number;
     trend?: TrendPoint[];
@@ -223,7 +223,7 @@ const trendTooltipTriggers = computed(() => ({
                             </h2>
                             <DashboardTeamRanking
                                 :team-list="teamList"
-                                :project-leader-ids="project_leader_ids"
+                                :project-leaders-by-team="project_leaders_by_team"
                             />
 
                             <h2 class="mt-10 mb-4 flex items-center gap-2 text-sm font-semibold text-primary uppercase tracking-wide">
@@ -311,7 +311,7 @@ const trendTooltipTriggers = computed(() => ({
                     </h2>
                     <DashboardTeamRanking
                         :team-list="teamList"
-                        :project-leader-ids="project_leader_ids"
+                        :project-leaders-by-team="project_leaders_by_team"
                     />
 
                     <h2 class="mt-10 mb-4 flex items-center gap-2 text-sm font-semibold text-primary uppercase tracking-wide">
@@ -358,8 +358,7 @@ const trendTooltipTriggers = computed(() => ({
             <template v-else>
                 <DashboardTeamRanking
                     :team-list="teamList"
-                    :project-leader-ids="project_leader_ids"
-
+                    :project-leaders-by-team="project_leaders_by_team"
                     :month-label="monthLabel"
                     :chart-col-span="3"
                     :rank-col-span="2"
@@ -419,8 +418,7 @@ const trendTooltipTriggers = computed(() => ({
             <template v-else>
                 <DashboardTeamRanking
                     :team-list="teamList"
-                    :project-leader-ids="project_leader_ids"
-
+                    :project-leaders-by-team="project_leaders_by_team"
                     :month-label="monthLabel"
                     :chart-col-span="3"
                     :rank-col-span="2"

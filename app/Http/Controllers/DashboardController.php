@@ -332,12 +332,13 @@ class DashboardController extends Controller
 
         $teams = $this->loadTeamsWithMembers($year);
 
-        $projectLeaderIds = DB::table('projects')
+        $projectLeadersByTeam = DB::table('projects')
             ->where('year', $year)
             ->whereNotNull('leader_id')
-            ->pluck('leader_id')
-            ->unique()
-            ->values();
+            ->get(['team_id', 'leader_id'])
+            ->groupBy('team_id')
+            ->map(fn ($rows) => $rows->pluck('leader_id')->unique()->values()->all())
+            ->toArray();
 
         $topByProjects = DB::table('employees')
             ->join('project_members', 'project_members.employee_id', '=', 'employees.id')
@@ -366,7 +367,7 @@ class DashboardController extends Controller
             'personal_stats' => $this->personalStats($employee, $year, $month),
             'teams' => $teams,
             'team_progress' => $teamProgress,
-            'project_leader_ids' => $projectLeaderIds,
+            'project_leaders_by_team' => $projectLeadersByTeam,
             'top_employees_by_projects' => $topByProjects,
             'top_employees_by_achievement' => $topByAchievement,
             'filters' => compact('year', 'month'),
@@ -377,12 +378,13 @@ class DashboardController extends Controller
     {
         $teamProgress = $this->computeTeamProgress($year, $month);
 
-        $projectLeaderIds = DB::table('projects')
+        $projectLeadersByTeam = DB::table('projects')
             ->where('year', $year)
             ->whereNotNull('leader_id')
-            ->pluck('leader_id')
-            ->unique()
-            ->values();
+            ->get(['team_id', 'leader_id'])
+            ->groupBy('team_id')
+            ->map(fn ($rows) => $rows->pluck('leader_id')->unique()->values()->all())
+            ->toArray();
 
         $teams = $this->loadTeamsWithMembers($year);
 
@@ -409,7 +411,7 @@ class DashboardController extends Controller
             'role' => 'head',
             'teams' => $teams,
             'team_progress' => $teamProgress,
-            'project_leader_ids' => $projectLeaderIds,
+            'project_leaders_by_team' => $projectLeadersByTeam,
             'top_employees_by_projects' => $topByProjects,
             'top_employees_by_achievement' => $topByAchievement,
             'filters' => compact('year', 'month'),
@@ -489,12 +491,13 @@ class DashboardController extends Controller
             ->sortBy('period_month')
             ->values();
 
-        $projectLeaderIds = DB::table('projects')
+        $projectLeadersByTeam = DB::table('projects')
             ->where('year', $year)
             ->whereNotNull('leader_id')
-            ->pluck('leader_id')
-            ->unique()
-            ->values();
+            ->get(['team_id', 'leader_id'])
+            ->groupBy('team_id')
+            ->map(fn ($rows) => $rows->pluck('leader_id')->unique()->values()->all())
+            ->toArray();
 
         $teams = $this->loadTeamsWithMembers($year);
 
@@ -502,7 +505,7 @@ class DashboardController extends Controller
             'role' => 'admin',
             'teams' => $teams,
             'team_progress' => $teamProgress,
-            'project_leader_ids' => $projectLeaderIds,
+            'project_leaders_by_team' => $projectLeadersByTeam,
             'org_avg' => round($orgAvg ?? 0, 2),
             'trend' => $trend,
             'filters' => compact('year', 'month'),

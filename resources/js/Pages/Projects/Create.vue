@@ -6,6 +6,9 @@ import { Button } from '@/Components/ui/button';
 import { Input } from '@/Components/ui/input';
 import { Label } from '@/Components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/Components/ui/select';
+import { Popover, PopoverContent, PopoverTrigger } from '@/Components/ui/popover';
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/Components/ui/command';
+import { Check, ChevronsUpDown } from 'lucide-vue-next';
 import InputError from '@/Components/InputError.vue';
 import { ref, computed } from 'vue';
 
@@ -24,6 +27,14 @@ const props = defineProps<{
     copyYear: number;
     isAdmin: boolean;
 }>();
+
+const leaderOpen = ref(false);
+
+const selectedLeaderLabel = computed(() => {
+    if (form.leader_id === null) return '— Belum ditentukan —';
+    const emp = props.employees.find(e => e.id === form.leader_id);
+    return emp ? (emp.display_name || emp.name) : '— Belum ditentukan —';
+});
 
 const form = useForm({
     team_id: props.isAdmin ? null as number | null : (props.teams[0]?.id ?? null) as number | null,
@@ -106,18 +117,38 @@ function copyProject(project: PreviousProject) {
                     </div>
                     <!-- Admin: leader picker; Lead: auto-set, no field shown -->
                     <div v-if="isAdmin">
-                        <Label>Ketua Tim</Label>
-                        <Select v-model="form.leader_id">
-                            <SelectTrigger class="mt-1">
-                                <SelectValue placeholder="Pilih ketua..." />
-                            </SelectTrigger>
-                            <SelectContent>
-                                <SelectItem :value="null">— Belum ditentukan —</SelectItem>
-                                <SelectItem v-for="emp in employees" :key="emp.id" :value="emp.id">
-                                    {{ emp.display_name || emp.name }}
-                                </SelectItem>
-                            </SelectContent>
-                        </Select>
+                        <Label>Ketua Proyek</Label>
+                        <Popover v-model:open="leaderOpen">
+                            <PopoverTrigger as-child>
+                                <Button variant="outline" role="combobox" class="mt-1 w-full justify-between font-normal">
+                                    {{ selectedLeaderLabel }}
+                                    <ChevronsUpDown class="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                                </Button>
+                            </PopoverTrigger>
+                            <PopoverContent class="w-[--radix-popover-trigger-width] p-0">
+                                <Command>
+                                    <CommandInput placeholder="Cari pegawai..." />
+                                    <CommandList>
+                                        <CommandEmpty>Tidak ada hasil.</CommandEmpty>
+                                        <CommandGroup>
+                                            <CommandItem value="__none__" @select="() => { form.leader_id = null; leaderOpen = false }">
+                                                — Belum ditentukan —
+                                                <Check v-if="form.leader_id === null" class="ml-auto h-4 w-4" />
+                                            </CommandItem>
+                                            <CommandItem
+                                                v-for="emp in employees"
+                                                :key="emp.id"
+                                                :value="emp.display_name || emp.name"
+                                                @select="() => { form.leader_id = emp.id; leaderOpen = false }"
+                                            >
+                                                {{ emp.display_name || emp.name }}
+                                                <Check v-if="form.leader_id === emp.id" class="ml-auto h-4 w-4" />
+                                            </CommandItem>
+                                        </CommandGroup>
+                                    </CommandList>
+                                </Command>
+                            </PopoverContent>
+                        </Popover>
                         <InputError :message="form.errors.leader_id" />
                     </div>
                     <div>
