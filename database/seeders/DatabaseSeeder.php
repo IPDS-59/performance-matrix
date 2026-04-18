@@ -12,6 +12,7 @@ class DatabaseSeeder extends Seeder
             TeamSeeder::class,
             EmployeeSeeder::class,
             ProjectSeeder::class,
+            TeamLeaderSeeder::class,
             RolePermissionSeeder::class,
             UserSeeder::class,
         ]);
