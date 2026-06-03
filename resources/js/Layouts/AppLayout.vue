@@ -18,6 +18,7 @@ const isStaff = computed(() => user.value.role === 'staff');
 const canViewProjects = computed(() => (page.props.can as Record<string, boolean>)?.view_projects ?? false);
 const canViewIndicators = computed(() => (page.props.can as Record<string, boolean>)?.view_indicators ?? false);
 const canViewPlans = computed(() => (page.props.can as Record<string, boolean>)?.view_plans ?? false);
+const hasEmployee = computed(() => !!(page.props.auth as { has_employee?: boolean })?.has_employee);
 
 // ── Notifications ─────────────────────────────────────────────────────────
 const unreadCount = ref(0);
@@ -180,6 +181,19 @@ onUnmounted(() => {
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
                     </svg>
                     <span v-if="sidebar.isOpen">Input Kinerja</span>
+                </Link>
+
+                <!-- Rekap Mingguan (anyone with an employee record) -->
+                <Link
+                    v-if="hasEmployee"
+                    :href="route('weekly.index')"
+                    :class="route().current('weekly.*') ? 'bg-white/20' : 'hover:bg-white/10'"
+                    class="flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors"
+                >
+                    <svg class="h-5 w-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                    </svg>
+                    <span v-if="sidebar.isOpen">Rekap Mingguan</span>
                 </Link>
 
                 <!-- Reports (head + admin) -->

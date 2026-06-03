@@ -16,6 +16,7 @@ use App\Http\Controllers\ReportAttachmentController;
 use App\Http\Controllers\ReportResubmitController;
 use App\Http\Controllers\TeamController;
 use App\Http\Controllers\TeamMemberController;
+use App\Http\Controllers\WeeklyActivityController;
 use App\Http\Controllers\WorkItemController;
 use App\Http\Controllers\WorkItemDetailController;
 use Illuminate\Support\Facades\Route;
@@ -82,6 +83,11 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/report-attachments/{attachment}/download', [ReportAttachmentController::class, 'download'])->name('report-attachments.download');
     Route::delete('/report-attachments/{attachment}', [ReportAttachmentController::class, 'destroy'])->name('report-attachments.destroy');
     Route::patch('/report-attachments/{attachment}/review', [ReportAttachmentController::class, 'review'])->name('report-attachments.review');
+
+    // Weekly activity scrapper / recap
+    Route::get('/rekap-mingguan', [WeeklyActivityController::class, 'index'])->name('weekly.index');
+    Route::post('/rekap-mingguan/claim', [WeeklyActivityController::class, 'storeClaim'])->name('weekly.claim');
+    Route::post('/rekap-mingguan/kegiatan', [WeeklyActivityController::class, 'storeManualActivity'])->name('weekly.activity.store');
 
     // Profile
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');

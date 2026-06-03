@@ -41,6 +41,7 @@ class HandleInertiaRequests extends Middleware
                     'email' => $request->user()->email,
                     'role' => $request->user()->role,
                 ] : null,
+                'has_employee' => $request->user() ? $request->user()->employee !== null : false,
             ],
             'can' => fn () => [
                 'view_projects' => $request->user() ? rescue(fn () => $request->user()->can('viewAny', Project::class), false) : false,

@@ -1,0 +1,282 @@
+<?php
+
+use App\Models\ActivityClaim;
+use App\Models\Employee;
+use App\Models\KipActivity;
+use App\Models\PerformancePlan;
+use App\Models\Project;
+use App\Models\Team;
+use Carbon\Carbon;
+
+// ── Index ─────────────────────────────────────────────────────────────────
+
+it('redirects guests to login on weekly index', function () {
+    $this->get(route('weekly.index'))->assertRedirect(route('login'));
+});
+
+it('renders weekly index for a user with an employee', function () {
+    $user = staffUser();
+    $employee = Employee::factory()->create(['user_id' => $user->id]);
+
+    $this->actingAs($user)
+        ->get(route('weekly.index'))
+        ->assertInertia(fn ($page) => $page
+            ->component('Kinetik/WeeklyScrapper')
+            ->has('activities')
+            ->has('recap')
+            ->has('plans')
+            ->has('weekStart')
+            ->has('weekEnd')
+        );
+});
+
+it('renders weekly index with null employee when user has no employee record', function () {
+    $user = staffUser();
+
+    $this->actingAs($user)
+        ->get(route('weekly.index'))
+        ->assertInertia(fn ($page) => $page
+            ->component('Kinetik/WeeklyScrapper')
+            ->where('employee', null)
+        );
+});
+
+it('scopes activities to the logged-in employee', function () {
+    $user = staffUser();
+    $employee = Employee::factory()->create(['user_id' => $user->id]);
+
+    $otherEmployee = Employee::factory()->create();
+
+    $weekStart = Carbon::now()->startOfWeek(Carbon::MONDAY)->toDateString();
+
+    $myActivity = KipActivity::factory()->create([
+        'employee_id' => $employee->id,
+        'activity_date_start' => $weekStart,
+    ]);
+
+    $otherActivity = KipActivity::factory()->create([
+        'employee_id' => $otherEmployee->id,
+        'activity_date_start' => $weekStart,
+    ]);
+
+    $this->actingAs($user)
+        ->get(route('weekly.index'))
+        ->assertInertia(fn ($page) => $page
+            ->component('Kinetik/WeeklyScrapper')
+            ->where('activities.0.id', $myActivity->id)
+            ->count('activities', 1)
+        );
+});
+
+it('excludes activities outside the selected week', function () {
+    $user = staffUser();
+    $employee = Employee::factory()->create(['user_id' => $user->id]);
+
+    $thisWeekStart = Carbon::now()->startOfWeek(Carbon::MONDAY)->toDateString();
+    $lastWeekDate = Carbon::now()->subWeek()->toDateString();
+
+    KipActivity::factory()->create([
+        'employee_id' => $employee->id,
+        'activity_date_start' => $thisWeekStart,
+    ]);
+
+    KipActivity::factory()->create([
+        'employee_id' => $employee->id,
+        'activity_date_start' => $lastWeekDate,
+    ]);
+
+    $this->actingAs($user)
+        ->get(route('weekly.index'))
+        ->assertInertia(fn ($page) => $page
+            ->component('Kinetik/WeeklyScrapper')
+            ->count('activities', 1)
+        );
+});
+
+it('filters by the ?week query parameter', function () {
+    $user = staffUser();
+    $employee = Employee::factory()->create(['user_id' => $user->id]);
+
+    $targetWeekStart = '2026-01-05'; // a known Monday
+
+    KipActivity::factory()->create([
+        'employee_id' => $employee->id,
+        'activity_date_start' => $targetWeekStart,
+    ]);
+
+    $this->actingAs($user)
+        ->get(route('weekly.index', ['week' => $targetWeekStart]))
+        ->assertInertia(fn ($page) => $page
+            ->component('Kinetik/WeeklyScrapper')
+            ->count('activities', 1)
+        );
+});
+
+// ── Store Manual Activity ─────────────────────────────────────────────────
+
+it('stores a manual kip_activity for the employee', function () {
+    $user = staffUser();
+    $employee = Employee::factory()->create(['user_id' => $user->id]);
+
+    $this->actingAs($user)
+        ->post(route('weekly.activity.store'), [
+            'description' => 'Rapat koordinasi bulanan',
+            'activity_date_start' => '2026-06-02',
+        ])
+        ->assertRedirect();
+
+    $this->assertDatabaseHas('kip_activities', [
+        'employee_id' => $employee->id,
+        'description' => 'Rapat koordinasi bulanan',
+    ]);
+
+    $activity = KipActivity::where('employee_id', $employee->id)->first();
+    expect($activity->external_id)->toStartWith('manual-');
+});
+
+it('returns 403 when storing manual activity without employee record', function () {
+    $user = staffUser();
+
+    $this->actingAs($user)
+        ->post(route('weekly.activity.store'), [
+            'description' => 'Test',
+            'activity_date_start' => '2026-06-02',
+        ])
+        ->assertForbidden();
+});
+
+it('validates required fields on manual activity store', function () {
+    $user = staffUser();
+    Employee::factory()->create(['user_id' => $user->id]);
+
+    $this->actingAs($user)
+        ->post(route('weekly.activity.store'), [])
+        ->assertSessionHasErrors(['description', 'activity_date_start']);
+});
+
+// ── Store Claim ───────────────────────────────────────────────────────────
+
+it('saves an activity claim with computed achievement', function () {
+    $user = staffUser();
+    $employee = Employee::factory()->create(['user_id' => $user->id]);
+    $team = Team::factory()->create();
+    $employee->teams()->attach($team->id, ['role' => 'member', 'is_primary' => true]);
+
+    $project = Project::factory()->create(['team_id' => $team->id]);
+    $plan = PerformancePlan::factory()->create(['project_id' => $project->id]);
+
+    $activity = KipActivity::factory()->create([
+        'employee_id' => $employee->id,
+        'activity_date_start' => '2026-06-02',
+    ]);
+
+    $this->actingAs($user)
+        ->post(route('weekly.claim'), [
+            'kip_activity_id' => $activity->id,
+            'performance_plan_id' => $plan->id,
+            'target' => '10',
+            'realization' => '8',
+            'activity_date_start' => '2026-06-02',
+            'status' => 'saved',
+        ])
+        ->assertRedirect();
+
+    $this->assertDatabaseHas('activity_claims', [
+        'employee_id' => $employee->id,
+        'performance_plan_id' => $plan->id,
+        'kip_activity_id' => $activity->id,
+        'status' => 'saved',
+    ]);
+
+    $claim = ActivityClaim::where('kip_activity_id', $activity->id)->firstOrFail();
+    expect((float) $claim->achievement)->toBe(80.0);
+
+    // kip_activity should be marked claimed
+    expect($activity->fresh()->is_claimed)->toBeTrue();
+});
+
+it('returns 403 when claiming an RK from a team the employee is not in', function () {
+    $user = staffUser();
+    $employee = Employee::factory()->create(['user_id' => $user->id]);
+
+    $otherTeam = Team::factory()->create();
+    $project = Project::factory()->create(['team_id' => $otherTeam->id]);
+    $plan = PerformancePlan::factory()->create(['project_id' => $project->id]);
+
+    $activity = KipActivity::factory()->create([
+        'employee_id' => $employee->id,
+        'activity_date_start' => '2026-06-02',
+    ]);
+
+    $this->actingAs($user)
+        ->post(route('weekly.claim'), [
+            'kip_activity_id' => $activity->id,
+            'performance_plan_id' => $plan->id,
+            'activity_date_start' => '2026-06-02',
+            'status' => 'saved',
+        ])
+        ->assertRedirect();
+
+    // Claim should not have been created
+    $this->assertDatabaseMissing('activity_claims', [
+        'kip_activity_id' => $activity->id,
+        'performance_plan_id' => $plan->id,
+    ]);
+});
+
+it('validates required performance_plan_id on claim store', function () {
+    $user = staffUser();
+    Employee::factory()->create(['user_id' => $user->id]);
+
+    $this->actingAs($user)
+        ->post(route('weekly.claim'), [
+            'activity_date_start' => '2026-06-02',
+        ])
+        ->assertSessionHasErrors(['performance_plan_id']);
+});
+
+it('returns 403 when storing a claim without employee record', function () {
+    $user = staffUser();
+    $team = Team::factory()->create();
+    $project = Project::factory()->create(['team_id' => $team->id]);
+    $plan = PerformancePlan::factory()->create(['project_id' => $project->id]);
+
+    $this->actingAs($user)
+        ->post(route('weekly.claim'), [
+            'performance_plan_id' => $plan->id,
+            'activity_date_start' => '2026-06-02',
+            'status' => 'saved',
+        ])
+        ->assertForbidden();
+});
+
+it('allows re-saving an existing claim (updateOrCreate)', function () {
+    $user = staffUser();
+    $employee = Employee::factory()->create(['user_id' => $user->id]);
+    $team = Team::factory()->create();
+    $employee->teams()->attach($team->id, ['role' => 'member', 'is_primary' => true]);
+
+    $project = Project::factory()->create(['team_id' => $team->id]);
+    $plan = PerformancePlan::factory()->create(['project_id' => $project->id]);
+
+    $activity = KipActivity::factory()->create([
+        'employee_id' => $employee->id,
+        'activity_date_start' => '2026-06-02',
+    ]);
+
+    $payload = [
+        'kip_activity_id' => $activity->id,
+        'performance_plan_id' => $plan->id,
+        'target' => '10',
+        'realization' => '5',
+        'activity_date_start' => '2026-06-02',
+        'status' => 'saved',
+    ];
+
+    $this->actingAs($user)->post(route('weekly.claim'), $payload);
+    $this->actingAs($user)->post(route('weekly.claim'), array_merge($payload, ['realization' => '9']));
+
+    expect(ActivityClaim::where('kip_activity_id', $activity->id)->count())->toBe(1);
+    $claim = ActivityClaim::where('kip_activity_id', $activity->id)->first();
+    expect((float) $claim->achievement)->toBe(90.0);
+});
