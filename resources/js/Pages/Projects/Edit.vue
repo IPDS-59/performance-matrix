@@ -49,6 +49,17 @@ const initialMembers = computed(() =>
     }))
 );
 
+// For non-admin: restrict leader picker to currently selected members
+const memberEmployees = computed(() =>
+    form.members
+        .map((m: { employee_id: number; role: string }) => props.employees.find(e => e.id === m.employee_id))
+        .filter((e): e is Employee => e !== undefined)
+);
+
+const leaderPickerEmployees = computed(() =>
+    props.isLeader ? memberEmployees.value : props.employees
+);
+
 const selectedLeaderLabel = computed(() => {
     if (form.leader_id === null) return '— Belum ditentukan —';
     const emp = props.employees.find(e => e.id === form.leader_id);
@@ -311,7 +322,7 @@ function memberName(employeeId: number): string {
                                                 <Check v-if="form.leader_id === null" class="ml-auto h-4 w-4" />
                                             </CommandItem>
                                             <CommandItem
-                                                v-for="emp in employees"
+                                                v-for="emp in leaderPickerEmployees"
                                                 :key="emp.id"
                                                 :value="emp.display_name || emp.name"
                                                 @select="() => { form.leader_id = emp.id; leaderOpen = false }"
