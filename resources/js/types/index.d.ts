@@ -200,3 +200,51 @@ export type PageProps<
         error?: string;
     };
 };
+
+// ── Kinetik / Weekly Scrapper types ──────────────────────────────────────────
+
+export interface KipActivity {
+    id: number;
+    employee_id: number;
+    external_id: string;
+    description: string;
+    activity_date_start: string;
+    activity_date_end?: string | null;
+    time_start?: string | null;
+    time_end?: string | null;
+    evidence_url?: string | null;
+    rk_name?: string | null;
+    is_claimed: boolean;
+    claim?: ActivityClaim | null;
+}
+
+export interface ActivityClaim {
+    id: number;
+    kip_activity_id?: number | null;
+    employee_id: number;
+    performance_plan_id: number;
+    work_item_id?: number | null;
+    target?: string | number | null;
+    realization?: string | number | null;
+    achievement?: string | number | null;
+    target_unit?: string | null;
+    obstacle?: string | null;
+    solution?: string | null;
+    follow_up_plan?: string | null;
+    activity_date_start: string;
+    activity_date_end?: string | null;
+    start_time?: string | null;
+    end_time?: string | null;
+    evidence_url?: string | null;
+    status: 'draft' | 'saved';
+    week_start: string;
+    performance_plan?: PerformancePlan & { project?: { name: string; team?: { name: string } | null } | null } | null;
+    kip_activity?: KipActivity | null;
+}
+
+export interface PlanOption {
+    id: number;
+    description: string;
+    project_name: string;
+    team_name: string;
+}
