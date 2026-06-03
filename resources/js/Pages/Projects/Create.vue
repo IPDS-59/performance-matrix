@@ -8,9 +8,9 @@ import { Label } from '@/Components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/Components/ui/select';
 import { Popover, PopoverContent, PopoverTrigger } from '@/Components/ui/popover';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/Components/ui/command';
-import { Check, ChevronsUpDown } from 'lucide-vue-next';
+import { Check, ChevronsUpDown, X } from 'lucide-vue-next';
 import InputError from '@/Components/InputError.vue';
-import { ref, computed } from 'vue';
+import { ref, computed, watch } from 'vue';
 
 interface PreviousProject {
     id: number;
@@ -29,15 +29,13 @@ const props = defineProps<{
 }>();
 
 const leaderOpen = ref(false);
+const memberSearch = ref('');
+const memberPickerOpen = ref(false);
 
-const selectedLeaderLabel = computed(() => {
-    if (form.leader_id === null) return '— Belum ditentukan —';
-    const emp = props.employees.find(e => e.id === form.leader_id);
-    return emp ? (emp.display_name || emp.name) : '— Belum ditentukan —';
-});
+const initialTeamId = props.isAdmin ? null as number | null : (props.teams[0]?.id ?? null) as number | null;
 
 const form = useForm({
-    team_id: props.isAdmin ? null as number | null : (props.teams[0]?.id ?? null) as number | null,
+    team_id: initialTeamId,
     leader_id: null as number | null,
     name: '',
     description: '',
@@ -45,7 +43,81 @@ const form = useForm({
     kpi: '',
     status: 'active',
     year: new Date().getFullYear(),
-    members: [] as Array<{ employee_id: number; role: string }>,
+    members: [] as Array<{ employee_id: number; role: 'leader' | 'member' }>,
+});
+
+// Employees currently added as members
+const memberEmployees = computed(() =>
+    form.members
+        .map(m => props.employees.find(e => e.id === m.employee_id))
+        .filter((e): e is Employee => e !== undefined)
+);
+
+// Employees not yet added (for the picker)
+const memberAddableEmployees = computed(() => {
+    const addedIds = new Set(form.members.map(m => m.employee_id));
+    const q = memberSearch.value.trim().toLowerCase();
+    return props.employees.filter(e => {
+        if (addedIds.has(e.id)) return false;
+        if (!q) return true;
+        return (e.display_name || e.name).toLowerCase().includes(q);
+    });
+});
+
+const selectedLeaderLabel = computed(() => {
+    if (form.leader_id === null) return '— Belum ditentukan —';
+    const emp = memberEmployees.value.find(e => e.id === form.leader_id);
+    return emp ? (emp.display_name || emp.name) : '— Belum ditentukan —';
+});
+
+function addMember(emp: Employee) {
+    if (!form.members.find(m => m.employee_id === emp.id)) {
+        form.members.push({ employee_id: emp.id, role: 'member' });
+    }
+    memberSearch.value = '';
+}
+
+function removeMember(employeeId: number) {
+    form.members = form.members.filter(m => m.employee_id !== employeeId);
+    if (form.leader_id === employeeId) {
+        form.leader_id = null;
+    }
+}
+
+function memberLabel(employeeId: number): string {
+    const emp = props.employees.find(e => e.id === employeeId);
+    return emp ? (emp.display_name || emp.name) : `#${employeeId}`;
+}
+
+// For non-admin: when selected team changes, ensure the team's leader is auto-added
+function applyTeamLeader(teamId: number | null) {
+    if (props.isAdmin || teamId === null) return;
+    const team = props.teams.find(t => t.id === teamId);
+    if (!team?.leader_id) return;
+    const leaderId = team.leader_id;
+    // Auto-add the team leader as a member with role leader
+    if (!form.members.find(m => m.employee_id === leaderId)) {
+        form.members.push({ employee_id: leaderId, role: 'leader' });
+    } else {
+        // Update role if already present
+        const existing = form.members.find(m => m.employee_id === leaderId);
+        if (existing) existing.role = 'leader';
+    }
+    form.leader_id = leaderId;
+}
+
+// Initialize for non-admin on mount
+if (!props.isAdmin) {
+    applyTeamLeader(form.team_id);
+}
+
+watch(() => form.team_id, (newTeamId) => {
+    if (!props.isAdmin) {
+        // Remove the previous team's leader auto-membership before applying new one
+        form.members = [];
+        form.leader_id = null;
+        applyTeamLeader(newTeamId);
+    }
 });
 
 function submit() {
@@ -86,23 +158,18 @@ function copyProject(project: PreviousProject) {
                 <h2 class="mb-4 text-base font-semibold text-gray-900">Proyek Baru</h2>
                 <form @submit.prevent="submit" class="space-y-4">
                     <div class="grid grid-cols-2 gap-4">
-                        <!-- Admin: team picker; Lead: read-only team badge -->
+                        <!-- Admin: team picker; Lead: select from led teams -->
                         <div>
                             <Label>Tim Kerja</Label>
-                            <template v-if="isAdmin">
-                                <Select v-model="form.team_id">
-                                    <SelectTrigger class="mt-1">
-                                        <SelectValue placeholder="Pilih tim..." />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        <SelectItem v-for="team in teams" :key="team.id" :value="team.id">{{ team.name }}</SelectItem>
-                                    </SelectContent>
-                                </Select>
-                                <InputError :message="form.errors.team_id" />
-                            </template>
-                            <p v-else class="mt-1 rounded-md border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-gray-700">
-                                {{ teams[0]?.name ?? '—' }}
-                            </p>
+                            <Select v-model="form.team_id">
+                                <SelectTrigger class="mt-1">
+                                    <SelectValue placeholder="Pilih tim..." />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem v-for="team in teams" :key="team.id" :value="team.id">{{ team.name }}</SelectItem>
+                                </SelectContent>
+                            </Select>
+                            <InputError :message="form.errors.team_id" />
                         </div>
                         <div>
                             <Label for="year">Tahun</Label>
@@ -115,8 +182,56 @@ function copyProject(project: PreviousProject) {
                         <Input id="name" v-model="form.name" class="mt-1" />
                         <InputError :message="form.errors.name" />
                     </div>
-                    <!-- Admin: leader picker; Lead: auto-set, no field shown -->
-                    <div v-if="isAdmin">
+                    <!-- Members picker (all users, cross-team allowed) -->
+                    <div>
+                        <Label>Anggota Proyek</Label>
+                        <Popover v-model:open="memberPickerOpen">
+                            <PopoverTrigger as-child>
+                                <Button variant="outline" role="combobox" class="mt-1 w-full justify-between font-normal">
+                                    {{ form.members.length ? `${form.members.length} anggota dipilih` : 'Tambah anggota...' }}
+                                    <ChevronsUpDown class="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                                </Button>
+                            </PopoverTrigger>
+                            <PopoverContent class="w-[--radix-popover-trigger-width] p-0">
+                                <Command>
+                                    <CommandInput v-model="memberSearch" placeholder="Cari pegawai..." />
+                                    <CommandList>
+                                        <CommandEmpty>Tidak ada hasil.</CommandEmpty>
+                                        <CommandGroup>
+                                            <CommandItem
+                                                v-for="emp in memberAddableEmployees"
+                                                :key="emp.id"
+                                                :value="emp.display_name || emp.name"
+                                                @select="() => { addMember(emp); memberPickerOpen = false }"
+                                            >
+                                                {{ emp.display_name || emp.name }}
+                                            </CommandItem>
+                                        </CommandGroup>
+                                    </CommandList>
+                                </Command>
+                            </PopoverContent>
+                        </Popover>
+                        <InputError :message="form.errors.members" />
+                        <!-- Selected members list -->
+                        <div v-if="form.members.length" class="mt-2 space-y-1">
+                            <div
+                                v-for="m in form.members"
+                                :key="m.employee_id"
+                                class="flex items-center justify-between rounded-md border border-gray-100 bg-gray-50 px-3 py-1.5 text-sm"
+                            >
+                                <span class="truncate">{{ memberLabel(m.employee_id) }}</span>
+                                <button
+                                    type="button"
+                                    class="ml-2 shrink-0 text-gray-400 hover:text-red-500"
+                                    @click="removeMember(m.employee_id)"
+                                >
+                                    <X class="h-3.5 w-3.5" />
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- Ketua Proyek picker — options restricted to selected members -->
+                    <div>
                         <Label>Ketua Proyek</Label>
                         <Popover v-model:open="leaderOpen">
                             <PopoverTrigger as-child>
@@ -127,7 +242,7 @@ function copyProject(project: PreviousProject) {
                             </PopoverTrigger>
                             <PopoverContent class="w-[--radix-popover-trigger-width] p-0">
                                 <Command>
-                                    <CommandInput placeholder="Cari pegawai..." />
+                                    <CommandInput placeholder="Cari anggota..." />
                                     <CommandList>
                                         <CommandEmpty>Tidak ada hasil.</CommandEmpty>
                                         <CommandGroup>
@@ -136,7 +251,7 @@ function copyProject(project: PreviousProject) {
                                                 <Check v-if="form.leader_id === null" class="ml-auto h-4 w-4" />
                                             </CommandItem>
                                             <CommandItem
-                                                v-for="emp in employees"
+                                                v-for="emp in memberEmployees"
                                                 :key="emp.id"
                                                 :value="emp.display_name || emp.name"
                                                 @select="() => { form.leader_id = emp.id; leaderOpen = false }"
