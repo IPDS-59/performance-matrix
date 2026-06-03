@@ -1,5 +1,7 @@
 <?php
 
+use App\Kinetik\Contracts\KipActivitySource;
+use App\Kinetik\Sources\MockKipActivitySource;
 use App\Models\ActivityClaim;
 use App\Models\Employee;
 use App\Models\KipActivity;
@@ -110,6 +112,43 @@ it('filters by the ?week query parameter', function () {
             ->component('Kinetik/WeeklyScrapper')
             ->count('activities', 1)
         );
+});
+
+// ── Sync kipApp ───────────────────────────────────────────────────────────
+
+it('syncs kipApp activities for the logged-in employee', function () {
+    $this->app->bind(KipActivitySource::class, MockKipActivitySource::class);
+
+    $user = staffUser();
+    Employee::factory()->create(['user_id' => $user->id, 'nip_lama' => '340060924']);
+
+    $this->actingAs($user)
+        ->post(route('weekly.sync'))
+        ->assertRedirect()
+        ->assertSessionHas('success');
+
+    // MockKipActivitySource returns 3 activities per employee
+    expect(KipActivity::count())->toBe(3);
+});
+
+it('flashes an error when the employee has no nip_lama', function () {
+    $user = staffUser();
+    Employee::factory()->create(['user_id' => $user->id, 'nip_lama' => null]);
+
+    $this->actingAs($user)
+        ->post(route('weekly.sync'))
+        ->assertRedirect()
+        ->assertSessionHas('error');
+
+    expect(KipActivity::count())->toBe(0);
+});
+
+it('returns 403 when syncing without an employee record', function () {
+    $user = staffUser();
+
+    $this->actingAs($user)
+        ->post(route('weekly.sync'))
+        ->assertForbidden();
 });
 
 // ── Store Manual Activity ─────────────────────────────────────────────────

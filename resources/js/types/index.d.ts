@@ -22,6 +22,8 @@ export interface Employee {
     full_name?: string | null;
     display_name?: string | null;
     employee_number?: string | null;
+    nip_lama?: string | null;
+    nip_baru?: string | null;
     position?: string | null;
     office?: string | null;
     team_id?: number | null;

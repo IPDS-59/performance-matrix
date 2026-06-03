@@ -87,6 +87,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
     // Weekly activity scrapper / recap
     Route::get('/rekap-mingguan', [WeeklyActivityController::class, 'index'])->name('weekly.index');
+    Route::post('/rekap-mingguan/sync', [WeeklyActivityController::class, 'sync'])->name('weekly.sync');
     Route::post('/rekap-mingguan/claim', [WeeklyActivityController::class, 'storeClaim'])->name('weekly.claim');
     Route::post('/rekap-mingguan/kegiatan', [WeeklyActivityController::class, 'storeManualActivity'])->name('weekly.activity.store');
 
@@ -101,6 +102,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     // Profile
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
+    Route::patch('/profile/nip', [ProfileController::class, 'updateNip'])->name('profile.nip.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 });
 

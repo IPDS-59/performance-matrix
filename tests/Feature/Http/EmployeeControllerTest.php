@@ -40,6 +40,37 @@ it('stores an employee and redirects', function () {
     expect(Employee::where('name', 'Budi Santoso')->exists())->toBeTrue();
 });
 
+it('stores nip_lama and nip_baru', function () {
+    $this->actingAs(adminUser())
+        ->post(route('employees.store'), [
+            'name' => 'Budi Santoso',
+            'nip_lama' => '340060924',
+            'nip_baru' => '199001012020121001',
+            'is_active' => true,
+        ])
+        ->assertRedirect(route('employees.index'));
+
+    $this->assertDatabaseHas('employees', [
+        'name' => 'Budi Santoso',
+        'nip_lama' => '340060924',
+        'nip_baru' => '199001012020121001',
+    ]);
+});
+
+it('updates nip_lama on an employee', function () {
+    $employee = Employee::factory()->create(['nip_lama' => null]);
+
+    $this->actingAs(adminUser())
+        ->put(route('employees.update', $employee), [
+            'name' => $employee->name,
+            'nip_lama' => '340060924',
+            'is_active' => true,
+        ])
+        ->assertRedirect(route('employees.index'));
+
+    expect($employee->fresh()->nip_lama)->toBe('340060924');
+});
+
 it('validates required name on store', function () {
     $this->actingAs(adminUser())
         ->post(route('employees.store'), [])
