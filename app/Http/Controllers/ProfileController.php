@@ -53,8 +53,8 @@ class ProfileController extends Controller
         abort_if($employee === null, 403, 'Akun tidak terhubung ke data pegawai.');
 
         $validated = $request->validate([
-            'nip_lama' => ['nullable', 'string', 'max:20'],
-            'nip_baru' => ['nullable', 'string', 'max:30'],
+            'nip_lama' => ['nullable', 'string', 'max:20', "unique:employees,nip_lama,{$employee->id}"],
+            'nip_baru' => ['nullable', 'string', 'max:30', "unique:employees,nip_baru,{$employee->id}"],
         ]);
 
         $employee->update($validated);

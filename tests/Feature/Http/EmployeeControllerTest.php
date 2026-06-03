@@ -71,6 +71,18 @@ it('updates nip_lama on an employee', function () {
     expect($employee->fresh()->nip_lama)->toBe('340060924');
 });
 
+it('rejects a duplicate nip_lama on store', function () {
+    Employee::factory()->create(['nip_lama' => '340060924']);
+
+    $this->actingAs(adminUser())
+        ->post(route('employees.store'), [
+            'name' => 'Budi Santoso',
+            'nip_lama' => '340060924',
+            'is_active' => true,
+        ])
+        ->assertSessionHasErrors(['nip_lama']);
+});
+
 it('validates required name on store', function () {
     $this->actingAs(adminUser())
         ->post(route('employees.store'), [])
