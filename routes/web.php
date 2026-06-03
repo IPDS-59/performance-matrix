@@ -16,6 +16,7 @@ use App\Http\Controllers\ReportAttachmentController;
 use App\Http\Controllers\ReportResubmitController;
 use App\Http\Controllers\TeamController;
 use App\Http\Controllers\TeamMemberController;
+use App\Http\Controllers\TeamRecapController;
 use App\Http\Controllers\WeeklyActivityController;
 use App\Http\Controllers\WorkItemController;
 use App\Http\Controllers\WorkItemDetailController;
@@ -88,6 +89,14 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/rekap-mingguan', [WeeklyActivityController::class, 'index'])->name('weekly.index');
     Route::post('/rekap-mingguan/claim', [WeeklyActivityController::class, 'storeClaim'])->name('weekly.claim');
     Route::post('/rekap-mingguan/kegiatan', [WeeklyActivityController::class, 'storeManualActivity'])->name('weekly.activity.store');
+
+    // Team recaps (weekly / monthly / quarterly FRA)
+    Route::get('/rekap-tim', [TeamRecapController::class, 'weekly'])->name('team-recap.weekly');
+    Route::get('/rekap-bulanan', [TeamRecapController::class, 'monthly'])->name('team-recap.monthly');
+    Route::get('/rekap-triwulanan', [TeamRecapController::class, 'quarterly'])->name('team-recap.quarterly');
+    Route::post('/rekap-tim/evidence', [TeamRecapController::class, 'storeEvidence'])->name('team-recap.evidence.store');
+    Route::delete('/rekap-tim/evidence/{evidence}', [TeamRecapController::class, 'destroyEvidence'])->name('team-recap.evidence.destroy');
+    Route::post('/rekap-tim/override', [TeamRecapController::class, 'storeOverride'])->name('team-recap.override.store');
 
     // Profile
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');

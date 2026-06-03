@@ -196,6 +196,43 @@ onUnmounted(() => {
                     <span v-if="sidebar.isOpen">Rekap Mingguan</span>
                 </Link>
 
+                <!-- Rekap Tim (anyone with an employee record) -->
+                <Link
+                    v-if="hasEmployee"
+                    :href="route('team-recap.weekly')"
+                    :class="route().current('team-recap.weekly') ? 'bg-white/20' : 'hover:bg-white/10'"
+                    class="flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors"
+                >
+                    <svg class="h-5 w-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a4 4 0 00-3-3.87M9 20H4v-2a4 4 0 013-3.87m6-4a4 4 0 11-8 0 4 4 0 018 0zm6 0a4 4 0 11-8 0 4 4 0 018 0z"/>
+                    </svg>
+                    <span v-if="sidebar.isOpen">Rekap Tim</span>
+                </Link>
+
+                <Link
+                    v-if="hasEmployee"
+                    :href="route('team-recap.monthly')"
+                    :class="route().current('team-recap.monthly') ? 'bg-white/20' : 'hover:bg-white/10'"
+                    class="flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors"
+                >
+                    <svg class="h-5 w-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                    </svg>
+                    <span v-if="sidebar.isOpen">Rekap Bulanan</span>
+                </Link>
+
+                <Link
+                    v-if="hasEmployee"
+                    :href="route('team-recap.quarterly')"
+                    :class="route().current('team-recap.quarterly') ? 'bg-white/20' : 'hover:bg-white/10'"
+                    class="flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors"
+                >
+                    <svg class="h-5 w-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                    </svg>
+                    <span v-if="sidebar.isOpen">Rekap Triwulanan</span>
+                </Link>
+
                 <!-- Reports (head + admin) -->
                 <template v-if="isAdmin || isHead">
                     <div v-if="sidebar.isOpen" class="mt-4 px-3 text-xs font-semibold text-white/50 uppercase tracking-wider">
