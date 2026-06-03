@@ -31,4 +31,18 @@ class TeamPolicy
     {
         return $user->hasPermissionTo('manage-teams');
     }
+
+    public function manageMembers(User $user, Team $team): bool
+    {
+        if ($user->hasPermissionTo('manage-teams')) {
+            return true;
+        }
+
+        $employee = $user->employee;
+        if ($employee === null) {
+            return false;
+        }
+
+        return $team->leader_id === $employee->id;
+    }
 }

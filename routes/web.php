@@ -6,6 +6,8 @@ use App\Http\Controllers\EmployeeReportController;
 use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\PerformanceApprovalController;
 use App\Http\Controllers\PerformanceController;
+use App\Http\Controllers\PerformanceIndicatorController;
+use App\Http\Controllers\PerformancePlanController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\ProjectController;
 use App\Http\Controllers\ProjectDetailController;
@@ -13,6 +15,7 @@ use App\Http\Controllers\ProjectListController;
 use App\Http\Controllers\ReportAttachmentController;
 use App\Http\Controllers\ReportResubmitController;
 use App\Http\Controllers\TeamController;
+use App\Http\Controllers\TeamMemberController;
 use App\Http\Controllers\WorkItemController;
 use App\Http\Controllers\WorkItemDetailController;
 use Illuminate\Support\Facades\Route;
@@ -30,9 +33,13 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
     // Admin CRUD
     Route::resource('teams', TeamController::class)->except(['show']);
+    Route::get('/teams/{team}/members', [TeamMemberController::class, 'edit'])->name('teams.members.edit');
+    Route::put('/teams/{team}/members', [TeamMemberController::class, 'update'])->name('teams.members.update');
     Route::resource('employees', EmployeeController::class)->except(['show']);
     Route::resource('projects', ProjectController::class)->except(['show']);
     Route::post('/projects/{project}/copy', [ProjectController::class, 'copy'])->name('projects.copy');
+    Route::resource('performance-indicators', PerformanceIndicatorController::class)->except(['show']);
+    Route::resource('performance-plans', PerformancePlanController::class)->except(['show']);
 
     // Work items (nested under project for create, standalone for update/delete)
     Route::post('/projects/{project}/work-items', [WorkItemController::class, 'store'])->name('work-items.store');

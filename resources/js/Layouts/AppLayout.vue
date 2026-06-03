@@ -16,6 +16,8 @@ const isAdmin = computed(() => user.value.role === 'admin');
 const isHead = computed(() => user.value.role === 'head');
 const isStaff = computed(() => user.value.role === 'staff');
 const canViewProjects = computed(() => (page.props.can as Record<string, boolean>)?.view_projects ?? false);
+const canViewIndicators = computed(() => (page.props.can as Record<string, boolean>)?.view_indicators ?? false);
+const canViewPlans = computed(() => (page.props.can as Record<string, boolean>)?.view_plans ?? false);
 
 // ── Notifications ─────────────────────────────────────────────────────────
 const unreadCount = ref(0);
@@ -235,6 +237,32 @@ onUnmounted(() => {
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
                     </svg>
                     <span v-if="sidebar.isOpen">Proyek</span>
+                </Link>
+
+                <!-- IKU (admin + team leads) -->
+                <Link
+                    v-if="canViewIndicators"
+                    :href="route('performance-indicators.index')"
+                    :class="route().current('performance-indicators.*') ? 'bg-white/20' : 'hover:bg-white/10'"
+                    class="flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors"
+                >
+                    <svg class="h-5 w-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
+                    </svg>
+                    <span v-if="sidebar.isOpen">IKU</span>
+                </Link>
+
+                <!-- Rencana Kinerja (admin + team leads) -->
+                <Link
+                    v-if="canViewPlans"
+                    :href="route('performance-plans.index')"
+                    :class="route().current('performance-plans.*') ? 'bg-white/20' : 'hover:bg-white/10'"
+                    class="flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors"
+                >
+                    <svg class="h-5 w-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"/>
+                    </svg>
+                    <span v-if="sidebar.isOpen">Rencana Kinerja (RK)</span>
                 </Link>
             </nav>
 

@@ -13,6 +13,7 @@ export interface Team {
     description?: string | null;
     is_active: boolean;
     leader_id?: number | null;
+    members?: TeamMemberWithPivot[];
 }
 
 export interface Employee {
@@ -42,6 +43,32 @@ export interface Project {
     team?: Team | null;
     leader?: Employee | null;
     members?: (Employee & { pivot: { role: string } })[];
+}
+
+export interface PerformanceIndicator {
+    id: number;
+    team_id: number;
+    year: number;
+    code?: string | null;
+    name: string;
+    target?: number | string | null;
+    target_unit?: string | null;
+    description?: string | null;
+    team?: Team | null;
+}
+
+export interface PerformancePlan {
+    id: number;
+    project_id: number;
+    code?: string | null;
+    description: string;
+    target?: number | string | null;
+    target_unit?: string | null;
+    period_type: 'year' | 'quarter';
+    period?: number | null;
+    pic_employee_id?: number | null;
+    project?: Project | null;
+    pic?: Employee | null;
 }
 
 export interface WorkItem {
@@ -108,6 +135,17 @@ export interface EmployeeRankItem {
 
 export interface TeamMember extends Employee {
     pivot: { role: string };
+}
+
+export interface TeamMemberPivot {
+    role: 'member' | 'leader';
+    is_primary: boolean;
+    started_at?: string | null;
+    ended_at?: string | null;
+}
+
+export interface TeamMemberWithPivot extends Employee {
+    pivot: TeamMemberPivot;
 }
 
 export interface TeamWithMembers extends Team {
