@@ -10,6 +10,9 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/Components/ui/popover
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/Components/ui/command';
 import { Check, ChevronsUpDown, ChevronLeft, ChevronRight, ExternalLink } from 'lucide-vue-next';
 import InputError from '@/Components/InputError.vue';
+import { useDateFormat } from '@/composables/useDateFormat';
+
+const { formatDate, formatWeekRange } = useDateFormat();
 
 // ── Props ──────────────────────────────────────────────────────────────────
 
@@ -25,14 +28,6 @@ const props = defineProps<{
 }>();
 
 // ── Week navigation ────────────────────────────────────────────────────────
-
-function formatWeekRange(start: string, end: string): string {
-    const s = new Date(start + 'T00:00:00');
-    const e = new Date(end + 'T00:00:00');
-    const fmt = (d: Date) =>
-        d.toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' });
-    return `${fmt(s)} — ${fmt(e)}`;
-}
 
 function goToWeek(week: string) {
     router.get(route('weekly.index'), { week }, { preserveState: false });
@@ -265,9 +260,9 @@ function achievementColor(val: number | string | null | undefined): string {
                                 <div class="min-w-0 flex-1">
                                     <p class="text-sm font-medium text-gray-800">{{ activity.description }}</p>
                                     <p class="mt-0.5 text-xs text-gray-500">
-                                        {{ activity.activity_date_start }}
+                                        {{ formatDate(activity.activity_date_start) }}
                                         <template v-if="activity.activity_date_end && activity.activity_date_end !== activity.activity_date_start">
-                                            — {{ activity.activity_date_end }}
+                                            — {{ formatDate(activity.activity_date_end) }}
                                         </template>
                                         <template v-if="activity.time_start">
                                             &nbsp;·&nbsp;{{ activity.time_start }}
