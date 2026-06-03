@@ -22,10 +22,10 @@ const props = defineProps<{
     canCreate: boolean;
 }>();
 
-const projectId = ref(props.projectId ? String(props.projectId) : '');
+const projectId = ref(props.projectId ? String(props.projectId) : 'all');
 
 function applyFilters() {
-    router.get(route('performance-plans.index'), { project_id: projectId.value || '' }, { preserveState: true });
+    router.get(route('performance-plans.index'), { project_id: projectId.value === 'all' ? '' : projectId.value }, { preserveState: true });
 }
 
 const confirmOpen = ref(false);
@@ -64,7 +64,7 @@ const periodTypeLabel: Record<string, string> = {
                         <SelectValue placeholder="Semua Proyek" />
                     </SelectTrigger>
                     <SelectContent>
-                        <SelectItem value="">Semua Proyek</SelectItem>
+                        <SelectItem value="all">Semua Proyek</SelectItem>
                         <SelectItem v-for="p in projects" :key="p.id" :value="String(p.id)">
                             {{ p.name }} ({{ p.year }})
                         </SelectItem>

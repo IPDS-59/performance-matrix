@@ -17,10 +17,10 @@ const props = defineProps<{
 }>();
 
 const year = ref(String(props.year));
-const teamId = ref(props.teamId ? String(props.teamId) : '');
+const teamId = ref(props.teamId ? String(props.teamId) : 'all');
 
 function applyFilters() {
-    router.get(route('performance-indicators.index'), { year: year.value, team_id: teamId.value || '' }, { preserveState: true });
+    router.get(route('performance-indicators.index'), { year: year.value, team_id: teamId.value === 'all' ? '' : teamId.value }, { preserveState: true });
 }
 
 const confirmOpen = ref(false);
@@ -65,7 +65,7 @@ function executeDelete() {
                         <SelectValue placeholder="Semua Tim" />
                     </SelectTrigger>
                     <SelectContent>
-                        <SelectItem value="">Semua Tim</SelectItem>
+                        <SelectItem value="all">Semua Tim</SelectItem>
                         <SelectItem v-for="t in teams" :key="t.id" :value="String(t.id)">{{ t.name }}</SelectItem>
                     </SelectContent>
                 </Select>
