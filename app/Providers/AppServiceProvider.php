@@ -11,7 +11,11 @@ use App\Listeners\LogPerformanceActivity;
 use App\Listeners\NotifyTeamLeadOnReportSubmitted;
 use App\Listeners\RecalculateTeamProgress;
 use App\Listeners\SyncProjectLeaderRole;
+use App\Models\PerformanceIndicator;
+use App\Models\PerformancePlan;
 use App\Models\PerformanceReport;
+use App\Policies\PerformanceIndicatorPolicy;
+use App\Policies\PerformancePlanPolicy;
 use App\Policies\PerformancePolicy;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Gate;
@@ -27,6 +31,8 @@ class AppServiceProvider extends ServiceProvider
         Vite::prefetch(concurrency: 3);
 
         Gate::policy(PerformanceReport::class, PerformancePolicy::class);
+        Gate::policy(PerformanceIndicator::class, PerformanceIndicatorPolicy::class);
+        Gate::policy(PerformancePlan::class, PerformancePlanPolicy::class);
 
         Event::listen(PerformanceReportSaved::class, LogPerformanceActivity::class);
         Event::listen(PerformanceReportSaved::class, RecalculateTeamProgress::class);

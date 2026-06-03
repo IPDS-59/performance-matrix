@@ -44,6 +44,32 @@ export interface Project {
     members?: (Employee & { pivot: { role: string } })[];
 }
 
+export interface PerformanceIndicator {
+    id: number;
+    team_id: number;
+    year: number;
+    code?: string | null;
+    name: string;
+    target?: number | string | null;
+    target_unit?: string | null;
+    description?: string | null;
+    team?: Team | null;
+}
+
+export interface PerformancePlan {
+    id: number;
+    project_id: number;
+    code?: string | null;
+    description: string;
+    target?: number | string | null;
+    target_unit?: string | null;
+    period_type: 'year' | 'quarter';
+    period?: number | null;
+    pic_employee_id?: number | null;
+    project?: Project | null;
+    pic?: Employee | null;
+}
+
 export interface WorkItem {
     id: number;
     project_id: number;
