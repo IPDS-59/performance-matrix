@@ -1,6 +1,8 @@
 <?php
 
 use App\Models\Employee;
+use App\Models\PerformanceIndicator;
+use App\Models\PerformancePlan;
 use App\Models\PerformanceReport;
 use App\Models\Project;
 use App\Models\Team;
@@ -42,4 +44,20 @@ it('scopes to active status', function () {
     Project::factory()->create(['status' => 'cancelled']);
 
     expect(Project::where('status', 'active')->count())->toBe(1);
+});
+
+it('belongs to a performance indicator optionally', function () {
+    $indicator = PerformanceIndicator::factory()->create();
+    $project = Project::factory()->create(['performance_indicator_id' => $indicator->id]);
+    $noIndicator = Project::factory()->create(['performance_indicator_id' => null]);
+
+    expect($project->performanceIndicator)->toBeInstanceOf(PerformanceIndicator::class);
+    expect($noIndicator->performanceIndicator)->toBeNull();
+});
+
+it('has many performance plans', function () {
+    $project = Project::factory()->create();
+    PerformancePlan::factory()->count(2)->create(['project_id' => $project->id]);
+
+    expect($project->performancePlans)->toHaveCount(2);
 });

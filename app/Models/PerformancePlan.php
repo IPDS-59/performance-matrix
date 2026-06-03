@@ -7,22 +7,24 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
-class WorkItem extends Model
+class PerformancePlan extends Model
 {
     use HasFactory;
 
     protected $fillable = [
         'project_id',
-        'performance_plan_id',
-        'number',
+        'code',
         'description',
         'target',
         'target_unit',
+        'period_type',
+        'period',
+        'pic_employee_id',
     ];
 
     protected $casts = [
-        'number' => 'integer',
         'target' => 'decimal:2',
+        'period' => 'integer',
     ];
 
     public function project(): BelongsTo
@@ -30,18 +32,13 @@ class WorkItem extends Model
         return $this->belongsTo(Project::class);
     }
 
-    public function performancePlan(): BelongsTo
+    public function pic(): BelongsTo
     {
-        return $this->belongsTo(PerformancePlan::class);
+        return $this->belongsTo(Employee::class, 'pic_employee_id');
     }
 
-    public function assignments(): HasMany
+    public function workItems(): HasMany
     {
-        return $this->hasMany(WorkItemAssignment::class);
-    }
-
-    public function performanceReports(): HasMany
-    {
-        return $this->hasMany(PerformanceReport::class);
+        return $this->hasMany(WorkItem::class);
     }
 }

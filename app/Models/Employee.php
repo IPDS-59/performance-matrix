@@ -67,6 +67,18 @@ class Employee extends Model
         return $this->hasMany(PerformanceReport::class, 'reported_by');
     }
 
+    public function teams(): BelongsToMany
+    {
+        return $this->belongsToMany(Team::class, 'employee_team')
+            ->withPivot(['role', 'is_primary', 'started_at', 'ended_at'])
+            ->withTimestamps();
+    }
+
+    public function ledTeams(): BelongsToMany
+    {
+        return $this->teams()->wherePivot('role', 'leader');
+    }
+
     public function kipActivities(): HasMany
     {
         return $this->hasMany(KipActivity::class);
