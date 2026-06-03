@@ -40,7 +40,7 @@ CLAUDE-LARAVEL-INERTIA.md
 .beads-credential-key
 .beads/issues.jsonl
 
-# kipApp integration (local only — never commit)
+# kipApp integration (local only — never commit; contains API/token notes)
 kipapp.postman_collection.json
 *.postman_collection.json
 .kipapp/
