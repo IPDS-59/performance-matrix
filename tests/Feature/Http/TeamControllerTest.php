@@ -9,7 +9,11 @@ it('redirects guests to login', function () {
 it('renders index for admin', function () {
     $this->actingAs(adminUser())
         ->get(route('teams.index'))
-        ->assertInertia(fn ($page) => $page->component('Teams/Index')->has('teams'));
+        ->assertInertia(fn ($page) => $page
+            ->component('Teams/Index')
+            ->has('teams')
+            ->has('manageableTeamIds')
+        );
 });
 
 it('denies index for staff', function () {

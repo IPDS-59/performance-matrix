@@ -13,6 +13,7 @@ export interface Team {
     description?: string | null;
     is_active: boolean;
     leader_id?: number | null;
+    members?: TeamMemberWithPivot[];
 }
 
 export interface Employee {
@@ -134,6 +135,17 @@ export interface EmployeeRankItem {
 
 export interface TeamMember extends Employee {
     pivot: { role: string };
+}
+
+export interface TeamMemberPivot {
+    role: 'member' | 'leader';
+    is_primary: boolean;
+    started_at?: string | null;
+    ended_at?: string | null;
+}
+
+export interface TeamMemberWithPivot extends Employee {
+    pivot: TeamMemberPivot;
 }
 
 export interface TeamWithMembers extends Team {

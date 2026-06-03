@@ -7,7 +7,12 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import ConfirmDialog from '@/Components/ConfirmDialog.vue';
 import { ref } from 'vue';
 
-defineProps<{ teams: Team[] }>();
+const props = defineProps<{
+    teams: Team[];
+    manageableTeamIds: number[];
+}>();
+
+const manageableSet = new Set(props.manageableTeamIds);
 
 const confirmOpen = ref(false);
 const pendingId = ref<number | null>(null);
@@ -49,7 +54,7 @@ function executeDelete() {
                 </TableHeader>
                 <TableBody>
                     <TableRow v-if="!teams.length">
-                        <TableCell colspan="4" class="text-center text-gray-400 py-8">Belum ada data.</TableCell>
+                        <TableCell colspan="4" class="py-8 text-center text-gray-400">Belum ada data.</TableCell>
                     </TableRow>
                     <TableRow v-for="team in teams" :key="team.id">
                         <TableCell class="font-mono text-sm">{{ team.code }}</TableCell>
@@ -63,6 +68,9 @@ function executeDelete() {
                         </TableCell>
                         <TableCell class="text-right">
                             <div class="inline-flex gap-2">
+                                <Button v-if="manageableSet.has(team.id)" variant="outline" size="sm" as-child>
+                                    <Link :href="route('teams.members.edit', team.id)">Kelola Anggota</Link>
+                                </Button>
                                 <Button variant="outline" size="sm" as-child>
                                     <Link :href="route('teams.edit', team.id)">Edit</Link>
                                 </Button>

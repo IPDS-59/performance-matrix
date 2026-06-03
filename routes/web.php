@@ -15,6 +15,7 @@ use App\Http\Controllers\ProjectListController;
 use App\Http\Controllers\ReportAttachmentController;
 use App\Http\Controllers\ReportResubmitController;
 use App\Http\Controllers\TeamController;
+use App\Http\Controllers\TeamMemberController;
 use App\Http\Controllers\WorkItemController;
 use App\Http\Controllers\WorkItemDetailController;
 use Illuminate\Support\Facades\Route;
@@ -32,6 +33,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
     // Admin CRUD
     Route::resource('teams', TeamController::class)->except(['show']);
+    Route::get('/teams/{team}/members', [TeamMemberController::class, 'edit'])->name('teams.members.edit');
+    Route::put('/teams/{team}/members', [TeamMemberController::class, 'update'])->name('teams.members.update');
     Route::resource('employees', EmployeeController::class)->except(['show']);
     Route::resource('projects', ProjectController::class)->except(['show']);
     Route::post('/projects/{project}/copy', [ProjectController::class, 'copy'])->name('projects.copy');
