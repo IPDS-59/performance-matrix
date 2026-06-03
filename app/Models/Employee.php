@@ -18,6 +18,8 @@ class Employee extends Model
         'name',
         'full_name',
         'employee_number',
+        'nip_lama',
+        'nip_baru',
         'position',
         'office',
         'display_name',
@@ -63,5 +65,10 @@ class Employee extends Model
     public function performanceReports(): HasMany
     {
         return $this->hasMany(PerformanceReport::class, 'reported_by');
+    }
+
+    public function kipActivities(): HasMany
+    {
+        return $this->hasMany(KipActivity::class);
     }
 }
