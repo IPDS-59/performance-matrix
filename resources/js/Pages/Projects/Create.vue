@@ -6,6 +6,7 @@ import { Button } from '@/Components/ui/button';
 import { Input } from '@/Components/ui/input';
 import { Label } from '@/Components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/Components/ui/select';
+import { Textarea } from '@/Components/ui/textarea';
 import { Popover, PopoverContent, PopoverTrigger } from '@/Components/ui/popover';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/Components/ui/command';
 import { Check, ChevronsUpDown, X } from 'lucide-vue-next';
@@ -268,12 +269,12 @@ function copyProject(project: PreviousProject) {
                     </div>
                     <div>
                         <Label for="kpi">IKU (Indikator Kinerja Utama)</Label>
-                        <textarea id="kpi" v-model="form.kpi" rows="2" class="mt-1 w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-1 focus:ring-ring" />
+                        <Textarea id="kpi" v-model="form.kpi" rows="2" class="mt-1" />
                         <InputError :message="form.errors.kpi" />
                     </div>
                     <div>
                         <Label for="objective">Tujuan</Label>
-                        <textarea id="objective" v-model="form.objective" rows="2" class="mt-1 w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-1 focus:ring-ring" />
+                        <Textarea id="objective" v-model="form.objective" rows="2" class="mt-1" />
                         <InputError :message="form.errors.objective" />
                     </div>
                     <div v-if="isAdmin">

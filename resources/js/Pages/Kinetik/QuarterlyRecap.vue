@@ -6,6 +6,8 @@ import type { RecapSegment, RecapRow, TeamOption } from '@/types';
 import { Button } from '@/Components/ui/button';
 import { Input } from '@/Components/ui/input';
 import { Label } from '@/Components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/Components/ui/select';
+import { Textarea } from '@/Components/ui/textarea';
 import { ChevronLeft, ChevronRight, Pencil, ExternalLink } from 'lucide-vue-next';
 import InputError from '@/Components/InputError.vue';
 
@@ -95,13 +97,17 @@ function submitOverride() {
 
         <template v-else>
             <div class="mb-6 flex flex-wrap items-center justify-between gap-4 rounded-md border bg-white px-4 py-3">
-                <select
-                    :value="selectedTeamId ?? undefined"
-                    class="rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-1 focus:ring-ring"
-                    @change="navigate({ team: ($event.target as HTMLSelectElement).value })"
+                <Select
+                    :model-value="selectedTeamId != null ? String(selectedTeamId) : undefined"
+                    @update:model-value="(v) => navigate({ team: Number(v) })"
                 >
-                    <option v-for="t in teams" :key="t.id" :value="t.id">{{ t.name }}</option>
-                </select>
+                    <SelectTrigger class="w-auto min-w-[16rem]">
+                        <SelectValue placeholder="Pilih tim" />
+                    </SelectTrigger>
+                    <SelectContent>
+                        <SelectItem v-for="t in teams" :key="t.id" :value="String(t.id)">{{ t.name }}</SelectItem>
+                    </SelectContent>
+                </Select>
 
                 <div class="flex items-center gap-3">
                     <button type="button" class="flex h-8 w-8 items-center justify-center rounded hover:bg-gray-100" title="Triwulan sebelumnya" @click="shiftQuarter(-1)">
@@ -143,23 +149,30 @@ function submitOverride() {
                             <form v-if="editingPlanId === row.performance_plan_id" class="mt-3 space-y-3 rounded-md border bg-gray-50 p-3" @submit.prevent="submitOverride">
                                 <div>
                                     <Label>Kendala</Label>
-                                    <textarea v-model="form.obstacle" rows="2" class="mt-1 w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-1 focus:ring-ring" />
+                                    <Textarea v-model="form.obstacle" :rows="2" class="mt-1" />
                                 </div>
                                 <div>
                                     <Label>Solusi</Label>
-                                    <textarea v-model="form.solution" rows="2" class="mt-1 w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-1 focus:ring-ring" />
+                                    <Textarea v-model="form.solution" :rows="2" class="mt-1" />
                                 </div>
                                 <div>
                                     <Label>Tindak Lanjut</Label>
-                                    <textarea v-model="form.follow_up_plan" rows="2" class="mt-1 w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-1 focus:ring-ring" />
+                                    <Textarea v-model="form.follow_up_plan" :rows="2" class="mt-1" />
                                 </div>
                                 <div class="grid grid-cols-1 gap-3 sm:grid-cols-3">
                                     <div class="sm:col-span-1">
                                         <Label for="fra-pic">PIC</Label>
-                                        <select id="fra-pic" v-model.number="form.follow_up_pic_employee_id" class="mt-1 w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-1 focus:ring-ring">
-                                            <option :value="null">— Pilih PIC —</option>
-                                            <option v-for="p in pics" :key="p.id" :value="p.id">{{ p.name }}</option>
-                                        </select>
+                                        <Select
+                                            :model-value="form.follow_up_pic_employee_id != null ? String(form.follow_up_pic_employee_id) : undefined"
+                                            @update:model-value="(v) => form.follow_up_pic_employee_id = v ? Number(v) : null"
+                                        >
+                                            <SelectTrigger id="fra-pic" class="mt-1 w-full">
+                                                <SelectValue placeholder="— Pilih PIC —" />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                <SelectItem v-for="p in pics" :key="p.id" :value="String(p.id)">{{ p.name }}</SelectItem>
+                                            </SelectContent>
+                                        </Select>
                                     </div>
                                     <div>
                                         <Label for="fra-deadline">Batas Waktu</Label>
