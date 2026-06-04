@@ -22,6 +22,8 @@ export interface Employee {
     full_name?: string | null;
     display_name?: string | null;
     employee_number?: string | null;
+    nip_lama?: string | null;
+    nip_baru?: string | null;
     position?: string | null;
     office?: string | null;
     team_id?: number | null;
@@ -247,4 +249,52 @@ export interface PlanOption {
     description: string;
     project_name: string;
     team_name: string;
+}
+
+// ── Kinetik / Team recaps (Phase 4) ──────────────────────────────────────────
+
+export interface RecapRow {
+    performance_plan_id: number;
+    rk_code?: string | null;
+    rk_description: string;
+    target: number;
+    realization: number;
+    achievement: number | null;
+    target_unit?: string | null;
+    obstacle: string | null;
+    solution: string | null;
+    follow_up_plan: string | null;
+    obstacle_aggregated: string | null;
+    solution_aggregated: string | null;
+    follow_up_aggregated: string | null;
+    is_overridden: boolean;
+    contributors: string[];
+    // Quarterly (FRA) only
+    follow_up_evidence_url?: string | null;
+    follow_up_pic?: string | null;
+    follow_up_pic_employee_id?: number | null;
+    follow_up_deadline?: string | null;
+}
+
+export interface RecapSegment {
+    project_id: number | null;
+    project_name: string;
+    rows: RecapRow[];
+}
+
+export interface TeamRecapEvidence {
+    id: number;
+    team_id: number;
+    project_id?: number | null;
+    period_type: string;
+    week_start?: string | null;
+    type: 'notula' | 'photo' | 'attendance';
+    title?: string | null;
+    url: string;
+    uploaded_by?: number | null;
+}
+
+export interface TeamOption {
+    id: number;
+    name: string;
 }

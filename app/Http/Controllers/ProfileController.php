@@ -44,6 +44,25 @@ class ProfileController extends Controller
     }
 
     /**
+     * Update the legacy/new NIP on the user's own employee record (kipApp key).
+     */
+    public function updateNip(Request $request): RedirectResponse
+    {
+        $employee = $request->user()->employee;
+
+        abort_if($employee === null, 403, 'Akun tidak terhubung ke data pegawai.');
+
+        $validated = $request->validate([
+            'nip_lama' => ['nullable', 'string', 'max:20', "unique:employees,nip_lama,{$employee->id}"],
+            'nip_baru' => ['nullable', 'string', 'max:30', "unique:employees,nip_baru,{$employee->id}"],
+        ]);
+
+        $employee->update($validated);
+
+        return Redirect::route('profile.edit')->with('success', 'NIP berhasil diperbarui.');
+    }
+
+    /**
      * Delete the user's account.
      */
     public function destroy(Request $request): RedirectResponse

@@ -27,11 +27,21 @@ interface EmployeeWithEducations extends Employee {
     educations: EmployeeEducation[];
 }
 
-defineProps<{
+const props = defineProps<{
     mustVerifyEmail?: boolean;
     status?: string;
     employee?: EmployeeWithEducations | null;
 }>();
+
+// ── NIP (kipApp integration) ───────────────────────────────────────────────
+const nipForm = useForm({
+    nip_lama: props.employee?.nip_lama ?? '',
+    nip_baru: props.employee?.nip_baru ?? '',
+});
+
+function submitNip() {
+    nipForm.patch(route('profile.nip.update'), { preserveScroll: true });
+}
 
 // ── Education ──────────────────────────────────────────────────────────────
 const showEduForm = ref(false);
@@ -122,6 +132,30 @@ function executeDeleteEdu() {
             </div>
             <div v-else class="rounded-lg border border-dashed bg-white p-6 text-center text-sm text-gray-400">
                 Akun ini belum dihubungkan ke data pegawai.
+            </div>
+
+            <!-- NIP (kipApp integration) -->
+            <div v-if="employee" class="rounded-lg border bg-white p-6">
+                <h2 class="text-base font-semibold text-gray-900">NIP &amp; Integrasi kipApp</h2>
+                <p class="mt-1 mb-4 text-sm text-gray-500">NIP Lama (9 digit) digunakan untuk menarik kegiatan harian dari kipApp.</p>
+                <form class="space-y-4" @submit.prevent="submitNip">
+                    <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                        <div>
+                            <Label for="profile-nip-lama">NIP Lama (kipApp)</Label>
+                            <Input id="profile-nip-lama" v-model="nipForm.nip_lama" class="mt-1" placeholder="9 digit" />
+                            <InputError :message="nipForm.errors.nip_lama" />
+                        </div>
+                        <div>
+                            <Label for="profile-nip-baru">NIP Baru</Label>
+                            <Input id="profile-nip-baru" v-model="nipForm.nip_baru" class="mt-1" />
+                            <InputError :message="nipForm.errors.nip_baru" />
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-3">
+                        <Button type="submit" :disabled="nipForm.processing">Simpan</Button>
+                        <span v-if="nipForm.recentlySuccessful" class="text-sm text-green-600">Tersimpan.</span>
+                    </div>
+                </form>
             </div>
 
             <!-- Education history (only when employee is linked) -->
