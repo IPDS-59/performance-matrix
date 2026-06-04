@@ -5,6 +5,8 @@ import { computed, ref } from 'vue';
 import type { RecapSegment, RecapRow, TeamOption } from '@/types';
 import { Button } from '@/Components/ui/button';
 import { Label } from '@/Components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/Components/ui/select';
+import { Textarea } from '@/Components/ui/textarea';
 import { ChevronLeft, ChevronRight, Pencil } from 'lucide-vue-next';
 
 const props = defineProps<{
@@ -88,13 +90,17 @@ function submitOverride() {
 
         <template v-else>
             <div class="mb-6 flex flex-wrap items-center justify-between gap-4 rounded-md border bg-white px-4 py-3">
-                <select
-                    :value="selectedTeamId ?? undefined"
-                    class="rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-1 focus:ring-ring"
-                    @change="navigate({ team: ($event.target as HTMLSelectElement).value })"
+                <Select
+                    :model-value="selectedTeamId != null ? String(selectedTeamId) : undefined"
+                    @update:model-value="(v) => navigate({ team: Number(v) })"
                 >
-                    <option v-for="t in teams" :key="t.id" :value="t.id">{{ t.name }}</option>
-                </select>
+                    <SelectTrigger class="w-auto min-w-[16rem]">
+                        <SelectValue placeholder="Pilih tim" />
+                    </SelectTrigger>
+                    <SelectContent>
+                        <SelectItem v-for="t in teams" :key="t.id" :value="String(t.id)">{{ t.name }}</SelectItem>
+                    </SelectContent>
+                </Select>
 
                 <div class="flex items-center gap-3">
                     <button type="button" class="flex h-8 w-8 items-center justify-center rounded hover:bg-gray-100" title="Bulan sebelumnya" @click="shiftMonth(-1)">
@@ -136,17 +142,17 @@ function submitOverride() {
                             <form v-if="editingPlanId === row.performance_plan_id" class="mt-3 space-y-3 rounded-md border bg-gray-50 p-3" @submit.prevent="submitOverride">
                                 <div>
                                     <Label>Kendala</Label>
-                                    <textarea v-model="form.obstacle" rows="2" class="mt-1 w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-1 focus:ring-ring" />
+                                    <Textarea v-model="form.obstacle" :rows="2" class="mt-1" />
                                     <p class="mt-1 text-xs text-gray-400">Asli: {{ row.obstacle_aggregated ?? '—' }}</p>
                                 </div>
                                 <div>
                                     <Label>Solusi</Label>
-                                    <textarea v-model="form.solution" rows="2" class="mt-1 w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-1 focus:ring-ring" />
+                                    <Textarea v-model="form.solution" :rows="2" class="mt-1" />
                                     <p class="mt-1 text-xs text-gray-400">Asli: {{ row.solution_aggregated ?? '—' }}</p>
                                 </div>
                                 <div>
                                     <Label>Rencana Tindak Lanjut</Label>
-                                    <textarea v-model="form.follow_up_plan" rows="2" class="mt-1 w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-1 focus:ring-ring" />
+                                    <Textarea v-model="form.follow_up_plan" :rows="2" class="mt-1" />
                                     <p class="mt-1 text-xs text-gray-400">Asli: {{ row.follow_up_aggregated ?? '—' }}</p>
                                 </div>
                                 <div class="flex justify-end gap-2">

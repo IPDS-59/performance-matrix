@@ -6,6 +6,7 @@ import { Button } from '@/Components/ui/button';
 import { Input } from '@/Components/ui/input';
 import { Label } from '@/Components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/Components/ui/select';
+import { Checkbox } from '@/Components/ui/checkbox';
 import InputError from '@/Components/InputError.vue';
 
 defineProps<{ teams: Team[] }>();
@@ -86,7 +87,7 @@ function submit() {
                     <InputError :message="form.errors.office" />
                 </div>
                 <div class="flex items-center gap-2">
-                    <input type="checkbox" id="is_active" v-model="form.is_active" class="h-4 w-4" />
+                    <Checkbox id="is_active" v-model="form.is_active" />
                     <Label for="is_active">Aktif</Label>
                 </div>
                 <div class="flex justify-end gap-3 pt-2">

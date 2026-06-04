@@ -7,6 +7,7 @@ import { Button } from '@/Components/ui/button';
 import { Input } from '@/Components/ui/input';
 import { Label } from '@/Components/ui/label';
 import { Checkbox } from '@/Components/ui/checkbox';
+import { Textarea } from '@/Components/ui/textarea';
 import { RadioGroup, RadioGroupItem } from '@/Components/ui/radio-group';
 import InputError from '@/Components/InputError.vue';
 import {
@@ -394,10 +395,10 @@ function submitEdit() {
                 <!-- Description -->
                 <div>
                     <Label class="text-xs">Deskripsi <span class="text-red-500">*</span></Label>
-                    <textarea
+                    <Textarea
                         v-model="editForm.description"
                         rows="2"
-                        class="mt-1 w-full rounded-md border border-input bg-white px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-ring"
+                        class="mt-1 bg-white"
                         placeholder="Deskripsi kegiatan..."
                     />
                     <InputError :message="editForm.errors.description" />
@@ -512,10 +513,10 @@ function submitEdit() {
                     </div>
                     <div class="col-span-3">
                         <Label class="text-xs">Deskripsi <span class="text-red-500">*</span></Label>
-                        <textarea
+                        <Textarea
                             v-model="addForm.description"
                             rows="2"
-                            class="mt-1 w-full rounded-md border border-input bg-white px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-ring"
+                            class="mt-1 bg-white"
                             placeholder="Deskripsi kegiatan..."
                         />
                         <InputError :message="addForm.errors.description" />

@@ -6,6 +6,7 @@ import { Button } from '@/Components/ui/button';
 import { Input } from '@/Components/ui/input';
 import { Label } from '@/Components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/Components/ui/select';
+import { Textarea } from '@/Components/ui/textarea';
 import { Popover, PopoverContent, PopoverTrigger } from '@/Components/ui/popover';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/Components/ui/command';
 import { Check, ChevronsUpDown } from 'lucide-vue-next';
@@ -91,11 +92,11 @@ function submit() {
                 </div>
                 <div>
                     <Label for="description">Deskripsi</Label>
-                    <textarea
+                    <Textarea
                         id="description"
                         v-model="form.description"
                         rows="3"
-                        class="mt-1 w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-1 focus:ring-ring"
+                        class="mt-1"
                     />
                     <InputError :message="form.errors.description" />
                 </div>

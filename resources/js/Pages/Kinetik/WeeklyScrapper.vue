@@ -6,6 +6,7 @@ import type { KipActivity, ActivityClaim, PlanOption } from '@/types';
 import { Button } from '@/Components/ui/button';
 import { Input } from '@/Components/ui/input';
 import { Label } from '@/Components/ui/label';
+import { Textarea } from '@/Components/ui/textarea';
 import { Popover, PopoverContent, PopoverTrigger } from '@/Components/ui/popover';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/Components/ui/command';
 import { Check, ChevronsUpDown, ChevronLeft, ChevronRight, ExternalLink, RefreshCw } from 'lucide-vue-next';
@@ -212,11 +213,11 @@ function achievementColor(val: number | string | null | undefined): string {
                     <form @submit.prevent="submitManualActivity" class="space-y-3">
                         <div>
                             <Label for="manual-desc">Uraian Kegiatan <span class="text-red-500">*</span></Label>
-                            <textarea
+                            <Textarea
                                 id="manual-desc"
                                 v-model="manualForm.description"
-                                rows="3"
-                                class="mt-1 w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-1 focus:ring-ring"
+                                :rows="3"
+                                class="mt-1"
                                 placeholder="Deskripsi kegiatan..."
                             />
                             <InputError :message="manualForm.errors.description" />
@@ -402,31 +403,31 @@ function achievementColor(val: number | string | null | undefined): string {
                                 <!-- Kendala / Solusi / RTL -->
                                 <div>
                                     <Label :for="`obstacle-${activity.id}`">Kendala</Label>
-                                    <textarea
+                                    <Textarea
                                         :id="`obstacle-${activity.id}`"
                                         v-model="claimForms[activity.id].obstacle"
-                                        rows="2"
-                                        class="mt-1 w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-1 focus:ring-ring"
+                                        :rows="2"
+                                        class="mt-1"
                                         placeholder="Kendala yang dihadapi..."
                                     />
                                 </div>
                                 <div>
                                     <Label :for="`solution-${activity.id}`">Solusi</Label>
-                                    <textarea
+                                    <Textarea
                                         :id="`solution-${activity.id}`"
                                         v-model="claimForms[activity.id].solution"
-                                        rows="2"
-                                        class="mt-1 w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-1 focus:ring-ring"
+                                        :rows="2"
+                                        class="mt-1"
                                         placeholder="Solusi yang diterapkan..."
                                     />
                                 </div>
                                 <div>
                                     <Label :for="`rtl-${activity.id}`">Rencana Tindak Lanjut</Label>
-                                    <textarea
+                                    <Textarea
                                         :id="`rtl-${activity.id}`"
                                         v-model="claimForms[activity.id].follow_up_plan"
-                                        rows="2"
-                                        class="mt-1 w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-1 focus:ring-ring"
+                                        :rows="2"
+                                        class="mt-1"
                                         placeholder="Rencana tindak lanjut..."
                                     />
                                 </div>

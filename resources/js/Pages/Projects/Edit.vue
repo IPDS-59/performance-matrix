@@ -12,6 +12,7 @@ import { Check, ChevronsUpDown } from 'lucide-vue-next';
 import InputError from '@/Components/InputError.vue';
 import { computed, reactive, ref } from 'vue';
 import { Checkbox } from '@/Components/ui/checkbox';
+import { Textarea } from '@/Components/ui/textarea';
 import { RadioGroup, RadioGroupItem } from '@/Components/ui/radio-group';
 
 interface WorkItemAssignment {
@@ -339,12 +340,12 @@ function memberName(employeeId: number): string {
                     </div>
                     <div>
                         <Label for="kpi">IKU</Label>
-                        <textarea id="kpi" v-model="form.kpi" rows="2" class="mt-1 w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-1 focus:ring-ring" />
+                        <Textarea id="kpi" v-model="form.kpi" rows="2" class="mt-1" />
                         <InputError :message="form.errors.kpi" />
                     </div>
                     <div>
                         <Label for="objective">Tujuan</Label>
-                        <textarea id="objective" v-model="form.objective" rows="2" class="mt-1 w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-1 focus:ring-ring" />
+                        <Textarea id="objective" v-model="form.objective" rows="2" class="mt-1" />
                         <InputError :message="form.errors.objective" />
                     </div>
                     <div>
@@ -410,7 +411,7 @@ function memberName(employeeId: number): string {
                             <div class="space-y-3">
                                 <div>
                                     <Label class="text-xs">Deskripsi</Label>
-                                    <textarea v-model="editForms[item.id].description" rows="2" class="mt-1 w-full rounded-md border border-input bg-white px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-ring" />
+                                    <Textarea v-model="editForms[item.id].description" rows="2" class="mt-1 bg-white" />
                                     <InputError :message="editForms[item.id].errors.description" />
                                 </div>
 
@@ -513,7 +514,7 @@ function memberName(employeeId: number): string {
                             </div>
                             <div class="col-span-3">
                                 <Label class="text-xs">Deskripsi <span class="text-red-500">*</span></Label>
-                                <textarea v-model="addForm.description" rows="2" class="mt-1 w-full rounded-md border border-input bg-white px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-ring" placeholder="Deskripsi kegiatan..." />
+                                <Textarea v-model="addForm.description" rows="2" class="mt-1 bg-white" placeholder="Deskripsi kegiatan..." />
                                 <InputError :message="addForm.errors.description" />
                             </div>
                         </div>

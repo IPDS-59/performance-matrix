@@ -5,6 +5,8 @@ import type { Employee } from '@/types';
 import { Button } from '@/Components/ui/button';
 import { Input } from '@/Components/ui/input';
 import { Label } from '@/Components/ui/label';
+import { Textarea } from '@/Components/ui/textarea';
+import { Checkbox } from '@/Components/ui/checkbox';
 import { Popover, PopoverContent, PopoverTrigger } from '@/Components/ui/popover';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/Components/ui/command';
 import { Check, ChevronsUpDown } from 'lucide-vue-next';
@@ -53,11 +55,11 @@ function submit() {
                 </div>
                 <div>
                     <Label for="description">Deskripsi</Label>
-                    <textarea
+                    <Textarea
                         id="description"
                         v-model="form.description"
                         rows="3"
-                        class="mt-1 w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-1 focus:ring-ring"
+                        class="mt-1"
                     />
                     <InputError :message="form.errors.description" />
                 </div>
@@ -101,7 +103,7 @@ function submit() {
                     <InputError :message="form.errors.leader_id" />
                 </div>
                 <div class="flex items-center gap-2">
-                    <input type="checkbox" id="is_active" v-model="form.is_active" class="h-4 w-4" />
+                    <Checkbox id="is_active" v-model="form.is_active" />
                     <Label for="is_active">Aktif</Label>
                 </div>
                 <div class="flex justify-end gap-3 pt-2">

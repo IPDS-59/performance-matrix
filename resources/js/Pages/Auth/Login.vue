@@ -3,6 +3,7 @@ import GuestLayout from '@/Layouts/GuestLayout.vue';
 import { Button } from '@/Components/ui/button';
 import { Input } from '@/Components/ui/input';
 import { Label } from '@/Components/ui/label';
+import { Checkbox } from '@/Components/ui/checkbox';
 import InputError from '@/Components/InputError.vue';
 import { Head, Link, useForm } from '@inertiajs/vue3';
 
@@ -77,12 +78,7 @@ const submit = () => {
             </div>
 
             <div class="flex items-center gap-2">
-                <input
-                    id="remember"
-                    type="checkbox"
-                    v-model="form.remember"
-                    class="h-4 w-4 rounded border-gray-300 text-[#1B4B8A] focus:ring-[#1B4B8A]"
-                />
+                <Checkbox id="remember" v-model="form.remember" />
                 <Label for="remember" class="text-sm font-normal text-gray-600 cursor-pointer">Ingat saya</Label>
             </div>
 

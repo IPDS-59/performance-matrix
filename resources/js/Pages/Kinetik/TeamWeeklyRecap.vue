@@ -6,6 +6,7 @@ import type { RecapSegment, TeamRecapEvidence, TeamOption } from '@/types';
 import { Button } from '@/Components/ui/button';
 import { Input } from '@/Components/ui/input';
 import { Label } from '@/Components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/Components/ui/select';
 import { ChevronLeft, ChevronRight, ExternalLink, Trash2 } from 'lucide-vue-next';
 import InputError from '@/Components/InputError.vue';
 import { useDateFormat } from '@/composables/useDateFormat';
@@ -86,13 +87,17 @@ function deleteEvidence(id: number) {
         <template v-else>
             <!-- Controls -->
             <div class="mb-6 flex flex-wrap items-center justify-between gap-4 rounded-md border bg-white px-4 py-3">
-                <select
-                    :value="selectedTeamId ?? undefined"
-                    class="rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-1 focus:ring-ring"
-                    @change="navigate({ team: ($event.target as HTMLSelectElement).value })"
+                <Select
+                    :model-value="selectedTeamId != null ? String(selectedTeamId) : undefined"
+                    @update:model-value="(v) => navigate({ team: Number(v) })"
                 >
-                    <option v-for="t in teams" :key="t.id" :value="t.id">{{ t.name }}</option>
-                </select>
+                    <SelectTrigger class="w-auto min-w-[16rem]">
+                        <SelectValue placeholder="Pilih tim" />
+                    </SelectTrigger>
+                    <SelectContent>
+                        <SelectItem v-for="t in teams" :key="t.id" :value="String(t.id)">{{ t.name }}</SelectItem>
+                    </SelectContent>
+                </Select>
 
                 <div class="flex items-center gap-3">
                     <button type="button" class="flex h-8 w-8 items-center justify-center rounded hover:bg-gray-100" title="Minggu sebelumnya" @click="navigate({ week: prevWeek })">
@@ -163,11 +168,16 @@ function deleteEvidence(id: number) {
                     <div class="grid grid-cols-2 gap-3">
                         <div>
                             <Label for="ev-type">Jenis</Label>
-                            <select id="ev-type" v-model="evidenceForm.type" class="mt-1 w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-1 focus:ring-ring">
-                                <option value="notula">Notula</option>
-                                <option value="photo">Foto</option>
-                                <option value="attendance">Daftar Hadir</option>
-                            </select>
+                            <Select v-model="evidenceForm.type">
+                                <SelectTrigger id="ev-type" class="mt-1 w-full">
+                                    <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="notula">Notula</SelectItem>
+                                    <SelectItem value="photo">Foto</SelectItem>
+                                    <SelectItem value="attendance">Daftar Hadir</SelectItem>
+                                </SelectContent>
+                            </Select>
                         </div>
                         <div>
                             <Label for="ev-title">Judul</Label>
