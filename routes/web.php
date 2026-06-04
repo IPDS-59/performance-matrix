@@ -14,6 +14,7 @@ use App\Http\Controllers\ProjectDetailController;
 use App\Http\Controllers\ProjectListController;
 use App\Http\Controllers\ReportAttachmentController;
 use App\Http\Controllers\ReportResubmitController;
+use App\Http\Controllers\KipIntegrationController;
 use App\Http\Controllers\TeamController;
 use App\Http\Controllers\TeamMemberController;
 use App\Http\Controllers\TeamRecapController;
@@ -98,6 +99,13 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('/rekap-tim/evidence', [TeamRecapController::class, 'storeEvidence'])->name('team-recap.evidence.store');
     Route::delete('/rekap-tim/evidence/{evidence}', [TeamRecapController::class, 'destroyEvidence'])->name('team-recap.evidence.destroy');
     Route::post('/rekap-tim/override', [TeamRecapController::class, 'storeOverride'])->name('team-recap.override.store');
+
+    // kipApp integration (admin: store token + centralized sync)
+    Route::middleware('can:manage-kip-integration')->group(function () {
+        Route::get('/integrasi-kipapp', [KipIntegrationController::class, 'index'])->name('kip-integration.index');
+        Route::post('/integrasi-kipapp/token', [KipIntegrationController::class, 'storeToken'])->name('kip-integration.token');
+        Route::post('/integrasi-kipapp/sync', [KipIntegrationController::class, 'syncAll'])->name('kip-integration.sync');
+    });
 
     // Profile
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');

@@ -22,6 +22,7 @@ class RolePermissionSeeder extends Seeder
             'view-matrix',
             'view-reports',
             'enter-performance',
+            'manage-kip-integration',
         ];
 
         foreach ($permissions as $permission) {
@@ -36,6 +37,7 @@ class RolePermissionSeeder extends Seeder
             'manage-work-items',
             'view-matrix',
             'view-reports',
+            'manage-kip-integration',
         ]);
 
         $head = Role::firstOrCreate(['name' => 'head']);
