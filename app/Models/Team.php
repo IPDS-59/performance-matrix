@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Team extends Model
@@ -46,5 +47,17 @@ class Team extends Model
     public function teamHistories(): HasMany
     {
         return $this->hasMany(EmployeeTeamHistory::class);
+    }
+
+    public function members(): BelongsToMany
+    {
+        return $this->belongsToMany(Employee::class, 'employee_team')
+            ->withPivot(['role', 'is_primary', 'started_at', 'ended_at'])
+            ->withTimestamps();
+    }
+
+    public function performanceIndicators(): HasMany
+    {
+        return $this->hasMany(PerformanceIndicator::class);
     }
 }

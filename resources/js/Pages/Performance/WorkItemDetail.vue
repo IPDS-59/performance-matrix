@@ -7,6 +7,7 @@ import { Button } from '@/Components/ui/button';
 import { Input } from '@/Components/ui/input';
 import { Label } from '@/Components/ui/label';
 import { Textarea } from '@/Components/ui/textarea';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/Components/ui/select';
 import InputError from '@/Components/InputError.vue';
 import PerformanceTimeline from '@/Components/Performance/PerformanceTimeline.vue';
 import type { ReviewEvent } from '@/types';
@@ -602,12 +603,17 @@ function pct(realization: number, target: number): number {
                     <h3 class="text-sm font-medium text-gray-700">Laporan Baru</h3>
                     <div>
                         <Label class="text-xs">Bulan</Label>
-                        <select
-                            v-model="newForm.period_month"
-                            class="mt-1 block w-full rounded-md border border-gray-300 bg-white px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        <Select
+                            :model-value="String(newForm.period_month)"
+                            @update:model-value="(v) => (newForm.period_month = Number(v))"
                         >
-                            <option v-for="m in availableMonths" :key="m" :value="m">{{ monthNames[m] }}</option>
-                        </select>
+                            <SelectTrigger class="mt-1 w-full bg-white">
+                                <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem v-for="m in availableMonths" :key="m" :value="String(m)">{{ monthNames[m] }}</SelectItem>
+                            </SelectContent>
+                        </Select>
                     </div>
                     <div>
                         <Label class="text-xs">Realisasi ({{ work_item.target_unit }})</Label>

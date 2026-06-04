@@ -1,5 +1,6 @@
 <?php
 
+use App\Models\Employee;
 use App\Models\Project;
 use App\Models\Team;
 
@@ -85,4 +86,116 @@ it('deletes a project and redirects', function () {
         ->assertRedirect(route('projects.index'));
 
     expect(Project::find($project->id))->toBeNull();
+});
+
+// ── Team lead tests (membership team ≠ led team) ──────────────────────────
+
+it('team lead can access create form and sees only led teams and all active employees', function () {
+    $user = staffUser();
+    $teamA = Team::factory()->create(['is_active' => true]); // membership team
+    $teamB = Team::factory()->create(['is_active' => true]); // led team
+    $teamC = Team::factory()->create(['is_active' => true]); // unrelated team
+
+    $employee = Employee::factory()->create(['user_id' => $user->id, 'team_id' => $teamA->id, 'is_active' => true]);
+    $teamB->update(['leader_id' => $employee->id]);
+
+    // Active employees in other teams
+    Employee::factory()->count(3)->create(['team_id' => $teamC->id, 'is_active' => true]);
+
+    $totalActive = Employee::where('is_active', true)->count();
+
+    $this->actingAs($user)
+        ->get(route('projects.create'))
+        ->assertInertia(fn ($page) => $page
+            ->component('Projects/Create')
+            ->where('isAdmin', false)
+            ->has('teams', 1)
+            ->where('teams.0.id', $teamB->id)
+            ->has('employees', $totalActive)
+        );
+});
+
+it('team lead can store a project for a led team with cross-team members', function () {
+    $user = staffUser();
+    $teamA = Team::factory()->create(['is_active' => true]);
+    $teamB = Team::factory()->create(['is_active' => true]);
+    $employee = Employee::factory()->create(['user_id' => $user->id, 'team_id' => $teamA->id, 'is_active' => true]);
+    $teamB->update(['leader_id' => $employee->id]);
+
+    $crossTeamEmployee = Employee::factory()->create(['team_id' => $teamA->id, 'is_active' => true]);
+
+    $this->actingAs($user)
+        ->post(route('projects.store'), [
+            'team_id' => $teamB->id,
+            'name' => 'Proyek Tim B',
+            'year' => 2026,
+            'leader_id' => $employee->id,
+            'members' => [
+                ['employee_id' => $employee->id, 'role' => 'leader'],
+                ['employee_id' => $crossTeamEmployee->id, 'role' => 'member'],
+            ],
+        ])
+        ->assertRedirect();
+
+    $project = Project::where('name', 'Proyek Tim B')->firstOrFail();
+    expect($project->team_id)->toBe($teamB->id);
+    expect($project->members()->where('employees.id', $employee->id)->wherePivot('role', 'leader')->exists())->toBeTrue();
+    expect($project->members()->where('employees.id', $crossTeamEmployee->id)->exists())->toBeTrue();
+});
+
+it('team lead cannot store a project for a team they do not lead', function () {
+    $user = staffUser();
+    $teamA = Team::factory()->create(['is_active' => true]);
+    $teamB = Team::factory()->create(['is_active' => true]);
+    $teamC = Team::factory()->create(['is_active' => true]); // not led by this employee
+    $employee = Employee::factory()->create(['user_id' => $user->id, 'team_id' => $teamA->id, 'is_active' => true]);
+    $teamB->update(['leader_id' => $employee->id]);
+
+    $this->actingAs($user)
+        ->post(route('projects.store'), [
+            'team_id' => $teamC->id,
+            'name' => 'Proyek Tidak Diizinkan',
+            'year' => 2026,
+            'members' => [],
+        ])
+        ->assertSessionHasErrors(['team_id']);
+});
+
+it('staff with no led team gets 403 on store', function () {
+    $user = staffUser();
+    $teamA = Team::factory()->create(['is_active' => true]);
+    // Employee exists but leads no team
+    Employee::factory()->create(['user_id' => $user->id, 'team_id' => $teamA->id, 'is_active' => true]);
+
+    $this->actingAs($user)
+        ->post(route('projects.store'), [
+            'team_id' => $teamA->id,
+            'name' => 'Proyek Tanpa Tim Pimpinan',
+            'year' => 2026,
+            'members' => [],
+        ])
+        ->assertForbidden();
+});
+
+it('leader_id defaults to the team lead when omitted', function () {
+    $user = staffUser();
+    $teamA = Team::factory()->create(['is_active' => true]);
+    $teamB = Team::factory()->create(['is_active' => true]);
+    $employee = Employee::factory()->create(['user_id' => $user->id, 'team_id' => $teamA->id, 'is_active' => true]);
+    $teamB->update(['leader_id' => $employee->id]);
+
+    $this->actingAs($user)
+        ->post(route('projects.store'), [
+            'team_id' => $teamB->id,
+            'name' => 'Proyek Default Leader',
+            'year' => 2026,
+            'members' => [
+                ['employee_id' => $employee->id, 'role' => 'leader'],
+            ],
+        ])
+        ->assertRedirect();
+
+    $project = Project::where('name', 'Proyek Default Leader')->firstOrFail();
+    expect($project->leader_id)->toBe($employee->id);
+    expect($project->members()->where('employees.id', $employee->id)->wherePivot('role', 'leader')->exists())->toBeTrue();
 });

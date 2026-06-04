@@ -6,13 +6,19 @@ use App\Http\Controllers\EmployeeReportController;
 use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\PerformanceApprovalController;
 use App\Http\Controllers\PerformanceController;
+use App\Http\Controllers\PerformanceIndicatorController;
+use App\Http\Controllers\PerformancePlanController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\ProjectController;
 use App\Http\Controllers\ProjectDetailController;
 use App\Http\Controllers\ProjectListController;
 use App\Http\Controllers\ReportAttachmentController;
 use App\Http\Controllers\ReportResubmitController;
+use App\Http\Controllers\KipIntegrationController;
 use App\Http\Controllers\TeamController;
+use App\Http\Controllers\TeamMemberController;
+use App\Http\Controllers\TeamRecapController;
+use App\Http\Controllers\WeeklyActivityController;
 use App\Http\Controllers\WorkItemController;
 use App\Http\Controllers\WorkItemDetailController;
 use Illuminate\Support\Facades\Route;
@@ -30,9 +36,13 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
     // Admin CRUD
     Route::resource('teams', TeamController::class)->except(['show']);
+    Route::get('/teams/{team}/members', [TeamMemberController::class, 'edit'])->name('teams.members.edit');
+    Route::put('/teams/{team}/members', [TeamMemberController::class, 'update'])->name('teams.members.update');
     Route::resource('employees', EmployeeController::class)->except(['show']);
     Route::resource('projects', ProjectController::class)->except(['show']);
     Route::post('/projects/{project}/copy', [ProjectController::class, 'copy'])->name('projects.copy');
+    Route::resource('performance-indicators', PerformanceIndicatorController::class)->except(['show']);
+    Route::resource('performance-plans', PerformancePlanController::class)->except(['show']);
 
     // Work items (nested under project for create, standalone for update/delete)
     Route::post('/projects/{project}/work-items', [WorkItemController::class, 'store'])->name('work-items.store');
@@ -76,9 +86,31 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::delete('/report-attachments/{attachment}', [ReportAttachmentController::class, 'destroy'])->name('report-attachments.destroy');
     Route::patch('/report-attachments/{attachment}/review', [ReportAttachmentController::class, 'review'])->name('report-attachments.review');
 
+    // Weekly activity scrapper / recap
+    Route::get('/rekap-mingguan', [WeeklyActivityController::class, 'index'])->name('weekly.index');
+    Route::post('/rekap-mingguan/sync', [WeeklyActivityController::class, 'sync'])->name('weekly.sync');
+    Route::post('/rekap-mingguan/claim', [WeeklyActivityController::class, 'storeClaim'])->name('weekly.claim');
+    Route::post('/rekap-mingguan/kegiatan', [WeeklyActivityController::class, 'storeManualActivity'])->name('weekly.activity.store');
+
+    // Team recaps (weekly / monthly / quarterly FRA)
+    Route::get('/rekap-tim', [TeamRecapController::class, 'weekly'])->name('team-recap.weekly');
+    Route::get('/rekap-bulanan', [TeamRecapController::class, 'monthly'])->name('team-recap.monthly');
+    Route::get('/rekap-triwulanan', [TeamRecapController::class, 'quarterly'])->name('team-recap.quarterly');
+    Route::post('/rekap-tim/evidence', [TeamRecapController::class, 'storeEvidence'])->name('team-recap.evidence.store');
+    Route::delete('/rekap-tim/evidence/{evidence}', [TeamRecapController::class, 'destroyEvidence'])->name('team-recap.evidence.destroy');
+    Route::post('/rekap-tim/override', [TeamRecapController::class, 'storeOverride'])->name('team-recap.override.store');
+
+    // kipApp integration (admin: store token + centralized sync)
+    Route::middleware('can:manage-kip-integration')->group(function () {
+        Route::get('/integrasi-kipapp', [KipIntegrationController::class, 'index'])->name('kip-integration.index');
+        Route::post('/integrasi-kipapp/token', [KipIntegrationController::class, 'storeToken'])->name('kip-integration.token');
+        Route::post('/integrasi-kipapp/sync', [KipIntegrationController::class, 'syncAll'])->name('kip-integration.sync');
+    });
+
     // Profile
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
+    Route::patch('/profile/nip', [ProfileController::class, 'updateNip'])->name('profile.nip.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 });
 

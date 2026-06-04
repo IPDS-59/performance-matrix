@@ -12,6 +12,7 @@ import { Check, ChevronsUpDown } from 'lucide-vue-next';
 import InputError from '@/Components/InputError.vue';
 import { computed, reactive, ref } from 'vue';
 import { Checkbox } from '@/Components/ui/checkbox';
+import { Textarea } from '@/Components/ui/textarea';
 import { RadioGroup, RadioGroupItem } from '@/Components/ui/radio-group';
 
 interface WorkItemAssignment {
@@ -47,6 +48,17 @@ const initialMembers = computed(() =>
         employee_id: m.id,
         role: m.pivot?.role ?? 'member',
     }))
+);
+
+// For non-admin: restrict leader picker to currently selected members
+const memberEmployees = computed(() =>
+    form.members
+        .map((m: { employee_id: number; role: string }) => props.employees.find(e => e.id === m.employee_id))
+        .filter((e): e is Employee => e !== undefined)
+);
+
+const leaderPickerEmployees = computed(() =>
+    props.isLeader ? memberEmployees.value : props.employees
 );
 
 const selectedLeaderLabel = computed(() => {
@@ -311,7 +323,7 @@ function memberName(employeeId: number): string {
                                                 <Check v-if="form.leader_id === null" class="ml-auto h-4 w-4" />
                                             </CommandItem>
                                             <CommandItem
-                                                v-for="emp in employees"
+                                                v-for="emp in leaderPickerEmployees"
                                                 :key="emp.id"
                                                 :value="emp.display_name || emp.name"
                                                 @select="() => { form.leader_id = emp.id; leaderOpen = false }"
@@ -328,12 +340,12 @@ function memberName(employeeId: number): string {
                     </div>
                     <div>
                         <Label for="kpi">IKU</Label>
-                        <textarea id="kpi" v-model="form.kpi" rows="2" class="mt-1 w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-1 focus:ring-ring" />
+                        <Textarea id="kpi" v-model="form.kpi" rows="2" class="mt-1" />
                         <InputError :message="form.errors.kpi" />
                     </div>
                     <div>
                         <Label for="objective">Tujuan</Label>
-                        <textarea id="objective" v-model="form.objective" rows="2" class="mt-1 w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-1 focus:ring-ring" />
+                        <Textarea id="objective" v-model="form.objective" rows="2" class="mt-1" />
                         <InputError :message="form.errors.objective" />
                     </div>
                     <div>
@@ -399,7 +411,7 @@ function memberName(employeeId: number): string {
                             <div class="space-y-3">
                                 <div>
                                     <Label class="text-xs">Deskripsi</Label>
-                                    <textarea v-model="editForms[item.id].description" rows="2" class="mt-1 w-full rounded-md border border-input bg-white px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-ring" />
+                                    <Textarea v-model="editForms[item.id].description" rows="2" class="mt-1 bg-white" />
                                     <InputError :message="editForms[item.id].errors.description" />
                                 </div>
 
@@ -502,7 +514,7 @@ function memberName(employeeId: number): string {
                             </div>
                             <div class="col-span-3">
                                 <Label class="text-xs">Deskripsi <span class="text-red-500">*</span></Label>
-                                <textarea v-model="addForm.description" rows="2" class="mt-1 w-full rounded-md border border-input bg-white px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-ring" placeholder="Deskripsi kegiatan..." />
+                                <Textarea v-model="addForm.description" rows="2" class="mt-1 bg-white" placeholder="Deskripsi kegiatan..." />
                                 <InputError :message="addForm.errors.description" />
                             </div>
                         </div>

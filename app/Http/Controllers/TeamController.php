@@ -11,13 +11,22 @@ use Inertia\Response;
 
 class TeamController extends Controller
 {
-    public function index(): Response
+    public function index(Request $request): Response
     {
         $this->authorize('viewAny', Team::class);
 
-        $teams = Team::orderBy('name')->get(['id', 'name', 'code', 'is_active']);
+        $user = $request->user();
+        $isAdmin = $user->hasPermissionTo('manage-teams');
 
-        return Inertia::render('Teams/Index', compact('teams'));
+        $teams = Team::orderBy('name')->get(['id', 'name', 'code', 'is_active', 'leader_id']);
+
+        $manageableTeamIds = $isAdmin
+            ? $teams->pluck('id')->all()
+            : ($user->employee
+                ? $teams->where('leader_id', $user->employee->id)->pluck('id')->all()
+                : []);
+
+        return Inertia::render('Teams/Index', compact('teams', 'manageableTeamIds'));
     }
 
     public function create(): Response

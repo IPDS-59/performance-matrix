@@ -22,6 +22,7 @@ class Project extends Model
         'kpi',
         'status',
         'year',
+        'performance_indicator_id',
     ];
 
     protected $casts = [
@@ -43,6 +44,16 @@ class Project extends Model
         return $this->belongsToMany(Employee::class, 'project_members')
             ->withPivot('role')
             ->withTimestamps();
+    }
+
+    public function performanceIndicator(): BelongsTo
+    {
+        return $this->belongsTo(PerformanceIndicator::class);
+    }
+
+    public function performancePlans(): HasMany
+    {
+        return $this->hasMany(PerformancePlan::class);
     }
 
     public function workItems(): HasMany

@@ -47,6 +47,8 @@ const form = useForm({
     name: props.employee.name,
     full_name: props.employee.full_name ?? '',
     employee_number: props.employee.employee_number ?? '',
+    nip_lama: props.employee.nip_lama ?? '',
+    nip_baru: props.employee.nip_baru ?? '',
     team_id: props.employee.team_id ?? null as number | null,
     position: props.employee.position ?? '',
     office: props.employee.office ?? '',
@@ -160,6 +162,18 @@ function formatDate(dateStr: string) {
                         <Input id="employee_number" v-model="form.employee_number" class="mt-1" />
                         <InputError :message="form.errors.employee_number" />
                     </div>
+                    <div class="grid grid-cols-2 gap-3">
+                        <div>
+                            <Label for="nip_lama">NIP Lama (kipApp)</Label>
+                            <Input id="nip_lama" v-model="form.nip_lama" class="mt-1" placeholder="9 digit" />
+                            <InputError :message="form.errors.nip_lama" />
+                        </div>
+                        <div>
+                            <Label for="nip_baru">NIP Baru</Label>
+                            <Input id="nip_baru" v-model="form.nip_baru" class="mt-1" />
+                            <InputError :message="form.errors.nip_baru" />
+                        </div>
+                    </div>
                     <div>
                         <Label>Tim Kerja</Label>
                         <Select v-model="form.team_id">
@@ -200,7 +214,7 @@ function formatDate(dateStr: string) {
                         <InputError :message="form.errors.user_id" />
                     </div>
                     <div class="flex items-center gap-2">
-                        <input type="checkbox" id="is_active" v-model="form.is_active" class="h-4 w-4" />
+                        <Checkbox id="is_active" v-model="form.is_active" />
                         <Label for="is_active">Aktif</Label>
                     </div>
                     <div class="flex justify-end gap-3 pt-2">

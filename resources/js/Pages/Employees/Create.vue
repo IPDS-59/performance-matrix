@@ -6,6 +6,7 @@ import { Button } from '@/Components/ui/button';
 import { Input } from '@/Components/ui/input';
 import { Label } from '@/Components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/Components/ui/select';
+import { Checkbox } from '@/Components/ui/checkbox';
 import InputError from '@/Components/InputError.vue';
 
 defineProps<{ teams: Team[] }>();
@@ -14,6 +15,8 @@ const form = useForm({
     name: '',
     full_name: '',
     employee_number: '',
+    nip_lama: '',
+    nip_baru: '',
     team_id: null as number | null,
     position: '',
     office: '',
@@ -47,6 +50,18 @@ function submit() {
                     <Input id="employee_number" v-model="form.employee_number" class="mt-1" />
                     <InputError :message="form.errors.employee_number" />
                 </div>
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <Label for="nip_lama">NIP Lama (kipApp)</Label>
+                        <Input id="nip_lama" v-model="form.nip_lama" class="mt-1" placeholder="9 digit" />
+                        <InputError :message="form.errors.nip_lama" />
+                    </div>
+                    <div>
+                        <Label for="nip_baru">NIP Baru</Label>
+                        <Input id="nip_baru" v-model="form.nip_baru" class="mt-1" />
+                        <InputError :message="form.errors.nip_baru" />
+                    </div>
+                </div>
                 <div>
                     <Label>Tim Kerja</Label>
                     <Select v-model="form.team_id">
@@ -72,7 +87,7 @@ function submit() {
                     <InputError :message="form.errors.office" />
                 </div>
                 <div class="flex items-center gap-2">
-                    <input type="checkbox" id="is_active" v-model="form.is_active" class="h-4 w-4" />
+                    <Checkbox id="is_active" v-model="form.is_active" />
                     <Label for="is_active">Aktif</Label>
                 </div>
                 <div class="flex justify-end gap-3 pt-2">

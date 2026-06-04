@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Models\Employee;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -41,6 +42,28 @@ class ProfileTest extends TestCase
         $this->assertSame('Test User', $user->name);
         $this->assertSame('test@example.com', $user->email);
         $this->assertNull($user->email_verified_at);
+    }
+
+    public function test_nip_can_be_updated_via_profile(): void
+    {
+        $user = User::factory()->create();
+        $employee = Employee::factory()->create(['user_id' => $user->id, 'nip_lama' => null]);
+
+        $this->actingAs($user)
+            ->patch('/profile/nip', ['nip_lama' => '340060924'])
+            ->assertSessionHasNoErrors()
+            ->assertRedirect('/profile');
+
+        $this->assertSame('340060924', $employee->fresh()->nip_lama);
+    }
+
+    public function test_nip_update_is_forbidden_without_employee_record(): void
+    {
+        $user = User::factory()->create();
+
+        $this->actingAs($user)
+            ->patch('/profile/nip', ['nip_lama' => '340060924'])
+            ->assertForbidden();
     }
 
     public function test_email_verification_status_is_unchanged_when_the_email_address_is_unchanged(): void

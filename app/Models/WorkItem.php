@@ -13,6 +13,7 @@ class WorkItem extends Model
 
     protected $fillable = [
         'project_id',
+        'performance_plan_id',
         'number',
         'description',
         'target',
@@ -27,6 +28,11 @@ class WorkItem extends Model
     public function project(): BelongsTo
     {
         return $this->belongsTo(Project::class);
+    }
+
+    public function performancePlan(): BelongsTo
+    {
+        return $this->belongsTo(PerformancePlan::class);
     }
 
     public function assignments(): HasMany
