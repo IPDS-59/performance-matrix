@@ -16,7 +16,7 @@
         "@vitest/coverage-v8": "^4.1.4",
         "@vue/test-utils": "^2.4.10",
         "axios": ">=1.11.0 <=1.18.0",
-        "concurrently": "^9.0.1",
+        "concurrently": "^10.0.3",
         "jsdom": "^29.1.1",
         "laravel-vite-plugin": "^3.1.0",
         "tailwindcss": "^4.2.4",
