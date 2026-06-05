@@ -7,6 +7,7 @@ import { Button } from '@/Components/ui/button';
 import { Input } from '@/Components/ui/input';
 import { Label } from '@/Components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/Components/ui/select';
+import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/Components/ui/table';
 import { ChevronLeft, ChevronRight, ExternalLink, Trash2 } from 'lucide-vue-next';
 import InputError from '@/Components/InputError.vue';
 import { useDateFormat } from '@/composables/useDateFormat';
@@ -120,38 +121,38 @@ function deleteEvidence(id: number) {
                     <div class="border-b bg-gray-50 px-4 py-3">
                         <h3 class="text-sm font-semibold text-gray-800">{{ seg.project_name }}</h3>
                     </div>
-                    <table class="w-full text-sm">
-                        <thead>
-                            <tr class="border-b bg-gray-50 text-xs font-medium uppercase tracking-wide text-gray-500">
-                                <th class="px-4 py-2 text-left">Rencana Kinerja</th>
-                                <th class="px-4 py-2 text-right">Target</th>
-                                <th class="px-4 py-2 text-right">Realisasi</th>
-                                <th class="px-4 py-2 text-right">Capaian</th>
-                                <th class="px-4 py-2 text-left">Kontributor</th>
-                                <th class="px-4 py-2 text-left">Kendala</th>
-                                <th class="px-4 py-2 text-left">Solusi</th>
-                                <th class="px-4 py-2 text-left">RTL</th>
-                            </tr>
-                        </thead>
-                        <tbody class="divide-y divide-gray-100">
-                            <tr v-for="row in seg.rows" :key="row.performance_plan_id" class="hover:bg-gray-50">
-                                <td class="px-4 py-3 align-top">
+                    <Table class="w-full text-sm">
+                        <TableHeader>
+                            <TableRow class="border-b bg-gray-50 text-xs font-medium uppercase tracking-wide text-gray-500">
+                                <TableHead class="text-left">Rencana Kinerja</TableHead>
+                                <TableHead class="text-right">Target</TableHead>
+                                <TableHead class="text-right">Realisasi</TableHead>
+                                <TableHead class="text-right">Capaian</TableHead>
+                                <TableHead class="text-left">Kontributor</TableHead>
+                                <TableHead class="text-left">Kendala</TableHead>
+                                <TableHead class="text-left">Solusi</TableHead>
+                                <TableHead class="text-left">RTL</TableHead>
+                            </TableRow>
+                        </TableHeader>
+                        <TableBody class="divide-y divide-gray-100">
+                            <TableRow v-for="row in seg.rows" :key="row.performance_plan_id" class="hover:bg-gray-50">
+                                <TableCell class="align-top">
                                     <p class="font-medium text-gray-800">{{ row.rk_description }}</p>
                                     <p v-if="row.rk_code" class="text-xs text-gray-500">{{ row.rk_code }}</p>
-                                </td>
-                                <td class="px-4 py-3 text-right align-top text-gray-700">{{ row.target }} {{ row.target_unit ?? '' }}</td>
-                                <td class="px-4 py-3 text-right align-top text-gray-700">{{ row.realization }}</td>
-                                <td class="px-4 py-3 text-right align-top">
+                                </TableCell>
+                                <TableCell class="text-right align-top text-gray-700">{{ row.target }} {{ row.target_unit ?? '' }}</TableCell>
+                                <TableCell class="text-right align-top text-gray-700">{{ row.realization }}</TableCell>
+                                <TableCell class="text-right align-top">
                                     <span v-if="row.achievement != null" :class="['font-semibold', achievementColor(row.achievement)]">{{ row.achievement.toFixed(2) }}%</span>
                                     <span v-else class="text-gray-400">—</span>
-                                </td>
-                                <td class="px-4 py-3 align-top text-xs text-gray-600">{{ row.contributors.join(', ') || '—' }}</td>
-                                <td class="px-4 py-3 align-top text-gray-600">{{ row.obstacle ?? '—' }}</td>
-                                <td class="px-4 py-3 align-top text-gray-600">{{ row.solution ?? '—' }}</td>
-                                <td class="px-4 py-3 align-top text-gray-600">{{ row.follow_up_plan ?? '—' }}</td>
-                            </tr>
-                        </tbody>
-                    </table>
+                                </TableCell>
+                                <TableCell class="align-top text-xs text-gray-600">{{ row.contributors.join(', ') || '—' }}</TableCell>
+                                <TableCell class="align-top text-gray-600">{{ row.obstacle ?? '—' }}</TableCell>
+                                <TableCell class="align-top text-gray-600">{{ row.solution ?? '—' }}</TableCell>
+                                <TableCell class="align-top text-gray-600">{{ row.follow_up_plan ?? '—' }}</TableCell>
+                            </TableRow>
+                        </TableBody>
+                    </Table>
                 </div>
             </div>
 

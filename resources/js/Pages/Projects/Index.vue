@@ -5,6 +5,7 @@ import type { Project, Team } from '@/types';
 import { Button } from '@/Components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/Components/ui/select';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/Components/ui/accordion';
+import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/Components/ui/table';
 import ConfirmDialog from '@/Components/ConfirmDialog.vue';
 import { ref, computed } from 'vue';
 
@@ -154,30 +155,30 @@ const teamGroups = computed(() => {
 
                 <AccordionContent class="px-0 pb-0">
                     <div class="border-t">
-                        <table class="w-full text-sm">
-                            <thead>
-                                <tr class="border-b bg-gray-50 text-left text-xs font-medium uppercase tracking-wide text-gray-500">
-                                    <th class="px-5 py-2.5">Nama Proyek</th>
-                                    <th class="px-4 py-2.5">Ketua</th>
-                                    <th class="px-4 py-2.5">Anggota</th>
-                                    <th class="px-4 py-2.5">Status</th>
-                                    <th class="px-4 py-2.5 text-right">Aksi</th>
-                                </tr>
-                            </thead>
-                            <tbody class="divide-y">
-                                <tr
+                        <Table class="w-full text-sm">
+                            <TableHeader>
+                                <TableRow class="border-b bg-gray-50 text-left text-xs font-medium uppercase tracking-wide text-gray-500">
+                                    <TableHead>Nama Proyek</TableHead>
+                                    <TableHead>Ketua</TableHead>
+                                    <TableHead>Anggota</TableHead>
+                                    <TableHead>Status</TableHead>
+                                    <TableHead class="text-right">Aksi</TableHead>
+                                </TableRow>
+                            </TableHeader>
+                            <TableBody class="divide-y">
+                                <TableRow
                                     v-for="project in group.projects"
                                     :key="project.id"
                                     class="hover:bg-gray-50/50"
                                 >
-                                    <td class="px-5 py-3 font-medium text-gray-800">{{ project.name }}</td>
-                                    <td class="px-4 py-3 text-gray-600">
+                                    <TableCell class="font-medium text-gray-800">{{ project.name }}</TableCell>
+                                    <TableCell class="text-gray-600">
                                         {{ project.leader?.display_name || project.leader?.name || '—' }}
-                                    </td>
-                                    <td class="px-4 py-3 text-gray-600">
+                                    </TableCell>
+                                    <TableCell class="text-gray-600">
                                         {{ project.members_count }} orang
-                                    </td>
-                                    <td class="px-4 py-3">
+                                    </TableCell>
+                                    <TableCell>
                                         <span
                                             :class="[
                                                 'inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-medium',
@@ -186,8 +187,8 @@ const teamGroups = computed(() => {
                                         >
                                             {{ statusConfig[project.status]?.label ?? project.status }}
                                         </span>
-                                    </td>
-                                    <td class="px-4 py-3 text-right">
+                                    </TableCell>
+                                    <TableCell class="text-right">
                                         <div class="inline-flex gap-2">
                                             <Button variant="outline" size="sm" as-child>
                                                 <Link :href="route('projects.edit', project.id)">Edit</Link>
@@ -196,10 +197,10 @@ const teamGroups = computed(() => {
                                                 Hapus
                                             </Button>
                                         </div>
-                                    </td>
-                                </tr>
-                            </tbody>
-                        </table>
+                                    </TableCell>
+                                </TableRow>
+                            </TableBody>
+                        </Table>
                     </div>
                 </AccordionContent>
             </AccordionItem>
