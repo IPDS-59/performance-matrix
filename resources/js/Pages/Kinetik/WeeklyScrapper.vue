@@ -7,6 +7,7 @@ import { Button } from '@/Components/ui/button';
 import { Input } from '@/Components/ui/input';
 import { Label } from '@/Components/ui/label';
 import { Textarea } from '@/Components/ui/textarea';
+import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/Components/ui/table';
 import { Popover, PopoverContent, PopoverTrigger } from '@/Components/ui/popover';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/Components/ui/command';
 import { Check, ChevronsUpDown, ChevronLeft, ChevronRight, ExternalLink, RefreshCw } from 'lucide-vue-next';
@@ -456,27 +457,27 @@ function achievementColor(val: number | string | null | undefined): string {
                 </div>
 
                 <div v-else class="overflow-hidden rounded-md border bg-white">
-                    <table class="w-full text-sm">
-                        <thead>
-                            <tr class="border-b bg-gray-50 text-xs font-medium text-gray-500 uppercase tracking-wide">
-                                <th class="px-4 py-3 text-left">Rencana Kinerja</th>
-                                <th class="px-4 py-3 text-left">Kegiatan</th>
-                                <th class="px-4 py-3 text-right">Capaian</th>
-                                <th class="px-4 py-3 text-left">Kendala</th>
-                                <th class="px-4 py-3 text-left">Solusi</th>
-                                <th class="px-4 py-3 text-left">RTL</th>
-                            </tr>
-                        </thead>
-                        <tbody class="divide-y divide-gray-100">
-                            <tr v-for="claim in recap" :key="claim.id" class="hover:bg-gray-50">
-                                <td class="px-4 py-3 align-top">
+                    <Table class="w-full text-sm">
+                        <TableHeader>
+                            <TableRow class="border-b bg-gray-50 text-xs font-medium text-gray-500 uppercase tracking-wide">
+                                <TableHead class="text-left">Rencana Kinerja</TableHead>
+                                <TableHead class="text-left">Kegiatan</TableHead>
+                                <TableHead class="text-right">Capaian</TableHead>
+                                <TableHead class="text-left">Kendala</TableHead>
+                                <TableHead class="text-left">Solusi</TableHead>
+                                <TableHead class="text-left">RTL</TableHead>
+                            </TableRow>
+                        </TableHeader>
+                        <TableBody class="divide-y divide-gray-100">
+                            <TableRow v-for="claim in recap" :key="claim.id" class="hover:bg-gray-50">
+                                <TableCell class="align-top">
                                     <p class="font-medium text-gray-800">{{ claim.performance_plan?.description ?? '—' }}</p>
                                     <p class="text-xs text-gray-500">{{ claim.performance_plan?.project?.name ?? '' }}</p>
-                                </td>
-                                <td class="px-4 py-3 align-top text-gray-700">
+                                </TableCell>
+                                <TableCell class="align-top text-gray-700">
                                     {{ claim.kip_activity?.description ?? '—' }}
-                                </td>
-                                <td class="px-4 py-3 align-top text-right">
+                                </TableCell>
+                                <TableCell class="align-top text-right">
                                     <span
                                         v-if="claim.achievement != null"
                                         :class="['font-semibold', achievementColor(claim.achievement)]"
@@ -484,13 +485,13 @@ function achievementColor(val: number | string | null | undefined): string {
                                         {{ parseFloat(String(claim.achievement)).toFixed(2) }}%
                                     </span>
                                     <span v-else class="text-gray-400">—</span>
-                                </td>
-                                <td class="px-4 py-3 align-top text-gray-600 max-w-xs">{{ claim.obstacle ?? '—' }}</td>
-                                <td class="px-4 py-3 align-top text-gray-600 max-w-xs">{{ claim.solution ?? '—' }}</td>
-                                <td class="px-4 py-3 align-top text-gray-600 max-w-xs">{{ claim.follow_up_plan ?? '—' }}</td>
-                            </tr>
-                        </tbody>
-                    </table>
+                                </TableCell>
+                                <TableCell class="align-top text-gray-600 max-w-xs">{{ claim.obstacle ?? '—' }}</TableCell>
+                                <TableCell class="align-top text-gray-600 max-w-xs">{{ claim.solution ?? '—' }}</TableCell>
+                                <TableCell class="align-top text-gray-600 max-w-xs">{{ claim.follow_up_plan ?? '—' }}</TableCell>
+                            </TableRow>
+                        </TableBody>
+                    </Table>
                 </div>
             </div>
         </template>
