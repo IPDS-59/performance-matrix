@@ -26,7 +26,17 @@ class WeeklyActivityController extends Controller
 
         $weekParam = $request->query('week');
 
-        $anchor = $weekParam ? Carbon::parse($weekParam) : now();
+        // Default to the week of the employee's most recent activity (so there is
+        // always something to claim), falling back to the current week.
+        $latestActivity = $employee
+            ? KipActivity::where('employee_id', $employee->id)->max('activity_date_start')
+            : null;
+
+        $anchor = match (true) {
+            $weekParam !== null => Carbon::parse($weekParam),
+            $latestActivity !== null => Carbon::parse($latestActivity),
+            default => now(),
+        };
         $weekStart = $anchor->copy()->startOfWeek(Carbon::MONDAY)->toDateString();
         $weekEnd = $anchor->copy()->endOfWeek(Carbon::SUNDAY)->toDateString();
 

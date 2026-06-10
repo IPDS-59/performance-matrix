@@ -319,3 +319,34 @@ it('allows re-saving an existing claim (updateOrCreate)', function () {
     $claim = ActivityClaim::where('kip_activity_id', $activity->id)->first();
     expect((float) $claim->achievement)->toBe(90.0);
 });
+
+// ── Default week (latest activity) ───────────────────────────────────────
+
+it('defaults Rekap Mingguan to the week of the latest activity', function () {
+    $user = staffUser();
+    $employee = Employee::factory()->create(['user_id' => $user->id]);
+
+    // 2026-01-05 is a Monday; no ?week param -> should anchor here.
+    KipActivity::factory()->create([
+        'employee_id' => $employee->id,
+        'activity_date_start' => '2026-01-05',
+    ]);
+
+    $this->actingAs($user)
+        ->get(route('weekly.index'))
+        ->assertInertia(fn ($page) => $page
+            ->where('weekStart', '2026-01-05')
+            ->count('activities', 1)
+        );
+});
+
+it('falls back to the current week when the employee has no activities', function () {
+    $user = staffUser();
+    Employee::factory()->create(['user_id' => $user->id]);
+
+    $expected = Carbon::now()->startOfWeek(Carbon::MONDAY)->toDateString();
+
+    $this->actingAs($user)
+        ->get(route('weekly.index'))
+        ->assertInertia(fn ($page) => $page->where('weekStart', $expected));
+});
