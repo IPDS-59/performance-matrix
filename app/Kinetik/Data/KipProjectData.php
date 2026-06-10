@@ -16,6 +16,8 @@ readonly class KipProjectData
         public ?string $teamName,
         public ?string $leaderNipLama,
         public ?string $leaderName,
+        public ?string $ikuExternalId,
+        public ?string $ikuName,
         public Collection $members,
         public array $raw,
     ) {}
@@ -37,6 +39,8 @@ readonly class KipProjectData
             teamName: self::pick($row, ['namatim']),
             leaderNipLama: self::pick($row, ['niplamaketua']),
             leaderName: self::pick($row, ['namaketua']),
+            ikuExternalId: self::pick($row, ['rkketuaid']),
+            ikuName: self::pick($row, ['rencanakinerjaketua']),
             members: $members,
             raw: $row,
         );

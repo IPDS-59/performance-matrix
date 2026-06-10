@@ -4,6 +4,7 @@ use App\Actions\Kinetik\SyncKipStructureAction;
 use App\Kinetik\Auth\ConfigBearerAuthenticator;
 use App\Kinetik\Sources\ApiKipStructureSource;
 use App\Models\Employee;
+use App\Models\PerformanceIndicator;
 use App\Models\Project;
 use App\Models\Team;
 use App\Models\User;
@@ -34,6 +35,8 @@ function fakeStructure(): void
                 'namatim' => 'UMUM',
                 'niplamaketua' => '340013832',
                 'namaketua' => 'Imron',
+                'rkketuaid' => '294257',
+                'rencanakinerjaketua' => 'Pengelolaan SDM yang baik',
                 'proyekid' => '427670',
                 'namaproyek' => ' Pengembangan SDM ',
                 'anggota' => [
@@ -125,6 +128,20 @@ it('creates login accounts with derived emails and default password', function (
     expect($user->email)->toBe('imron@bpssulteng.id')
         ->and(Hash::check('password', $user->password))->toBeTrue()
         ->and($user->hasRole('staff'))->toBeTrue();
+});
+
+it('syncs IKU from the project rkketua and links the project', function () {
+    fakeStructure();
+
+    $summary = runStructureSync();
+
+    $iku = PerformanceIndicator::where('kip_external_id', '294257')->first();
+    expect($iku)->not->toBeNull()
+        ->and($iku->name)->toBe('Pengelolaan SDM yang baik')
+        ->and($summary['indicators'])->toBe(1);
+
+    $project = Project::where('kip_external_id', '427670')->first();
+    expect($project->performance_indicator_id)->toBe($iku->id);
 });
 
 it('skips member rows without a niplama', function () {

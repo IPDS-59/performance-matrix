@@ -6,6 +6,7 @@ use App\Kinetik\Contracts\KipAuthenticator;
 use App\Kinetik\Contracts\KipStructureSource;
 use App\Kinetik\Data\KipMemberData;
 use App\Kinetik\Data\KipProjectData;
+use App\Kinetik\Data\KipRkData;
 use App\Kinetik\Data\KipTeamData;
 use App\Kinetik\Exceptions\KipApiException;
 use Illuminate\Http\Client\PendingRequest;
@@ -86,6 +87,51 @@ class ApiKipStructureSource implements KipStructureSource
             ->map(fn (array $row): KipMemberData => KipMemberData::fromApiRow($row))
             ->filter(fn (KipMemberData $m): bool => $m->nipLama !== '')
             ->values();
+    }
+
+    public function fetchEmployeePlans(string $nipLama): Collection
+    {
+        $response = $this->client()
+            ->get('v1/dashboard/kegiatanpegawai/belumkirim', ['niplama' => $nipLama]);
+
+        if (! $response->successful()) {
+            throw KipApiException::fromResponse($response, 'fetchEmployeePlans');
+        }
+
+        $groups = $response->json();
+        if (! is_array($groups)) {
+            return collect();
+        }
+
+        $skpIds = collect($groups)
+            ->flatMap(fn (array $g): array => $g['kegiatan'] ?? [])
+            ->pluck('skpid')->filter()->unique()->values();
+
+        $plans = collect();
+
+        foreach ($skpIds as $skpId) {
+            $rkResponse = $this->client()->get('v1/skp/rk', ['skpid' => $skpId]);
+            if (! $rkResponse->successful() || ! is_array($rkResponse->json())) {
+                continue;
+            }
+
+            foreach ($rkResponse->json() as $rk) {
+                $rkId = $rk['rkid'] ?? null;
+                if (empty($rkId)) {
+                    continue;
+                }
+
+                $ikiResponse = $this->client()->get('v1/skp/iki', ['skpid' => $skpId, 'rkid' => $rkId]);
+                $ikiText = null;
+                if ($ikiResponse->successful() && is_array($ikiResponse->json())) {
+                    $ikiText = $ikiResponse->json()[0]['iki'] ?? null;
+                }
+
+                $plans->push(KipRkData::fromApiRow($rk, $ikiText));
+            }
+        }
+
+        return $plans->values();
     }
 
     private function client(): PendingRequest

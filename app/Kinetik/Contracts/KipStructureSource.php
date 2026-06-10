@@ -4,6 +4,7 @@ namespace App\Kinetik\Contracts;
 
 use App\Kinetik\Data\KipMemberData;
 use App\Kinetik\Data\KipProjectData;
+use App\Kinetik\Data\KipRkData;
 use App\Kinetik\Data\KipTeamData;
 use Illuminate\Support\Collection;
 
@@ -31,4 +32,12 @@ interface KipStructureSource
      * @return Collection<int, KipMemberData>
      */
     public function fetchTeamMembers(string $timkerjaId): Collection;
+
+    /**
+     * Cascade: an employee's RK list with targets parsed from IKI text
+     * (belumkirim -> skp/rk -> skp/iki).
+     *
+     * @return Collection<int, KipRkData>
+     */
+    public function fetchEmployeePlans(string $nipLama): Collection;
 }

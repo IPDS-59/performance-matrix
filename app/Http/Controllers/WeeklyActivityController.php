@@ -61,14 +61,17 @@ class WeeklyActivityController extends Controller
         if ($employee) {
             $teamIds = $employee->teams()->pluck('teams.id');
 
-            $plans = PerformancePlan::with('project.team')
-                ->whereHas('project', fn ($q) => $q->whereIn('team_id', $teamIds))
+            $plans = PerformancePlan::with('project.team', 'team')
+                ->where(function ($q) use ($teamIds) {
+                    $q->whereIn('team_id', $teamIds)
+                        ->orWhereHas('project', fn ($p) => $p->whereIn('team_id', $teamIds));
+                })
                 ->get()
                 ->map(fn (PerformancePlan $plan) => [
                     'id' => $plan->id,
                     'description' => $plan->description,
                     'project_name' => $plan->project?->name ?? '—',
-                    'team_name' => $plan->project?->team?->name ?? '—',
+                    'team_name' => $plan->project?->team?->name ?? $plan->team?->name ?? '—',
                 ]);
         }
 

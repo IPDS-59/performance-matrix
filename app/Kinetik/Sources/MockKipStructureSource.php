@@ -5,6 +5,7 @@ namespace App\Kinetik\Sources;
 use App\Kinetik\Contracts\KipStructureSource;
 use App\Kinetik\Data\KipMemberData;
 use App\Kinetik\Data\KipProjectData;
+use App\Kinetik\Data\KipRkData;
 use App\Kinetik\Data\KipTeamData;
 use Illuminate\Support\Collection;
 
@@ -45,6 +46,20 @@ class MockKipStructureSource implements KipStructureSource
         return collect([
             KipMemberData::fromApiRow(['anggotaid' => "{$timkerjaId}-m1", 'pegawaiid' => '1', 'niplama' => "34000{$timkerjaId}1", 'nipbaru' => '1', 'nama' => 'Anggota Satu', 'jabatanid' => '50', 'namajabatan' => 'Statistisi']),
             KipMemberData::fromApiRow(['anggotaid' => "{$timkerjaId}-m2", 'pegawaiid' => '2', 'niplama' => "34000{$timkerjaId}2", 'nipbaru' => '2', 'nama' => 'Anggota Dua', 'jabatanid' => '50', 'namajabatan' => 'Statistisi']),
+        ]);
+    }
+
+    public function fetchEmployeePlans(string $nipLama): Collection
+    {
+        return collect([
+            KipRkData::fromApiRow(
+                ['rkid' => "mock-rk-{$nipLama}-001", 'rencanakinerja' => 'Tersusunnya publikasi statistik', 'timkerjaid' => '900001'],
+                'Jumlah Publikasi Sebanyak 4 dokumen',
+            ),
+            KipRkData::fromApiRow(
+                ['rkid' => "mock-rk-{$nipLama}-002", 'rencanakinerja' => 'Terlaksananya supervisi', 'timkerjaid' => '900001'],
+                'Persentase Supervisi: 100%',
+            ),
         ]);
     }
 }
