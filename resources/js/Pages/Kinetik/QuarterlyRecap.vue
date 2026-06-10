@@ -18,6 +18,7 @@ const props = defineProps<{
     year: number;
     quarter: number;
     pics: TeamOption[];
+    canManage: boolean;
 }>();
 
 const quarterLabel = computed(() => `Triwulan ${props.quarter} ${props.year}`);
@@ -140,7 +141,7 @@ function submitOverride() {
                                         <span v-if="row.achievement != null" :class="['font-semibold', achievementColor(row.achievement)]">{{ row.achievement.toFixed(2) }}%</span>
                                     </p>
                                 </div>
-                                <Button size="sm" variant="outline" class="shrink-0" @click="openEditor(row)">
+                                <Button v-if="canManage" size="sm" variant="outline" class="shrink-0" @click="openEditor(row)">
                                     <Pencil class="mr-1 h-3 w-3" /> Parafrase
                                 </Button>
                             </div>

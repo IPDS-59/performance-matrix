@@ -23,6 +23,7 @@ const props = defineProps<{
     weekEnd: string;
     prevWeek: string;
     nextWeek: string;
+    canManage: boolean;
 }>();
 
 function navigate(params: Record<string, string | number>) {
@@ -160,12 +161,13 @@ function deleteEvidence(id: number) {
             <div>
                 <div class="mb-3 flex items-center justify-between">
                     <h2 class="text-sm font-semibold text-gray-700">Bukti Dukung Rapat</h2>
-                    <Button size="sm" variant="outline" @click="showEvidenceForm = !showEvidenceForm">
+                    <Button v-if="canManage" size="sm" variant="outline" @click="showEvidenceForm = !showEvidenceForm">
                         {{ showEvidenceForm ? 'Tutup' : 'Tambah Bukti' }}
                     </Button>
+                    <span v-else class="text-xs text-gray-400">Hanya PJ yang dapat menambah bukti</span>
                 </div>
 
-                <form v-if="showEvidenceForm" class="mb-4 space-y-3 rounded-md border bg-white p-4" @submit.prevent="submitEvidence">
+                <form v-if="canManage && showEvidenceForm" class="mb-4 space-y-3 rounded-md border bg-white p-4" @submit.prevent="submitEvidence">
                     <div class="grid grid-cols-2 gap-3">
                         <div>
                             <Label for="ev-type">Jenis</Label>
@@ -208,7 +210,7 @@ function deleteEvidence(id: number) {
                             <a :href="ev.url" target="_blank" rel="noopener noreferrer" class="inline-flex items-center gap-1 text-xs text-primary hover:underline">
                                 Buka <ExternalLink class="h-3 w-3" />
                             </a>
-                            <button type="button" class="text-gray-400 hover:text-red-600" title="Hapus" @click="deleteEvidence(ev.id)">
+                            <button v-if="canManage" type="button" class="text-gray-400 hover:text-red-600" title="Hapus" @click="deleteEvidence(ev.id)">
                                 <Trash2 class="h-4 w-4" />
                             </button>
                         </div>

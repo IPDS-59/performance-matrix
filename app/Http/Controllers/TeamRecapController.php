@@ -49,6 +49,7 @@ class TeamRecapController extends Controller
             'weekEnd' => $weekEnd,
             'prevWeek' => Carbon::parse($weekStart)->subWeek()->toDateString(),
             'nextWeek' => Carbon::parse($weekStart)->addWeek()->toDateString(),
+            'canManage' => $team !== null && $this->isPj($employee, $team->id),
         ]);
     }
 
@@ -71,6 +72,7 @@ class TeamRecapController extends Controller
             'segments' => $segments,
             'year' => $year,
             'month' => $month,
+            'canManage' => $team !== null && $this->isPj($employee, $team->id),
         ]);
     }
 
@@ -94,6 +96,7 @@ class TeamRecapController extends Controller
             'year' => $year,
             'quarter' => $quarter,
             'pics' => $team ? $this->teamMemberOptions($team) : [],
+            'canManage' => $team !== null && $this->isPj($employee, $team->id),
         ]);
     }
 
@@ -113,7 +116,7 @@ class TeamRecapController extends Controller
             'url' => ['required', 'url', 'max:2048'],
         ]);
 
-        $this->authorizeMembership($employee, (int) $validated['team_id']);
+        $this->authorizePj($employee, (int) $validated['team_id']);
 
         $weekStart = Carbon::parse($validated['week_start']);
 
@@ -137,7 +140,7 @@ class TeamRecapController extends Controller
         $employee = $request->user()->employee;
         abort_if($employee === null, 403, 'Akun tidak terhubung ke data pegawai.');
 
-        $this->authorizeMembership($employee, $evidence->team_id);
+        $this->authorizePj($employee, $evidence->team_id);
 
         $evidence->delete();
 
@@ -166,7 +169,7 @@ class TeamRecapController extends Controller
             'follow_up_deadline' => ['nullable', 'date'],
         ]);
 
-        $this->authorizeMembership($employee, (int) $validated['team_id']);
+        $this->authorizePj($employee, (int) $validated['team_id']);
 
         RecapOverride::updateOrCreate(
             [
@@ -240,10 +243,25 @@ class TeamRecapController extends Controller
             ->all();
     }
 
-    private function authorizeMembership(Employee $employee, int $teamId): void
+    /**
+     * PJ = team leader (teams.leader_id) or a member with the 'leader' pivot role.
+     * Per the RFC, only the PJ may upload meeting evidence and paraphrase recaps.
+     */
+    private function isPj(Employee $employee, int $teamId): bool
     {
-        $isMember = $employee->teams()->where('teams.id', $teamId)->exists();
+        return Team::where('id', $teamId)->where('leader_id', $employee->id)->exists()
+            || $employee->teams()
+                ->where('teams.id', $teamId)
+                ->wherePivot('role', 'leader')
+                ->exists();
+    }
 
-        abort_unless($isMember, 403, 'Anda tidak memiliki akses ke rekap tim ini.');
+    private function authorizePj(Employee $employee, int $teamId): void
+    {
+        abort_unless(
+            $this->isPj($employee, $teamId),
+            403,
+            'Hanya PJ / Ketua Tim yang dapat mengelola bukti dan parafrase rekap.',
+        );
     }
 }
