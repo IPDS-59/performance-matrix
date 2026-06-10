@@ -3,11 +3,15 @@
 namespace App\Http\Controllers;
 
 use App\Actions\Kinetik\SyncKipActivitiesAction;
+use App\Actions\Kinetik\SyncKipStructureAction;
 use App\Kinetik\Contracts\KipActivitySource;
+use App\Kinetik\Contracts\KipStructureSource;
 use App\Kinetik\KipTokenInfo;
 use App\Models\Employee;
 use App\Models\KipActivity;
 use App\Models\KipCredential;
+use App\Models\Project;
+use App\Models\Team;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -26,6 +30,7 @@ class KipIntegrationController extends Controller
                 'account_name' => $credential->account_name,
                 'expires_at' => $credential->expires_at?->toIso8601String(),
                 'is_expired' => $credential->isExpired(),
+                'is_expiring_soon' => $credential->isExpiringSoon(),
                 'updated_at' => $credential->updated_at?->toIso8601String(),
                 'updated_by' => $credential->updatedBy?->name,
             ] : null,
@@ -34,6 +39,8 @@ class KipIntegrationController extends Controller
                 'employees_total' => Employee::where('is_active', true)->count(),
                 'activities_synced' => KipActivity::count(),
                 'last_fetched_at' => KipActivity::max('fetched_at'),
+                'teams_synced' => Team::whereNotNull('kip_external_id')->count(),
+                'projects_synced' => Project::whereNotNull('kip_external_id')->count(),
             ],
         ]);
     }
@@ -80,5 +87,31 @@ class KipIntegrationController extends Controller
         }
 
         return back()->with('success', "Sinkronisasi selesai. {$upserted} kegiatan diperbarui untuk {$employees->count()} pegawai.");
+    }
+
+    public function syncStructure(
+        Request $request,
+        KipStructureSource $source,
+        SyncKipStructureAction $action,
+    ): RedirectResponse {
+        $credential = KipCredential::current();
+
+        if ($credential === null && empty(config('kinetik.kip.token'))) {
+            return back()->with('error', 'Belum ada token kipApp. Simpan token terlebih dahulu.');
+        }
+
+        try {
+            $summary = $action->execute($source);
+        } catch (Throwable $e) {
+            return back()->with('error', 'Sinkronisasi struktur gagal: '.$e->getMessage());
+        }
+
+        $message = "Struktur tersinkron. {$summary['teams']} tim, {$summary['projects']} projek, "
+            ."{$summary['employees_created']} pegawai baru, {$summary['employees_updated']} diperbarui.";
+        if ($summary['skipped_no_niplama'] > 0) {
+            $message .= " {$summary['skipped_no_niplama']} baris dilewati (tanpa NIP Lama).";
+        }
+
+        return back()->with('success', $message);
     }
 }
