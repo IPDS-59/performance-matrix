@@ -15,8 +15,14 @@ class KipActivityController extends Controller
         $search = trim((string) $request->query('q', ''));
         $status = $request->query('status', 'all'); // all | claimed | unclaimed
 
+        // Admins (kipApp managers) see every employee's activities; everyone else
+        // is scoped to their own linked employee.
+        $canViewAll = $request->user()->can('manage-kip-integration');
+        $ownEmployeeId = $request->user()->employee?->id;
+
         $activities = KipActivity::query()
             ->with('employee:id,name,display_name,nip_lama')
+            ->when(! $canViewAll, fn (Builder $q) => $q->where('employee_id', $ownEmployeeId))
             ->when($search !== '', function (Builder $query) use ($search) {
                 $query->where(function (Builder $q) use ($search) {
                     $q->where('description', 'like', "%{$search}%")
@@ -44,6 +50,9 @@ class KipActivityController extends Controller
                 'is_claimed' => $a->is_claimed,
             ]);
 
+        $scopeQuery = fn () => KipActivity::query()
+            ->when(! $canViewAll, fn (Builder $q) => $q->where('employee_id', $ownEmployeeId));
+
         return Inertia::render('Kinetik/Activities', [
             'activities' => $activities,
             'filters' => [
@@ -51,9 +60,10 @@ class KipActivityController extends Controller
                 'status' => $status,
             ],
             'stats' => [
-                'total' => KipActivity::count(),
-                'claimed' => KipActivity::where('is_claimed', true)->count(),
+                'total' => $scopeQuery()->count(),
+                'claimed' => $scopeQuery()->where('is_claimed', true)->count(),
             ],
+            'canViewAll' => $canViewAll,
         ]);
     }
 }

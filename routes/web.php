@@ -87,6 +87,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::delete('/report-attachments/{attachment}', [ReportAttachmentController::class, 'destroy'])->name('report-attachments.destroy');
     Route::patch('/report-attachments/{attachment}/review', [ReportAttachmentController::class, 'review'])->name('report-attachments.review');
 
+    // kipApp activities — admins see all, others see their own
+    Route::get('/kegiatan-kipapp', [KipActivityController::class, 'index'])->name('kip-activities.index');
+
     // Weekly activity scrapper / recap
     Route::get('/rekap-mingguan', [WeeklyActivityController::class, 'index'])->name('weekly.index');
     Route::post('/rekap-mingguan/sync', [WeeklyActivityController::class, 'sync'])->name('weekly.sync');
@@ -107,7 +110,6 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::post('/integrasi-kipapp/token', [KipIntegrationController::class, 'storeToken'])->name('kip-integration.token');
         Route::post('/integrasi-kipapp/sync', [KipIntegrationController::class, 'syncAll'])->name('kip-integration.sync');
         Route::post('/integrasi-kipapp/sync-structure', [KipIntegrationController::class, 'syncStructure'])->name('kip-integration.sync-structure');
-        Route::get('/kegiatan-kipapp', [KipActivityController::class, 'index'])->name('kip-activities.index');
     });
 
     // Profile
