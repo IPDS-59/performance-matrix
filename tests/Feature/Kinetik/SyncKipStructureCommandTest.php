@@ -11,6 +11,7 @@ beforeEach(function () {
         'kinetik.kip.token' => 'test-token-abc',
         'kinetik.kip.timeout' => 15,
         'kinetik.kip.tahun' => 2026,
+        'kinetik.kip.create_logins' => false,
     ]);
 });
 

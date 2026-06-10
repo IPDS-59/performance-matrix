@@ -298,3 +298,33 @@ export interface TeamOption {
     id: number;
     name: string;
 }
+
+// ── Kinetik: kipApp integration ──────────────────────────────────────────────
+
+export interface KipCredential {
+    account_nip: string | null;
+    account_name: string | null;
+    expires_at: string | null;
+    is_expired: boolean;
+    is_expiring_soon: boolean;
+    updated_at: string | null;
+    updated_by: string | null;
+}
+
+export interface KipIntegrationStats {
+    employees_with_nip: number;
+    employees_total: number;
+    activities_synced: number;
+    last_fetched_at: string | null;
+    teams_synced: number;
+    projects_synced: number;
+}
+
+export interface KipSyncRun {
+    id: number;
+    status: 'running' | 'completed' | 'failed';
+    total: number;
+    processed: number;
+    summary: Record<string, number>;
+    message: string | null;
+}
