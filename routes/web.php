@@ -3,6 +3,7 @@
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\EmployeeController;
 use App\Http\Controllers\EmployeeReportController;
+use App\Http\Controllers\KipIntegrationController;
 use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\PerformanceApprovalController;
 use App\Http\Controllers\PerformanceController;
@@ -14,7 +15,6 @@ use App\Http\Controllers\ProjectDetailController;
 use App\Http\Controllers\ProjectListController;
 use App\Http\Controllers\ReportAttachmentController;
 use App\Http\Controllers\ReportResubmitController;
-use App\Http\Controllers\KipIntegrationController;
 use App\Http\Controllers\TeamController;
 use App\Http\Controllers\TeamMemberController;
 use App\Http\Controllers\TeamRecapController;
