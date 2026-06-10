@@ -2,6 +2,7 @@
 import AppLayout from '@/Layouts/AppLayout.vue';
 import { Head, router } from '@inertiajs/vue3';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/Components/ui/select';
+import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/Components/ui/table';
 import { VisXYContainer, VisGroupedBar, VisAxis, VisTooltip } from '@unovis/vue';
 import { GroupedBar } from '@unovis/ts';
 import { computed, ref } from 'vue';
@@ -228,36 +229,36 @@ function achievementColor(val: number | null) {
                 <h2 class="text-sm font-semibold text-gray-700">Semua Pegawai Aktif</h2>
             </div>
             <div class="overflow-x-auto">
-                <table class="w-full text-sm">
-                    <thead>
-                        <tr class="border-b bg-gray-50 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
-                            <th class="px-6 py-3">Nama</th>
-                            <th class="px-4 py-3">Tim</th>
-                            <th class="px-4 py-3 text-center">Total Proyek</th>
-                            <th class="px-4 py-3 text-center">Ketua</th>
-                            <th class="px-4 py-3 text-center">Anggota</th>
-                            <th class="px-4 py-3">Capaian</th>
-                        </tr>
-                    </thead>
-                    <tbody class="divide-y">
-                        <tr v-for="emp in employees" :key="emp.id" class="hover:bg-gray-50">
-                            <td class="px-6 py-3">
+                <Table class="w-full text-sm">
+                    <TableHeader>
+                        <TableRow class="border-b bg-gray-50 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
+                            <TableHead>Nama</TableHead>
+                            <TableHead>Tim</TableHead>
+                            <TableHead class="text-center">Total Proyek</TableHead>
+                            <TableHead class="text-center">Ketua</TableHead>
+                            <TableHead class="text-center">Anggota</TableHead>
+                            <TableHead>Capaian</TableHead>
+                        </TableRow>
+                    </TableHeader>
+                    <TableBody class="divide-y">
+                        <TableRow v-for="emp in employees" :key="emp.id" class="hover:bg-gray-50">
+                            <TableCell>
                                 <p class="font-medium text-gray-900">{{ emp.display_name ?? emp.name }}</p>
                                 <p v-if="emp.position" class="text-xs text-gray-400">{{ emp.position }}</p>
-                            </td>
-                            <td class="px-4 py-3 text-gray-600">{{ emp.team?.name ?? '—' }}</td>
-                            <td class="px-4 py-3 text-center font-medium">{{ emp.total_projects }}</td>
-                            <td class="px-4 py-3 text-center">
+                            </TableCell>
+                            <TableCell class="text-gray-600">{{ emp.team?.name ?? '—' }}</TableCell>
+                            <TableCell class="text-center font-medium">{{ emp.total_projects }}</TableCell>
+                            <TableCell class="text-center">
                                 <span class="rounded-full bg-blue-100 px-2 py-0.5 text-xs font-medium text-blue-700">
                                     {{ emp.leader_count }}
                                 </span>
-                            </td>
-                            <td class="px-4 py-3 text-center">
+                            </TableCell>
+                            <TableCell class="text-center">
                                 <span class="rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-600">
                                     {{ emp.member_count }}
                                 </span>
-                            </td>
-                            <td class="px-4 py-3">
+                            </TableCell>
+                            <TableCell>
                                 <div v-if="emp.avg_achievement !== null" class="flex items-center gap-2">
                                     <div class="h-1.5 w-24 overflow-hidden rounded-full bg-gray-100">
                                         <div
@@ -271,10 +272,10 @@ function achievementColor(val: number | null) {
                                     </span>
                                 </div>
                                 <span v-else class="text-xs text-gray-400">—</span>
-                            </td>
-                        </tr>
-                    </tbody>
-                </table>
+                            </TableCell>
+                        </TableRow>
+                    </TableBody>
+                </Table>
             </div>
         </div>
     </AppLayout>
