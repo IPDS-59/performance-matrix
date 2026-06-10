@@ -6,6 +6,7 @@ use App\Kinetik\Contracts\KipStructureSource;
 use App\Kinetik\Data\KipMemberData;
 use App\Kinetik\Data\KipProjectData;
 use App\Models\Employee;
+use App\Models\PerformanceIndicator;
 use App\Models\Project;
 use App\Models\Team;
 use App\Models\User;
@@ -31,7 +32,7 @@ use Spatie\Permission\Models\Role;
  *  - project_members is kipApp-owned -> full sync. employee_team is shared with
  *    Domain A -> additive syncWithoutDetaching only.
  *
- * @phpstan-type Counts array{teams:int, projects:int, employees_created:int, employees_updated:int, users_created:int, project_member_links:int, team_member_links:int, skipped_no_niplama:int}
+ * @phpstan-type Counts array{teams:int, projects:int, indicators:int, employees_created:int, employees_updated:int, users_created:int, project_member_links:int, team_member_links:int, skipped_no_niplama:int}
  */
 class SyncKipStructureAction
 {
@@ -94,7 +95,8 @@ class SyncKipStructureAction
         }
 
         foreach ($projects as $projectData) {
-            $project = $this->upsertProject($team, $projectData, $leader?->id);
+            $indicator = $this->upsertIndicator($team, $projectData);
+            $project = $this->upsertProject($team, $projectData, $leader?->id, $indicator?->id);
             $this->counts['projects']++;
 
             $members = $this->provisionEmployees($projectData->members);
@@ -146,7 +148,7 @@ class SyncKipStructureAction
         return $team;
     }
 
-    private function upsertProject(Team $team, KipProjectData $data, ?int $leaderId): Project
+    private function upsertProject(Team $team, KipProjectData $data, ?int $leaderId, ?int $indicatorId): Project
     {
         $project = Project::where('kip_external_id', $data->externalId)->first()
             ?? Project::whereNull('kip_external_id')
@@ -161,9 +163,37 @@ class SyncKipStructureAction
         if ($leaderId) {
             $project->leader_id = $leaderId;
         }
+        if ($indicatorId) {
+            $project->performance_indicator_id = $indicatorId;
+        }
         $project->save();
 
         return $project;
+    }
+
+    /**
+     * IKU = the team leader's RK for the project (rkketuaid / rencanakinerjaketua).
+     */
+    private function upsertIndicator(Team $team, KipProjectData $data): ?PerformanceIndicator
+    {
+        if ($data->ikuExternalId === null || $data->ikuName === null) {
+            return null;
+        }
+
+        $indicator = PerformanceIndicator::where('kip_external_id', $data->ikuExternalId)->first();
+        $isNew = $indicator === null;
+        $indicator ??= new PerformanceIndicator(['year' => (int) config('kinetik.kip.tahun')]);
+
+        $indicator->kip_external_id = $data->ikuExternalId;
+        $indicator->team_id = $team->id;
+        $indicator->name = $data->ikuName;
+        $indicator->save();
+
+        if ($isNew) {
+            $this->counts['indicators']++;
+        }
+
+        return $indicator;
     }
 
     /**
@@ -307,6 +337,7 @@ class SyncKipStructureAction
         return [
             'teams' => 0,
             'projects' => 0,
+            'indicators' => 0,
             'employees_created' => 0,
             'employees_updated' => 0,
             'users_created' => 0,

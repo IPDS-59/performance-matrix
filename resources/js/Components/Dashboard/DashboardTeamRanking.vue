@@ -33,8 +33,18 @@ const { achievementColor, progressVariant } = useAchievementColor();
 
 // ── Bar chart (Unovis) ────────────────────────────────────────────────────
 
+// A short, readable tick label: a parenthetical acronym if present
+// (e.g. "... (MTI)" -> "MTI"), otherwise a truncated name. Avoids showing the
+// synthetic "KIP-xxxxx" team code from the kipApp sync.
+function shortLabel(name: string, code?: string | null): string {
+    const acronym = name.match(/\(([^)]+)\)/);
+    if (acronym) return acronym[1];
+    if (code && !/^KIP-/i.test(code)) return code;
+    return name.length > 14 ? `${name.slice(0, 12)}…` : name;
+}
+
 const barChartUnovisData = computed<BarChartDatum[]>(() =>
-    props.teamList.map(t => ({ label: t.name, code: t.code ?? t.name, value: t.avg })),
+    props.teamList.map(t => ({ label: t.name, code: shortLabel(t.name, t.code), value: t.avg })),
 );
 
 const barX = (_d: BarChartDatum, i: number) => i;

@@ -12,6 +12,7 @@ class PerformanceIndicator extends Model
     use HasFactory;
 
     protected $fillable = [
+        'kip_external_id',
         'team_id',
         'year',
         'code',

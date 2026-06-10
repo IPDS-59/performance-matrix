@@ -13,3 +13,6 @@ Schedule::command('kinetik:sync-kip-activities')->weeklyOn(1, '05:00');
 
 // Kinetik: mirror kipApp structure (teams/projects/members) every Monday at 04:30
 Schedule::command('kinetik:sync-kip-structure')->weeklyOn(1, '04:30');
+
+// Kinetik: enrich RK with team + parsed IKI targets every Monday at 04:45
+Schedule::command('kinetik:sync-kip-plans')->weeklyOn(1, '04:45');
