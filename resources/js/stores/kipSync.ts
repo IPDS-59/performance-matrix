@@ -4,34 +4,36 @@ import { router, usePage } from '@inertiajs/vue3';
 import type { KipSyncRun } from '@/types';
 
 /**
- * Drives the chunked (no-queue) kipApp structure sync: each request syncs one
- * team, so the loop here keeps re-posting until the server marks the run done.
- * The authoritative run state lives in the Inertia page props (`structureRun`),
- * updated after every step; this store only owns the loop/progress flag.
+ * Drives the chunked (no-queue) kipApp syncs: each request handles one unit
+ * (a team for structure, a batch of employees for activities), so the loop here
+ * keeps re-posting until the server marks the run done. The authoritative run
+ * state lives in the Inertia page props, updated after every step; this store
+ * only owns the loop/progress flags.
  */
 export const useKipSyncStore = defineStore('kipSync', () => {
     const structureSyncing = ref(false);
+    const activitySyncing = ref(false);
 
-    function structureRun(): KipSyncRun | null {
-        return (usePage().props.structureRun as KipSyncRun | null) ?? null;
+    function runProp(key: 'structureRun' | 'activityRun'): KipSyncRun | null {
+        return (usePage().props[key] as KipSyncRun | null) ?? null;
     }
 
-    function stepStructure() {
+    function loop(routeName: string, propKey: 'structureRun' | 'activityRun', flag: typeof structureSyncing) {
         router.post(
-            route('kip-integration.sync-structure'),
+            route(routeName),
             {},
             {
                 preserveScroll: true,
                 preserveState: true,
                 onSuccess: () => {
-                    if (structureRun()?.status === 'running') {
-                        stepStructure();
+                    if (runProp(propKey)?.status === 'running') {
+                        loop(routeName, propKey, flag);
                     } else {
-                        structureSyncing.value = false;
+                        flag.value = false;
                     }
                 },
                 onError: () => {
-                    structureSyncing.value = false;
+                    flag.value = false;
                 },
             },
         );
@@ -40,8 +42,14 @@ export const useKipSyncStore = defineStore('kipSync', () => {
     function startStructureSync() {
         if (structureSyncing.value) return;
         structureSyncing.value = true;
-        stepStructure();
+        loop('kip-integration.sync-structure', 'structureRun', structureSyncing);
     }
 
-    return { structureSyncing, startStructureSync };
+    function startActivitySync() {
+        if (activitySyncing.value) return;
+        activitySyncing.value = true;
+        loop('kip-integration.sync', 'activityRun', activitySyncing);
+    }
+
+    return { structureSyncing, activitySyncing, startStructureSync, startActivitySync };
 });

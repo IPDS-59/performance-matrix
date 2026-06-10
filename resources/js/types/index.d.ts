@@ -328,3 +328,24 @@ export interface KipSyncRun {
     summary: Record<string, number>;
     message: string | null;
 }
+
+export interface Paginated<T> {
+    data: T[];
+    current_page: number;
+    last_page: number;
+    total: number;
+    links: Array<{ url: string | null; label: string; active: boolean }>;
+}
+
+export interface KipActivityRow {
+    id: number;
+    employee_name: string;
+    nip_lama: string | null;
+    description: string | null;
+    rk_name: string | null;
+    date_start: string | null;
+    date_end: string | null;
+    progress: number | null;
+    evidence_url: string | null;
+    is_claimed: boolean;
+}

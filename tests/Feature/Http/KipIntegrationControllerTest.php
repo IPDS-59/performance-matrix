@@ -84,7 +84,7 @@ it('makes the authenticator prefer the stored credential over config', function 
 
 // ── Centralized sync ──────────────────────────────────────────────────────
 
-it('syncs all active employees with a nip_lama', function () {
+it('syncs all active employees with a nip_lama in one chunk', function () {
     $this->app->bind(KipActivitySource::class, MockKipActivitySource::class);
     KipCredential::create(['token' => 'admin-token']);
 
@@ -94,13 +94,43 @@ it('syncs all active employees with a nip_lama', function () {
     ]);
     Employee::factory()->create(['is_active' => true, 'nip_lama' => null]); // skipped
 
+    // 2 employees <= default chunk (5) -> completes in a single step.
     $this->actingAs(adminUser())
         ->post(route('kip-integration.sync'))
-        ->assertRedirect()
-        ->assertSessionHas('success');
+        ->assertRedirect();
+
+    $run = KipSyncRun::where('type', 'activities')->latest('id')->first();
+    expect($run->status)->toBe('completed')
+        ->and($run->total)->toBe(2)
+        ->and($run->summary['activities'])->toBe(6);
 
     // MockKipActivitySource returns 3 activities per employee → 2 employees = 6
     expect(KipActivity::count())->toBe(6);
+});
+
+it('processes the activity sync in chunks across requests', function () {
+    config(['kinetik.kip.activity_chunk' => 1]);
+    $this->app->bind(KipActivitySource::class, MockKipActivitySource::class);
+    KipCredential::create(['token' => 'admin-token']);
+
+    Employee::factory()->count(2)->create([
+        'is_active' => true,
+        'nip_lama' => fn () => fake()->unique()->numerify('3400#####'),
+    ]);
+
+    $admin = adminUser();
+
+    // Step 1: one employee processed, run still running.
+    $this->actingAs($admin)->post(route('kip-integration.sync'))->assertRedirect();
+    $run = KipSyncRun::where('type', 'activities')->latest('id')->first();
+    expect($run->processed)->toBe(1)->and($run->status)->toBe('running');
+
+    // Step 2: last employee, run completes.
+    $this->actingAs($admin)->post(route('kip-integration.sync'))->assertRedirect();
+    $run->refresh();
+    expect($run->processed)->toBe(2)
+        ->and($run->status)->toBe('completed')
+        ->and(KipActivity::count())->toBe(6);
 });
 
 it('blocks sync when no token is configured', function () {

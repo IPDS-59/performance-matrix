@@ -46,6 +46,9 @@ class KipIntegrationController extends Controller
             'structureRun' => $this->runPayload(
                 KipSyncRun::active('structure') ?? KipSyncRun::where('type', 'structure')->latest('id')->first()
             ),
+            'activityRun' => $this->runPayload(
+                KipSyncRun::active('activities') ?? KipSyncRun::where('type', 'activities')->latest('id')->first()
+            ),
         ]);
     }
 
@@ -71,6 +74,11 @@ class KipIntegrationController extends Controller
         return back()->with('success', 'Token kipApp berhasil disimpan.'.$when);
     }
 
+    /**
+     * One chunk of the activity sync: processes a small batch of employees per
+     * request so each stays under the 30s limit (no queue worker). The browser
+     * calls this repeatedly until the run completes.
+     */
     public function syncAll(
         Request $request,
         KipActivitySource $source,
@@ -80,17 +88,56 @@ class KipIntegrationController extends Controller
             return back()->with('error', 'Belum ada token kipApp. Simpan token terlebih dahulu.');
         }
 
-        $employees = Employee::where('is_active', true)
-            ->whereNotNull('nip_lama')
-            ->get();
+        $run = KipSyncRun::active('activities');
 
         try {
-            $upserted = $action->execute($source, $employees);
+            if ($run === null) {
+                $employeeIds = Employee::where('is_active', true)
+                    ->whereNotNull('nip_lama')
+                    ->pluck('id')->all();
+
+                $run = KipSyncRun::create([
+                    'type' => 'activities',
+                    'status' => empty($employeeIds) ? 'completed' : 'running',
+                    'total' => count($employeeIds),
+                    'processed' => 0,
+                    'pending' => $employeeIds,
+                    'summary' => ['activities' => 0],
+                    'user_id' => $request->user()->id,
+                    'finished_at' => empty($employeeIds) ? now() : null,
+                ]);
+            }
+
+            $pending = $run->pending ?? [];
+
+            if ($run->status === 'running' && ! empty($pending)) {
+                $chunk = max(1, (int) config('kinetik.kip.activity_chunk', 5));
+                $batch = array_splice($pending, 0, $chunk);
+
+                $employees = Employee::whereIn('id', $batch)->get();
+                $upserted = $action->execute($source, $employees);
+
+                $summary = $run->summary ?? [];
+                $summary['activities'] = ($summary['activities'] ?? 0) + $upserted;
+
+                $run->pending = $pending;
+                $run->processed = $run->processed + count($batch);
+                $run->summary = $summary;
+
+                if (empty($pending)) {
+                    $run->status = 'completed';
+                    $run->finished_at = now();
+                }
+
+                $run->save();
+            }
         } catch (Throwable $e) {
+            $run?->update(['status' => 'failed', 'message' => $e->getMessage(), 'finished_at' => now()]);
+
             return back()->with('error', 'Sinkronisasi gagal: '.$e->getMessage());
         }
 
-        return back()->with('success', "Sinkronisasi selesai. {$upserted} kegiatan diperbarui untuk {$employees->count()} pegawai.");
+        return back();
     }
 
     /**
