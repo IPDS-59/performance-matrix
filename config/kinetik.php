@@ -34,5 +34,8 @@ return [
         'create_logins' => (bool) env('KIP_CREATE_LOGINS', true),
         'email_domain' => env('KIP_EMAIL_DOMAIN', 'bpssulteng.id'),
         'default_password' => env('KIP_DEFAULT_PASSWORD', 'password'),
+
+        // Employees processed per chunk during the no-queue activity sync.
+        'activity_chunk' => (int) env('KIP_ACTIVITY_CHUNK', 5),
     ],
 ];
