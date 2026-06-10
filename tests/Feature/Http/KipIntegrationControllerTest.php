@@ -1,10 +1,12 @@
 <?php
 
+use App\Kinetik\Auth\ConfigBearerAuthenticator;
 use App\Kinetik\Contracts\KipActivitySource;
 use App\Kinetik\Sources\MockKipActivitySource;
 use App\Models\Employee;
 use App\Models\KipActivity;
 use App\Models\KipCredential;
+use Illuminate\Support\Facades\Http;
 
 /**
  * Build a kipApp-style JWT (header.payload.sig) with the given payload.
@@ -72,8 +74,8 @@ it('makes the authenticator prefer the stored credential over config', function 
 
     KipCredential::create(['token' => 'db-token']);
 
-    $request = app(\App\Kinetik\Auth\ConfigBearerAuthenticator::class)
-        ->apply(Illuminate\Support\Facades\Http::baseUrl('http://x'));
+    $request = app(ConfigBearerAuthenticator::class)
+        ->apply(Http::baseUrl('http://x'));
 
     expect($request->getOptions()['headers']['x-auth'] ?? null)->toBe('Bearer db-token');
 });
