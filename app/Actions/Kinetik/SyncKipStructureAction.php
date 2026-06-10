@@ -105,15 +105,22 @@ class SyncKipStructureAction
             $this->counts['project_member_links'] += $members->count();
         }
 
-        // Team members pivot (additive). Never downgrade the leader's role.
-        $teamMembers = $this->provisionEmployees($source->fetchTeamMembers($timkerjaId))
-            ->reject(fn (Employee $e) => $leader && $e->id === $leader->id);
-        if ($teamMembers->isNotEmpty()) {
-            $team->members()->syncWithoutDetaching(
-                $teamMembers->mapWithKeys(fn (Employee $e) => [$e->id => ['role' => 'member']])->all()
-            );
-            $teamEmployees = $teamEmployees->concat($teamMembers);
-            $this->counts['team_member_links'] += $teamMembers->count();
+        // Team roster (timkerja/anggota) — provision; pivot handled below.
+        $teamEmployees = $teamEmployees->concat(
+            $this->provisionEmployees($source->fetchTeamMembers($timkerjaId))
+        );
+
+        // Everyone working in this team (leader + project members + roster) is a
+        // team member, so team-scoped views (recaps) resolve their membership.
+        // Additive (syncWithoutDetaching) and never downgrades the leader's role.
+        $memberLinks = $teamEmployees
+            ->reject(fn (Employee $e) => $leader && $e->id === $leader->id)
+            ->unique('id')
+            ->mapWithKeys(fn (Employee $e) => [$e->id => ['role' => 'member']])
+            ->all();
+        if (! empty($memberLinks)) {
+            $team->members()->syncWithoutDetaching($memberLinks);
+            $this->counts['team_member_links'] += count($memberLinks);
         }
 
         $this->assignHomeTeam($team, $teamEmployees);
@@ -285,7 +292,9 @@ class SyncKipStructureAction
             if ($employee->team_id === null) {
                 $employee->team_id = $team->id;
                 $employee->save();
-                $team->members()->updateExistingPivot($employee->id, ['is_primary' => true]);
+                // syncWithoutDetaching (not updateExistingPivot) so the row is
+                // created when missing, preserving any existing role.
+                $team->members()->syncWithoutDetaching([$employee->id => ['is_primary' => true]]);
             }
         }
     }

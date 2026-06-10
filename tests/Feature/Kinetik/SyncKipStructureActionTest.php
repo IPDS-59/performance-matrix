@@ -145,15 +145,22 @@ it('skips member rows without a niplama', function () {
         ->and($summary['employees_created'])->toBe(1);
 });
 
-it('attaches team members additively', function () {
+it('makes project members and roster team members so recaps resolve', function () {
     fakeStructure();
-    Employee::factory()->create(['nip_lama' => '340013832']);
-    Employee::factory()->create(['nip_lama' => '340017503']);
+    $leader = Employee::factory()->create(['nip_lama' => '340013832']);
 
     runStructureSync();
 
     $team = Team::where('kip_external_id', '106436')->first();
-    expect($team->members()->count())->toBe(2);
+
+    // leader (340013832) + project members (340053881, 999999999) + roster (340017503)
+    expect($team->members()->count())->toBe(4)
+        ->and($team->members()->wherePivot('role', 'leader')->pluck('employees.id')->all())->toBe([$leader->id]);
+
+    // Project member with no team roster entry still resolves a team membership.
+    $projectMember = Employee::where('nip_lama', '340053881')->first();
+    expect($projectMember->teams()->where('teams.id', $team->id)->exists())->toBeTrue()
+        ->and($projectMember->team_id)->toBe($team->id); // home team set
 });
 
 it('adopts an existing same-named team without a kip id', function () {
