@@ -10,6 +10,7 @@ const props = defineProps<{
     activities: Paginated<KipActivityRow>;
     filters: { q: string; status: 'all' | 'claimed' | 'unclaimed' };
     stats: { total: number; claimed: number };
+    canViewAll: boolean;
 }>();
 
 const search = ref(props.filters.q);
@@ -34,9 +35,9 @@ function formatDate(iso: string | null): string {
 </script>
 
 <template>
-    <Head title="Kegiatan kipApp" />
+    <Head :title="canViewAll ? 'Kegiatan kipApp' : 'Kegiatan Saya'" />
     <AppLayout>
-        <template #title>Kegiatan kipApp</template>
+        <template #title>{{ canViewAll ? 'Kegiatan kipApp' : 'Kegiatan Saya' }}</template>
 
         <div class="mb-4 flex flex-wrap items-center justify-between gap-3">
             <div class="text-sm text-gray-500">
@@ -64,7 +65,7 @@ function formatDate(iso: string | null): string {
             <Table>
                 <TableHeader>
                     <TableRow>
-                        <TableHead>Pegawai</TableHead>
+                        <TableHead v-if="canViewAll">Pegawai</TableHead>
                         <TableHead>Tanggal</TableHead>
                         <TableHead>Uraian</TableHead>
                         <TableHead>Rencana Kinerja</TableHead>
@@ -75,7 +76,7 @@ function formatDate(iso: string | null): string {
                 </TableHeader>
                 <TableBody>
                     <TableRow v-for="act in activities.data" :key="act.id">
-                        <TableCell>
+                        <TableCell v-if="canViewAll">
                             <div class="font-medium">{{ act.employee_name }}</div>
                             <div v-if="act.nip_lama" class="font-mono text-xs text-gray-400">{{ act.nip_lama }}</div>
                         </TableCell>
@@ -105,7 +106,7 @@ function formatDate(iso: string | null): string {
                         </TableCell>
                     </TableRow>
                     <TableRow v-if="activities.data.length === 0">
-                        <TableCell colspan="7" class="py-10 text-center text-sm text-gray-400">
+                        <TableCell :colspan="canViewAll ? 7 : 6" class="py-10 text-center text-sm text-gray-400">
                             Belum ada kegiatan tersinkron.
                         </TableCell>
                     </TableRow>

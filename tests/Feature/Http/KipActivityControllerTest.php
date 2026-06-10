@@ -1,11 +1,29 @@
 <?php
 
+use App\Models\Employee;
 use App\Models\KipActivity;
 
-it('forbids non-admin users from the kegiatan list', function () {
+it('scopes the kegiatan list to the staff user\'s own employee', function () {
+    $staff = staffUser();
+    $employee = Employee::factory()->create(['user_id' => $staff->id]);
+
+    KipActivity::factory()->count(2)->create(['employee_id' => $employee->id]);
+    KipActivity::factory()->count(3)->create(); // other employees
+
+    $this->actingAs($staff)
+        ->get(route('kip-activities.index'))
+        ->assertInertia(fn ($page) => $page
+            ->component('Kinetik/Activities')
+            ->where('canViewAll', false)
+            ->where('stats.total', 2)
+            ->has('activities.data', 2)
+        );
+});
+
+it('shows an empty list for a user without a linked employee', function () {
     $this->actingAs(staffUser())
         ->get(route('kip-activities.index'))
-        ->assertForbidden();
+        ->assertInertia(fn ($page) => $page->has('activities.data', 0));
 });
 
 it('lists synced kegiatan for an admin', function () {

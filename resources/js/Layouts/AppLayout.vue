@@ -329,9 +329,9 @@ onUnmounted(() => {
                     <span v-if="sidebar.isOpen">Integrasi kipApp</span>
                 </Link>
 
-                <!-- kipApp activities list (admin) -->
+                <!-- kipApp activities list (admins see all; others see their own) -->
                 <Link
-                    v-if="isAdmin"
+                    v-if="isAdmin || hasEmployee"
                     :href="route('kip-activities.index')"
                     :class="route().current('kip-activities.*') ? 'bg-white/20' : 'hover:bg-white/10'"
                     class="flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors"
@@ -339,7 +339,7 @@ onUnmounted(() => {
                     <svg class="h-5 w-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/>
                     </svg>
-                    <span v-if="sidebar.isOpen">Kegiatan kipApp</span>
+                    <span v-if="sidebar.isOpen">{{ isAdmin ? 'Kegiatan kipApp' : 'Kegiatan Saya' }}</span>
                 </Link>
             </nav>
 
