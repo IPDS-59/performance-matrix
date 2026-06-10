@@ -21,12 +21,14 @@ class PerformanceIndicatorController extends Controller
         $year = $request->integer('year', now()->year);
         $teamId = $request->integer('team_id');
 
-        if (! $isAdmin && ! $teamId) {
-            $teamId = $user->employee?->team_id;
-        }
+        // Non-admins see IKU across all teams they belong to (not just home team).
+        $memberTeamIds = $isAdmin
+            ? collect()
+            : ($user->employee?->teams()->pluck('teams.id') ?? collect());
 
         $indicators = PerformanceIndicator::with('team:id,name')
             ->when($teamId, fn ($q) => $q->where('team_id', $teamId))
+            ->when(! $isAdmin && ! $teamId, fn ($q) => $q->whereIn('team_id', $memberTeamIds))
             ->where('year', $year)
             ->orderBy('code')
             ->orderBy('name')
@@ -34,7 +36,7 @@ class PerformanceIndicatorController extends Controller
 
         $teams = $isAdmin
             ? Team::where('is_active', true)->orderBy('name')->get(['id', 'name'])
-            : Team::where('id', $teamId)->get(['id', 'name']);
+            : Team::whereIn('id', $memberTeamIds)->orderBy('name')->get(['id', 'name']);
 
         $canCreate = $user->can('create', PerformanceIndicator::class);
 

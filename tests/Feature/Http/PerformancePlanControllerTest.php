@@ -174,3 +174,21 @@ it('team lead gets 403 when deleting rk for another teams project', function () 
         ->delete(route('performance-plans.destroy', $plan))
         ->assertForbidden();
 });
+
+it('shows a member their team RKs including team-scoped (no project) RKs', function () {
+    $user = staffUser();
+    $employee = Employee::factory()->create(['user_id' => $user->id]);
+    $team = Team::factory()->create();
+    $employee->teams()->attach($team->id, ['role' => 'member', 'is_primary' => true]);
+
+    // Team-scoped RK (kipApp style: no project) + a project-based RK in the team.
+    PerformancePlan::factory()->create(['project_id' => null, 'team_id' => $team->id]);
+    PerformancePlan::factory()->create(['project_id' => Project::factory()->create(['team_id' => $team->id])->id]);
+
+    // An RK in another team the member is not in -> excluded.
+    PerformancePlan::factory()->create(['project_id' => null, 'team_id' => Team::factory()->create()->id]);
+
+    $this->withoutVite()->actingAs($user)
+        ->get(route('performance-plans.index'))
+        ->assertInertia(fn ($page) => $page->component('PerformancePlans/Index')->has('plans', 2));
+});

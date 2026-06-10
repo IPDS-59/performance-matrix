@@ -22,32 +22,34 @@ class PerformancePlanController extends Controller
         $isAdmin = $user->hasPermissionTo('manage-projects');
         $projectId = $request->integer('project_id');
 
-        $plans = PerformancePlan::with('project.team:id,name', 'pic:id,name,display_name')
+        // Non-admins see RKs of teams they belong to (member or leader). kipApp
+        // RKs are team-scoped (no project), so match team_id OR project.team_id.
+        $memberTeamIds = $isAdmin
+            ? collect()
+            : ($user->employee?->teams()->pluck('teams.id') ?? collect());
+
+        $plans = PerformancePlan::with('project.team:id,name', 'team:id,name', 'pic:id,name,display_name')
             ->when($projectId, fn ($q) => $q->where('project_id', $projectId))
-            ->when(! $isAdmin, function ($q) use ($user) {
-                $employee = $user->employee;
-                if ($employee) {
-                    $ledTeamIds = Team::where('leader_id', $employee->id)->pluck('id');
-                    $q->whereHas('project', fn ($pq) => $pq->whereIn('team_id', $ledTeamIds));
-                } else {
+            ->when(! $isAdmin, function ($q) use ($memberTeamIds) {
+                if ($memberTeamIds->isEmpty()) {
                     $q->whereRaw('1 = 0');
+
+                    return;
                 }
+                $q->where(function ($w) use ($memberTeamIds) {
+                    $w->whereIn('team_id', $memberTeamIds)
+                        ->orWhereHas('project', fn ($pq) => $pq->whereIn('team_id', $memberTeamIds));
+                });
             })
             ->orderBy('code')
             ->orderBy('description')
             ->get();
 
-        if ($isAdmin) {
-            $projects = Project::with('team:id,name')->orderBy('name')->get(['id', 'name', 'team_id', 'year']);
-        } else {
-            $employee = $user->employee;
-            $ledTeamIds = $employee
-                ? Team::where('leader_id', $employee->id)->pluck('id')
-                : collect();
-            $projects = $ledTeamIds->isNotEmpty()
-                ? Project::with('team:id,name')->whereIn('team_id', $ledTeamIds)->orderBy('name')->get(['id', 'name', 'team_id', 'year'])
-                : collect();
-        }
+        $projects = $isAdmin
+            ? Project::with('team:id,name')->orderBy('name')->get(['id', 'name', 'team_id', 'year'])
+            : ($memberTeamIds->isNotEmpty()
+                ? Project::with('team:id,name')->whereIn('team_id', $memberTeamIds)->orderBy('name')->get(['id', 'name', 'team_id', 'year'])
+                : collect());
 
         $canCreate = $user->can('create', PerformancePlan::class);
 

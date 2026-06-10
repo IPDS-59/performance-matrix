@@ -85,7 +85,9 @@ const props = defineProps<{
                 :current-employee-id="employee.id"
             />
 
-            <DashboardPersonalProjects :projects="projects" />
+            <div class="mt-10">
+                <DashboardPersonalProjects :projects="projects" />
+            </div>
         </template>
     </template>
 </template>
