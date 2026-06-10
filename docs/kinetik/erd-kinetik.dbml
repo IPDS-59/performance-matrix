@@ -1,0 +1,266 @@
+// =============================================================
+// ERD Kinetik (Kinerja Terintegrasi)
+// Format: DBML — tempel ke https://dbdiagram.io untuk render
+// Sumber: skema aktual aplikasi + usulan RFC-001
+// =============================================================
+
+Project kinetik {
+  database_type: 'PostgreSQL (prod) / SQLite (lokal & CI)'
+  Note: 'Master IKU/Tim/Project/RK + sync kipApp + rekap mingguan s.d. triwulanan'
+}
+
+// ---------- MASTER ----------
+
+Table users {
+  id bigint [pk]
+  name varchar
+  email varchar [unique]
+  role varchar [note: 'admin | head | staff']
+}
+
+Table teams {
+  id bigint [pk]
+  name varchar
+  code varchar
+  description text [null]
+  is_active boolean
+  leader_id bigint [ref: > employees.id, null, note: 'ketua tim']
+}
+
+Table employees {
+  id bigint [pk]
+  user_id bigint [ref: > users.id, null]
+  team_id bigint [ref: > teams.id, null, note: 'tim utama (home team)']
+  name varchar
+  full_name varchar [null]
+  employee_number varchar [null]
+  nip_lama varchar [unique, null, note: 'NIP lama 9 digit — key yang dipakai kipApp (niplama)']
+  nip_baru varchar [unique, null, note: 'NIP baru 18 digit']
+  position varchar [null]
+  office varchar [null, note: 'diisi untuk Kepala Satker kabupaten/kota']
+  display_name varchar [null]
+  is_active boolean
+}
+
+// keanggotaan tim — many-to-many
+Table employee_team {
+  id bigint [pk]
+  employee_id bigint [ref: > employees.id]
+  team_id bigint [ref: > teams.id]
+  role varchar [note: 'member | leader']
+  is_primary boolean [note: 'true kalau ini tim utama pegawai']
+  started_at date [null]
+  ended_at date [null]
+  Indexes {
+    (employee_id, team_id) [unique]
+  }
+}
+
+Table performance_indicators {
+  id bigint [pk]
+  team_id bigint [ref: > teams.id]
+  year integer
+  code varchar [null]
+  name varchar [note: 'nama IKU']
+  target decimal [null]
+  target_unit varchar [null]
+  description text [null]
+}
+
+Table projects {
+  id bigint [pk]
+  team_id bigint [ref: > teams.id]
+  performance_indicator_id bigint [ref: > performance_indicators.id, null]
+  leader_id bigint [ref: > employees.id, null]
+  name varchar [note: 'Program Kerja / Projek']
+  description text [null]
+  objective text [null]
+  kpi text [null]
+  status varchar [note: 'active | completed | cancelled']
+  year integer
+}
+
+// Anggota Projek — bisa di-sync dari kipApp (proyek/anggota?proyekid=)
+Table project_members {
+  id bigint [pk]
+  project_id bigint [ref: > projects.id]
+  employee_id bigint [ref: > employees.id]
+  role varchar [note: 'peran di projek']
+}
+
+Table performance_plans {
+  id bigint [pk]
+  project_id bigint [ref: > projects.id]
+  code varchar [null]
+  description text [note: 'uraian Rencana Kinerja (RK)']
+  target decimal [null, note: 'target RK']
+  target_unit varchar [null]
+  period_type varchar [note: 'year | quarter | month']
+  period smallint [null]
+  pic_employee_id bigint [ref: > employees.id, null]
+}
+
+Table work_items {
+  id bigint [pk]
+  project_id bigint [ref: > projects.id]
+  performance_plan_id bigint [ref: > performance_plans.id, null]
+  number integer
+  description text [note: 'Butir Kerja']
+  target decimal [null]
+  target_unit varchar [null]
+}
+
+// ---------- SYNC kipApp ----------
+
+Table kip_credentials {
+  id bigint [pk]
+  token text [note: 'token x-auth (encrypted) — cukup 1 token admin untuk sync semua pegawai']
+  account_nip varchar [null]
+  account_name varchar [null]
+  expires_at datetime [null, note: 'masa berlaku token kipApp (~24 jam)']
+  updated_by bigint [ref: > users.id, null]
+}
+
+// uraian harian hasil tarikan dari kipApp (belum di-claim)
+Table kip_activities {
+  id bigint [pk]
+  employee_id bigint [ref: > employees.id]
+  external_id varchar [unique, note: 'kegiatanperhariid dari kipApp — biar upsert idempotent']
+  nip_lama varchar [note: 'niplama']
+  description text [note: 'uraian kegiatan']
+  activity_date_start date
+  activity_date_end date [null]
+  time_start time [null]
+  time_end time [null]
+  evidence_url varchar [null, note: 'datadukung']
+  rk_external_id varchar [null, note: 'rkid dari kipApp']
+  rk_name varchar [null, note: 'rencanakinerja']
+  progress integer [null, note: 'progres 0-100']
+  achievement_note text [null, note: 'capaian (teks bebas)']
+  period_id bigint [null]
+  source_year integer [null]
+  sent_at datetime [null, note: 'tanggalkirim; null = belum dikirim']
+  is_claimed boolean
+  raw_payload json [null]
+  fetched_at datetime [null]
+  reserved_1 varchar [null]
+  reserved_2 varchar [null]
+  reserved_3 varchar [null]
+}
+
+// ---------- REKAP ----------
+
+// rekap mingguan per pegawai (uraian + field tambahan; Target & Realisasi diisi manual)
+Table activity_claims {
+  id bigint [pk]
+  kip_activity_id bigint [ref: > kip_activities.id, null]
+  employee_id bigint [ref: > employees.id]
+  performance_plan_id bigint [ref: > performance_plans.id, note: 'di-claim ke RK ini']
+  work_item_id bigint [ref: > work_items.id, null]
+  target decimal [null, note: 'angka target — di kipApp hanya teks di IKI (mis. "4 dokumen"), jadi diisi/parse manual']
+  realization decimal [null, note: 'diisi manual; kipApp hanya punya progres 0-100%']
+  achievement decimal [null, note: 'capaian (%) = realisasi / target x 100']
+  target_unit varchar [null]
+  obstacle text [null, note: 'kendala']
+  solution text [null, note: 'solusi']
+  follow_up_plan text [null, note: 'rencana tindak lanjut']
+  activity_date_start date
+  activity_date_end date [null]
+  start_time time [null]
+  end_time time [null]
+  evidence_url varchar [null]
+  status varchar [note: 'draft | saved']
+  week_start date
+  period_year integer
+  period_quarter smallint
+  period_month smallint
+  reserved_1 varchar [null]
+  reserved_2 varchar [null]
+  reserved_3 varchar [null]
+  claimed_at datetime [null]
+  Indexes {
+    (employee_id, week_start)
+    (period_year, period_quarter)
+    (period_year, period_month)
+  }
+}
+
+// bukti rapat mingguan tim — di-upload oleh PJ
+Table team_recap_evidences {
+  id bigint [pk]
+  team_id bigint [ref: > teams.id]
+  project_id bigint [ref: > projects.id, null, note: 'segmen projek']
+  period_type varchar [note: 'week | month | quarter']
+  period_year integer
+  week_start date [null]
+  period_quarter smallint [null]
+  period_month smallint [null]
+  type varchar [note: 'notula | photo (Dokumentasi) | attendance (Daftar Hadir)']
+  title varchar [null]
+  url varchar [note: 'link bukti']
+  uploaded_by bigint [ref: > employees.id, null, note: 'PJ']
+}
+
+// parafrase rekap bulanan + follow-up FRA triwulanan
+Table recap_overrides {
+  id bigint [pk]
+  team_id bigint [ref: > teams.id]
+  performance_plan_id bigint [ref: > performance_plans.id, note: 'baris RK yang diparafrase']
+  period_type varchar [note: 'month | quarter']
+  period_year integer
+  period_quarter smallint [null]
+  period_month smallint [null]
+  obstacle text [null, note: 'parafrase kendala']
+  solution text [null, note: 'parafrase solusi']
+  follow_up_plan text [null, note: 'parafrase tindak lanjut']
+  follow_up_evidence_url varchar [null, note: 'FRA: link bukti tindak lanjut']
+  follow_up_pic_employee_id bigint [ref: > employees.id, null, note: 'FRA: PIC']
+  follow_up_deadline date [null, note: 'FRA: batas waktu']
+  created_by bigint [ref: > employees.id, null]
+}
+
+// Usulan RFC-001 (belum dibuat): dokumen rekap final + promotion antar-periode
+Table recap_documents {
+  id bigint [pk]
+  team_id bigint [ref: > teams.id]
+  period_type varchar [note: 'week | month | quarter']
+  period_year integer
+  week_start date [null]
+  period_quarter smallint [null]
+  period_month smallint [null]
+  status varchar [note: 'draft | final']
+  snapshot json [null, note: 'snapshot hasil agregasi saat di-finalize']
+  finalized_at datetime [null]
+  finalized_by bigint [ref: > employees.id, null, note: 'PJ']
+  parent_document_id bigint [ref: > recap_documents.id, null, note: 'link promote: minggu -> bulan -> triwulan']
+  Note: 'Usulan (RFC-001) — dokumen final yang dipakai saat rapat'
+}
+
+// Catatan: tabel assessments (Reserved Feature RF-1: penilaian) belum dimodelkan;
+// nanti jadi tabel terpisah (penilai, dinilai, periode, skor) — lihat RFC-001 bagian 11.
+
+// ---------- GROUPS ----------
+
+TableGroup master {
+  users
+  teams
+  employees
+  employee_team
+  performance_indicators
+  projects
+  project_members
+  performance_plans
+  work_items
+}
+
+TableGroup sync_kipapp {
+  kip_credentials
+  kip_activities
+}
+
+TableGroup rekap {
+  activity_claims
+  team_recap_evidences
+  recap_overrides
+  recap_documents
+}

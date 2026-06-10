@@ -101,8 +101,16 @@ class SyncKipStructureAction
 
             $members = $this->provisionEmployees($projectData->members);
             $project->members()->sync(
-                $members->mapWithKeys(fn (Employee $e) => [$e->id => ['role' => 'member']])->all()
+                $members->mapWithKeys(fn (Employee $e) => [
+                    $e->id => ['role' => ($leader && $e->id === $leader->id) ? 'leader' : 'member'],
+                ])->all()
             );
+            // Ensure the team leader is recorded as project 'leader' (the dashboard
+            // "as Ketua" ranking counts project_members.role = leader), even if not
+            // listed among the project's anggota.
+            if ($leader) {
+                $project->members()->syncWithoutDetaching([$leader->id => ['role' => 'leader']]);
+            }
             $teamEmployees = $teamEmployees->concat($members);
             $this->counts['project_member_links'] += $members->count();
         }

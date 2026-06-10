@@ -61,7 +61,8 @@ export interface PerformanceIndicator {
 
 export interface PerformancePlan {
     id: number;
-    project_id: number;
+    project_id?: number | null;
+    team_id?: number | null;
     code?: string | null;
     description: string;
     target?: number | string | null;
@@ -70,6 +71,7 @@ export interface PerformancePlan {
     period?: number | null;
     pic_employee_id?: number | null;
     project?: Project | null;
+    team?: Team | null;
     pic?: Employee | null;
 }
 

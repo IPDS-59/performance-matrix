@@ -121,13 +121,15 @@ function leaderBadgeLabel(employeeId: number, team: { id: number; leader_id?: nu
                 <CardTitle class="text-base">{{ title }}{{ monthLabel ? ` — ${monthLabel}` : '' }}</CardTitle>
             </CardHeader>
             <CardContent>
-                <div v-if="teamList.length" class="h-64">
-                    <VisXYContainer :data="barChartUnovisData" :yDomain="[0, 100]" :style="{ height: '100%' }">
-                        <VisGroupedBar :x="barX" :y="barY" :color="barColor" :roundedCorners="6" :barMinHeight="0" />
-                        <VisAxis type="x" :tickFormat="barXTickFormat" :gridLine="false" :tickTextFontSize="'11px'" :numTicks="barChartUnovisData.length" />
-                        <VisAxis type="y" :tickFormat="barYTickFormat" />
-                        <VisTooltip :triggers="barTooltipTriggers" />
-                    </VisXYContainer>
+                <div v-if="teamList.length" class="h-64 overflow-x-auto [&::-webkit-scrollbar]:h-1.5 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-gray-200">
+                    <div class="h-full" :style="{ width: `${Math.max(barChartUnovisData.length * 90, 320)}px` }">
+                        <VisXYContainer :data="barChartUnovisData" :yDomain="[0, 100]" :style="{ height: '100%' }">
+                            <VisGroupedBar :x="barX" :y="barY" :color="barColor" :roundedCorners="6" :barMinHeight="0" />
+                            <VisAxis type="x" :tickFormat="barXTickFormat" :gridLine="false" :tickTextFontSize="'11px'" :numTicks="barChartUnovisData.length" />
+                            <VisAxis type="y" :tickFormat="barYTickFormat" />
+                            <VisTooltip :triggers="barTooltipTriggers" />
+                        </VisXYContainer>
+                    </div>
                 </div>
                 <div v-else class="flex h-64 items-center justify-center rounded-lg border border-dashed border-gray-200 bg-gray-50">
                     <p class="text-sm text-gray-400">Belum ada data capaian tim bulan ini</p>

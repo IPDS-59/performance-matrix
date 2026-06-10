@@ -11,7 +11,7 @@ import {
 const page = usePage();
 const sidebar = useSidebarStore();
 
-const user = computed(() => page.props.auth.user as { name: string; email: string; role: string });
+const user = computed(() => page.props.auth.user as { name: string; email: string; role: string; position?: string | null });
 const isAdmin = computed(() => user.value.role === 'admin');
 const isHead = computed(() => user.value.role === 'head');
 const isStaff = computed(() => user.value.role === 'staff');
@@ -351,7 +351,7 @@ onUnmounted(() => {
                     </div>
                     <div v-if="sidebar.isOpen" class="min-w-0 flex-1">
                         <p class="truncate text-sm font-medium">{{ user.name }}</p>
-                        <p class="truncate text-xs text-white/60">{{ user.role }}</p>
+                        <p class="truncate text-xs text-white/60">{{ user.position || user.role }}</p>
                     </div>
                 </div>
                 <div v-if="sidebar.isOpen" class="mt-2 flex gap-2">

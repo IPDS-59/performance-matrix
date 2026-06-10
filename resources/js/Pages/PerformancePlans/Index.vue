@@ -98,7 +98,7 @@ const periodTypeLabel: Record<string, string> = {
                     <TableRow v-for="plan in plans" :key="plan.id">
                         <TableCell class="font-mono text-sm">{{ plan.code ?? '—' }}</TableCell>
                         <TableCell>{{ plan.description }}</TableCell>
-                        <TableCell>{{ plan.project?.name ?? '—' }}</TableCell>
+                        <TableCell>{{ plan.project?.name ?? plan.team?.name ?? '—' }}</TableCell>
                         <TableCell>
                             {{ periodTypeLabel[plan.period_type] ?? plan.period_type }}
                             <template v-if="plan.period"> TW{{ plan.period }}</template>
