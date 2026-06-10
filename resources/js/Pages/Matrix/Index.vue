@@ -6,6 +6,7 @@ import { ref, computed } from 'vue';
 import { Badge } from '@/Components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/Components/ui/select';
 import { Tabs, TabsList, TabsTrigger } from '@/Components/ui/tabs';
+import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/Components/ui/table';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/Components/ui/tooltip';
 
 interface Assignment {
@@ -152,13 +153,13 @@ function cellBgColor(pct: number): string {
 
         <!-- Grid (virtual scroll via overflow) -->
         <div class="overflow-auto rounded-md border bg-white" style="max-height: calc(100vh - 260px)">
-            <table class="min-w-max text-xs border-separate border-spacing-0">
-                <thead class="sticky top-0 z-20 bg-white">
-                    <tr>
-                        <th class="sticky left-0 z-30 bg-white px-3 py-2 text-left font-medium border-b border-r min-w-[160px]">
+            <Table class="min-w-max text-xs border-separate border-spacing-0">
+                <TableHeader class="sticky top-0 z-20 bg-white">
+                    <TableRow>
+                        <TableHead class="sticky left-0 z-30 bg-white px-3 py-2 text-left font-medium border-b border-r min-w-[160px]">
                             Pegawai
-                        </th>
-                        <th
+                        </TableHead>
+                        <TableHead
                             v-for="project in projects"
                             :key="project.id"
                             class="border-b border-r px-2 py-2 font-medium text-center max-w-[100px]"
@@ -175,15 +176,15 @@ function cellBgColor(pct: number): string {
                                     </TooltipContent>
                                 </Tooltip>
                             </TooltipProvider>
-                        </th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <tr v-for="employee in employees" :key="employee.id" :class="[employee.id === currentEmployeeId ? 'bg-primary/5 hover:bg-primary/10' : 'hover:bg-gray-50']">
-                        <td :class="['sticky left-0 z-10 border-b border-r px-3 py-1.5 font-medium', employee.id === currentEmployeeId ? 'bg-blue-50 text-primary font-semibold' : 'bg-white']">
+                        </TableHead>
+                    </TableRow>
+                </TableHeader>
+                <TableBody>
+                    <TableRow v-for="employee in employees" :key="employee.id" :class="[employee.id === currentEmployeeId ? 'bg-primary/5 hover:bg-primary/10' : 'hover:bg-gray-50']">
+                        <TableCell :class="['sticky left-0 z-10 border-b border-r px-3 py-1.5 font-medium', employee.id === currentEmployeeId ? 'bg-blue-50 text-primary font-semibold' : 'bg-white']">
                             {{ employee.display_name || employee.name }}<span v-if="employee.id === currentEmployeeId" class="ml-1 text-xs font-normal text-primary/70">(Anda)</span>
-                        </td>
-                        <td
+                        </TableCell>
+                        <TableCell
                             v-for="project in projects"
                             :key="project.id"
                             class="border-b border-r px-1 py-1.5 text-center"
@@ -216,10 +217,10 @@ function cellBgColor(pct: number): string {
                                 </span>
                                 <span v-else class="inline-block h-2 w-2 rounded-full bg-gray-100"></span>
                             </template>
-                        </td>
-                    </tr>
-                </tbody>
-            </table>
+                        </TableCell>
+                    </TableRow>
+                </TableBody>
+            </Table>
         </div>
 
         <div class="mt-2 text-xs text-gray-400">
