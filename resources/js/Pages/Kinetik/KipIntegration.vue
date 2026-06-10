@@ -1,33 +1,21 @@
 <script setup lang="ts">
 import AppLayout from '@/Layouts/AppLayout.vue';
-import { Head, useForm, router } from '@inertiajs/vue3';
-import { computed } from 'vue';
+import { Head, useForm } from '@inertiajs/vue3';
+import { computed, onMounted } from 'vue';
 import { Button } from '@/Components/ui/button';
 import { Label } from '@/Components/ui/label';
 import InputError from '@/Components/InputError.vue';
 import { CheckCircle2, AlertTriangle, RefreshCw } from 'lucide-vue-next';
-
-interface Credential {
-    account_nip: string | null;
-    account_name: string | null;
-    expires_at: string | null;
-    is_expired: boolean;
-    is_expiring_soon: boolean;
-    updated_at: string | null;
-    updated_by: string | null;
-}
+import type { KipCredential, KipIntegrationStats, KipSyncRun } from '@/types';
+import { useKipSyncStore } from '@/stores/kipSync';
 
 const props = defineProps<{
-    credential: Credential | null;
-    stats: {
-        employees_with_nip: number;
-        employees_total: number;
-        activities_synced: number;
-        last_fetched_at: string | null;
-        teams_synced: number;
-        projects_synced: number;
-    };
+    credential: KipCredential | null;
+    stats: KipIntegrationStats;
+    structureRun: KipSyncRun | null;
 }>();
+
+const kipSync = useKipSyncStore();
 
 function formatDateTime(iso: string | null): string {
     if (!iso) return '—';
@@ -60,11 +48,21 @@ function syncAll() {
     syncForm.post(route('kip-integration.sync'), { preserveScroll: true });
 }
 
-const structureForm = useForm({});
+// ── Structure sync (chunked: one team per request, no queue needed) ──────────
+// Business logic lives in the kipSync store; this component only renders it.
 
-function syncStructure() {
-    structureForm.post(route('kip-integration.sync-structure'), { preserveScroll: true });
-}
+const structurePct = computed(() => {
+    const run = props.structureRun;
+    if (!run || !run.total) return 0;
+    return Math.min(100, Math.round((run.processed / run.total) * 100));
+});
+
+// Resume an in-progress run when the page (re)loads.
+onMounted(() => {
+    if (props.structureRun?.status === 'running') {
+        kipSync.startStructureSync();
+    }
+});
 </script>
 
 <template>
@@ -181,11 +179,34 @@ function syncStructure() {
                             <h2 class="mb-1 text-base font-semibold text-gray-900">Sinkronisasi Struktur</h2>
                             <p class="text-sm text-gray-500">Tarik Tim, Projek, dan keanggotaan dari kipApp. Pegawai dicocokkan via NIP Lama.</p>
                         </div>
-                        <Button variant="outline" :disabled="structureForm.processing" @click="syncStructure">
-                            <RefreshCw :class="['mr-1 h-4 w-4', structureForm.processing ? 'animate-spin' : '']" />
-                            {{ structureForm.processing ? 'Menyinkronkan…' : 'Sinkronkan' }}
+                        <Button variant="outline" :disabled="kipSync.structureSyncing" @click="kipSync.startStructureSync()">
+                            <RefreshCw :class="['mr-1 h-4 w-4', kipSync.structureSyncing ? 'animate-spin' : '']" />
+                            {{ kipSync.structureSyncing ? 'Menyinkronkan…' : 'Sinkronkan' }}
                         </Button>
                     </div>
+
+                    <!-- Progress -->
+                    <div v-if="kipSync.structureSyncing || structureRun?.status === 'running'" class="mt-4">
+                        <div class="mb-1 flex items-center justify-between text-xs text-gray-500">
+                            <span>Menyinkronkan tim… {{ structureRun?.processed ?? 0 }} / {{ structureRun?.total ?? 0 }}</span>
+                            <span class="font-medium text-gray-700">{{ structurePct }}%</span>
+                        </div>
+                        <div class="h-2 w-full overflow-hidden rounded-full bg-gray-100">
+                            <div class="h-full rounded-full bg-blue-600 transition-all duration-300" :style="{ width: structurePct + '%' }" />
+                        </div>
+                    </div>
+
+                    <div v-else-if="structureRun?.status === 'failed'" class="mt-4 flex items-start gap-2 rounded-md border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-700">
+                        <AlertTriangle class="mt-0.5 h-3.5 w-3.5 shrink-0" />
+                        Sinkronisasi gagal: {{ structureRun.message }}
+                    </div>
+
+                    <div v-else-if="structureRun?.status === 'completed'" class="mt-4 flex items-start gap-2 text-xs text-green-700">
+                        <CheckCircle2 class="mt-0.5 h-3.5 w-3.5 shrink-0" />
+                        <span>Selesai: {{ structureRun.summary.teams ?? 0 }} tim, {{ structureRun.summary.projects ?? 0 }} projek,
+                            {{ structureRun.summary.employees_created ?? 0 }} pegawai baru, {{ structureRun.summary.users_created ?? 0 }} akun login.</span>
+                    </div>
+
                     <dl class="mt-5 grid grid-cols-2 gap-4 text-sm sm:grid-cols-3">
                         <div class="rounded-md bg-gray-50 p-3">
                             <dt class="text-xs text-gray-400">Tim tersinkron</dt>
@@ -194,6 +215,10 @@ function syncStructure() {
                         <div class="rounded-md bg-gray-50 p-3">
                             <dt class="text-xs text-gray-400">Projek tersinkron</dt>
                             <dd class="mt-1 text-lg font-semibold text-gray-900">{{ stats.projects_synced }}</dd>
+                        </div>
+                        <div class="rounded-md bg-gray-50 p-3">
+                            <dt class="text-xs text-gray-400">Total pegawai</dt>
+                            <dd class="mt-1 text-lg font-semibold text-gray-900">{{ stats.employees_total }}</dd>
                         </div>
                     </dl>
                 </div>

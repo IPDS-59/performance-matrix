@@ -6,6 +6,8 @@ use App\Kinetik\Sources\MockKipActivitySource;
 use App\Models\Employee;
 use App\Models\KipActivity;
 use App\Models\KipCredential;
+use App\Models\KipSyncRun;
+use App\Models\Team;
 use Illuminate\Support\Facades\Http;
 
 /**
@@ -106,6 +108,55 @@ it('blocks sync when no token is configured', function () {
 
     $this->actingAs(adminUser())
         ->post(route('kip-integration.sync'))
+        ->assertRedirect()
+        ->assertSessionHas('error');
+});
+
+// ── Chunked structure sync (no queue) ────────────────────────────────────
+
+it('processes the structure sync one team per request and tracks progress', function () {
+    config(['kinetik.kip.token' => 'admin-token', 'kinetik.kip.create_logins' => false]);
+
+    Http::fake([
+        'kipapp.bps.go.id/api/v1/monitoring/hirarki/daerah*' => Http::response([
+            'data' => [
+                ['id' => '106436', 'namaTim' => 'UMUM'],
+                ['id' => '106453', 'namaTim' => 'MTI'],
+            ],
+        ], 200),
+        'kipapp.bps.go.id/api/v1/proyek*' => Http::response([[
+            'timkerjaid' => '106436', 'namatim' => 'UMUM',
+            'proyekid' => 'p1', 'namaproyek' => 'Projek A',
+            'anggota' => [['anggotaid' => 'a1', 'niplama' => '340000001', 'nama' => 'Ada']],
+        ]], 200),
+        'kipapp.bps.go.id/api/v1/timkerja/anggota*' => Http::response([], 200),
+    ]);
+
+    $admin = adminUser();
+
+    // Step 1: starts the run and processes the first team.
+    $this->actingAs($admin)->post(route('kip-integration.sync-structure'))->assertRedirect();
+
+    $run = KipSyncRun::where('type', 'structure')->latest('id')->first();
+    expect($run)->not->toBeNull()
+        ->and($run->total)->toBe(2)
+        ->and($run->processed)->toBe(1)
+        ->and($run->status)->toBe('running');
+
+    // Step 2: processes the last team and completes.
+    $this->actingAs($admin)->post(route('kip-integration.sync-structure'))->assertRedirect();
+
+    $run->refresh();
+    expect($run->processed)->toBe(2)
+        ->and($run->status)->toBe('completed')
+        ->and(Team::whereNotNull('kip_external_id')->count())->toBe(2);
+});
+
+it('blocks structure sync when no token is configured', function () {
+    config(['kinetik.kip.token' => null]);
+
+    $this->actingAs(adminUser())
+        ->post(route('kip-integration.sync-structure'))
         ->assertRedirect()
         ->assertSessionHas('error');
 });

@@ -27,5 +27,12 @@ return [
         'periode_id' => (int) env('KIP_PERIODE_ID', 8),
 
         'tahun' => (int) env('KIP_TAHUN', (int) date('Y')),
+
+        // Login accounts for synced employees. kipApp does not expose employee
+        // emails, so they are derived as firstname@<domain> (same pattern as
+        // UserSeeder; second name appended on collision). Password "password".
+        'create_logins' => (bool) env('KIP_CREATE_LOGINS', true),
+        'email_domain' => env('KIP_EMAIL_DOMAIN', 'bpssulteng.id'),
+        'default_password' => env('KIP_DEFAULT_PASSWORD', 'password'),
     ],
 ];

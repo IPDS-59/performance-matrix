@@ -6,6 +6,8 @@ use App\Kinetik\Sources\ApiKipStructureSource;
 use App\Models\Employee;
 use App\Models\Project;
 use App\Models\Team;
+use App\Models\User;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Http;
 
 beforeEach(function () {
@@ -14,6 +16,8 @@ beforeEach(function () {
         'kinetik.kip.token' => 'test-token-abc',
         'kinetik.kip.timeout' => 15,
         'kinetik.kip.tahun' => 2026,
+        // Most structure assertions don't care about logins; covered separately.
+        'kinetik.kip.create_logins' => false,
     ]);
 });
 
@@ -103,6 +107,24 @@ it('provisions employees from kipApp member rows and mirrors project members', f
     // Existing employee is refreshed from kipApp, not duplicated.
     expect(Employee::where('nip_lama', '340013832')->count())->toBe(1)
         ->and(Employee::where('nip_lama', '340013832')->first()->name)->toBe('Imron');
+});
+
+it('creates login accounts with derived emails and default password', function () {
+    config(['kinetik.kip.create_logins' => true, 'kinetik.kip.email_domain' => 'bpssulteng.id']);
+    seedRolesAndPermissions();
+    fakeStructure();
+
+    $summary = runStructureSync();
+
+    expect($summary['users_created'])->toBeGreaterThan(0);
+
+    $imron = Employee::where('nip_lama', '340013832')->first();
+    expect($imron->user_id)->not->toBeNull();
+
+    $user = User::find($imron->user_id);
+    expect($user->email)->toBe('imron@bpssulteng.id')
+        ->and(Hash::check('password', $user->password))->toBeTrue()
+        ->and($user->hasRole('staff'))->toBeTrue();
 });
 
 it('skips member rows without a niplama', function () {
