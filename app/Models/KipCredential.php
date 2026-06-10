@@ -33,6 +33,16 @@ class KipCredential extends Model
         return $this->expires_at !== null && $this->expires_at->isPast();
     }
 
+    /**
+     * True when the token is still valid but expires within $hours.
+     */
+    public function isExpiringSoon(int $hours = 6): bool
+    {
+        return $this->expires_at !== null
+            && ! $this->isExpired()
+            && $this->expires_at->isBefore(now()->addHours($hours));
+    }
+
     public function updatedBy(): BelongsTo
     {
         return $this->belongsTo(User::class, 'updated_by');

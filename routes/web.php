@@ -105,6 +105,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::get('/integrasi-kipapp', [KipIntegrationController::class, 'index'])->name('kip-integration.index');
         Route::post('/integrasi-kipapp/token', [KipIntegrationController::class, 'storeToken'])->name('kip-integration.token');
         Route::post('/integrasi-kipapp/sync', [KipIntegrationController::class, 'syncAll'])->name('kip-integration.sync');
+        Route::post('/integrasi-kipapp/sync-structure', [KipIntegrationController::class, 'syncStructure'])->name('kip-integration.sync-structure');
     });
 
     // Profile

@@ -13,5 +13,19 @@ return [
         'token' => env('KIP_TOKEN'),
 
         'timeout' => (int) env('KIP_TIMEOUT', 15),
+
+        // Structure sync (Tim/Projek/Anggota) — enumerates all teams of a unit
+        // kerja via /v1/monitoring/hirarki/daerah, then pulls each team's
+        // projects + members.
+        'admin_niplama' => env('KIP_ADMIN_NIPLAMA'),
+
+        // Office scope for the team directory (monitoring/hirarki/daerah).
+        'unitkerja_id' => env('KIP_UNITKERJA_ID', '100'),
+        'wilayah_id' => env('KIP_WILAYAH_ID', '7200_11'),
+
+        // kipApp period identifier used by the structure endpoints (not the quarter).
+        'periode_id' => (int) env('KIP_PERIODE_ID', 8),
+
+        'tahun' => (int) env('KIP_TAHUN', (int) date('Y')),
     ],
 ];
