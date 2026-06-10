@@ -23,6 +23,21 @@ function memberOfTeam(): array
     return [$user, $employee, $team];
 }
 
+/**
+ * A PJ (team leader) — allowed to manage evidence + paraphrase.
+ *
+ * @return array{0: User, 1: Employee, 2: Team}
+ */
+function pjOfTeam(): array
+{
+    $user = staffUser();
+    $employee = Employee::factory()->create(['user_id' => $user->id]);
+    $team = Team::factory()->create(['leader_id' => $employee->id]);
+    $employee->teams()->attach($team->id, ['role' => 'leader', 'is_primary' => true]);
+
+    return [$user, $employee, $team];
+}
+
 // ── Render ──────────────────────────────────────────────────────────────────
 
 it('redirects guests to login', function () {
@@ -81,8 +96,8 @@ it('only lists teams the employee belongs to', function () {
 
 // ── Evidence ──────────────────────────────────────────────────────────────
 
-it('stores team recap evidence for a member', function () {
-    [$user, $employee, $team] = memberOfTeam();
+it('stores team recap evidence for a PJ', function () {
+    [$user, $employee, $team] = pjOfTeam();
 
     $this->actingAs($user)
         ->post(route('team-recap.evidence.store'), [
@@ -102,6 +117,21 @@ it('stores team recap evidence for a member', function () {
     ]);
 });
 
+it('forbids a non-PJ member from storing evidence', function () {
+    [$user, , $team] = memberOfTeam();
+
+    $this->actingAs($user)
+        ->post(route('team-recap.evidence.store'), [
+            'team_id' => $team->id,
+            'week_start' => '2026-06-01',
+            'type' => 'notula',
+            'url' => 'https://example.test/notula',
+        ])
+        ->assertForbidden();
+
+    $this->assertDatabaseMissing('team_recap_evidences', ['team_id' => $team->id]);
+});
+
 it('forbids storing evidence for a team the employee is not in', function () {
     [$user] = memberOfTeam();
     $otherTeam = Team::factory()->create();
@@ -118,8 +148,8 @@ it('forbids storing evidence for a team the employee is not in', function () {
     $this->assertDatabaseMissing('team_recap_evidences', ['team_id' => $otherTeam->id]);
 });
 
-it('deletes evidence for a member', function () {
-    [$user, , $team] = memberOfTeam();
+it('deletes evidence for a PJ', function () {
+    [$user, , $team] = pjOfTeam();
     $evidence = TeamRecapEvidence::factory()->create(['team_id' => $team->id]);
 
     $this->actingAs($user)
@@ -129,10 +159,33 @@ it('deletes evidence for a member', function () {
     $this->assertDatabaseMissing('team_recap_evidences', ['id' => $evidence->id]);
 });
 
+it('forbids a non-PJ member from deleting evidence', function () {
+    [$user, , $team] = memberOfTeam();
+    $evidence = TeamRecapEvidence::factory()->create(['team_id' => $team->id]);
+
+    $this->actingAs($user)
+        ->delete(route('team-recap.evidence.destroy', $evidence->id))
+        ->assertForbidden();
+
+    $this->assertDatabaseHas('team_recap_evidences', ['id' => $evidence->id]);
+});
+
+it('exposes canManage true for a PJ and false for a member', function () {
+    [$pjUser] = pjOfTeam();
+    $this->actingAs($pjUser)
+        ->get(route('team-recap.weekly'))
+        ->assertInertia(fn ($page) => $page->where('canManage', true));
+
+    [$memberUser] = memberOfTeam();
+    $this->actingAs($memberUser)
+        ->get(route('team-recap.weekly'))
+        ->assertInertia(fn ($page) => $page->where('canManage', false));
+});
+
 // ── Override ──────────────────────────────────────────────────────────────
 
 it('upserts a paraphrase override (updateOrCreate)', function () {
-    [$user, , $team] = memberOfTeam();
+    [$user, , $team] = pjOfTeam();
     $plan = PerformancePlan::factory()->create([
         'project_id' => Project::factory()->create(['team_id' => $team->id])->id,
     ]);
@@ -172,4 +225,24 @@ it('forbids overrides for a team the employee is not in', function () {
         ->assertForbidden();
 
     $this->assertDatabaseMissing('recap_overrides', ['team_id' => $otherTeam->id]);
+});
+
+it('forbids a non-PJ member from paraphrasing', function () {
+    [$user, , $team] = memberOfTeam();
+    $plan = PerformancePlan::factory()->create([
+        'project_id' => Project::factory()->create(['team_id' => $team->id])->id,
+    ]);
+
+    $this->actingAs($user)
+        ->post(route('team-recap.override.store'), [
+            'team_id' => $team->id,
+            'performance_plan_id' => $plan->id,
+            'period_type' => 'month',
+            'period_year' => 2026,
+            'period_month' => 6,
+            'obstacle' => 'x',
+        ])
+        ->assertForbidden();
+
+    $this->assertDatabaseMissing('recap_overrides', ['performance_plan_id' => $plan->id]);
 });
