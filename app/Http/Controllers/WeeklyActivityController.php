@@ -48,7 +48,7 @@ class WeeklyActivityController extends Controller
         $recap = $employee
             ? ActivityClaim::with(['performancePlan.project', 'kipActivity'])
                 ->where('employee_id', $employee->id)
-                ->where('week_start', $weekStart)
+                ->whereDate('week_start', $weekStart)
                 ->where('status', 'saved')
                 ->get()
             : collect();
@@ -67,7 +67,7 @@ class WeeklyActivityController extends Controller
                 ->map(fn (PerformancePlan $plan) => [
                     'id' => $plan->id,
                     'description' => $plan->description,
-                    'project_name' => $plan->project?->name ?? '—',
+                    'project_name' => $plan->project?->name ?? null,
                     'team_name' => $plan->project?->team?->name ?? $plan->team?->name ?? '—',
                 ]);
         }
