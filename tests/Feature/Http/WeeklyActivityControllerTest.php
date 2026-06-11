@@ -112,6 +112,40 @@ it('filters by the ?week query parameter', function () {
         );
 });
 
+it('lists a saved claim in the recap for its week (week_start stored as datetime)', function () {
+    $user = staffUser();
+    $employee = Employee::factory()->create(['user_id' => $user->id]);
+    $team = Team::factory()->create();
+    $employee->teams()->attach($team->id, ['role' => 'member', 'is_primary' => true]);
+
+    $project = Project::factory()->create(['team_id' => $team->id]);
+    $plan = PerformancePlan::factory()->create(['project_id' => $project->id]);
+
+    // 2026-01-05 is a Monday -> week_start = 2026-01-05.
+    $activity = KipActivity::factory()->create([
+        'employee_id' => $employee->id,
+        'activity_date_start' => '2026-01-05',
+    ]);
+
+    // Persist through the action so week_start is written as a 'date' cast
+    // (stored 'Y-m-d H:i:s'); the recap query must still match it via whereDate.
+    $this->actingAs($user)->post(route('weekly.claim'), [
+        'kip_activity_id' => $activity->id,
+        'performance_plan_id' => $plan->id,
+        'obstacle' => '-',
+        'activity_date_start' => '2026-01-05',
+        'status' => 'saved',
+    ])->assertRedirect();
+
+    $this->actingAs($user)
+        ->get(route('weekly.index', ['week' => '2026-01-05']))
+        ->assertInertia(fn ($page) => $page
+            ->where('weekStart', '2026-01-05')
+            ->count('recap', 1)
+            ->where('recap.0.performance_plan_id', $plan->id)
+        );
+});
+
 // ── Store Claim ───────────────────────────────────────────────────────────
 
 it('saves an activity claim with computed achievement', function () {

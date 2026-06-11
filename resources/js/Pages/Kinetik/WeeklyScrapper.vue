@@ -85,17 +85,36 @@ const claimForms = ref<Record<number, ReturnType<typeof useForm<ClaimFormData>>>
 // Plan picker open state per activity
 const planPickerOpen = ref<Record<number, boolean>>({});
 
+// Per-activity form expansion. A claimed activity's data already lives in
+// "Rekap Tersimpan" below, so its form starts collapsed (showing only the
+// header + an "Ubah" toggle); unclaimed activities show the form to fill.
+const expandedForms = ref<Record<number, boolean>>({});
+
+function isFormOpen(activity: KipActivity): boolean {
+    return !activity.is_claimed || expandedForms.value[activity.id] === true;
+}
+
+function toggleForm(activityId: number) {
+    expandedForms.value[activityId] = !expandedForms.value[activityId];
+}
+
 function planLabel(activityId: number): string {
     const planId = claimForms.value[activityId]?.performance_plan_id;
     if (!planId) return '— Pilih RK —';
     const plan = props.plans.find(p => p.id === planId);
-    return plan ? `${plan.description} (${plan.project_name})` : '— Pilih RK —';
+    if (!plan) return '— Pilih RK —';
+    return plan.project_name ? `${plan.description} (${plan.project_name})` : plan.description;
 }
 
 function submitClaim(activityId: number) {
     const form = claimForms.value[activityId];
     if (!form) return;
-    form.post(route('weekly.claim'));
+    form.post(route('weekly.claim'), {
+        preserveScroll: true,
+        onSuccess: () => {
+            expandedForms.value[activityId] = false;
+        },
+    });
 }
 
 // ── Auto-computed achievement display ─────────────────────────────────────
@@ -209,12 +228,22 @@ function achievementColor(val: number | string | null | undefined): string {
                                     >
                                         {{ activity.is_claimed ? 'Tersimpan' : 'Belum diklaim' }}
                                     </span>
+                                    <Button
+                                        v-if="activity.is_claimed"
+                                        type="button"
+                                        variant="ghost"
+                                        size="sm"
+                                        class="h-7 px-2 text-xs"
+                                        @click="toggleForm(activity.id)"
+                                    >
+                                        {{ isFormOpen(activity) ? 'Tutup' : 'Ubah' }}
+                                    </Button>
                                 </div>
                             </div>
                         </div>
 
-                        <!-- Claim form -->
-                        <div v-if="claimForms[activity.id]" class="px-4 py-4">
+                        <!-- Claim form (collapsed once claimed; reopen via "Ubah") -->
+                        <div v-if="claimForms[activity.id] && isFormOpen(activity)" class="px-4 py-4">
                             <form @submit.prevent="submitClaim(activity.id)" class="space-y-3">
                                 <!-- RK picker -->
                                 <div>
@@ -239,7 +268,7 @@ function achievementColor(val: number | string | null | undefined): string {
                                                         <CommandItem
                                                             v-for="plan in plans"
                                                             :key="plan.id"
-                                                            :value="`${plan.description} ${plan.project_name} ${plan.team_name}`"
+                                                            :value="`${plan.description} ${plan.project_name ?? ''} ${plan.team_name}`"
                                                             @select="() => {
                                                                 claimForms[activity.id].performance_plan_id = plan.id;
                                                                 planPickerOpen[activity.id] = false;
@@ -247,7 +276,7 @@ function achievementColor(val: number | string | null | undefined): string {
                                                         >
                                                             <div class="min-w-0 flex-1">
                                                                 <p class="truncate text-sm">{{ plan.description }}</p>
-                                                                <p class="truncate text-xs text-gray-500">{{ plan.project_name }} · {{ plan.team_name }}</p>
+                                                                <p class="truncate text-xs text-gray-500">{{ plan.project_name ? `${plan.project_name} · ${plan.team_name}` : plan.team_name }}</p>
                                                             </div>
                                                             <Check
                                                                 v-if="claimForms[activity.id].performance_plan_id === plan.id"
