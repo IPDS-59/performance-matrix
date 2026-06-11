@@ -206,3 +206,86 @@ it('is idempotent across repeated runs', function () {
     expect($project->members()->count())->toBe(3)
         ->and(Employee::where('nip_lama', '340013832')->count())->toBe(1);
 });
+
+it('deduplicates IKU by (team_id, name) when multiple projects share the same rencanakinerjaketua', function () {
+    // Two projects, same team, same IKU name but DIFFERENT rkketuaids.
+    Http::fake([
+        'kipapp.bps.go.id/api/v1/proyek*' => Http::response([
+            [
+                'timkerjaid' => '106436',
+                'namatim' => 'UMUM',
+                'niplamaketua' => '340013832',
+                'namaketua' => 'Imron',
+                'rkketuaid' => '294257',
+                'rencanakinerjaketua' => 'Pengelolaan Manajemen Risiko yang baik',
+                'proyekid' => '427670',
+                'namaproyek' => 'Proyek A',
+                'anggota' => [['anggotaid' => 'a1', 'niplama' => '340013832', 'nama' => 'Imron']],
+            ],
+            [
+                'timkerjaid' => '106436',
+                'namatim' => 'UMUM',
+                'niplamaketua' => '340013832',
+                'namaketua' => 'Imron',
+                'rkketuaid' => '294999', // different rkketuaid, same name
+                'rencanakinerjaketua' => 'Pengelolaan Manajemen Risiko yang baik',
+                'proyekid' => '427671',
+                'namaproyek' => 'Proyek B',
+                'anggota' => [['anggotaid' => 'a2', 'niplama' => '340053881', 'nama' => 'Asmawati']],
+            ],
+        ], 200),
+        'kipapp.bps.go.id/api/v1/timkerja/anggota*' => Http::response([], 200),
+    ]);
+
+    $summary = runStructureSync();
+
+    $team = Team::where('kip_external_id', '106436')->first();
+    // Both projects share the same IKU name → exactly 1 indicator for this team.
+    expect(PerformanceIndicator::where('team_id', $team->id)->count())->toBe(1)
+        ->and($summary['indicators'])->toBe(1);
+
+    $iku = PerformanceIndicator::where('team_id', $team->id)->first();
+    // kip_external_id is set to the first rkketuaid seen.
+    expect($iku->kip_external_id)->toBe('294257');
+
+    // Both projects link to the same indicator.
+    $projectA = Project::where('kip_external_id', '427670')->first();
+    $projectB = Project::where('kip_external_id', '427671')->first();
+    expect($projectA->performance_indicator_id)->toBe($iku->id)
+        ->and($projectB->performance_indicator_id)->toBe($iku->id);
+});
+
+it('provisions the team leader when niplamaketua is not in the project roster', function () {
+    // The leader (340099999) is NOT listed in anggota or team roster.
+    Http::fake([
+        'kipapp.bps.go.id/api/v1/proyek*' => Http::response([
+            [
+                'timkerjaid' => '106436',
+                'namatim' => 'UMUM',
+                'niplamaketua' => '340099999',
+                'namaketua' => 'Ketua Baru',
+                'rkketuaid' => null,
+                'rencanakinerjaketua' => null,
+                'proyekid' => '427670',
+                'namaproyek' => 'Proyek A',
+                'anggota' => [
+                    ['anggotaid' => 'a1', 'niplama' => '340013832', 'nama' => 'Imron'],
+                ],
+            ],
+        ], 200),
+        'kipapp.bps.go.id/api/v1/timkerja/anggota*' => Http::response([
+            ['anggotaid' => 'm1', 'niplama' => '340013832', 'nama' => 'Imron'],
+        ], 200),
+    ]);
+
+    runStructureSync();
+
+    // Leader was provisioned even though not in any roster.
+    expect(Employee::where('nip_lama', '340099999')->exists())->toBeTrue();
+
+    $team = Team::where('kip_external_id', '106436')->first();
+    $leader = Employee::where('nip_lama', '340099999')->first();
+
+    expect($team->leader_id)->toBe($leader->id)
+        ->and($team->members()->wherePivot('role', 'leader')->pluck('employees.id')->all())->toContain($leader->id);
+});

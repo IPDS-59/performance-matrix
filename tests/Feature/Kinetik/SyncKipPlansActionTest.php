@@ -72,3 +72,31 @@ it('enriches an existing backfilled RK without duplicating it', function () {
         ->and(PerformancePlan::where('kip_external_id', '13962139')->count())->toBe(1)
         ->and((float) PerformancePlan::where('kip_external_id', '13962139')->first()->target)->toBe(100.0);
 });
+
+it('deduplicates RK by (team_id, description) when two employees have the same plan name', function () {
+    $team = Team::factory()->create(['kip_external_id' => '106453', 'name' => 'MTI']);
+    $emp1 = Employee::factory()->create(['nip_lama' => '340060924', 'team_id' => $team->id]);
+    $emp2 = Employee::factory()->create(['nip_lama' => '340060925', 'team_id' => $team->id]);
+
+    // Both employees return the same RK name but different rkids.
+    // Use a sequence so the second call to skp/rk returns a different rkid.
+    Http::fake([
+        'kipapp.bps.go.id/api/v1/dashboard/kegiatanpegawai/belumkirim*' => Http::sequence()
+            ->push([['kegiatan' => [['skpid' => '1285321', 'jumlahkegiatan' => 1]]]], 200)
+            ->push([['kegiatan' => [['skpid' => '1285322', 'jumlahkegiatan' => 1]]]], 200),
+        'kipapp.bps.go.id/api/v1/skp/rk*' => Http::sequence()
+            ->push([['rkid' => '13962139', 'rencanakinerja' => 'Terlaksananya Dukungan Metodologi', 'timkerjaid' => '106453']], 200)
+            ->push([['rkid' => '13999999', 'rencanakinerja' => 'Terlaksananya Dukungan Metodologi', 'timkerjaid' => '106453']], 200),
+        'kipapp.bps.go.id/api/v1/skp/iki*' => Http::response([], 200),
+    ]);
+
+    $summary = (new SyncKipPlansAction)->execute(
+        new ApiKipStructureSource(new ConfigBearerAuthenticator),
+        collect([$emp1, $emp2]),
+    );
+
+    // Second employee reuses the existing plan — only 1 plan for this team+description.
+    expect(PerformancePlan::where('team_id', $team->id)->count())->toBe(1)
+        ->and($summary['created'])->toBe(1)
+        ->and($summary['enriched'])->toBe(1);
+});
