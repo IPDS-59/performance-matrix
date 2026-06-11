@@ -1,10 +1,12 @@
 <?php
 
+use App\Actions\Kinetik\BackfillRkAction;
 use App\Actions\Kinetik\SyncKipActivitiesAction;
 use App\Kinetik\Sources\MockKipActivitySource;
 use App\Models\Employee;
 use App\Models\KipActivity;
 use App\Models\PerformancePlan;
+use App\Models\Team;
 
 it('creates kip_activity rows for employees with nip_lama', function () {
     $emp1 = Employee::factory()->create(['nip_lama' => '340060001']);
@@ -104,4 +106,38 @@ it('backfills claimable RK (performance_plans) from synced activities', function
     expect($plan)->not->toBeNull()
         ->and($plan->team_id)->toBe($employee->team_id)
         ->and($plan->pic_employee_id)->toBe($employee->id);
+});
+
+it('BackfillRkAction deduplicates RK by (team_id, description) for two employees in the same team', function () {
+    $team = Team::factory()->create();
+    $emp1 = Employee::factory()->create(['nip_lama' => '340060001', 'team_id' => $team->id]);
+    $emp2 = Employee::factory()->create(['nip_lama' => '340060002', 'team_id' => $team->id]);
+
+    // Seed activities with the SAME rk_name but DIFFERENT rk_external_id.
+    KipActivity::create([
+        'employee_id' => $emp1->id,
+        'nip_lama' => $emp1->nip_lama,
+        'external_id' => 'act-001',
+        'rk_external_id' => 'rk-emp1-001',
+        'rk_name' => 'Pengelolaan Manajemen Risiko yang baik',
+        'activity_date_start' => '2026-01-01',
+        'description' => 'some activity',
+        'source_year' => 2026,
+    ]);
+    KipActivity::create([
+        'employee_id' => $emp2->id,
+        'nip_lama' => $emp2->nip_lama,
+        'external_id' => 'act-002',
+        'rk_external_id' => 'rk-emp2-001', // different rkid, same name
+        'rk_name' => 'Pengelolaan Manajemen Risiko yang baik',
+        'activity_date_start' => '2026-01-02',
+        'description' => 'some activity 2',
+        'source_year' => 2026,
+    ]);
+
+    (new BackfillRkAction)->execute($emp1);
+    (new BackfillRkAction)->execute($emp2);
+
+    // Both employees share the same RK name in the same team → only 1 plan.
+    expect(PerformancePlan::where('team_id', $team->id)->count())->toBe(1);
 });

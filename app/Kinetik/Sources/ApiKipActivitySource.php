@@ -18,32 +18,53 @@ class ApiKipActivitySource implements KipActivitySource
     ) {}
 
     /**
-     * Fetch unsent activities for the given NIP via the two-step kipApp flow:
+     * Fetch all daily activities (submitted + unsent) for the given NIP.
      *
-     *  1. GET /v1/dashboard/kegiatanpegawai/belumkirim?niplama=<niplama>
-     *     Returns an array of period/SKP groups; collect every skpid from
-     *     group.kegiatan[] where jumlahkegiatan > 0.
+     * SKP IDs are discovered from the UNION of two sources so that employees
+     * who have already submitted everything are still covered:
      *
-     *  2. For each skpid: GET /v1/kegiatan?skpid=<skpid>
-     *     Returns per-day activity rows. Keep only rows where tanggalkirim === null
-     *     (those are the truly unsent ones).
+     *  1. GET /v1/dashboard/rkpegawai?niplama=<niplama>  (state-independent)
+     *     Returns [{rk:[{skpid:...}]}]; extracts group['rk'][]['skpid'].
+     *
+     *  2. GET /v1/dashboard/kegiatanpegawai/belumkirim?niplama=<niplama>
+     *     Returns groups of unsubmitted activity buckets; extracts skpid from
+     *     group['kegiatan'][] where jumlahkegiatan > 0.
+     *     Kept so freshly-created activities not yet in rkpegawai are covered.
+     *
+     * The two sets are union-ed and de-duplicated. For each skpid,
+     * GET /v1/kegiatan?skpid=<skpid> is called and ALL rows (sent + unsent)
+     * are returned — no filtering on sentAt.
      */
-    public function fetchUnsentActivities(string $nipLama): Collection
+    public function fetchActivities(string $nipLama): Collection
     {
-        $response = $this->client()
+        // Source 1: rkpegawai (state-independent)
+        $rkResponse = $this->client()
+            ->get('v1/dashboard/rkpegawai', ['niplama' => $nipLama]);
+
+        if (! $rkResponse->successful()) {
+            throw KipApiException::fromResponse($rkResponse, 'fetchActivities');
+        }
+
+        $rkSkpIds = collect($this->asGroups($rkResponse->json()))
+            ->flatMap(function (array $group): array {
+                $rk = $group['rk'] ?? [];
+
+                return collect($rk)
+                    ->pluck('skpid')
+                    ->filter()
+                    ->values()
+                    ->all();
+            });
+
+        // Source 2: belumkirim (catches freshly-created activities not yet in rkpegawai)
+        $belumKirimResponse = $this->client()
             ->get('v1/dashboard/kegiatanpegawai/belumkirim', ['niplama' => $nipLama]);
 
-        if (! $response->successful()) {
-            throw KipApiException::fromResponse($response, 'fetchUnsentActivities');
+        if (! $belumKirimResponse->successful()) {
+            throw KipApiException::fromResponse($belumKirimResponse, 'fetchActivities');
         }
 
-        $groups = $response->json();
-
-        if (! is_array($groups)) {
-            return collect();
-        }
-
-        $skpIds = collect($groups)
+        $belumKirimSkpIds = collect($this->asGroups($belumKirimResponse->json()))
             ->flatMap(function (array $group): array {
                 $kegiatan = $group['kegiatan'] ?? [];
 
@@ -55,10 +76,36 @@ class ApiKipActivitySource implements KipActivitySource
                     ->all();
             });
 
+        $skpIds = $rkSkpIds
+            ->merge($belumKirimSkpIds)
+            ->filter()
+            ->unique()
+            ->values();
+
         return $skpIds
             ->flatMap(fn (string $skpId): Collection => $this->fetchActivitiesBySkp($skpId))
-            ->filter(fn (KipActivityData $dto): bool => $dto->sentAt === null)
             ->values();
+    }
+
+    /**
+     * Normalise a kipApp "groups" response into a list of group arrays.
+     *
+     * Some dashboard endpoints return a LIST of group objects when there is data
+     * (`[{rk:[...]}]`) but a single associative object when empty
+     * (`{jumlahrk:0}`). Wrap the object case so callers can always iterate
+     * arrays; non-array / scalar payloads collapse to an empty list.
+     *
+     * @return array<int, array<string, mixed>>
+     */
+    private function asGroups(mixed $json): array
+    {
+        if (! is_array($json)) {
+            return [];
+        }
+
+        $groups = array_is_list($json) ? $json : [$json];
+
+        return array_values(array_filter($groups, 'is_array'));
     }
 
     /**

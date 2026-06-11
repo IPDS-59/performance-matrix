@@ -9,12 +9,12 @@ use Illuminate\Support\Collection;
 interface KipActivitySource
 {
     /**
-     * Fetch unsent daily activities for an employee.
+     * Fetch all daily activities (submitted + unsent) for an employee.
      *
      * @param  string  $nipLama  Legacy 9-digit NIP (niplama)
      * @return Collection<int, KipActivityData>
      */
-    public function fetchUnsentActivities(string $nipLama): Collection;
+    public function fetchActivities(string $nipLama): Collection;
 
     /**
      * Fetch Rencana Kinerja (RK) list for an employee.

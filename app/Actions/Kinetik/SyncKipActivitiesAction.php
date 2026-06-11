@@ -14,7 +14,7 @@ class SyncKipActivitiesAction
     ) {}
 
     /**
-     * Fetch and upsert unsent kipApp activities for a collection of employees,
+     * Fetch and upsert kipApp activities (submitted + unsent) for a collection of employees,
      * then backfill RK (performance_plans) from those activities so they are
      * claimable.
      *
@@ -34,7 +34,7 @@ class SyncKipActivitiesAction
                 continue;
             }
 
-            $activities = $source->fetchUnsentActivities($employee->nip_lama);
+            $activities = $source->fetchActivities($employee->nip_lama);
 
             foreach ($activities as $dto) {
                 KipActivity::updateOrCreate(
