@@ -8,11 +8,11 @@ use App\Kinetik\Contracts\KipActivitySource;
 use App\Models\ActivityClaim;
 use App\Models\KipActivity;
 use App\Models\PerformancePlan;
+use App\Models\Team;
 use Carbon\Carbon;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Str;
 use Inertia\Inertia;
 use Inertia\Response;
 use Throwable;
@@ -78,6 +78,12 @@ class WeeklyActivityController extends Controller
         $prevWeek = Carbon::parse($weekStart)->subWeek()->toDateString();
         $nextWeek = Carbon::parse($weekStart)->addWeek()->toDateString();
 
+        // PJ (team leader) fills Solusi + RTL; members only fill Kendala.
+        $isPj = $employee !== null && (
+            Team::where('leader_id', $employee->id)->exists()
+            || $employee->teams()->wherePivot('role', 'leader')->exists()
+        );
+
         return Inertia::render('Kinetik/WeeklyScrapper', [
             'employee' => $employee ? [
                 'id' => $employee->id,
@@ -91,6 +97,7 @@ class WeeklyActivityController extends Controller
             'weekEnd' => $weekEnd,
             'prevWeek' => $prevWeek,
             'nextWeek' => $nextWeek,
+            'isPj' => $isPj,
         ]);
     }
 
@@ -130,7 +137,7 @@ class WeeklyActivityController extends Controller
             'target' => ['nullable', 'numeric', 'min:0'],
             'realization' => ['nullable', 'numeric', 'min:0'],
             'target_unit' => ['nullable', 'string', 'max:100'],
-            'obstacle' => ['nullable', 'string'],
+            'obstacle' => ['required', 'string'],
             'solution' => ['nullable', 'string'],
             'follow_up_plan' => ['nullable', 'string'],
             'activity_date_start' => ['required', 'date'],
@@ -143,6 +150,13 @@ class WeeklyActivityController extends Controller
 
         $validated['status'] = $validated['status'] ?? 'saved';
 
+        // Solusi & Rencana Tindak Lanjut are PJ-only (filled at the team recap).
+        $isPj = Team::where('leader_id', $employee->id)->exists()
+            || $employee->teams()->wherePivot('role', 'leader')->exists();
+        if (! $isPj) {
+            unset($validated['solution'], $validated['follow_up_plan']);
+        }
+
         try {
             $action->execute($employee, $validated);
         } catch (AuthorizationException $e) {
@@ -150,39 +164,5 @@ class WeeklyActivityController extends Controller
         }
 
         return back()->with('success', 'Kegiatan berhasil disimpan ke rekap mingguan.');
-    }
-
-    public function storeManualActivity(Request $request): RedirectResponse
-    {
-        $user = $request->user();
-        $employee = $user->employee;
-
-        abort_if($employee === null, 403, 'Akun tidak terhubung ke data pegawai.');
-
-        $validated = $request->validate([
-            'description' => ['required', 'string', 'max:1000'],
-            'activity_date_start' => ['required', 'date'],
-            'activity_date_end' => ['nullable', 'date', 'after_or_equal:activity_date_start'],
-            'start_time' => ['nullable', 'string'],
-            'end_time' => ['nullable', 'string'],
-            'evidence_url' => ['nullable', 'url', 'max:2048'],
-        ]);
-
-        KipActivity::create([
-            'employee_id' => $employee->id,
-            'nip_lama' => $employee->nip_lama ?? '',
-            'external_id' => 'manual-'.(string) Str::uuid(),
-            'description' => $validated['description'],
-            'activity_date_start' => $validated['activity_date_start'],
-            'activity_date_end' => $validated['activity_date_end'] ?? null,
-            'time_start' => $validated['start_time'] ?? null,
-            'time_end' => $validated['end_time'] ?? null,
-            'evidence_url' => $validated['evidence_url'] ?? null,
-            'is_claimed' => false,
-            'fetched_at' => now(),
-            'raw_payload' => null,
-        ]);
-
-        return back()->with('success', 'Kegiatan berhasil ditambahkan.');
     }
 }
