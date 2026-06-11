@@ -34,6 +34,11 @@ class PerformanceIndicatorController extends Controller
             ->orderBy('name')
             ->get();
 
+        $indicators = $indicators->map(fn ($indicator) => array_merge($indicator->toArray(), [
+            'can_update' => $user->can('update', $indicator),
+            'can_delete' => $user->can('delete', $indicator),
+        ]));
+
         $teams = $isAdmin
             ? Team::where('is_active', true)->orderBy('name')->get(['id', 'name'])
             : Team::whereIn('id', $memberTeamIds)->orderBy('name')->get(['id', 'name']);
@@ -72,7 +77,6 @@ class PerformanceIndicatorController extends Controller
             $validated = $request->validate([
                 'team_id' => ['required', 'exists:teams,id'],
                 'year' => ['required', 'integer', 'min:2020', 'max:2099'],
-                'code' => ['nullable', 'string', 'max:50'],
                 'name' => ['required', 'string', 'max:255'],
                 'target' => ['nullable', 'numeric'],
                 'target_unit' => ['nullable', 'string', 'max:100'],
@@ -86,7 +90,6 @@ class PerformanceIndicatorController extends Controller
             $validated = $request->validate([
                 'team_id' => ['required', Rule::in($ledTeamIds->all())],
                 'year' => ['required', 'integer', 'min:2020', 'max:2099'],
-                'code' => ['nullable', 'string', 'max:50'],
                 'name' => ['required', 'string', 'max:255'],
                 'target' => ['nullable', 'numeric'],
                 'target_unit' => ['nullable', 'string', 'max:100'],
@@ -126,7 +129,6 @@ class PerformanceIndicatorController extends Controller
             $validated = $request->validate([
                 'team_id' => ['required', 'exists:teams,id'],
                 'year' => ['required', 'integer', 'min:2020', 'max:2099'],
-                'code' => ['nullable', 'string', 'max:50'],
                 'name' => ['required', 'string', 'max:255'],
                 'target' => ['nullable', 'numeric'],
                 'target_unit' => ['nullable', 'string', 'max:100'],
@@ -135,7 +137,6 @@ class PerformanceIndicatorController extends Controller
         } else {
             $validated = $request->validate([
                 'year' => ['required', 'integer', 'min:2020', 'max:2099'],
-                'code' => ['nullable', 'string', 'max:50'],
                 'name' => ['required', 'string', 'max:255'],
                 'target' => ['nullable', 'numeric'],
                 'target_unit' => ['nullable', 'string', 'max:100'],

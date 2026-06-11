@@ -53,7 +53,6 @@ it('admin can store iku', function () {
         ->post(route('performance-indicators.store'), [
             'team_id' => $team->id,
             'year' => 2026,
-            'code' => 'IKU-01',
             'name' => 'Jumlah Publikasi',
             'target' => 5,
             'target_unit' => 'Dokumen',
@@ -186,4 +185,44 @@ it('team lead gets 403 when deleting iku for another team', function () {
     $this->actingAs($user)
         ->delete(route('performance-indicators.destroy', $indicator))
         ->assertForbidden();
+});
+
+it('staff member gets 403 on iku edit', function () {
+    $user = staffUser();
+    $team = Team::factory()->create(['is_active' => true]);
+    Employee::factory()->create(['user_id' => $user->id, 'team_id' => $team->id]);
+    $indicator = PerformanceIndicator::factory()->create(['team_id' => $team->id]);
+
+    $this->actingAs($user)
+        ->get(route('performance-indicators.edit', $indicator))
+        ->assertForbidden();
+});
+
+it('iku index includes can_update and can_delete = false for staff with no led team', function () {
+    $user = staffUser();
+    $team = Team::factory()->create(['is_active' => true]);
+    $employee = Employee::factory()->create(['user_id' => $user->id, 'team_id' => $team->id]);
+    $employee->teams()->attach($team->id, ['role' => 'member', 'is_primary' => true]);
+    $indicator = PerformanceIndicator::factory()->create(['team_id' => $team->id, 'year' => now()->year]);
+
+    $this->withoutVite()->actingAs($user)
+        ->get(route('performance-indicators.index'))
+        ->assertInertia(fn ($page) => $page
+            ->component('PerformanceIndicators/Index')
+            ->where('indicators.0.can_update', false)
+            ->where('indicators.0.can_delete', false)
+        );
+});
+
+it('iku index includes can_update and can_delete = true for admin', function () {
+    $team = Team::factory()->create(['is_active' => true]);
+    PerformanceIndicator::factory()->create(['team_id' => $team->id, 'year' => now()->year]);
+
+    $this->withoutVite()->actingAs(adminUser())
+        ->get(route('performance-indicators.index'))
+        ->assertInertia(fn ($page) => $page
+            ->component('PerformanceIndicators/Index')
+            ->where('indicators.0.can_update', true)
+            ->where('indicators.0.can_delete', true)
+        );
 });

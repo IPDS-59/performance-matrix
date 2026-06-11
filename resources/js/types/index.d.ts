@@ -57,6 +57,8 @@ export interface PerformanceIndicator {
     target_unit?: string | null;
     description?: string | null;
     team?: Team | null;
+    can_update?: boolean;
+    can_delete?: boolean;
 }
 
 export interface PerformancePlan {
@@ -73,6 +75,8 @@ export interface PerformancePlan {
     project?: Project | null;
     team?: Team | null;
     pic?: Employee | null;
+    can_update?: boolean;
+    can_delete?: boolean;
 }
 
 export interface WorkItem {
@@ -249,7 +253,7 @@ export interface ActivityClaim {
 export interface PlanOption {
     id: number;
     description: string;
-    project_name: string;
+    project_name: string | null;
     team_name: string;
 }
 

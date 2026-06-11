@@ -14,7 +14,6 @@ const props = defineProps<{ teams: Team[]; isAdmin: boolean }>();
 const form = useForm({
     team_id: null as number | null,
     year: new Date().getFullYear(),
-    code: '',
     name: '',
     target: '' as string | number,
     target_unit: '',
@@ -52,11 +51,6 @@ function submit() {
                     <Label for="year">Tahun</Label>
                     <Input id="year" type="number" v-model="form.year" class="mt-1" min="2020" max="2099" />
                     <InputError :message="form.errors.year" />
-                </div>
-                <div>
-                    <Label for="code">Kode IKU</Label>
-                    <Input id="code" v-model="form.code" class="mt-1" placeholder="Opsional" />
-                    <InputError :message="form.errors.code" />
                 </div>
                 <div>
                     <Label for="name">Nama IKU</Label>
