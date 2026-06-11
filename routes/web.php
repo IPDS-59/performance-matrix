@@ -92,7 +92,6 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
     // Weekly activity scrapper / recap
     Route::get('/rekap-mingguan', [WeeklyActivityController::class, 'index'])->name('weekly.index');
-    Route::post('/rekap-mingguan/sync', [WeeklyActivityController::class, 'sync'])->name('weekly.sync');
     Route::post('/rekap-mingguan/claim', [WeeklyActivityController::class, 'storeClaim'])->name('weekly.claim');
 
     // Team recaps (weekly / monthly / quarterly FRA)

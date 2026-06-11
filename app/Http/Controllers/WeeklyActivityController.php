@@ -3,8 +3,6 @@
 namespace App\Http\Controllers;
 
 use App\Actions\Kinetik\SaveActivityClaimAction;
-use App\Actions\Kinetik\SyncKipActivitiesAction;
-use App\Kinetik\Contracts\KipActivitySource;
 use App\Models\ActivityClaim;
 use App\Models\KipActivity;
 use App\Models\PerformancePlan;
@@ -15,7 +13,6 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
-use Throwable;
 
 class WeeklyActivityController extends Controller
 {
@@ -99,28 +96,6 @@ class WeeklyActivityController extends Controller
             'nextWeek' => $nextWeek,
             'isPj' => $isPj,
         ]);
-    }
-
-    public function sync(
-        Request $request,
-        KipActivitySource $source,
-        SyncKipActivitiesAction $action,
-    ): RedirectResponse {
-        $employee = $request->user()->employee;
-
-        abort_if($employee === null, 403, 'Akun tidak terhubung ke data pegawai.');
-
-        if (empty($employee->nip_lama)) {
-            return back()->with('error', 'NIP lama belum tersetel, sinkronisasi kipApp tidak dapat dijalankan.');
-        }
-
-        try {
-            $upserted = $action->execute($source, collect([$employee]));
-        } catch (Throwable $e) {
-            return back()->with('error', 'Sinkronisasi kipApp gagal: '.$e->getMessage());
-        }
-
-        return back()->with('success', "Sinkronisasi selesai. {$upserted} kegiatan diperbarui dari kipApp.");
     }
 
     public function storeClaim(Request $request, SaveActivityClaimAction $action): RedirectResponse

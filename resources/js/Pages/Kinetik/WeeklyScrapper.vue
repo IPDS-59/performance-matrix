@@ -10,7 +10,7 @@ import { Textarea } from '@/Components/ui/textarea';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/Components/ui/table';
 import { Popover, PopoverContent, PopoverTrigger } from '@/Components/ui/popover';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/Components/ui/command';
-import { Check, ChevronsUpDown, ChevronLeft, ChevronRight, ExternalLink, RefreshCw } from 'lucide-vue-next';
+import { Check, ChevronsUpDown, ChevronLeft, ChevronRight, ExternalLink } from 'lucide-vue-next';
 import InputError from '@/Components/InputError.vue';
 import { useDateFormat } from '@/composables/useDateFormat';
 
@@ -34,14 +34,6 @@ const props = defineProps<{
 
 function goToWeek(week: string) {
     router.get(route('weekly.index'), { week }, { preserveState: false });
-}
-
-// ── kipApp sync ────────────────────────────────────────────────────────────
-
-const syncForm = useForm({});
-
-function syncKipActivities() {
-    syncForm.post(route('weekly.sync'), { preserveScroll: true });
 }
 
 // ── Claim forms (one per activity row) ────────────────────────────────────
@@ -140,14 +132,6 @@ function achievementColor(val: number | string | null | undefined): string {
         </div>
 
         <template v-else>
-            <!-- kipApp sync -->
-            <div class="mb-3 flex justify-end">
-                <Button size="sm" variant="outline" :disabled="syncForm.processing" @click="syncKipActivities">
-                    <RefreshCw :class="['mr-1 h-4 w-4', syncForm.processing ? 'animate-spin' : '']" />
-                    {{ syncForm.processing ? 'Menyinkronkan…' : 'Sinkronkan kipApp' }}
-                </Button>
-            </div>
-
             <!-- Week navigator -->
             <div class="mb-6 flex items-center justify-between gap-4 rounded-md border bg-white px-4 py-3">
                 <button
