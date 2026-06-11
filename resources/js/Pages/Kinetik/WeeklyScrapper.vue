@@ -27,6 +27,7 @@ const props = defineProps<{
     weekEnd: string;
     prevWeek: string;
     nextWeek: string;
+    isPj: boolean;
 }>();
 
 // ── Week navigation ────────────────────────────────────────────────────────
@@ -41,28 +42,6 @@ const syncForm = useForm({});
 
 function syncKipActivities() {
     syncForm.post(route('weekly.sync'), { preserveScroll: true });
-}
-
-// ── Manual activity form ───────────────────────────────────────────────────
-
-const showAddForm = ref(false);
-
-const manualForm = useForm({
-    description: '',
-    activity_date_start: props.weekStart,
-    activity_date_end: '',
-    start_time: '',
-    end_time: '',
-    evidence_url: '',
-});
-
-function submitManualActivity() {
-    manualForm.post(route('weekly.activity.store'), {
-        onSuccess: () => {
-            manualForm.reset();
-            showAddForm.value = false;
-        },
-    });
 }
 
 // ── Claim forms (one per activity row) ────────────────────────────────────
@@ -195,68 +174,6 @@ function achievementColor(val: number | string | null | undefined): string {
             </div>
 
             <!-- Tambah Kegiatan collapsible -->
-            <div class="mb-6 rounded-md border bg-white">
-                <button
-                    type="button"
-                    class="flex w-full items-center justify-between px-4 py-3 text-sm font-medium text-gray-800 hover:bg-gray-50 transition-colors"
-                    @click="showAddForm = !showAddForm"
-                >
-                    <span>Tambah Kegiatan Manual</span>
-                    <svg
-                        :class="['h-4 w-4 text-gray-400 transition-transform', showAddForm ? 'rotate-180' : '']"
-                        fill="none" stroke="currentColor" viewBox="0 0 24 24"
-                    >
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
-                    </svg>
-                </button>
-
-                <div v-if="showAddForm" class="border-t px-4 py-4">
-                    <form @submit.prevent="submitManualActivity" class="space-y-3">
-                        <div>
-                            <Label for="manual-desc">Uraian Kegiatan <span class="text-red-500">*</span></Label>
-                            <Textarea
-                                id="manual-desc"
-                                v-model="manualForm.description"
-                                :rows="3"
-                                class="mt-1"
-                                placeholder="Deskripsi kegiatan..."
-                            />
-                            <InputError :message="manualForm.errors.description" />
-                        </div>
-                        <div class="grid grid-cols-2 gap-3">
-                            <div>
-                                <Label for="manual-date-start">Tanggal Mulai <span class="text-red-500">*</span></Label>
-                                <Input id="manual-date-start" type="date" v-model="manualForm.activity_date_start" class="mt-1" />
-                                <InputError :message="manualForm.errors.activity_date_start" />
-                            </div>
-                            <div>
-                                <Label for="manual-date-end">Tanggal Selesai</Label>
-                                <Input id="manual-date-end" type="date" v-model="manualForm.activity_date_end" class="mt-1" />
-                                <InputError :message="manualForm.errors.activity_date_end" />
-                            </div>
-                        </div>
-                        <div class="grid grid-cols-2 gap-3">
-                            <div>
-                                <Label for="manual-time-start">Jam Mulai</Label>
-                                <Input id="manual-time-start" type="time" v-model="manualForm.start_time" class="mt-1" />
-                            </div>
-                            <div>
-                                <Label for="manual-time-end">Jam Selesai</Label>
-                                <Input id="manual-time-end" type="time" v-model="manualForm.end_time" class="mt-1" />
-                            </div>
-                        </div>
-                        <div>
-                            <Label for="manual-evidence">URL Bukti Dukung</Label>
-                            <Input id="manual-evidence" type="url" v-model="manualForm.evidence_url" class="mt-1" placeholder="https://..." />
-                            <InputError :message="manualForm.errors.evidence_url" />
-                        </div>
-                        <div class="flex justify-end gap-2 pt-1">
-                            <Button type="button" variant="outline" size="sm" @click="showAddForm = false">Batal</Button>
-                            <Button type="submit" size="sm" :disabled="manualForm.processing">Tambah</Button>
-                        </div>
-                    </form>
-                </div>
-            </div>
 
             <!-- Activities table with claim forms -->
             <div class="mb-6">
@@ -401,9 +318,9 @@ function achievementColor(val: number | string | null | undefined): string {
                                     Capaian: <span class="font-semibold">{{ computedAchievement(activity.id) }}</span>
                                 </div>
 
-                                <!-- Kendala / Solusi / RTL -->
+                                <!-- Kendala (wajib). Solusi & RTL hanya untuk PJ. -->
                                 <div>
-                                    <Label :for="`obstacle-${activity.id}`">Kendala</Label>
+                                    <Label :for="`obstacle-${activity.id}`">Kendala <span class="text-red-500">*</span></Label>
                                     <Textarea
                                         :id="`obstacle-${activity.id}`"
                                         v-model="claimForms[activity.id].obstacle"
@@ -411,27 +328,30 @@ function achievementColor(val: number | string | null | undefined): string {
                                         class="mt-1"
                                         placeholder="Kendala yang dihadapi..."
                                     />
+                                    <InputError :message="claimForms[activity.id].errors.obstacle" />
                                 </div>
-                                <div>
-                                    <Label :for="`solution-${activity.id}`">Solusi</Label>
-                                    <Textarea
-                                        :id="`solution-${activity.id}`"
-                                        v-model="claimForms[activity.id].solution"
-                                        :rows="2"
-                                        class="mt-1"
-                                        placeholder="Solusi yang diterapkan..."
-                                    />
-                                </div>
-                                <div>
-                                    <Label :for="`rtl-${activity.id}`">Rencana Tindak Lanjut</Label>
-                                    <Textarea
-                                        :id="`rtl-${activity.id}`"
-                                        v-model="claimForms[activity.id].follow_up_plan"
-                                        :rows="2"
-                                        class="mt-1"
-                                        placeholder="Rencana tindak lanjut..."
-                                    />
-                                </div>
+                                <template v-if="isPj">
+                                    <div>
+                                        <Label :for="`solution-${activity.id}`">Solusi</Label>
+                                        <Textarea
+                                            :id="`solution-${activity.id}`"
+                                            v-model="claimForms[activity.id].solution"
+                                            :rows="2"
+                                            class="mt-1"
+                                            placeholder="Solusi yang diterapkan..."
+                                        />
+                                    </div>
+                                    <div>
+                                        <Label :for="`rtl-${activity.id}`">Rencana Tindak Lanjut</Label>
+                                        <Textarea
+                                            :id="`rtl-${activity.id}`"
+                                            v-model="claimForms[activity.id].follow_up_plan"
+                                            :rows="2"
+                                            class="mt-1"
+                                            placeholder="Rencana tindak lanjut..."
+                                        />
+                                    </div>
+                                </template>
 
                                 <div class="flex justify-end pt-1">
                                     <Button

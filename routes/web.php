@@ -94,7 +94,6 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/rekap-mingguan', [WeeklyActivityController::class, 'index'])->name('weekly.index');
     Route::post('/rekap-mingguan/sync', [WeeklyActivityController::class, 'sync'])->name('weekly.sync');
     Route::post('/rekap-mingguan/claim', [WeeklyActivityController::class, 'storeClaim'])->name('weekly.claim');
-    Route::post('/rekap-mingguan/kegiatan', [WeeklyActivityController::class, 'storeManualActivity'])->name('weekly.activity.store');
 
     // Team recaps (weekly / monthly / quarterly FRA)
     Route::get('/rekap-tim', [TeamRecapController::class, 'weekly'])->name('team-recap.weekly');
