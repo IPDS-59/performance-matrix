@@ -5,6 +5,7 @@ namespace App\Services\Kinetik;
 use App\Models\ActivityClaim;
 use App\Models\RecapOverride;
 use App\Models\Team;
+use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Collection;
 
@@ -28,6 +29,17 @@ class RecapAggregator
             ->get();
 
         return $this->segment($claims, collect(), withFollowUp: false);
+    }
+
+    /**
+     * Resolve the default week anchor for a team: the week of the latest saved
+     * claim, or null when no claims exist yet.
+     */
+    public function defaultWeekStart(Team $team): ?string
+    {
+        $raw = $this->latestWeekStart($team);
+
+        return $raw ? Carbon::parse($raw)->startOfWeek(Carbon::MONDAY)->toDateString() : null;
     }
 
     /**
@@ -66,14 +78,37 @@ class RecapAggregator
     }
 
     /**
-     * Base query: saved claims whose RK's project belongs to the team.
+     * Base query: saved claims whose RK belongs to the team — either directly
+     * (team-scoped RK with project_id = null) or via the RK's project.
      */
     private function claimsQuery(Team $team): Builder
     {
         return ActivityClaim::query()
             ->where('status', 'saved')
-            ->whereHas('performancePlan.project', fn (Builder $q) => $q->where('team_id', $team->id))
-            ->with(['performancePlan.project', 'employee']);
+            ->whereHas('performancePlan', fn (Builder $q) => $q->where(function (Builder $w) use ($team) {
+                $w->where('team_id', $team->id)
+                    ->orWhereHas('project', fn (Builder $p) => $p->where('team_id', $team->id));
+            }))
+            ->with(['performancePlan.project', 'performancePlan.team', 'employee']);
+    }
+
+    /**
+     * Latest week_start among saved claims for the team (null if none).
+     */
+    public function latestWeekStart(Team $team): ?string
+    {
+        return $this->claimsQuery($team)->max('week_start');
+    }
+
+    /**
+     * Most recent saved claim for the team, ordered by period_year / period_month desc.
+     */
+    public function latestClaimPeriod(Team $team): ?ActivityClaim
+    {
+        return $this->claimsQuery($team)
+            ->orderByDesc('period_year')
+            ->orderByDesc('period_month')
+            ->first();
     }
 
     /**
@@ -114,9 +149,11 @@ class RecapAggregator
                     ->values()
                     ->all();
 
+                $teamName = $projectClaims->first()->performancePlan?->team?->name;
+
                 return [
                     'project_id' => $project?->id,
-                    'project_name' => $project?->name ?? '—',
+                    'project_name' => $project?->name ?? $teamName ?? '—',
                     'rows' => $rows,
                 ];
             })
