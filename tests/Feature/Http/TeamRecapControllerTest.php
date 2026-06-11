@@ -1,5 +1,6 @@
 <?php
 
+use App\Models\ActivityClaim;
 use App\Models\Employee;
 use App\Models\PerformancePlan;
 use App\Models\Project;
@@ -92,6 +93,173 @@ it('only lists teams the employee belongs to', function () {
     $this->actingAs($user)
         ->get(route('team-recap.weekly'))
         ->assertInertia(fn ($page) => $page->has('teams', 1));
+});
+
+// ── PJ-preferred team and claim-anchored defaults ────────────────────────────
+
+it('PJ hits weekly with no params and lands on the team they lead', function () {
+    [$pjUser, $pjEmployee, $ledTeam] = pjOfTeam();
+
+    // Also attach the PJ to an alphabetically-earlier member team so first() would
+    // pick the wrong one without the PJ-preference logic.
+    $otherTeam = Team::factory()->create(['name' => 'AAA Team']);
+    $pjEmployee->teams()->attach($otherTeam->id, ['role' => 'member', 'is_primary' => false]);
+
+    $this->actingAs($pjUser)
+        ->get(route('team-recap.weekly'))
+        ->assertInertia(fn ($page) => $page
+            ->where('selectedTeamId', $ledTeam->id)
+        );
+});
+
+it('PJ with no ?week param sees the week of the latest saved claim', function () {
+    [$pjUser, $pjEmployee, $team] = pjOfTeam();
+
+    $member = Employee::factory()->create();
+    $team->members()->attach($member->id, ['role' => 'member', 'is_primary' => true]);
+
+    $plan = PerformancePlan::factory()->create([
+        'project_id' => null,
+        'team_id' => $team->id,
+    ]);
+
+    $claimWeek = '2026-05-04'; // a Monday
+    ActivityClaim::factory()->saved()->create([
+        'employee_id' => $member->id,
+        'performance_plan_id' => $plan->id,
+        'week_start' => $claimWeek,
+        'period_year' => 2026,
+        'period_month' => 5,
+        'period_quarter' => 2,
+    ]);
+
+    $this->actingAs($pjUser)
+        ->get(route('team-recap.weekly'))
+        ->assertInertia(fn ($page) => $page
+            ->where('weekStart', $claimWeek)
+            ->where('selectedTeamId', $team->id)
+        );
+});
+
+it('PJ weekly recap segments contain a member RK from a team-scoped claim', function () {
+    [$pjUser, $pjEmployee, $team] = pjOfTeam();
+
+    $member = Employee::factory()->create(['display_name' => 'Dewi']);
+    $team->members()->attach($member->id, ['role' => 'member', 'is_primary' => true]);
+
+    $plan = PerformancePlan::factory()->create([
+        'project_id' => null,
+        'team_id' => $team->id,
+        'description' => 'RK Khusus Tim',
+    ]);
+
+    $claimWeek = '2026-06-01';
+    ActivityClaim::factory()->saved()->create([
+        'employee_id' => $member->id,
+        'performance_plan_id' => $plan->id,
+        'week_start' => $claimWeek,
+        'period_year' => 2026,
+        'period_month' => 6,
+        'period_quarter' => 2,
+    ]);
+
+    $this->actingAs($pjUser)
+        ->get(route('team-recap.weekly', ['week' => $claimWeek]))
+        ->assertInertia(fn ($page) => $page
+            ->where('selectedTeamId', $team->id)
+            ->where('weekStart', $claimWeek)
+            ->has('segments', 1)
+        );
+});
+
+it('explicit ?team param overrides PJ preference', function () {
+    [$pjUser, $pjEmployee, $ledTeam] = pjOfTeam();
+
+    $otherTeam = Team::factory()->create();
+    $pjEmployee->teams()->attach($otherTeam->id, ['role' => 'member', 'is_primary' => false]);
+
+    $this->actingAs($pjUser)
+        ->get(route('team-recap.weekly', ['team' => $otherTeam->id]))
+        ->assertInertia(fn ($page) => $page
+            ->where('selectedTeamId', $otherTeam->id)
+        );
+});
+
+it('monthly with no params defaults to the period of the latest claim', function () {
+    [$pjUser, , $team] = pjOfTeam();
+
+    $plan = PerformancePlan::factory()->create([
+        'project_id' => null,
+        'team_id' => $team->id,
+    ]);
+
+    ActivityClaim::factory()->saved()->create([
+        'employee_id' => Employee::factory(),
+        'performance_plan_id' => $plan->id,
+        'period_year' => 2025,
+        'period_month' => 11,
+        'period_quarter' => 4,
+    ]);
+
+    $this->actingAs($pjUser)
+        ->get(route('team-recap.monthly'))
+        ->assertInertia(fn ($page) => $page
+            ->where('year', 2025)
+            ->where('month', 11)
+        );
+});
+
+it('quarterly with no params defaults to the period of the latest claim', function () {
+    [$pjUser, , $team] = pjOfTeam();
+
+    $plan = PerformancePlan::factory()->create([
+        'project_id' => null,
+        'team_id' => $team->id,
+    ]);
+
+    ActivityClaim::factory()->saved()->create([
+        'employee_id' => Employee::factory(),
+        'performance_plan_id' => $plan->id,
+        'period_year' => 2025,
+        'period_month' => 10,
+        'period_quarter' => 4,
+    ]);
+
+    $this->actingAs($pjUser)
+        ->get(route('team-recap.quarterly'))
+        ->assertInertia(fn ($page) => $page
+            ->where('year', 2025)
+            ->where('quarter', 4)
+        );
+});
+
+// ── Project-scoped RK claims still appear in weekly recap ────────────────────
+
+it('project-scoped RK claim still appears in the weekly recap', function () {
+    [$pjUser, , $team] = pjOfTeam();
+
+    $project = Project::factory()->create(['team_id' => $team->id]);
+    $plan = PerformancePlan::factory()->create(['project_id' => $project->id, 'team_id' => null]);
+
+    $member = Employee::factory()->create();
+    $team->members()->attach($member->id, ['role' => 'member', 'is_primary' => true]);
+
+    $claimWeek = '2026-06-01';
+    ActivityClaim::factory()->saved()->create([
+        'employee_id' => $member->id,
+        'performance_plan_id' => $plan->id,
+        'week_start' => $claimWeek,
+        'period_year' => 2026,
+        'period_month' => 6,
+        'period_quarter' => 2,
+    ]);
+
+    $this->actingAs($pjUser)
+        ->get(route('team-recap.weekly', ['week' => $claimWeek]))
+        ->assertInertia(fn ($page) => $page
+            ->has('segments', 1)
+            ->where('segments.0.project_id', $project->id)
+        );
 });
 
 // ── Evidence ──────────────────────────────────────────────────────────────

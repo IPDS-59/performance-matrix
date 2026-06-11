@@ -24,9 +24,12 @@ class TeamRecapController extends Controller
     {
         $employee = $request->user()->employee;
         $teams = $this->teamsFor($employee);
-        $team = $this->selectedTeam($request, $teams);
+        $team = $this->selectedTeam($request, $teams, $employee);
 
-        $anchor = $request->query('week') ? Carbon::parse($request->query('week')) : now();
+        $defaultWeek = $team ? $this->aggregator->defaultWeekStart($team) : null;
+        $anchor = $request->query('week')
+            ? Carbon::parse($request->query('week'))
+            : ($defaultWeek ? Carbon::parse($defaultWeek) : now());
         $weekStart = $anchor->copy()->startOfWeek(Carbon::MONDAY)->toDateString();
         $weekEnd = $anchor->copy()->endOfWeek(Carbon::SUNDAY)->toDateString();
 
@@ -59,10 +62,19 @@ class TeamRecapController extends Controller
     {
         $employee = $request->user()->employee;
         $teams = $this->teamsFor($employee);
-        $team = $this->selectedTeam($request, $teams);
+        $team = $this->selectedTeam($request, $teams, $employee);
 
-        $year = (int) $request->query('year', now()->year);
-        $month = (int) $request->query('month', now()->month);
+        $hasYearParam = $request->query('year') !== null;
+        $hasMonthParam = $request->query('month') !== null;
+
+        if (! $hasYearParam && ! $hasMonthParam && $team) {
+            $latest = $this->aggregator->latestClaimPeriod($team);
+            $year = $latest?->period_year ?? now()->year;
+            $month = $latest?->period_month ?? now()->month;
+        } else {
+            $year = (int) $request->query('year', now()->year);
+            $month = (int) $request->query('month', now()->month);
+        }
 
         $segments = $team ? $this->aggregator->monthly($team, $year, $month) : [];
 
@@ -82,10 +94,19 @@ class TeamRecapController extends Controller
     {
         $employee = $request->user()->employee;
         $teams = $this->teamsFor($employee);
-        $team = $this->selectedTeam($request, $teams);
+        $team = $this->selectedTeam($request, $teams, $employee);
 
-        $year = (int) $request->query('year', now()->year);
-        $quarter = (int) $request->query('quarter', (int) intdiv(now()->month - 1, 3) + 1);
+        $hasYearParam = $request->query('year') !== null;
+        $hasQuarterParam = $request->query('quarter') !== null;
+
+        if (! $hasYearParam && ! $hasQuarterParam && $team) {
+            $latest = $this->aggregator->latestClaimPeriod($team);
+            $year = $latest?->period_year ?? now()->year;
+            $quarter = $latest?->period_quarter ?? (int) intdiv(now()->month - 1, 3) + 1;
+        } else {
+            $year = (int) $request->query('year', now()->year);
+            $quarter = (int) $request->query('quarter', (int) intdiv(now()->month - 1, 3) + 1);
+        }
 
         $segments = $team ? $this->aggregator->quarterly($team, $year, $quarter) : [];
 
@@ -209,14 +230,24 @@ class TeamRecapController extends Controller
     }
 
     /**
+     * Resolve the active team from the request. When no ?team param is present,
+     * prefers a team the employee leads; falls back to alphabetical first.
+     *
      * @param  Collection<int, Team>  $teams
      */
-    private function selectedTeam(Request $request, Collection $teams): ?Team
+    private function selectedTeam(Request $request, Collection $teams, ?Employee $employee = null): ?Team
     {
         $requested = $request->query('team');
 
         if ($requested !== null) {
             return $teams->firstWhere('id', (int) $requested) ?? $teams->first();
+        }
+
+        if ($employee !== null) {
+            $led = $teams->first(fn (Team $t) => $this->isPj($employee, $t->id));
+            if ($led !== null) {
+                return $led;
+            }
         }
 
         return $teams->first();
