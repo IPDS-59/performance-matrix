@@ -170,9 +170,9 @@ onUnmounted(() => {
                     <span v-if="sidebar.isOpen">Matriks</span>
                 </Link>
 
-                <!-- Performance entry (staff + head) -->
+                <!-- Performance entry (legacy Domain A; hidden for staff — kipApp claim flow replaces it) -->
                 <Link
-                    v-if="isStaff || isHead"
+                    v-if="isHead"
                     :href="route('performance.index')"
                     :class="route().current('performance.*') ? 'bg-white/20' : 'hover:bg-white/10'"
                     class="flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors"
