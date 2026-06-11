@@ -126,7 +126,7 @@ onUnmounted(() => {
                         alt="BPS Sulteng"
                         class="h-8 w-8 rounded object-contain bg-white p-0.5"
                     />
-                    <span class="truncate">Matriks Kinerja</span>
+                    <span class="truncate">Kinetik</span>
                 </Link>
                 <button
                     @click="sidebar.toggle()"
