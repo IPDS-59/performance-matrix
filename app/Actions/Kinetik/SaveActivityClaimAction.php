@@ -92,19 +92,18 @@ class SaveActivityClaimAction
     }
 
     /**
-     * Ensure the employee belongs to (or leads) the team that owns the plan's project.
+     * Ensure the employee belongs to (or leads) the plan's team. kipApp RKs are
+     * team-scoped (no project), so fall back to the plan's own team_id.
      *
      * @throws AuthorizationException
      */
     private function authorize(Employee $employee, PerformancePlan $plan): void
     {
-        $project = $plan->project;
+        $teamId = $plan->project?->team_id ?? $plan->team_id;
 
-        if ($project === null) {
-            throw new AuthorizationException('Rencana Kinerja tidak memiliki proyek yang valid.');
+        if ($teamId === null) {
+            throw new AuthorizationException('Rencana Kinerja tidak terkait dengan tim mana pun.');
         }
-
-        $teamId = $project->team_id;
 
         $isMember = $employee->teams()
             ->where('teams.id', $teamId)
