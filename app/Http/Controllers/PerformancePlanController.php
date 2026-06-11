@@ -21,35 +21,54 @@ class PerformancePlanController extends Controller
         $user = $request->user();
         $isAdmin = $user->hasPermissionTo('manage-projects');
         $projectId = $request->integer('project_id');
+        $employee = $user->employee;
 
-        // Non-admins see RKs of teams they belong to (member or leader). kipApp
-        // RKs are team-scoped (no project), so match team_id OR project.team_id.
-        $memberTeamIds = $isAdmin
-            ? collect()
-            : ($user->employee?->teams()->pluck('teams.id') ?? collect());
+        // Non-admins: show only RKs the user owns OR belongs to a team they lead.
+        // kipApp RKs are team-scoped (no project), so match team_id OR project.team_id.
+        $ledTeamIds = (! $isAdmin && $employee)
+            ? Team::where('leader_id', $employee->id)->pluck('id')
+            : collect();
 
         $plans = PerformancePlan::with('project.team:id,name', 'team:id,name', 'pic:id,name,display_name')
             ->when($projectId, fn ($q) => $q->where('project_id', $projectId))
-            ->when(! $isAdmin, function ($q) use ($memberTeamIds) {
-                if ($memberTeamIds->isEmpty()) {
+            ->when(! $isAdmin, function ($q) use ($employee, $ledTeamIds) {
+                if ($employee === null || ($ledTeamIds->isEmpty() && $employee === null)) {
                     $q->whereRaw('1 = 0');
 
                     return;
                 }
-                $q->where(function ($w) use ($memberTeamIds) {
-                    $w->whereIn('team_id', $memberTeamIds)
-                        ->orWhereHas('project', fn ($pq) => $pq->whereIn('team_id', $memberTeamIds));
+                $q->where(function ($w) use ($employee, $ledTeamIds) {
+                    // Plans the user personally owns
+                    if ($employee !== null) {
+                        $w->where('pic_employee_id', $employee->id);
+                    }
+                    // Plans belonging to teams the user leads (team-scoped or project-scoped)
+                    if ($ledTeamIds->isNotEmpty()) {
+                        $w->orWhereIn('team_id', $ledTeamIds)
+                            ->orWhereHas('project', fn ($pq) => $pq->whereIn('team_id', $ledTeamIds));
+                    }
                 });
             })
             ->orderBy('code')
             ->orderBy('description')
             ->get();
 
+        $plans = $plans->map(fn ($plan) => array_merge($plan->toArray(), [
+            'can_update' => $user->can('update', $plan),
+            'can_delete' => $user->can('delete', $plan),
+        ]));
+
+        $memberTeamIds = $isAdmin
+            ? collect()
+            : ($employee?->teams()->pluck('teams.id') ?? collect());
+
         $projects = $isAdmin
             ? Project::with('team:id,name')->orderBy('name')->get(['id', 'name', 'team_id', 'year'])
-            : ($memberTeamIds->isNotEmpty()
-                ? Project::with('team:id,name')->whereIn('team_id', $memberTeamIds)->orderBy('name')->get(['id', 'name', 'team_id', 'year'])
-                : collect());
+            : ($ledTeamIds->isNotEmpty()
+                ? Project::with('team:id,name')->whereIn('team_id', $ledTeamIds)->orderBy('name')->get(['id', 'name', 'team_id', 'year'])
+                : ($memberTeamIds->isNotEmpty()
+                    ? Project::with('team:id,name')->whereIn('team_id', $memberTeamIds)->orderBy('name')->get(['id', 'name', 'team_id', 'year'])
+                    : collect()));
 
         $canCreate = $user->can('create', PerformancePlan::class);
 
@@ -91,7 +110,6 @@ class PerformancePlanController extends Controller
         if ($isAdmin) {
             $validated = $request->validate([
                 'project_id' => ['required', 'exists:projects,id'],
-                'code' => ['nullable', 'string', 'max:50'],
                 'description' => ['required', 'string'],
                 'target' => ['nullable', 'numeric'],
                 'target_unit' => ['nullable', 'string', 'max:100'],
@@ -108,7 +126,6 @@ class PerformancePlanController extends Controller
 
             $validated = $request->validate([
                 'project_id' => ['required', Rule::in($allowedProjectIds->all())],
-                'code' => ['nullable', 'string', 'max:50'],
                 'description' => ['required', 'string'],
                 'target' => ['nullable', 'numeric'],
                 'target_unit' => ['nullable', 'string', 'max:100'],
@@ -144,7 +161,7 @@ class PerformancePlanController extends Controller
             $projects = $ledTeamIds->isNotEmpty()
                 ? Project::with('team:id,name')->whereIn('team_id', $ledTeamIds)->orderBy('name')->get(['id', 'name', 'team_id'])
                 : collect();
-            $teamId = $performancePlan->project->team_id ?? null;
+            $teamId = $performancePlan->project?->team_id ?? $performancePlan->team_id;
             $employees = $teamId
                 ? Employee::where('team_id', $teamId)->where('is_active', true)->orderBy('name')->get(['id', 'name', 'display_name', 'team_id'])
                 : collect();
@@ -162,7 +179,6 @@ class PerformancePlanController extends Controller
         if ($isAdmin) {
             $validated = $request->validate([
                 'project_id' => ['required', 'exists:projects,id'],
-                'code' => ['nullable', 'string', 'max:50'],
                 'description' => ['required', 'string'],
                 'target' => ['nullable', 'numeric'],
                 'target_unit' => ['nullable', 'string', 'max:100'],
@@ -172,7 +188,6 @@ class PerformancePlanController extends Controller
             ]);
         } else {
             $validated = $request->validate([
-                'code' => ['nullable', 'string', 'max:50'],
                 'description' => ['required', 'string'],
                 'target' => ['nullable', 'numeric'],
                 'target_unit' => ['nullable', 'string', 'max:100'],

@@ -175,20 +175,96 @@ it('team lead gets 403 when deleting rk for another teams project', function () 
         ->assertForbidden();
 });
 
-it('shows a member their team RKs including team-scoped (no project) RKs', function () {
+it('a plain member (no led teams, no owned plans) sees an empty index', function () {
     $user = staffUser();
     $employee = Employee::factory()->create(['user_id' => $user->id]);
     $team = Team::factory()->create();
     $employee->teams()->attach($team->id, ['role' => 'member', 'is_primary' => true]);
 
-    // Team-scoped RK (kipApp style: no project) + a project-based RK in the team.
+    // RKs in team that member belongs to but does not lead or own.
     PerformancePlan::factory()->create(['project_id' => null, 'team_id' => $team->id]);
     PerformancePlan::factory()->create(['project_id' => Project::factory()->create(['team_id' => $team->id])->id]);
 
-    // An RK in another team the member is not in -> excluded.
-    PerformancePlan::factory()->create(['project_id' => null, 'team_id' => Team::factory()->create()->id]);
+    $this->withoutVite()->actingAs($user)
+        ->get(route('performance-plans.index'))
+        ->assertInertia(fn ($page) => $page->component('PerformancePlans/Index')->has('plans', 0));
+});
+
+it('a member who owns a plan sees only their owned plan', function () {
+    $user = staffUser();
+    $employee = Employee::factory()->create(['user_id' => $user->id]);
+    $team = Team::factory()->create();
+    $employee->teams()->attach($team->id, ['role' => 'member', 'is_primary' => true]);
+
+    $owned = PerformancePlan::factory()->create(['project_id' => null, 'team_id' => $team->id, 'pic_employee_id' => $employee->id]);
+    // Another plan in the same team but not owned by this user.
+    PerformancePlan::factory()->create(['project_id' => null, 'team_id' => $team->id, 'pic_employee_id' => null]);
 
     $this->withoutVite()->actingAs($user)
         ->get(route('performance-plans.index'))
-        ->assertInertia(fn ($page) => $page->component('PerformancePlans/Index')->has('plans', 2));
+        ->assertInertia(fn ($page) => $page->component('PerformancePlans/Index')->has('plans', 1));
+});
+
+it('team-scoped RK: leader can GET edit without 500', function () {
+    $user = staffUser();
+    $team = Team::factory()->create(['is_active' => true]);
+    $employee = Employee::factory()->create(['user_id' => $user->id]);
+    $team->update(['leader_id' => $employee->id]);
+
+    // Team-scoped plan: project_id = null, team_id set.
+    $plan = PerformancePlan::factory()->create(['project_id' => null, 'team_id' => $team->id]);
+
+    $this->withoutVite()->actingAs($user)
+        ->get(route('performance-plans.edit', $plan))
+        ->assertOk();
+});
+
+it('team-scoped RK: leader can PUT update', function () {
+    $user = staffUser();
+    $team = Team::factory()->create(['is_active' => true]);
+    $employee = Employee::factory()->create(['user_id' => $user->id]);
+    $team->update(['leader_id' => $employee->id]);
+
+    $plan = PerformancePlan::factory()->create(['project_id' => null, 'team_id' => $team->id]);
+
+    $this->actingAs($user)
+        ->put(route('performance-plans.update', $plan), [
+            'description' => 'Updated Team RK',
+            'period_type' => 'year',
+        ])
+        ->assertRedirect(route('performance-plans.index'));
+
+    expect($plan->fresh()->description)->toBe('Updated Team RK');
+});
+
+it('staff member with no plan and no led team sees empty index and gets 403 on edit', function () {
+    $user = staffUser();
+    Employee::factory()->create(['user_id' => $user->id]);
+
+    $plan = PerformancePlan::factory()->create();
+
+    $this->withoutVite()->actingAs($user)
+        ->get(route('performance-plans.index'))
+        ->assertInertia(fn ($page) => $page->component('PerformancePlans/Index')->has('plans', 0));
+
+    $this->actingAs($user)
+        ->get(route('performance-plans.edit', $plan))
+        ->assertForbidden();
+});
+
+it('index includes can_update and can_delete flags; staff with no led team gets false', function () {
+    $user = staffUser();
+    $employee = Employee::factory()->create(['user_id' => $user->id]);
+    $team = Team::factory()->create(['is_active' => true]);
+    // User owns a plan but does not lead the team.
+    $plan = PerformancePlan::factory()->create(['project_id' => null, 'team_id' => $team->id, 'pic_employee_id' => $employee->id]);
+
+    $this->withoutVite()->actingAs($user)
+        ->get(route('performance-plans.index'))
+        ->assertInertia(fn ($page) => $page
+            ->component('PerformancePlans/Index')
+            ->has('plans', 1)
+            ->where('plans.0.can_update', false)
+            ->where('plans.0.can_delete', false)
+        );
 });

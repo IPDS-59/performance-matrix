@@ -29,7 +29,6 @@ const props = defineProps<{
 
 const form = useForm({
     project_id: null as number | null,
-    code: '',
     description: '',
     target: '' as string | number,
     target_unit: '',
@@ -81,11 +80,6 @@ function submit() {
                         </SelectContent>
                     </Select>
                     <InputError :message="form.errors.project_id" />
-                </div>
-                <div>
-                    <Label for="code">Kode RK</Label>
-                    <Input id="code" v-model="form.code" class="mt-1" placeholder="Opsional" />
-                    <InputError :message="form.errors.code" />
                 </div>
                 <div>
                     <Label for="description">Deskripsi</Label>
