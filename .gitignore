@@ -51,3 +51,6 @@ kipapp.postman_collection.json
 
 # Local secrets (never commit)
 docs/credentials/
+
+# Internal Kinetik docs (not for the repo)
+docs/kinetik/
