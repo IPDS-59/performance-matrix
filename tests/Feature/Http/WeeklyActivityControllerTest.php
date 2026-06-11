@@ -378,3 +378,28 @@ it('keeps solution and rtl for a PJ', function () {
     expect($claim->solution)->toBe('Solusi PJ')
         ->and($claim->follow_up_plan)->toBe('RTL PJ');
 });
+
+it('allows claiming a team-scoped RK with no project (kipApp style)', function () {
+    $user = staffUser();
+    $employee = Employee::factory()->create(['user_id' => $user->id]);
+    $team = Team::factory()->create();
+    $employee->teams()->attach($team->id, ['role' => 'member', 'is_primary' => true]);
+
+    // kipApp RK: team-scoped, project_id null.
+    $plan = PerformancePlan::factory()->create(['project_id' => null, 'team_id' => $team->id]);
+    $activity = KipActivity::factory()->create(['employee_id' => $employee->id, 'activity_date_start' => '2026-06-02']);
+
+    $this->actingAs($user)->post(route('weekly.claim'), [
+        'kip_activity_id' => $activity->id,
+        'performance_plan_id' => $plan->id,
+        'obstacle' => 'Kendala',
+        'activity_date_start' => '2026-06-02',
+        'status' => 'saved',
+    ])->assertRedirect();
+
+    $this->assertDatabaseHas('activity_claims', [
+        'kip_activity_id' => $activity->id,
+        'performance_plan_id' => $plan->id,
+        'status' => 'saved',
+    ]);
+});
