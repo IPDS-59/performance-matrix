@@ -85,7 +85,12 @@ class SyncKipStructureAction
 
         // Team leader (kipApp niplamaketua) -> teams.leader_id + leader pivot.
         $leaderNip = $projects->map(fn (KipProjectData $p) => $p->leaderNipLama)->filter()->first();
-        $leader = $leaderNip ? $this->resolveByNip((string) $leaderNip) : null;
+        $leaderName = $projects->map(fn (KipProjectData $p) => $p->leaderName)->filter()->first();
+        $leader = null;
+        if ($leaderNip) {
+            $leader = $this->resolveByNip((string) $leaderNip)
+                ?? ($leaderName ? $this->provisionEmployee(KipMemberData::fromApiRow(['niplama' => $leaderNip, 'nama' => $leaderName])) : null);
+        }
         if ($leader) {
             $team->leader_id = $leader->id;
             $team->save();
@@ -188,11 +193,20 @@ class SyncKipStructureAction
             return null;
         }
 
-        $indicator = PerformanceIndicator::where('kip_external_id', $data->ikuExternalId)->first();
-        $isNew = $indicator === null;
-        $indicator ??= new PerformanceIndicator(['year' => (int) config('kinetik.kip.tahun')]);
+        // Dedup by (team_id, name): reuse any existing indicator with the same name
+        // in this team, regardless of kip_external_id (many projects share the same
+        // rencanakinerjaketua text but carry different rkketuaids).
+        $indicator = PerformanceIndicator::where('team_id', $team->id)
+            ->where('name', $data->ikuName)
+            ->first()
+            ?? PerformanceIndicator::where('kip_external_id', $data->ikuExternalId)->first();
 
-        $indicator->kip_external_id = $data->ikuExternalId;
+        $isNew = $indicator === null;
+        if ($isNew) {
+            $indicator = new PerformanceIndicator(['year' => (int) config('kinetik.kip.tahun')]);
+            $indicator->kip_external_id = $data->ikuExternalId;
+        }
+
         $indicator->team_id = $team->id;
         $indicator->name = $data->ikuName;
         $indicator->save();

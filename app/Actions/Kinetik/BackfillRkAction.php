@@ -30,12 +30,24 @@ class BackfillRkAction
         $created = 0;
 
         foreach ($rks as $rk) {
-            $plan = PerformancePlan::where('kip_external_id', $rk->rk_external_id)->first();
-            $isNew = $plan === null;
-            $plan ??= new PerformancePlan(['period_type' => 'year']);
+            $rkName = $rk->rk_name ?: "RK {$rk->rk_external_id}";
 
-            $plan->kip_external_id = $rk->rk_external_id;
-            $plan->description = $rk->rk_name ?: ($plan->description ?: "RK {$rk->rk_external_id}");
+            // Dedup by (team_id, description): reuse any existing plan for this
+            // team with the same text (many employees share the same RK).
+            $plan = ($employee->team_id && $rk->rk_name
+                ? PerformancePlan::where('team_id', $employee->team_id)
+                    ->where('description', $rk->rk_name)
+                    ->first()
+                : null)
+                ?? PerformancePlan::where('kip_external_id', $rk->rk_external_id)->first();
+
+            $isNew = $plan === null;
+            if ($isNew) {
+                $plan = new PerformancePlan(['period_type' => 'year']);
+                $plan->kip_external_id = $rk->rk_external_id;
+            }
+
+            $plan->description = $rkName;
             $plan->team_id ??= $employee->team_id;
             $plan->pic_employee_id ??= $employee->id;
             $plan->save();

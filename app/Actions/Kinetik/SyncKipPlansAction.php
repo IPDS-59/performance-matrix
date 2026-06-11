@@ -37,17 +37,28 @@ class SyncKipPlansAction
                     continue;
                 }
 
-                $plan = PerformancePlan::where('kip_external_id', $rk->externalId)->first();
-                $isNew = $plan === null;
-                $plan ??= new PerformancePlan(['period_type' => 'year']);
-
-                $plan->kip_external_id = $rk->externalId;
-                $plan->description = $rk->name !== '' ? $rk->name : ($plan->description ?: "RK {$rk->externalId}");
-
                 $teamId = $rk->teamExternalId
                     ? Team::where('kip_external_id', $rk->teamExternalId)->value('id')
                     : null;
-                $plan->team_id = $teamId ?? $plan->team_id ?? $employee->team_id;
+                $resolvedTeamId = $teamId ?? $employee->team_id;
+
+                // Dedup by (team_id, description): reuse any plan with the same
+                // text for this team before falling back to kip_external_id match.
+                $plan = ($resolvedTeamId && $rk->name !== ''
+                    ? PerformancePlan::where('team_id', $resolvedTeamId)
+                        ->where('description', $rk->name)
+                        ->first()
+                    : null)
+                    ?? PerformancePlan::where('kip_external_id', $rk->externalId)->first();
+
+                $isNew = $plan === null;
+                if ($isNew) {
+                    $plan = new PerformancePlan(['period_type' => 'year']);
+                    $plan->kip_external_id = $rk->externalId;
+                }
+
+                $plan->description = $rk->name !== '' ? $rk->name : ($plan->description ?: "RK {$rk->externalId}");
+                $plan->team_id = $resolvedTeamId ?? $plan->team_id;
 
                 if ($rk->target !== null) {
                     $plan->target = $rk->target;
