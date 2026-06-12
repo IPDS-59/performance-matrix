@@ -33,6 +33,8 @@ return [
         // UserSeeder; second name appended on collision). Password "password".
         'create_logins' => (bool) env('KIP_CREATE_LOGINS', true),
         'email_domain' => env('KIP_EMAIL_DOMAIN', 'bpssulteng.id'),
+        'real_email_domain' => env('KIP_REAL_EMAIL_DOMAIN', 'bps.go.id'),
+        'username_map_path' => env('KIP_USERNAME_MAP_PATH', database_path('data/kipapp-usernames.json')),
         'default_password' => env('KIP_DEFAULT_PASSWORD', 'password'),
 
         // Employees processed per chunk during the no-queue activity sync.

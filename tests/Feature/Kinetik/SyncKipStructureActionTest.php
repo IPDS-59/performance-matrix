@@ -113,7 +113,13 @@ it('provisions employees from kipApp member rows and mirrors project members', f
 });
 
 it('creates login accounts with derived emails and default password', function () {
-    config(['kinetik.kip.create_logins' => true, 'kinetik.kip.email_domain' => 'bpssulteng.id']);
+    // Isolate from the real username map so derived-email logic is exercised.
+    $emptyMap = writeTempUsernameMap([]);
+    config([
+        'kinetik.kip.create_logins' => true,
+        'kinetik.kip.email_domain' => 'bpssulteng.id',
+        'kinetik.kip.username_map_path' => $emptyMap,
+    ]);
     seedRolesAndPermissions();
     fakeStructure();
 
@@ -253,6 +259,122 @@ it('deduplicates IKU by (team_id, name) when multiple projects share the same re
     $projectB = Project::where('kip_external_id', '427671')->first();
     expect($projectA->performance_indicator_id)->toBe($iku->id)
         ->and($projectB->performance_indicator_id)->toBe($iku->id);
+});
+
+// ---------------------------------------------------------------------------
+// Real-email (username map) tests
+// ---------------------------------------------------------------------------
+
+/**
+ * Write a temp fixture with the given niplama => username pairs and return the path.
+ *
+ * @param  array<string, string>  $map
+ */
+function writeTempUsernameMap(array $map): string
+{
+    $path = tempnam(sys_get_temp_dir(), 'kip_usernames_').'.json';
+    file_put_contents($path, json_encode($map));
+
+    return $path;
+}
+
+it('creates a login with the real SSO email when niplama is in the username map', function () {
+    $mapPath = writeTempUsernameMap(['340013832' => 'imron.santoso', '340053881' => 'asmawati']);
+    config([
+        'kinetik.kip.create_logins' => true,
+        'kinetik.kip.email_domain' => 'bpssulteng.id',
+        'kinetik.kip.real_email_domain' => 'bps.go.id',
+        'kinetik.kip.username_map_path' => $mapPath,
+    ]);
+    seedRolesAndPermissions();
+    fakeStructure();
+
+    runStructureSync();
+
+    $imron = Employee::where('nip_lama', '340013832')->first();
+    expect($imron->user_id)->not->toBeNull();
+    expect(User::find($imron->user_id)->email)->toBe('imron.santoso@bps.go.id');
+});
+
+it('falls back to derived email when niplama is not in the username map', function () {
+    $mapPath = writeTempUsernameMap([]); // empty map — no real email for anyone
+    config([
+        'kinetik.kip.create_logins' => true,
+        'kinetik.kip.email_domain' => 'bpssulteng.id',
+        'kinetik.kip.real_email_domain' => 'bps.go.id',
+        'kinetik.kip.username_map_path' => $mapPath,
+    ]);
+    seedRolesAndPermissions();
+    fakeStructure();
+
+    runStructureSync();
+
+    $verawati = Employee::where('nip_lama', '340017503')->first();
+    expect($verawati->user_id)->not->toBeNull();
+    expect(User::find($verawati->user_id)->email)->toBe('verawati@bpssulteng.id');
+});
+
+it('upgrades an existing derived-email login to the real email on re-sync', function () {
+    $mapPath = writeTempUsernameMap(['340013832' => 'imron.santoso']);
+    config([
+        'kinetik.kip.create_logins' => true,
+        'kinetik.kip.email_domain' => 'bpssulteng.id',
+        'kinetik.kip.real_email_domain' => 'bps.go.id',
+        'kinetik.kip.username_map_path' => $mapPath,
+    ]);
+    seedRolesAndPermissions();
+
+    // Pre-create employee with a derived-email login (as if synced before the map existed).
+    $existingUser = User::create([
+        'name' => 'Imron',
+        'email' => 'imron@bpssulteng.id',
+        'password' => bcrypt('password'),
+        'role' => 'staff',
+    ]);
+    $employee = Employee::factory()->create([
+        'nip_lama' => '340013832',
+        'name' => 'Imron',
+        'user_id' => $existingUser->id,
+    ]);
+
+    fakeStructure();
+    runStructureSync();
+
+    expect($existingUser->fresh()->email)->toBe('imron.santoso@bps.go.id');
+    // user_id remains the same user
+    expect($employee->fresh()->user_id)->toBe($existingUser->id);
+});
+
+it('falls back to derived email when the real email is already taken by another user', function () {
+    $mapPath = writeTempUsernameMap(['340053881' => 'asmawati']);
+    config([
+        'kinetik.kip.create_logins' => true,
+        'kinetik.kip.email_domain' => 'bpssulteng.id',
+        'kinetik.kip.real_email_domain' => 'bps.go.id',
+        'kinetik.kip.username_map_path' => $mapPath,
+    ]);
+    seedRolesAndPermissions();
+
+    // Another user already owns the real email.
+    User::create([
+        'name' => 'Other',
+        'email' => 'asmawati@bps.go.id',
+        'password' => bcrypt('password'),
+        'role' => 'staff',
+    ]);
+
+    fakeStructure();
+    runStructureSync();
+
+    $asmawati = Employee::where('nip_lama', '340053881')->first();
+    expect($asmawati->user_id)->not->toBeNull();
+
+    $user = User::find($asmawati->user_id);
+    // Must NOT be the real email (collision), must be the derived one instead.
+    expect($user->email)->not->toBe('asmawati@bps.go.id')
+        ->and($user->email)->toContain('@bpssulteng.id');
+    // No exception, no duplicate email in users table.
+    expect(User::where('email', 'asmawati@bps.go.id')->count())->toBe(1);
 });
 
 it('provisions the team leader when niplamaketua is not in the project roster', function () {

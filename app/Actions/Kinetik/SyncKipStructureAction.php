@@ -39,6 +39,9 @@ class SyncKipStructureAction
     /** @var Collection<string, Employee> nip_lama => Employee, cached per team */
     private Collection $employeeCache;
 
+    /** @var array<string, string>|null nip_lama => username, lazily loaded */
+    private ?array $usernameMap = null;
+
     /** @var Counts */
     private array $counts;
 
@@ -273,18 +276,41 @@ class SyncKipStructureAction
     }
 
     /**
-     * Create a login User for an employee that lacks one. kipApp exposes no
-     * employee email, so it is derived as firstname.lastname@<domain>.
+     * Create or upgrade a login User for an employee. When the username map
+     * provides a real SSO email (username@bps.go.id), it is preferred over the
+     * derived firstname@bpssulteng.id — and an existing derived login is
+     * upgraded to the real email on re-sync.
      */
     private function ensureLogin(Employee $employee): void
     {
-        if (! config('kinetik.kip.create_logins') || $employee->user_id !== null) {
+        if (! config('kinetik.kip.create_logins')) {
             return;
         }
 
+        $realEmail = $this->realEmailFor($employee->nip_lama);
+
+        // Upgrade an existing login to the real email when it differs and is not
+        // already taken by another user.
+        if ($employee->user_id !== null) {
+            if ($realEmail !== null) {
+                $user = User::find($employee->user_id);
+                if ($user && $user->email !== $realEmail && ! User::where('email', $realEmail)->where('id', '!=', $user->id)->exists()) {
+                    $user->email = $realEmail;
+                    $user->save();
+                }
+            }
+
+            return;
+        }
+
+        // Determine the email to use for new login creation.
+        $email = $realEmail !== null && ! User::where('email', $realEmail)->exists()
+            ? $realEmail
+            : $this->deriveEmail($employee->name);
+
         $user = User::create([
             'name' => $employee->display_name ?? $employee->name,
-            'email' => $this->deriveEmail($employee->name),
+            'email' => $email,
             'password' => Hash::make((string) config('kinetik.kip.default_password', 'password')),
             'role' => 'staff',
         ]);
@@ -299,6 +325,33 @@ class SyncKipStructureAction
         $employee->save();
 
         $this->counts['users_created']++;
+    }
+
+    /**
+     * Resolve a real SSO email from the username map for a given nip_lama.
+     * The map is loaded lazily and cached for the action's lifetime.
+     */
+    private function realEmailFor(?string $nipLama): ?string
+    {
+        if ($nipLama === null || $nipLama === '') {
+            return null;
+        }
+
+        if ($this->usernameMap === null) {
+            $path = config('kinetik.kip.username_map_path');
+            $this->usernameMap = (is_string($path) && is_file($path))
+                ? (json_decode((string) file_get_contents($path), true) ?: [])
+                : [];
+        }
+
+        $username = $this->usernameMap[$nipLama] ?? null;
+        if (! $username) {
+            return null;
+        }
+
+        $domain = (string) config('kinetik.kip.real_email_domain', 'bps.go.id');
+
+        return strtolower($username).'@'.$domain;
     }
 
     /**
