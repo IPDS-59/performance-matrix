@@ -17,6 +17,7 @@ const props = defineProps<{
     year: number;
     month: number;
     canManage: boolean;
+    currentEmployeeId: number | null;
 }>();
 
 const MONTHS = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
@@ -135,6 +136,12 @@ function toggleConfirm(row: RecapRow) {
         period_month: props.month,
         confirmed: !row.is_confirmed,
     }, { preserveScroll: true, preserveState: true });
+}
+
+// ── Per-row paraphrase permission ──────────────────────────────────────────
+
+function rowCanParaphrase(row: RecapRow): boolean {
+    return props.canManage || (props.currentEmployeeId !== null && row.pic_employee_id === props.currentEmployeeId);
 }
 
 // ── Paraphrase forms (per planId) ──────────────────────────────────────────
@@ -360,8 +367,8 @@ function saveParaphrase(row: RecapRow) {
                                                 <p class="rounded bg-white px-3 py-2 text-sm text-gray-700 ring-1 ring-gray-200">{{ row.obstacle_aggregated || '—' }}</p>
                                             </div>
 
-                                            <!-- PJ paraphrase inputs -->
-                                            <template v-if="canManage">
+                                            <!-- Paraphrase inputs (PJ or this row's PIC) -->
+                                            <template v-if="rowCanParaphrase(row)">
                                                 <div class="grid grid-cols-1 gap-3 sm:grid-cols-3">
                                                     <div>
                                                         <Label class="text-xs">Kendala (PJ)</Label>
@@ -396,7 +403,7 @@ function saveParaphrase(row: RecapRow) {
                                                 </div>
                                             </template>
 
-                                            <!-- Read-only PJ paraphrase (non-PJ) -->
+                                            <!-- Read-only paraphrase (no paraphrase permission) -->
                                             <template v-else>
                                                 <div class="grid grid-cols-1 gap-3 sm:grid-cols-3">
                                                     <div>

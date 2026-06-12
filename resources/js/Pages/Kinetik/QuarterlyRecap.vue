@@ -20,6 +20,7 @@ const props = defineProps<{
     quarter: number;
     pics: TeamOption[];
     canManage: boolean;
+    currentEmployeeId: number | null;
 }>();
 
 const quarterLabel = computed(() => `Triwulan ${props.quarter} ${props.year}`);
@@ -134,6 +135,12 @@ function toggleConfirm(row: RecapRow) {
         period_quarter: props.quarter,
         confirmed: !row.is_confirmed,
     }, { preserveScroll: true, preserveState: true });
+}
+
+// ── Per-row paraphrase permission ──────────────────────────────────────────
+
+function rowCanParaphrase(row: RecapRow): boolean {
+    return props.canManage || (props.currentEmployeeId !== null && row.pic_employee_id === props.currentEmployeeId);
 }
 
 // ── Paraphrase + FRA follow-up forms (per planId) ─────────────────────────
@@ -378,8 +385,8 @@ function saveParaphrase(row: RecapRow) {
                                                 <p class="rounded bg-white px-3 py-2 text-sm text-gray-700 ring-1 ring-gray-200">{{ row.obstacle_aggregated || '—' }}</p>
                                             </div>
 
-                                            <!-- PJ paraphrase + FRA inputs -->
-                                            <template v-if="canManage">
+                                            <!-- Paraphrase + FRA inputs (PJ or this row's PIC) -->
+                                            <template v-if="rowCanParaphrase(row)">
                                                 <div class="grid grid-cols-1 gap-3 sm:grid-cols-3">
                                                     <div>
                                                         <Label class="text-xs">Kendala (PJ)</Label>
@@ -444,7 +451,7 @@ function saveParaphrase(row: RecapRow) {
                                                 </div>
                                             </template>
 
-                                            <!-- Read-only PJ + FRA (non-PJ) -->
+                                            <!-- Read-only paraphrase + FRA (no paraphrase permission) -->
                                             <template v-else>
                                                 <div class="grid grid-cols-1 gap-3 sm:grid-cols-3">
                                                     <div>

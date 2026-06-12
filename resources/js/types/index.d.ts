@@ -261,6 +261,7 @@ export interface PlanOption {
 
 export interface RecapRow {
     performance_plan_id: number;
+    pic_employee_id?: number | null;
     rk_code?: string | null;
     rk_description: string;
     target: number;
