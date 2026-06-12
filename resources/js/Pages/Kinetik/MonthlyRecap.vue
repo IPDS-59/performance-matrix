@@ -65,14 +65,55 @@ function toggleSort(segKey: string) {
     sortDirs.value[segKey] = sortDir(segKey) === 'asc' ? 'desc' : 'asc';
 }
 
-function sortedRows(seg: RecapSegment): RecapRow[] {
+// ── "Perlu perhatian" filter ───────────────────────────────────────────────
+
+const attentionOnly = ref(false);
+
+function needsAttention(row: RecapRow): boolean {
+    const hasObstacle = !!row.obstacle_aggregated && row.obstacle_aggregated !== '—' && row.obstacle_aggregated !== 'N/A';
+    return (row.achievement ?? 0) < 100 || hasObstacle || !row.is_confirmed;
+}
+
+function attentionCount(seg: RecapSegment): number {
+    return seg.rows.filter(needsAttention).length;
+}
+
+function filteredRows(seg: RecapSegment): RecapRow[] {
+    const base = attentionOnly.value ? seg.rows.filter(needsAttention) : seg.rows;
     const key = String(seg.project_id ?? 'none');
     const dir = sortDir(key);
-    return [...seg.rows].sort((a, b) =>
+    return [...base].sort((a, b) =>
         dir === 'asc'
             ? (a.achievement ?? 0) - (b.achievement ?? 0)
             : (b.achievement ?? 0) - (a.achievement ?? 0),
     );
+}
+
+// ── Bulk confirm ───────────────────────────────────────────────────────────
+
+const bulkConfirmIds = computed(() =>
+    props.segments
+        .flatMap((seg) => seg.rows)
+        .filter((row) => (row.achievement ?? 0) >= 100 && !row.is_confirmed)
+        .map((row) => row.performance_plan_id),
+);
+
+const bulkConfirming = ref(false);
+
+function confirmBulk() {
+    if (!bulkConfirmIds.value.length) return;
+    bulkConfirming.value = true;
+    router.post(route('team-recap.override.confirm-bulk'), {
+        team_id: props.selectedTeamId,
+        period_type: 'month',
+        period_year: props.year,
+        period_month: props.month,
+        performance_plan_ids: bulkConfirmIds.value,
+    }, {
+        preserveScroll: true,
+        preserveState: true,
+        onFinish: () => { bulkConfirming.value = false; },
+    });
 }
 
 // ── Expand state ───────────────────────────────────────────────────────────
@@ -98,16 +139,19 @@ function toggleConfirm(row: RecapRow) {
 
 // ── Paraphrase forms (per planId) ──────────────────────────────────────────
 
-type ParaForm = { obstacle: string; solution: string; follow_up_plan: string; saving: boolean };
+type ParaForm = { obstacle: string; solution: string; follow_up_plan: string; saving: boolean; seededFromAgg: boolean };
 const paraForms = ref<Record<number, ParaForm>>({});
 
 function getParaForm(row: RecapRow): ParaForm {
     if (!paraForms.value[row.performance_plan_id]) {
+        const hasPjObstacle = row.pj_obstacle !== null && row.pj_obstacle !== '';
+        const seededFromAgg = !hasPjObstacle && !!row.obstacle_aggregated;
         paraForms.value[row.performance_plan_id] = {
-            obstacle: row.pj_obstacle ?? '',
+            obstacle: row.pj_obstacle ?? row.obstacle_aggregated ?? '',
             solution: row.pj_solution ?? '',
             follow_up_plan: row.pj_follow_up_plan ?? '',
             saving: false,
+            seededFromAgg,
         };
     }
 
@@ -167,6 +211,30 @@ function saveParaphrase(row: RecapRow) {
                         <ChevronRight class="h-4 w-4" />
                     </button>
                 </div>
+
+                <div class="flex flex-wrap items-center gap-2">
+                    <button
+                        type="button"
+                        :class="['inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-medium transition-colors', attentionOnly ? 'border-orange-400 bg-orange-50 text-orange-700' : 'border-gray-200 bg-white text-gray-600 hover:border-orange-300 hover:text-orange-600']"
+                        @click="attentionOnly = !attentionOnly"
+                    >
+                        Perlu perhatian
+                        <span :class="['rounded-full px-1.5 py-0.5 text-xs', attentionOnly ? 'bg-orange-400 text-white' : 'bg-gray-200 text-gray-600']">
+                            {{ segments.reduce((sum, seg) => sum + attentionCount(seg), 0) }}
+                        </span>
+                    </button>
+
+                    <Button
+                        v-if="canManage"
+                        size="sm"
+                        variant="outline"
+                        :disabled="!bulkConfirmIds.length || bulkConfirming"
+                        @click="confirmBulk"
+                    >
+                        Konfirmasi semua (capaian 100%)
+                        <span v-if="bulkConfirmIds.length" class="ml-1 rounded-full bg-green-100 px-1.5 py-0.5 text-xs text-green-700">{{ bulkConfirmIds.length }}</span>
+                    </Button>
+                </div>
             </div>
 
             <!-- Segments by project -->
@@ -176,8 +244,11 @@ function saveParaphrase(row: RecapRow) {
 
             <div v-else class="space-y-6">
                 <div v-for="seg in segments" :key="seg.project_id ?? 'none'" class="overflow-hidden rounded-md border bg-white">
-                    <div class="border-b bg-gray-50 px-4 py-3">
+                    <div class="flex items-center justify-between border-b bg-gray-50 px-4 py-3">
                         <h3 class="text-sm font-semibold text-gray-800">{{ seg.project_name }}</h3>
+                        <span v-if="attentionCount(seg) > 0" class="inline-flex items-center rounded-full bg-orange-100 px-2 py-0.5 text-xs font-medium text-orange-700">
+                            {{ attentionCount(seg) }} perlu perhatian
+                        </span>
                     </div>
 
                     <Table class="w-full text-sm">
@@ -198,7 +269,7 @@ function saveParaphrase(row: RecapRow) {
                             </TableRow>
                         </TableHeader>
                         <TableBody class="divide-y divide-gray-100">
-                            <template v-for="row in sortedRows(seg)" :key="row.performance_plan_id">
+                            <template v-for="row in filteredRows(seg)" :key="row.performance_plan_id">
                                 <TableRow class="hover:bg-gray-50">
                                     <TableCell class="align-top">
                                         <p class="font-medium text-gray-800">{{ row.rk_description }}</p>
@@ -259,6 +330,7 @@ function saveParaphrase(row: RecapRow) {
                                                     <div>
                                                         <Label class="text-xs">Kendala (PJ)</Label>
                                                         <Textarea v-model="getParaForm(row).obstacle" :rows="2" class="mt-1 text-sm" />
+                                                        <p v-if="getParaForm(row).seededFromAgg" class="mt-0.5 text-xs italic text-gray-400">Prafilled dari kendala anggota</p>
                                                     </div>
                                                     <div>
                                                         <Label class="text-xs">Solusi (PJ)</Label>
