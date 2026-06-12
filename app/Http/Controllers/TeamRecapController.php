@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Employee;
+use App\Models\PerformancePlan;
 use App\Models\RecapOverride;
 use App\Models\Team;
 use App\Models\TeamRecapEvidence;
@@ -54,6 +55,7 @@ class TeamRecapController extends Controller
             'prevWeek' => Carbon::parse($weekStart)->subWeek()->toDateString(),
             'nextWeek' => Carbon::parse($weekStart)->addWeek()->toDateString(),
             'canManage' => $team !== null && $this->isPj($employee, $team->id),
+            'currentEmployeeId' => $employee?->id,
         ]);
     }
 
@@ -86,6 +88,7 @@ class TeamRecapController extends Controller
             'year' => $year,
             'month' => $month,
             'canManage' => $team !== null && $this->isPj($employee, $team->id),
+            'currentEmployeeId' => $employee?->id,
         ]);
     }
 
@@ -119,6 +122,7 @@ class TeamRecapController extends Controller
             'quarter' => $quarter,
             'pics' => $team ? $this->teamMemberOptions($team) : [],
             'canManage' => $team !== null && $this->isPj($employee, $team->id),
+            'currentEmployeeId' => $employee?->id,
         ]);
     }
 
@@ -196,7 +200,8 @@ class TeamRecapController extends Controller
             $validated['period_year'] = Carbon::parse($validated['week_start'])->year;
         }
 
-        $this->authorizePj($employee, (int) $validated['team_id']);
+        $plan = PerformancePlan::findOrFail((int) $validated['performance_plan_id']);
+        $this->authorizeParaphrase($employee, (int) $validated['team_id'], $plan);
 
         RecapOverride::updateOrCreate(
             [
@@ -381,6 +386,23 @@ class TeamRecapController extends Controller
             $this->isPj($employee, $teamId),
             403,
             'Hanya PJ / Ketua Tim yang dapat mengelola bukti dan parafrase rekap.',
+        );
+    }
+
+    /**
+     * For paraphrase drafting: the PJ OR the RK's assigned PIC may draft.
+     */
+    private function canParaphrasePlan(Employee $employee, int $teamId, PerformancePlan $plan): bool
+    {
+        return $this->isPj($employee, $teamId) || $plan->pic_employee_id === $employee->id;
+    }
+
+    private function authorizeParaphrase(Employee $employee, int $teamId, PerformancePlan $plan): void
+    {
+        abort_unless(
+            $this->canParaphrasePlan($employee, $teamId, $plan),
+            403,
+            'Hanya PJ atau PIC RK yang dapat membuat parafrase rekap.',
         );
     }
 }

@@ -214,6 +214,7 @@ class RecapAggregator
 
         $row = [
             'performance_plan_id' => $first->performance_plan_id,
+            'pic_employee_id' => $plan?->pic_employee_id,
             'rk_code' => $plan?->code,
             'rk_description' => $plan?->description ?? '—',
             'target' => $target,

@@ -704,3 +704,149 @@ it('PJ can unconfirm by posting confirmed=false', function () {
     expect($override->confirmed_at)->toBeNull();
     expect($override->confirmed_by)->toBeNull();
 });
+
+// ── PIC delegation (storeOverride) ───────────────────────────────────────────
+
+/**
+ * A team member who is the PIC for one plan but NOT a PJ and NOT the PIC for another.
+ *
+ * @return array{0: User, 1: Employee, 2: Team, 3: PerformancePlan, 4: PerformancePlan}
+ */
+function picOfOnePlan(): array
+{
+    $user = staffUser();
+    $picEmployee = Employee::factory()->create(['user_id' => $user->id]);
+    $team = Team::factory()->create(); // no leader_id set — PIC is NOT the PJ
+    $picEmployee->teams()->attach($team->id, ['role' => 'member', 'is_primary' => true]);
+
+    // Plan owned by this PIC
+    $ownedPlan = PerformancePlan::factory()->create([
+        'project_id' => Project::factory()->create(['team_id' => $team->id])->id,
+        'pic_employee_id' => $picEmployee->id,
+    ]);
+
+    // Plan owned by someone else (another employee)
+    $otherPlan = PerformancePlan::factory()->create([
+        'project_id' => Project::factory()->create(['team_id' => $team->id])->id,
+        'pic_employee_id' => Employee::factory()->create()->id,
+    ]);
+
+    return [$user, $picEmployee, $team, $ownedPlan, $otherPlan];
+}
+
+it('PIC can store a paraphrase override for their own plan', function () {
+    [$user, $picEmployee, $team, $ownedPlan] = picOfOnePlan();
+
+    $this->actingAs($user)
+        ->post(route('team-recap.override.store'), [
+            'team_id' => $team->id,
+            'performance_plan_id' => $ownedPlan->id,
+            'period_type' => 'month',
+            'period_year' => 2026,
+            'period_month' => 6,
+            'obstacle' => 'kendala dari PIC',
+            'solution' => 'solusi dari PIC',
+        ])
+        ->assertRedirect();
+
+    $this->assertDatabaseHas('recap_overrides', [
+        'team_id' => $team->id,
+        'performance_plan_id' => $ownedPlan->id,
+        'obstacle' => 'kendala dari PIC',
+        'created_by' => $picEmployee->id,
+    ]);
+});
+
+it('PIC gets 403 storing an override for a plan they do not own', function () {
+    [$user, , $team, , $otherPlan] = picOfOnePlan();
+
+    $this->actingAs($user)
+        ->post(route('team-recap.override.store'), [
+            'team_id' => $team->id,
+            'performance_plan_id' => $otherPlan->id,
+            'period_type' => 'month',
+            'period_year' => 2026,
+            'period_month' => 6,
+            'obstacle' => 'x',
+        ])
+        ->assertForbidden();
+
+    $this->assertDatabaseMissing('recap_overrides', ['performance_plan_id' => $otherPlan->id]);
+});
+
+it('PIC gets 403 on confirmOverride (confirm is PJ-only)', function () {
+    [$user, , $team, $ownedPlan] = picOfOnePlan();
+
+    $this->actingAs($user)
+        ->post(route('team-recap.override.confirm'), [
+            'team_id' => $team->id,
+            'performance_plan_id' => $ownedPlan->id,
+            'period_type' => 'month',
+            'period_year' => 2026,
+            'period_month' => 6,
+            'confirmed' => true,
+        ])
+        ->assertForbidden();
+});
+
+it('PIC gets 403 on confirm-bulk (confirm is PJ-only)', function () {
+    [$user, , $team, $ownedPlan] = picOfOnePlan();
+
+    $this->actingAs($user)
+        ->post(route('team-recap.override.confirm-bulk'), [
+            'team_id' => $team->id,
+            'period_type' => 'month',
+            'period_year' => 2026,
+            'period_month' => 6,
+            'performance_plan_ids' => [$ownedPlan->id],
+        ])
+        ->assertForbidden();
+});
+
+it('PJ can still store an override for any plan regardless of PIC assignment', function () {
+    [$pjUser, , $team] = pjOfTeam();
+
+    // Plan with a different PIC
+    $plan = PerformancePlan::factory()->create([
+        'project_id' => Project::factory()->create(['team_id' => $team->id])->id,
+        'pic_employee_id' => Employee::factory()->create()->id,
+    ]);
+
+    $this->actingAs($pjUser)
+        ->post(route('team-recap.override.store'), [
+            'team_id' => $team->id,
+            'performance_plan_id' => $plan->id,
+            'period_type' => 'month',
+            'period_year' => 2026,
+            'period_month' => 6,
+            'obstacle' => 'parafrase PJ',
+        ])
+        ->assertRedirect();
+
+    $this->assertDatabaseHas('recap_overrides', [
+        'performance_plan_id' => $plan->id,
+        'obstacle' => 'parafrase PJ',
+    ]);
+});
+
+it('a plain member (not PIC, not PJ) gets 403 on storeOverride', function () {
+    [$user, , $team] = memberOfTeam();
+
+    $plan = PerformancePlan::factory()->create([
+        'project_id' => Project::factory()->create(['team_id' => $team->id])->id,
+        'pic_employee_id' => Employee::factory()->create()->id, // someone else is PIC
+    ]);
+
+    $this->actingAs($user)
+        ->post(route('team-recap.override.store'), [
+            'team_id' => $team->id,
+            'performance_plan_id' => $plan->id,
+            'period_type' => 'month',
+            'period_year' => 2026,
+            'period_month' => 6,
+            'obstacle' => 'x',
+        ])
+        ->assertForbidden();
+
+    $this->assertDatabaseMissing('recap_overrides', ['performance_plan_id' => $plan->id]);
+});
