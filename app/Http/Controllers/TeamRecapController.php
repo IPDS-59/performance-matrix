@@ -11,6 +11,7 @@ use Carbon\Carbon;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -219,6 +220,49 @@ class TeamRecapController extends Controller
         );
 
         return back()->with('success', 'Rekap berhasil diparafrase.');
+    }
+
+    // ── Bulk confirm (achievement ≥ 100%) ────────────────────────────────────
+
+    public function confirmBulk(Request $request): RedirectResponse
+    {
+        $employee = $request->user()->employee;
+        abort_if($employee === null, 403, 'Akun tidak terhubung ke data pegawai.');
+
+        $validated = $request->validate([
+            'team_id' => ['required', 'integer', 'exists:teams,id'],
+            'period_type' => ['required', 'in:week,month,quarter'],
+            'period_year' => ['required', 'integer'],
+            'period_month' => ['nullable', 'integer', 'between:1,12'],
+            'period_quarter' => ['nullable', 'integer', 'between:1,4'],
+            'week_start' => ['nullable', 'date', 'required_if:period_type,week'],
+            'performance_plan_ids' => ['required', 'array'],
+            'performance_plan_ids.*' => ['integer', 'exists:performance_plans,id'],
+        ]);
+
+        $this->authorizePj($employee, (int) $validated['team_id']);
+
+        $periodKey = [
+            'team_id' => $validated['team_id'],
+            'period_type' => $validated['period_type'],
+            'period_year' => $validated['period_year'],
+            'period_month' => $validated['period_month'] ?? null,
+            'period_quarter' => $validated['period_quarter'] ?? null,
+            'week_start' => $validated['week_start'] ?? null,
+        ];
+
+        DB::transaction(function () use ($validated, $periodKey, $employee) {
+            foreach ($validated['performance_plan_ids'] as $planId) {
+                RecapOverride::updateOrCreate(
+                    array_merge($periodKey, ['performance_plan_id' => $planId]),
+                    ['confirmed_at' => now(), 'confirmed_by' => $employee->id],
+                );
+            }
+        });
+
+        $count = count($validated['performance_plan_ids']);
+
+        return back()->with('success', "{$count} RK berhasil dikonfirmasi.");
     }
 
     // ── Confirm / unconfirm individual RK row ─────────────────────────────────

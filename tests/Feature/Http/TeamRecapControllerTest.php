@@ -579,6 +579,95 @@ it('non-PJ gets 403 on confirmOverride', function () {
         ->assertForbidden();
 });
 
+// ── confirmBulk ───────────────────────────────────────────────────────────────
+
+it('PJ bulk-confirms several plans for a week', function () {
+    [$user, $employee, $team] = pjOfTeam();
+
+    $plan1 = PerformancePlan::factory()->create([
+        'project_id' => Project::factory()->create(['team_id' => $team->id])->id,
+    ]);
+    $plan2 = PerformancePlan::factory()->create([
+        'project_id' => Project::factory()->create(['team_id' => $team->id])->id,
+    ]);
+
+    $this->actingAs($user)
+        ->post(route('team-recap.override.confirm-bulk'), [
+            'team_id' => $team->id,
+            'period_type' => 'week',
+            'period_year' => 2026,
+            'week_start' => '2026-06-01',
+            'performance_plan_ids' => [$plan1->id, $plan2->id],
+        ])
+        ->assertRedirect();
+
+    foreach ([$plan1->id, $plan2->id] as $planId) {
+        $override = RecapOverride::where('performance_plan_id', $planId)->first();
+        expect($override)->not->toBeNull();
+        expect($override->confirmed_at)->not->toBeNull();
+        expect($override->confirmed_by)->toBe($employee->id);
+    }
+});
+
+it('bulk confirm does NOT wipe an existing paraphrase on those rows', function () {
+    [$user, $employee, $team] = pjOfTeam();
+
+    $plan = PerformancePlan::factory()->create([
+        'project_id' => Project::factory()->create(['team_id' => $team->id])->id,
+    ]);
+
+    RecapOverride::create([
+        'team_id' => $team->id,
+        'performance_plan_id' => $plan->id,
+        'period_type' => 'week',
+        'period_year' => 2026,
+        'period_month' => null,
+        'period_quarter' => null,
+        'week_start' => '2026-06-01',
+        'obstacle' => 'kendala sudah ada',
+        'solution' => 'solusi sudah ada',
+        'follow_up_plan' => null,
+        'confirmed_at' => null,
+        'confirmed_by' => null,
+        'created_by' => null,
+    ]);
+
+    $this->actingAs($user)
+        ->post(route('team-recap.override.confirm-bulk'), [
+            'team_id' => $team->id,
+            'period_type' => 'week',
+            'period_year' => 2026,
+            'week_start' => '2026-06-01',
+            'performance_plan_ids' => [$plan->id],
+        ]);
+
+    $override = RecapOverride::where('performance_plan_id', $plan->id)->first();
+    expect($override->obstacle)->toBe('kendala sudah ada');
+    expect($override->solution)->toBe('solusi sudah ada');
+    expect($override->confirmed_at)->not->toBeNull();
+    expect($override->confirmed_by)->toBe($employee->id);
+});
+
+it('non-PJ gets 403 on confirm-bulk', function () {
+    [$user, , $team] = memberOfTeam();
+
+    $plan = PerformancePlan::factory()->create([
+        'project_id' => Project::factory()->create(['team_id' => $team->id])->id,
+    ]);
+
+    $this->actingAs($user)
+        ->post(route('team-recap.override.confirm-bulk'), [
+            'team_id' => $team->id,
+            'period_type' => 'week',
+            'period_year' => 2026,
+            'week_start' => '2026-06-01',
+            'performance_plan_ids' => [$plan->id],
+        ])
+        ->assertForbidden();
+
+    $this->assertDatabaseMissing('recap_overrides', ['performance_plan_id' => $plan->id]);
+});
+
 it('PJ can unconfirm by posting confirmed=false', function () {
     [$user, $employee, $team] = pjOfTeam();
     $plan = PerformancePlan::factory()->create([
