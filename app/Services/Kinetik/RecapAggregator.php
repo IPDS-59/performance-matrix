@@ -31,7 +31,7 @@ class RecapAggregator
         $year = Carbon::parse($weekStart)->year;
         $overrides = $this->overrides($team, 'week', $year, weekStart: $weekStart);
 
-        return $this->segment($claims, $overrides, withFollowUp: false);
+        return $this->segment($claims, $overrides, withFollowUp: false, inherited: collect());
     }
 
     /**
@@ -59,7 +59,11 @@ class RecapAggregator
 
         $overrides = $this->overrides($team, 'month', $year, month: $month);
 
-        return $this->segment($claims, $overrides, withFollowUp: false);
+        $start = Carbon::create($year, $month, 1)->toDateString();
+        $end = Carbon::create($year, $month, 1)->endOfMonth()->toDateString();
+        $inherited = $this->weeklyInheritedMap($team, $year, $start, $end);
+
+        return $this->segment($claims, $overrides, withFollowUp: false, inherited: $inherited);
     }
 
     /**
@@ -77,7 +81,12 @@ class RecapAggregator
 
         $overrides = $this->overrides($team, 'quarter', $year, quarter: $quarter);
 
-        return $this->segment($claims, $overrides, withFollowUp: true);
+        $firstMonth = ($quarter - 1) * 3 + 1;
+        $start = Carbon::create($year, $firstMonth, 1)->toDateString();
+        $end = Carbon::create($year, $firstMonth + 2, 1)->endOfMonth()->toDateString();
+        $inherited = $this->weeklyInheritedMap($team, $year, $start, $end);
+
+        return $this->segment($claims, $overrides, withFollowUp: true, inherited: $inherited);
     }
 
     /**
@@ -144,18 +153,19 @@ class RecapAggregator
      *
      * @param  Collection<int, ActivityClaim>  $claims
      * @param  Collection<int, RecapOverride>  $overrides
+     * @param  Collection<int, array{obstacle: string|null, solution: string|null, follow_up_plan: string|null}>  $inherited
      * @return array<int, array<string, mixed>>
      */
-    private function segment(Collection $claims, Collection $overrides, bool $withFollowUp): array
+    private function segment(Collection $claims, Collection $overrides, bool $withFollowUp, Collection $inherited): array
     {
         return $claims
             ->groupBy(fn (ActivityClaim $c) => $c->performancePlan?->project?->id ?? 0)
-            ->map(function (Collection $projectClaims) use ($overrides, $withFollowUp) {
+            ->map(function (Collection $projectClaims) use ($overrides, $withFollowUp, $inherited) {
                 $project = $projectClaims->first()->performancePlan?->project;
 
                 $rows = $projectClaims
                     ->groupBy('performance_plan_id')
-                    ->map(fn (Collection $rk) => $this->aggregateRk($rk, $overrides, $withFollowUp))
+                    ->map(fn (Collection $rk) => $this->aggregateRk($rk, $overrides, $withFollowUp, $inherited))
                     ->values()
                     ->all();
 
@@ -176,9 +186,10 @@ class RecapAggregator
      *
      * @param  Collection<int, ActivityClaim>  $claims
      * @param  Collection<int, RecapOverride>  $overrides
+     * @param  Collection<int, array{obstacle: string|null, solution: string|null, follow_up_plan: string|null}>  $inherited
      * @return array<string, mixed>
      */
-    private function aggregateRk(Collection $claims, Collection $overrides, bool $withFollowUp): array
+    private function aggregateRk(Collection $claims, Collection $overrides, bool $withFollowUp, Collection $inherited): array
     {
         $first = $claims->first();
         $plan = $first->performancePlan;
@@ -192,6 +203,7 @@ class RecapAggregator
         $followUpAgg = $this->joinText($claims->pluck('follow_up_plan'));
 
         $override = $overrides->get($first->performance_plan_id);
+        $inheritedRow = $inherited->get($first->performance_plan_id);
 
         $contributors = $claims
             ->map(fn (ActivityClaim $c) => $c->employee?->display_name ?? $c->employee?->name)
@@ -220,6 +232,9 @@ class RecapAggregator
             'pj_obstacle' => $override?->obstacle,
             'pj_solution' => $override?->solution,
             'pj_follow_up_plan' => $override?->follow_up_plan,
+            'inherited_obstacle' => $inheritedRow['obstacle'] ?? null,
+            'inherited_solution' => $inheritedRow['solution'] ?? null,
+            'inherited_follow_up_plan' => $inheritedRow['follow_up_plan'] ?? null,
             'is_confirmed' => $override?->confirmed_at !== null,
             'confirmed_by' => $override?->confirmedBy?->display_name ?? $override?->confirmedBy?->name,
             'contributors' => $contributors,
@@ -233,6 +248,33 @@ class RecapAggregator
         }
 
         return $row;
+    }
+
+    /**
+     * Build a map of inherited (rolled-up) weekly paraphrase text for a team
+     * and date range. Returns a Collection keyed by performance_plan_id, each
+     * value being {obstacle, solution, follow_up_plan} combined from all WEEKLY
+     * RecapOverrides whose week_start falls within [$start..$end].
+     *
+     * @return Collection<int, array{obstacle: string|null, solution: string|null, follow_up_plan: string|null}>
+     */
+    private function weeklyInheritedMap(Team $team, int $year, string $start, string $end): Collection
+    {
+        return RecapOverride::query()
+            ->where('team_id', $team->id)
+            ->where('period_type', 'week')
+            ->where('period_year', $year)
+            ->whereDate('week_start', '>=', $start)
+            ->whereDate('week_start', '<=', $end)
+            ->get()
+            ->groupBy('performance_plan_id')
+            ->map(function (Collection $rows): array {
+                return [
+                    'obstacle' => $this->joinText($rows->pluck('obstacle')),
+                    'solution' => $this->joinText($rows->pluck('solution')),
+                    'follow_up_plan' => $this->joinText($rows->pluck('follow_up_plan')),
+                ];
+            });
     }
 
     /**
