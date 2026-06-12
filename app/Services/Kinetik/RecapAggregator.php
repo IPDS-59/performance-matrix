@@ -28,7 +28,10 @@ class RecapAggregator
             ->whereDate('week_start', $weekStart)
             ->get();
 
-        return $this->segment($claims, collect(), withFollowUp: false);
+        $year = Carbon::parse($weekStart)->year;
+        $overrides = $this->overrides($team, 'week', $year, weekStart: $weekStart);
+
+        return $this->segment($claims, $overrides, withFollowUp: false);
     }
 
     /**
@@ -116,15 +119,22 @@ class RecapAggregator
      *
      * @return Collection<int, RecapOverride>
      */
-    private function overrides(Team $team, string $periodType, int $year, ?int $month = null, ?int $quarter = null): Collection
-    {
+    private function overrides(
+        Team $team,
+        string $periodType,
+        int $year,
+        ?int $month = null,
+        ?int $quarter = null,
+        ?string $weekStart = null,
+    ): Collection {
         return RecapOverride::query()
-            ->with('followUpPic')
+            ->with(['followUpPic', 'confirmedBy'])
             ->where('team_id', $team->id)
             ->where('period_type', $periodType)
             ->where('period_year', $year)
             ->when($month !== null, fn (Builder $q) => $q->where('period_month', $month))
             ->when($quarter !== null, fn (Builder $q) => $q->where('period_quarter', $quarter))
+            ->when($weekStart !== null, fn (Builder $q) => $q->whereDate('week_start', $weekStart))
             ->get()
             ->keyBy('performance_plan_id');
     }
@@ -205,6 +215,11 @@ class RecapAggregator
             'solution_aggregated' => $solutionAgg,
             'follow_up_aggregated' => $followUpAgg,
             'is_overridden' => $override !== null,
+            'pj_obstacle' => $override?->obstacle,
+            'pj_solution' => $override?->solution,
+            'pj_follow_up_plan' => $override?->follow_up_plan,
+            'is_confirmed' => $override?->confirmed_at !== null,
+            'confirmed_by' => $override?->confirmedBy?->display_name ?? $override?->confirmedBy?->name,
             'contributors' => $contributors,
         ];
 

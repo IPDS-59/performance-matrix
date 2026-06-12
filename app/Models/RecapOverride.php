@@ -17,6 +17,7 @@ class RecapOverride extends Model
         'period_year',
         'period_quarter',
         'period_month',
+        'week_start',
         'obstacle',
         'solution',
         'follow_up_plan',
@@ -24,13 +25,17 @@ class RecapOverride extends Model
         'follow_up_pic_employee_id',
         'follow_up_deadline',
         'created_by',
+        'confirmed_at',
+        'confirmed_by',
     ];
 
     protected $casts = [
         'period_year' => 'integer',
         'period_quarter' => 'integer',
         'period_month' => 'integer',
-        'follow_up_deadline' => 'date',
+        'week_start' => 'date:Y-m-d',
+        'confirmed_at' => 'datetime',
+        'follow_up_deadline' => 'date:Y-m-d',
     ];
 
     public function team(): BelongsTo
@@ -51,5 +56,10 @@ class RecapOverride extends Model
     public function creator(): BelongsTo
     {
         return $this->belongsTo(Employee::class, 'created_by');
+    }
+
+    public function confirmedBy(): BelongsTo
+    {
+        return $this->belongsTo(Employee::class, 'confirmed_by');
     }
 }
