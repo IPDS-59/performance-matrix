@@ -414,3 +414,204 @@ it('forbids a non-PJ member from paraphrasing', function () {
 
     $this->assertDatabaseMissing('recap_overrides', ['performance_plan_id' => $plan->id]);
 });
+
+// ── Weekly override (storeOverride with period_type=week) ────────────────────
+
+it('PJ stores a weekly paraphrase with only week_start (year derived server-side)', function () {
+    [$user, , $team] = pjOfTeam();
+    $plan = PerformancePlan::factory()->create([
+        'project_id' => Project::factory()->create(['team_id' => $team->id])->id,
+    ]);
+
+    $this->actingAs($user)
+        ->post(route('team-recap.override.store'), [
+            'team_id' => $team->id,
+            'performance_plan_id' => $plan->id,
+            'period_type' => 'week',
+            'week_start' => '2026-06-01',
+            'obstacle' => 'kendala PJ',
+            'solution' => 'solusi PJ',
+        ])
+        ->assertRedirect();
+
+    $this->assertDatabaseHas('recap_overrides', [
+        'team_id' => $team->id,
+        'performance_plan_id' => $plan->id,
+        'period_type' => 'week',
+        'period_year' => 2026,
+        'obstacle' => 'kendala PJ',
+    ]);
+});
+
+it('non-PJ gets 403 on weekly storeOverride', function () {
+    [$user, , $team] = memberOfTeam();
+    $plan = PerformancePlan::factory()->create([
+        'project_id' => Project::factory()->create(['team_id' => $team->id])->id,
+    ]);
+
+    $this->actingAs($user)
+        ->post(route('team-recap.override.store'), [
+            'team_id' => $team->id,
+            'performance_plan_id' => $plan->id,
+            'period_type' => 'week',
+            'week_start' => '2026-06-01',
+            'obstacle' => 'x',
+        ])
+        ->assertForbidden();
+});
+
+// ── confirmOverride ───────────────────────────────────────────────────────────
+
+it('PJ can confirm a weekly override', function () {
+    [$user, $employee, $team] = pjOfTeam();
+    $plan = PerformancePlan::factory()->create([
+        'project_id' => Project::factory()->create(['team_id' => $team->id])->id,
+    ]);
+
+    $this->actingAs($user)
+        ->post(route('team-recap.override.confirm'), [
+            'team_id' => $team->id,
+            'performance_plan_id' => $plan->id,
+            'period_type' => 'week',
+            'period_year' => 2026,
+            'week_start' => '2026-06-01',
+            'confirmed' => true,
+        ])
+        ->assertRedirect();
+
+    $override = RecapOverride::where('performance_plan_id', $plan->id)->first();
+    expect($override)->not->toBeNull();
+    expect($override->confirmed_at)->not->toBeNull();
+    expect($override->confirmed_by)->toBe($employee->id);
+});
+
+it('confirming does not wipe existing paraphrase text', function () {
+    [$user, $employee, $team] = pjOfTeam();
+    $plan = PerformancePlan::factory()->create([
+        'project_id' => Project::factory()->create(['team_id' => $team->id])->id,
+    ]);
+
+    // Pre-existing paraphrase stored by PJ (period_month must be null to match
+    // the confirmOverride key which sends period_month = null for week-type)
+    RecapOverride::create([
+        'team_id' => $team->id,
+        'performance_plan_id' => $plan->id,
+        'period_type' => 'week',
+        'period_year' => 2026,
+        'period_month' => null,
+        'period_quarter' => null,
+        'week_start' => '2026-06-01',
+        'obstacle' => 'kendala sebelumnya',
+        'solution' => null,
+        'follow_up_plan' => null,
+        'confirmed_at' => null,
+        'confirmed_by' => null,
+        'created_by' => null,
+    ]);
+
+    $this->actingAs($user)
+        ->post(route('team-recap.override.confirm'), [
+            'team_id' => $team->id,
+            'performance_plan_id' => $plan->id,
+            'period_type' => 'week',
+            'period_year' => 2026,
+            'week_start' => '2026-06-01',
+            'confirmed' => true,
+        ]);
+
+    $override = RecapOverride::where('performance_plan_id', $plan->id)->first();
+    expect($override->obstacle)->toBe('kendala sebelumnya');
+    expect($override->confirmed_at)->not->toBeNull();
+});
+
+it('re-saving paraphrase does not clear confirmed_at', function () {
+    [$user, $employee, $team] = pjOfTeam();
+    $plan = PerformancePlan::factory()->create([
+        'project_id' => Project::factory()->create(['team_id' => $team->id])->id,
+    ]);
+
+    RecapOverride::create([
+        'team_id' => $team->id,
+        'performance_plan_id' => $plan->id,
+        'period_type' => 'week',
+        'period_year' => 2026,
+        'period_month' => null,
+        'period_quarter' => null,
+        'week_start' => '2026-06-01',
+        'obstacle' => 'lama',
+        'solution' => null,
+        'follow_up_plan' => null,
+        'confirmed_at' => now(),
+        'confirmed_by' => $employee->id,
+        'created_by' => null,
+    ]);
+
+    $this->actingAs($user)
+        ->post(route('team-recap.override.store'), [
+            'team_id' => $team->id,
+            'performance_plan_id' => $plan->id,
+            'period_type' => 'week',
+            'week_start' => '2026-06-01',
+            'obstacle' => 'diperbarui',
+        ]);
+
+    $override = RecapOverride::where('performance_plan_id', $plan->id)->first();
+    expect($override->obstacle)->toBe('diperbarui');
+    expect($override->confirmed_at)->not->toBeNull();
+    expect($override->confirmed_by)->toBe($employee->id);
+});
+
+it('non-PJ gets 403 on confirmOverride', function () {
+    [$user, , $team] = memberOfTeam();
+    $plan = PerformancePlan::factory()->create([
+        'project_id' => Project::factory()->create(['team_id' => $team->id])->id,
+    ]);
+
+    $this->actingAs($user)
+        ->post(route('team-recap.override.confirm'), [
+            'team_id' => $team->id,
+            'performance_plan_id' => $plan->id,
+            'period_type' => 'week',
+            'period_year' => 2026,
+            'week_start' => '2026-06-01',
+            'confirmed' => true,
+        ])
+        ->assertForbidden();
+});
+
+it('PJ can unconfirm by posting confirmed=false', function () {
+    [$user, $employee, $team] = pjOfTeam();
+    $plan = PerformancePlan::factory()->create([
+        'project_id' => Project::factory()->create(['team_id' => $team->id])->id,
+    ]);
+
+    RecapOverride::create([
+        'team_id' => $team->id,
+        'performance_plan_id' => $plan->id,
+        'period_type' => 'week',
+        'period_year' => 2026,
+        'period_month' => null,
+        'period_quarter' => null,
+        'week_start' => '2026-06-01',
+        'obstacle' => null,
+        'solution' => null,
+        'follow_up_plan' => null,
+        'confirmed_at' => now(),
+        'confirmed_by' => $employee->id,
+        'created_by' => null,
+    ]);
+
+    $this->actingAs($user)
+        ->post(route('team-recap.override.confirm'), [
+            'team_id' => $team->id,
+            'performance_plan_id' => $plan->id,
+            'period_type' => 'week',
+            'period_year' => 2026,
+            'week_start' => '2026-06-01',
+            'confirmed' => false,
+        ]);
+
+    $override = RecapOverride::where('performance_plan_id', $plan->id)->first();
+    expect($override->confirmed_at)->toBeNull();
+    expect($override->confirmed_by)->toBeNull();
+});

@@ -1,14 +1,15 @@
 <script setup lang="ts">
 import AppLayout from '@/Layouts/AppLayout.vue';
-import { Head, router, useForm } from '@inertiajs/vue3';
+import { Head, router } from '@inertiajs/vue3';
 import { computed, ref } from 'vue';
 import type { RecapSegment, RecapRow, TeamOption } from '@/types';
 import { Button } from '@/Components/ui/button';
 import { Input } from '@/Components/ui/input';
 import { Label } from '@/Components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/Components/ui/select';
+import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/Components/ui/table';
 import { Textarea } from '@/Components/ui/textarea';
-import { ChevronLeft, ChevronRight, Pencil, ExternalLink } from 'lucide-vue-next';
+import { ChevronLeft, ChevronRight, ChevronDown, ChevronUp, Check, ChevronsUpDown, ExternalLink } from 'lucide-vue-next';
 import InputError from '@/Components/InputError.vue';
 
 const props = defineProps<{
@@ -22,6 +23,8 @@ const props = defineProps<{
 }>();
 
 const quarterLabel = computed(() => `Triwulan ${props.quarter} ${props.year}`);
+
+// ── Navigation ─────────────────────────────────────────────────────────────
 
 function navigate(params: Record<string, string | number>) {
     router.get(route('team-recap.quarterly'), {
@@ -40,49 +43,110 @@ function shiftQuarter(delta: number) {
     navigate({ year: y, quarter: q });
 }
 
+// ── Achievement color ──────────────────────────────────────────────────────
+
 function achievementColor(val: number | null): string {
     const n = Number(val ?? 0);
-    if (n >= 80) return 'text-green-600';
-    if (n >= 50) return 'text-yellow-600';
-    return 'text-red-600';
+    if (n >= 80) return 'text-green-600 font-semibold';
+    if (n >= 50) return 'text-yellow-600 font-semibold';
+    return 'text-red-600 font-semibold';
 }
 
-// ── FRA paraphrase + follow-up editor ──────────────────────────────────────
+// ── Per-segment sort ───────────────────────────────────────────────────────
 
-const editingPlanId = ref<number | null>(null);
+const sortDirs = ref<Record<string, 'asc' | 'desc'>>({});
 
-const form = useForm({
-    team_id: props.selectedTeamId,
-    performance_plan_id: null as number | null,
-    period_type: 'quarter',
-    period_year: props.year,
-    period_quarter: props.quarter,
-    obstacle: '',
-    solution: '',
-    follow_up_plan: '',
-    follow_up_evidence_url: '',
-    follow_up_pic_employee_id: null as number | null,
-    follow_up_deadline: '',
-});
-
-function openEditor(row: RecapRow) {
-    editingPlanId.value = row.performance_plan_id;
-    form.team_id = props.selectedTeamId;
-    form.performance_plan_id = row.performance_plan_id;
-    form.period_year = props.year;
-    form.period_quarter = props.quarter;
-    form.obstacle = row.obstacle ?? '';
-    form.solution = row.solution ?? '';
-    form.follow_up_plan = row.follow_up_plan ?? '';
-    form.follow_up_evidence_url = row.follow_up_evidence_url ?? '';
-    form.follow_up_pic_employee_id = row.follow_up_pic_employee_id ?? null;
-    form.follow_up_deadline = row.follow_up_deadline ?? '';
+function sortDir(segKey: string): 'asc' | 'desc' {
+    return sortDirs.value[segKey] ?? 'asc';
 }
 
-function submitOverride() {
-    form.post(route('team-recap.override.store'), {
+function toggleSort(segKey: string) {
+    sortDirs.value[segKey] = sortDir(segKey) === 'asc' ? 'desc' : 'asc';
+}
+
+function sortedRows(seg: RecapSegment): RecapRow[] {
+    const key = String(seg.project_id ?? 'none');
+    const dir = sortDir(key);
+    return [...seg.rows].sort((a, b) =>
+        dir === 'asc'
+            ? (a.achievement ?? 0) - (b.achievement ?? 0)
+            : (b.achievement ?? 0) - (a.achievement ?? 0),
+    );
+}
+
+// ── Expand state ───────────────────────────────────────────────────────────
+
+const expandedRows = ref<Record<number, boolean>>({});
+
+function toggleExpand(planId: number) {
+    expandedRows.value[planId] = !expandedRows.value[planId];
+}
+
+// ── Confirmation ───────────────────────────────────────────────────────────
+
+function toggleConfirm(row: RecapRow) {
+    router.post(route('team-recap.override.confirm'), {
+        team_id: props.selectedTeamId,
+        performance_plan_id: row.performance_plan_id,
+        period_type: 'quarter',
+        period_year: props.year,
+        period_quarter: props.quarter,
+        confirmed: !row.is_confirmed,
+    }, { preserveScroll: true, preserveState: true });
+}
+
+// ── Paraphrase + FRA follow-up forms (per planId) ─────────────────────────
+
+type FraForm = {
+    obstacle: string;
+    solution: string;
+    follow_up_plan: string;
+    follow_up_evidence_url: string;
+    follow_up_pic_employee_id: number | null;
+    follow_up_deadline: string;
+    saving: boolean;
+    errors: Record<string, string>;
+};
+const fraForms = ref<Record<number, FraForm>>({});
+
+function getFraForm(row: RecapRow): FraForm {
+    if (!fraForms.value[row.performance_plan_id]) {
+        fraForms.value[row.performance_plan_id] = {
+            obstacle: row.pj_obstacle ?? '',
+            solution: row.pj_solution ?? '',
+            follow_up_plan: row.pj_follow_up_plan ?? '',
+            follow_up_evidence_url: row.follow_up_evidence_url ?? '',
+            follow_up_pic_employee_id: row.follow_up_pic_employee_id ?? null,
+            follow_up_deadline: row.follow_up_deadline ?? '',
+            saving: false,
+            errors: {},
+        };
+    }
+
+    return fraForms.value[row.performance_plan_id];
+}
+
+function saveParaphrase(row: RecapRow) {
+    const f = getFraForm(row);
+    f.saving = true;
+    f.errors = {};
+    router.post(route('team-recap.override.store'), {
+        team_id: props.selectedTeamId,
+        performance_plan_id: row.performance_plan_id,
+        period_type: 'quarter',
+        period_year: props.year,
+        period_quarter: props.quarter,
+        obstacle: f.obstacle,
+        solution: f.solution,
+        follow_up_plan: f.follow_up_plan,
+        follow_up_evidence_url: f.follow_up_evidence_url || null,
+        follow_up_pic_employee_id: f.follow_up_pic_employee_id,
+        follow_up_deadline: f.follow_up_deadline || null,
+    }, {
         preserveScroll: true,
-        onSuccess: () => { editingPlanId.value = null; },
+        preserveState: true,
+        onError: (errors: Record<string, string>) => { f.errors = errors; },
+        onFinish: () => { f.saving = false; },
     });
 }
 </script>
@@ -90,13 +154,14 @@ function submitOverride() {
 <template>
     <Head title="Rekap Triwulanan" />
     <AppLayout>
-        <template #title>Rekap Triwulanan (FRA)</template>
+        <template #title>Rekap Tim (Triwulanan)</template>
 
         <div v-if="!teams.length" class="rounded-md border border-yellow-200 bg-yellow-50 p-6 text-center text-sm text-yellow-800">
             Anda belum tergabung dalam tim mana pun.
         </div>
 
         <template v-else>
+            <!-- Controls -->
             <div class="mb-6 flex flex-wrap items-center justify-between gap-4 rounded-md border bg-white px-4 py-3">
                 <Select
                     :model-value="selectedTeamId != null ? String(selectedTeamId) : undefined"
@@ -121,8 +186,9 @@ function submitOverride() {
                 </div>
             </div>
 
+            <!-- Segments by project -->
             <div v-if="!segments.length" class="rounded-md border border-dashed border-gray-200 bg-gray-50 py-10 text-center text-sm text-gray-400">
-                Belum ada rekap untuk tim ini pada triwulan ini.
+                Belum ada rekap tersimpan untuk tim ini pada triwulan ini.
             </div>
 
             <div v-else class="space-y-6">
@@ -131,92 +197,170 @@ function submitOverride() {
                         <h3 class="text-sm font-semibold text-gray-800">{{ seg.project_name }}</h3>
                     </div>
 
-                    <div class="divide-y divide-gray-100">
-                        <div v-for="row in seg.rows" :key="row.performance_plan_id" class="px-4 py-4">
-                            <div class="flex items-start justify-between gap-3">
-                                <div class="min-w-0">
-                                    <p class="text-sm font-medium text-gray-800">{{ row.rk_description }}</p>
-                                    <p class="mt-0.5 text-xs text-gray-500">
-                                        Target {{ row.target }} {{ row.target_unit ?? '' }} · Realisasi {{ row.realization }} ·
-                                        <span v-if="row.achievement != null" :class="['font-semibold', achievementColor(row.achievement)]">{{ row.achievement.toFixed(2) }}%</span>
-                                    </p>
-                                </div>
-                                <Button v-if="canManage" size="sm" variant="outline" class="shrink-0" @click="openEditor(row)">
-                                    <Pencil class="mr-1 h-3 w-3" /> Parafrase
-                                </Button>
-                            </div>
-
-                            <!-- Editor -->
-                            <form v-if="editingPlanId === row.performance_plan_id" class="mt-3 space-y-3 rounded-md border bg-gray-50 p-3" @submit.prevent="submitOverride">
-                                <div>
-                                    <Label>Kendala</Label>
-                                    <Textarea v-model="form.obstacle" :rows="2" class="mt-1" />
-                                </div>
-                                <div>
-                                    <Label>Solusi</Label>
-                                    <Textarea v-model="form.solution" :rows="2" class="mt-1" />
-                                </div>
-                                <div>
-                                    <Label>Tindak Lanjut</Label>
-                                    <Textarea v-model="form.follow_up_plan" :rows="2" class="mt-1" />
-                                </div>
-                                <div class="grid grid-cols-1 gap-3 sm:grid-cols-3">
-                                    <div class="sm:col-span-1">
-                                        <Label for="fra-pic">PIC</Label>
-                                        <Select
-                                            :model-value="form.follow_up_pic_employee_id != null ? String(form.follow_up_pic_employee_id) : undefined"
-                                            @update:model-value="(v) => form.follow_up_pic_employee_id = v ? Number(v) : null"
+                    <Table class="w-full text-sm">
+                        <TableHeader>
+                            <TableRow class="border-b bg-gray-50 text-xs font-medium uppercase tracking-wide text-gray-500">
+                                <TableHead class="text-left">Rencana Kinerja</TableHead>
+                                <TableHead class="text-left text-xs">Kontributor</TableHead>
+                                <TableHead class="text-right">Target</TableHead>
+                                <TableHead class="text-right">Realisasi</TableHead>
+                                <TableHead class="cursor-pointer select-none text-right" @click="toggleSort(String(seg.project_id ?? 'none'))">
+                                    <span class="inline-flex items-center gap-1">
+                                        Capaian
+                                        <ChevronsUpDown class="h-3 w-3" :class="{ 'rotate-180': sortDir(String(seg.project_id ?? 'none')) === 'desc' }" />
+                                    </span>
+                                </TableHead>
+                                <TableHead class="text-center">Konfirmasi</TableHead>
+                                <TableHead class="w-8" />
+                            </TableRow>
+                        </TableHeader>
+                        <TableBody class="divide-y divide-gray-100">
+                            <template v-for="row in sortedRows(seg)" :key="row.performance_plan_id">
+                                <TableRow class="hover:bg-gray-50">
+                                    <TableCell class="align-top">
+                                        <p class="font-medium text-gray-800">{{ row.rk_description }}</p>
+                                        <p v-if="row.rk_code" class="text-xs text-gray-500">{{ row.rk_code }}</p>
+                                        <p v-if="row.is_overridden" class="mt-0.5 text-xs italic text-blue-500">Telah diparafrase</p>
+                                    </TableCell>
+                                    <TableCell class="align-top text-xs text-gray-600">{{ row.contributors.join(', ') || '—' }}</TableCell>
+                                    <TableCell class="text-right align-top text-gray-700">{{ row.target }} {{ row.target_unit ?? '' }}</TableCell>
+                                    <TableCell class="text-right align-top text-gray-700">{{ row.realization }}</TableCell>
+                                    <TableCell class="text-right align-top">
+                                        <span v-if="row.achievement != null" :class="achievementColor(row.achievement)">{{ row.achievement.toFixed(2) }}%</span>
+                                        <span v-else class="text-gray-400">—</span>
+                                    </TableCell>
+                                    <TableCell class="text-center align-top">
+                                        <template v-if="canManage">
+                                            <button
+                                                type="button"
+                                                :class="['inline-flex h-5 w-5 items-center justify-center rounded border-2 transition-colors', row.is_confirmed ? 'border-green-500 bg-green-500 text-white' : 'border-gray-300 hover:border-green-400']"
+                                                :title="row.is_confirmed ? `Dikonfirmasi oleh ${row.confirmed_by ?? 'PJ'}` : 'Klik untuk konfirmasi'"
+                                                @click="toggleConfirm(row)"
+                                            >
+                                                <Check v-if="row.is_confirmed" class="h-3 w-3" />
+                                            </button>
+                                            <p v-if="row.is_confirmed && row.confirmed_by" class="mt-0.5 text-xs text-green-600">{{ row.confirmed_by }}</p>
+                                        </template>
+                                        <template v-else>
+                                            <span :class="['inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium', row.is_confirmed ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500']">
+                                                {{ row.is_confirmed ? 'Terkonfirmasi' : 'Belum' }}
+                                            </span>
+                                        </template>
+                                    </TableCell>
+                                    <TableCell class="text-center align-top">
+                                        <button
+                                            type="button"
+                                            class="flex h-6 w-6 items-center justify-center rounded hover:bg-gray-100"
+                                            :title="expandedRows[row.performance_plan_id] ? 'Tutup panel' : 'Buka panel parafrase'"
+                                            @click="toggleExpand(row.performance_plan_id)"
                                         >
-                                            <SelectTrigger id="fra-pic" class="mt-1 w-full">
-                                                <SelectValue placeholder="— Pilih PIC —" />
-                                            </SelectTrigger>
-                                            <SelectContent>
-                                                <SelectItem v-for="p in pics" :key="p.id" :value="String(p.id)">{{ p.name }}</SelectItem>
-                                            </SelectContent>
-                                        </Select>
-                                    </div>
-                                    <div>
-                                        <Label for="fra-deadline">Batas Waktu</Label>
-                                        <Input id="fra-deadline" v-model="form.follow_up_deadline" type="date" class="mt-1" />
-                                    </div>
-                                    <div>
-                                        <Label for="fra-url">Bukti Dukung Tindak Lanjut</Label>
-                                        <Input id="fra-url" v-model="form.follow_up_evidence_url" type="url" class="mt-1" placeholder="https://..." />
-                                        <InputError :message="form.errors.follow_up_evidence_url" />
-                                    </div>
-                                </div>
-                                <div class="flex justify-end gap-2">
-                                    <Button type="button" size="sm" variant="outline" @click="editingPlanId = null">Batal</Button>
-                                    <Button type="submit" size="sm" :disabled="form.processing">Simpan</Button>
-                                </div>
-                            </form>
+                                            <ChevronDown v-if="!expandedRows[row.performance_plan_id]" class="h-4 w-4 text-gray-500" />
+                                            <ChevronUp v-else class="h-4 w-4 text-gray-500" />
+                                        </button>
+                                    </TableCell>
+                                </TableRow>
 
-                            <!-- Read view -->
-                            <template v-else>
-                                <dl class="mt-2 grid grid-cols-1 gap-2 text-sm sm:grid-cols-3">
-                                    <div>
-                                        <dt class="text-xs font-medium text-gray-400">Kendala</dt>
-                                        <dd class="text-gray-700">{{ row.obstacle ?? '—' }}</dd>
-                                    </div>
-                                    <div>
-                                        <dt class="text-xs font-medium text-gray-400">Solusi</dt>
-                                        <dd class="text-gray-700">{{ row.solution ?? '—' }}</dd>
-                                    </div>
-                                    <div>
-                                        <dt class="text-xs font-medium text-gray-400">Tindak Lanjut</dt>
-                                        <dd class="text-gray-700">{{ row.follow_up_plan ?? '—' }}</dd>
-                                    </div>
-                                </dl>
-                                <div class="mt-2 flex flex-wrap items-center gap-4 text-xs text-gray-500">
-                                    <span>PIC: <span class="text-gray-700">{{ row.follow_up_pic ?? '—' }}</span></span>
-                                    <span>Batas: <span class="text-gray-700">{{ row.follow_up_deadline ?? '—' }}</span></span>
-                                    <a v-if="row.follow_up_evidence_url" :href="row.follow_up_evidence_url" target="_blank" rel="noopener noreferrer" class="inline-flex items-center gap-1 text-primary hover:underline">
-                                        Bukti Tindak Lanjut <ExternalLink class="h-3 w-3" />
-                                    </a>
-                                </div>
+                                <!-- Expand panel -->
+                                <TableRow v-if="expandedRows[row.performance_plan_id]" :key="`${row.performance_plan_id}-panel`" class="bg-gray-50">
+                                    <TableCell colspan="8" class="px-6 py-4">
+                                        <div class="space-y-4">
+                                            <!-- Member kendala (read-only) -->
+                                            <div>
+                                                <p class="mb-1 text-xs font-medium text-gray-500">Kendala (anggota)</p>
+                                                <p class="rounded bg-white px-3 py-2 text-sm text-gray-700 ring-1 ring-gray-200">{{ row.obstacle_aggregated || '—' }}</p>
+                                            </div>
+
+                                            <!-- PJ paraphrase + FRA inputs -->
+                                            <template v-if="canManage">
+                                                <div class="grid grid-cols-1 gap-3 sm:grid-cols-3">
+                                                    <div>
+                                                        <Label class="text-xs">Kendala (PJ)</Label>
+                                                        <Textarea v-model="getFraForm(row).obstacle" :rows="2" class="mt-1 text-sm" />
+                                                    </div>
+                                                    <div>
+                                                        <Label class="text-xs">Solusi (PJ)</Label>
+                                                        <Textarea v-model="getFraForm(row).solution" :rows="2" class="mt-1 text-sm" />
+                                                    </div>
+                                                    <div>
+                                                        <Label class="text-xs">RTL (PJ)</Label>
+                                                        <Textarea v-model="getFraForm(row).follow_up_plan" :rows="2" class="mt-1 text-sm" />
+                                                    </div>
+                                                </div>
+
+                                                <!-- FRA follow-up fields -->
+                                                <div class="grid grid-cols-1 gap-3 sm:grid-cols-3">
+                                                    <div>
+                                                        <Label class="text-xs">PIC Tindak Lanjut</Label>
+                                                        <Select
+                                                            :model-value="getFraForm(row).follow_up_pic_employee_id != null ? String(getFraForm(row).follow_up_pic_employee_id) : undefined"
+                                                            @update:model-value="(v) => { getFraForm(row).follow_up_pic_employee_id = v ? Number(v) : null; }"
+                                                        >
+                                                            <SelectTrigger class="mt-1 w-full text-sm">
+                                                                <SelectValue placeholder="Pilih PIC..." />
+                                                            </SelectTrigger>
+                                                            <SelectContent>
+                                                                <SelectItem v-for="pic in pics" :key="pic.id" :value="String(pic.id)">{{ pic.name }}</SelectItem>
+                                                            </SelectContent>
+                                                        </Select>
+                                                    </div>
+                                                    <div>
+                                                        <Label class="text-xs">Batas Waktu</Label>
+                                                        <Input v-model="getFraForm(row).follow_up_deadline" type="date" class="mt-1 text-sm" />
+                                                    </div>
+                                                    <div>
+                                                        <Label class="text-xs">URL Bukti Tindak Lanjut</Label>
+                                                        <Input v-model="getFraForm(row).follow_up_evidence_url" type="url" class="mt-1 text-sm" placeholder="https://..." />
+                                                        <InputError :message="getFraForm(row).errors.follow_up_evidence_url" />
+                                                    </div>
+                                                </div>
+
+                                                <div class="flex justify-end">
+                                                    <Button size="sm" :disabled="getFraForm(row).saving" @click="saveParaphrase(row)">
+                                                        Simpan
+                                                    </Button>
+                                                </div>
+                                            </template>
+
+                                            <!-- Read-only PJ + FRA (non-PJ) -->
+                                            <template v-else>
+                                                <div class="grid grid-cols-1 gap-3 sm:grid-cols-3">
+                                                    <div>
+                                                        <p class="mb-1 text-xs font-medium text-gray-500">Kendala (PJ)</p>
+                                                        <p class="text-sm text-gray-700">{{ row.pj_obstacle || '—' }}</p>
+                                                    </div>
+                                                    <div>
+                                                        <p class="mb-1 text-xs font-medium text-gray-500">Solusi (PJ)</p>
+                                                        <p class="text-sm text-gray-700">{{ row.pj_solution || '—' }}</p>
+                                                    </div>
+                                                    <div>
+                                                        <p class="mb-1 text-xs font-medium text-gray-500">RTL (PJ)</p>
+                                                        <p class="text-sm text-gray-700">{{ row.pj_follow_up_plan || '—' }}</p>
+                                                    </div>
+                                                </div>
+                                                <div class="grid grid-cols-1 gap-3 sm:grid-cols-3">
+                                                    <div>
+                                                        <p class="mb-1 text-xs font-medium text-gray-500">PIC Tindak Lanjut</p>
+                                                        <p class="text-sm text-gray-700">{{ row.follow_up_pic || '—' }}</p>
+                                                    </div>
+                                                    <div>
+                                                        <p class="mb-1 text-xs font-medium text-gray-500">Batas Waktu</p>
+                                                        <p class="text-sm text-gray-700">{{ row.follow_up_deadline || '—' }}</p>
+                                                    </div>
+                                                    <div>
+                                                        <p class="mb-1 text-xs font-medium text-gray-500">Bukti Tindak Lanjut</p>
+                                                        <a v-if="row.follow_up_evidence_url" :href="row.follow_up_evidence_url" target="_blank" rel="noopener noreferrer" class="inline-flex items-center gap-1 text-xs text-primary hover:underline">
+                                                            Buka <ExternalLink class="h-3 w-3" />
+                                                        </a>
+                                                        <span v-else class="text-sm text-gray-400">—</span>
+                                                    </div>
+                                                </div>
+                                            </template>
+                                        </div>
+                                    </TableCell>
+                                </TableRow>
                             </template>
-                        </div>
-                    </div>
+                        </TableBody>
+                    </Table>
                 </div>
             </div>
         </template>

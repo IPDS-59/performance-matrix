@@ -178,10 +178,11 @@ class TeamRecapController extends Controller
         $validated = $request->validate([
             'team_id' => ['required', 'integer', 'exists:teams,id'],
             'performance_plan_id' => ['required', 'integer', 'exists:performance_plans,id'],
-            'period_type' => ['required', 'in:month,quarter'],
-            'period_year' => ['required', 'integer'],
+            'period_type' => ['required', 'in:week,month,quarter'],
+            'period_year' => ['nullable', 'integer'],
             'period_month' => ['nullable', 'integer', 'between:1,12'],
             'period_quarter' => ['nullable', 'integer', 'between:1,4'],
+            'week_start' => ['nullable', 'date', 'required_if:period_type,week'],
             'obstacle' => ['nullable', 'string'],
             'solution' => ['nullable', 'string'],
             'follow_up_plan' => ['nullable', 'string'],
@@ -189,6 +190,10 @@ class TeamRecapController extends Controller
             'follow_up_pic_employee_id' => ['nullable', 'integer', 'exists:employees,id'],
             'follow_up_deadline' => ['nullable', 'date'],
         ]);
+
+        if (($validated['period_type'] ?? '') === 'week' && empty($validated['period_year'])) {
+            $validated['period_year'] = Carbon::parse($validated['week_start'])->year;
+        }
 
         $this->authorizePj($employee, (int) $validated['team_id']);
 
@@ -200,6 +205,7 @@ class TeamRecapController extends Controller
                 'period_year' => $validated['period_year'],
                 'period_month' => $validated['period_month'] ?? null,
                 'period_quarter' => $validated['period_quarter'] ?? null,
+                'week_start' => $validated['week_start'] ?? null,
             ],
             [
                 'obstacle' => $validated['obstacle'] ?? null,
@@ -213,6 +219,44 @@ class TeamRecapController extends Controller
         );
 
         return back()->with('success', 'Rekap berhasil diparafrase.');
+    }
+
+    // ── Confirm / unconfirm individual RK row ─────────────────────────────────
+
+    public function confirmOverride(Request $request): RedirectResponse
+    {
+        $employee = $request->user()->employee;
+        abort_if($employee === null, 403, 'Akun tidak terhubung ke data pegawai.');
+
+        $validated = $request->validate([
+            'team_id' => ['required', 'integer', 'exists:teams,id'],
+            'performance_plan_id' => ['required', 'integer', 'exists:performance_plans,id'],
+            'period_type' => ['required', 'in:week,month,quarter'],
+            'period_year' => ['required', 'integer'],
+            'period_month' => ['nullable', 'integer', 'between:1,12'],
+            'period_quarter' => ['nullable', 'integer', 'between:1,4'],
+            'week_start' => ['nullable', 'date', 'required_if:period_type,week'],
+            'confirmed' => ['required', 'boolean'],
+        ]);
+
+        $this->authorizePj($employee, (int) $validated['team_id']);
+
+        $key = [
+            'team_id' => $validated['team_id'],
+            'performance_plan_id' => $validated['performance_plan_id'],
+            'period_type' => $validated['period_type'],
+            'period_year' => $validated['period_year'],
+            'period_month' => $validated['period_month'] ?? null,
+            'period_quarter' => $validated['period_quarter'] ?? null,
+            'week_start' => $validated['week_start'] ?? null,
+        ];
+
+        RecapOverride::updateOrCreate($key, [
+            'confirmed_at' => $validated['confirmed'] ? now() : null,
+            'confirmed_by' => $validated['confirmed'] ? $employee->id : null,
+        ]);
+
+        return back()->with('success', $validated['confirmed'] ? 'RK dikonfirmasi.' : 'Konfirmasi dibatalkan.');
     }
 
     // ── Helpers ──────────────────────────────────────────────────────────────

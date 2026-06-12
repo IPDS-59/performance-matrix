@@ -1,14 +1,15 @@
 <script setup lang="ts">
 import AppLayout from '@/Layouts/AppLayout.vue';
-import { Head, router, useForm } from '@inertiajs/vue3';
+import { Head, router } from '@inertiajs/vue3';
 import { ref } from 'vue';
-import type { RecapSegment, TeamRecapEvidence, TeamOption } from '@/types';
+import type { RecapSegment, RecapRow, TeamOption, TeamRecapEvidence } from '@/types';
 import { Button } from '@/Components/ui/button';
 import { Input } from '@/Components/ui/input';
 import { Label } from '@/Components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/Components/ui/select';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/Components/ui/table';
-import { ChevronLeft, ChevronRight, ExternalLink, Trash2 } from 'lucide-vue-next';
+import { Textarea } from '@/Components/ui/textarea';
+import { ChevronLeft, ChevronRight, ChevronDown, ChevronUp, ExternalLink, Trash2, Check, ChevronsUpDown } from 'lucide-vue-next';
 import InputError from '@/Components/InputError.vue';
 import { useDateFormat } from '@/composables/useDateFormat';
 
@@ -26,6 +27,8 @@ const props = defineProps<{
     canManage: boolean;
 }>();
 
+// ── Navigation ─────────────────────────────────────────────────────────────
+
 function navigate(params: Record<string, string | number>) {
     router.get(route('team-recap.weekly'), {
         team: props.selectedTeamId ?? undefined,
@@ -34,12 +37,96 @@ function navigate(params: Record<string, string | number>) {
     }, { preserveState: false });
 }
 
+// ── Achievement color ──────────────────────────────────────────────────────
+
 function achievementColor(val: number | null): string {
     const n = Number(val ?? 0);
-    if (n >= 80) return 'text-green-600';
-    if (n >= 50) return 'text-yellow-600';
-    return 'text-red-600';
+    if (n >= 80) return 'text-green-600 font-semibold';
+    if (n >= 50) return 'text-yellow-600 font-semibold';
+    return 'text-red-600 font-semibold';
 }
+
+// ── Per-segment sort ───────────────────────────────────────────────────────
+
+const sortDirs = ref<Record<string, 'asc' | 'desc'>>({});
+
+function sortDir(segKey: string): 'asc' | 'desc' {
+    return sortDirs.value[segKey] ?? 'asc';
+}
+
+function toggleSort(segKey: string) {
+    sortDirs.value[segKey] = sortDir(segKey) === 'asc' ? 'desc' : 'asc';
+}
+
+function sortedRows(seg: RecapSegment): RecapRow[] {
+    const key = String(seg.project_id ?? 'none');
+    const dir = sortDir(key);
+    return [...seg.rows].sort((a, b) =>
+        dir === 'asc'
+            ? (a.achievement ?? 0) - (b.achievement ?? 0)
+            : (b.achievement ?? 0) - (a.achievement ?? 0),
+    );
+}
+
+// ── Expand state ───────────────────────────────────────────────────────────
+
+const expandedRows = ref<Record<number, boolean>>({});
+
+function toggleExpand(planId: number) {
+    expandedRows.value[planId] = !expandedRows.value[planId];
+}
+
+// ── Confirmation ───────────────────────────────────────────────────────────
+
+function toggleConfirm(row: RecapRow) {
+    router.post(route('team-recap.override.confirm'), {
+        team_id: props.selectedTeamId,
+        performance_plan_id: row.performance_plan_id,
+        period_type: 'week',
+        period_year: new Date(props.weekStart + 'T00:00:00').getFullYear(),
+        week_start: props.weekStart,
+        confirmed: !row.is_confirmed,
+    }, { preserveScroll: true, preserveState: true });
+}
+
+// ── Paraphrase forms (per planId) ──────────────────────────────────────────
+
+type ParaForm = { obstacle: string; solution: string; follow_up_plan: string; saving: boolean };
+const paraForms = ref<Record<number, ParaForm>>({});
+
+function getParaForm(row: RecapRow): ParaForm {
+    if (!paraForms.value[row.performance_plan_id]) {
+        paraForms.value[row.performance_plan_id] = {
+            obstacle: row.pj_obstacle ?? '',
+            solution: row.pj_solution ?? '',
+            follow_up_plan: row.pj_follow_up_plan ?? '',
+            saving: false,
+        };
+    }
+
+    return paraForms.value[row.performance_plan_id];
+}
+
+function saveParaphrase(row: RecapRow) {
+    const f = getParaForm(row);
+    f.saving = true;
+    router.post(route('team-recap.override.store'), {
+        team_id: props.selectedTeamId,
+        performance_plan_id: row.performance_plan_id,
+        period_type: 'week',
+        period_year: new Date(props.weekStart + 'T00:00:00').getFullYear(),
+        week_start: props.weekStart,
+        obstacle: f.obstacle,
+        solution: f.solution,
+        follow_up_plan: f.follow_up_plan,
+    }, {
+        preserveScroll: true,
+        preserveState: true,
+        onFinish: () => { f.saving = false; },
+    });
+}
+
+// ── Evidence ───────────────────────────────────────────────────────────────
 
 const evidenceTypeLabel: Record<string, string> = {
     notula: 'Notula',
@@ -47,28 +134,36 @@ const evidenceTypeLabel: Record<string, string> = {
     attendance: 'Daftar Hadir',
 };
 
-// ── Evidence form ──────────────────────────────────────────────────────────
-
 const showEvidenceForm = ref(false);
-
-const evidenceForm = useForm({
+const evidenceForm = ref({
     team_id: props.selectedTeamId,
     project_id: null as number | null,
     week_start: props.weekStart,
     type: 'notula',
     title: '',
     url: '',
+    errors: {} as Record<string, string>,
+    processing: false,
 });
 
 function submitEvidence() {
-    evidenceForm.team_id = props.selectedTeamId;
-    evidenceForm.week_start = props.weekStart;
-    evidenceForm.post(route('team-recap.evidence.store'), {
+    evidenceForm.value.processing = true;
+    router.post(route('team-recap.evidence.store'), {
+        team_id: props.selectedTeamId,
+        project_id: evidenceForm.value.project_id,
+        week_start: props.weekStart,
+        type: evidenceForm.value.type,
+        title: evidenceForm.value.title,
+        url: evidenceForm.value.url,
+    }, {
         preserveScroll: true,
         onSuccess: () => {
-            evidenceForm.reset('title', 'url');
+            evidenceForm.value.title = '';
+            evidenceForm.value.url = '';
             showEvidenceForm.value = false;
         },
+        onError: (errors: Record<string, string>) => { evidenceForm.value.errors = errors; },
+        onFinish: () => { evidenceForm.value.processing = false; },
     });
 }
 
@@ -122,42 +217,130 @@ function deleteEvidence(id: number) {
                     <div class="border-b bg-gray-50 px-4 py-3">
                         <h3 class="text-sm font-semibold text-gray-800">{{ seg.project_name }}</h3>
                     </div>
+
                     <Table class="w-full text-sm">
                         <TableHeader>
                             <TableRow class="border-b bg-gray-50 text-xs font-medium uppercase tracking-wide text-gray-500">
                                 <TableHead class="text-left">Rencana Kinerja</TableHead>
+                                <TableHead class="text-left text-xs">Kontributor</TableHead>
                                 <TableHead class="text-right">Target</TableHead>
                                 <TableHead class="text-right">Realisasi</TableHead>
-                                <TableHead class="text-right">Capaian</TableHead>
-                                <TableHead class="text-left">Kontributor</TableHead>
-                                <TableHead class="text-left">Kendala</TableHead>
-                                <TableHead class="text-left">Solusi</TableHead>
-                                <TableHead class="text-left">RTL</TableHead>
+                                <TableHead class="cursor-pointer select-none text-right" @click="toggleSort(String(seg.project_id ?? 'none'))">
+                                    <span class="inline-flex items-center gap-1">
+                                        Capaian
+                                        <ChevronsUpDown class="h-3 w-3" :class="{ 'rotate-180': sortDir(String(seg.project_id ?? 'none')) === 'desc' }" />
+                                    </span>
+                                </TableHead>
+                                <TableHead class="text-center">Konfirmasi</TableHead>
+                                <TableHead class="w-8" />
                             </TableRow>
                         </TableHeader>
                         <TableBody class="divide-y divide-gray-100">
-                            <TableRow v-for="row in seg.rows" :key="row.performance_plan_id" class="hover:bg-gray-50">
-                                <TableCell class="align-top">
-                                    <p class="font-medium text-gray-800">{{ row.rk_description }}</p>
-                                    <p v-if="row.rk_code" class="text-xs text-gray-500">{{ row.rk_code }}</p>
-                                </TableCell>
-                                <TableCell class="text-right align-top text-gray-700">{{ row.target }} {{ row.target_unit ?? '' }}</TableCell>
-                                <TableCell class="text-right align-top text-gray-700">{{ row.realization }}</TableCell>
-                                <TableCell class="text-right align-top">
-                                    <span v-if="row.achievement != null" :class="['font-semibold', achievementColor(row.achievement)]">{{ row.achievement.toFixed(2) }}%</span>
-                                    <span v-else class="text-gray-400">—</span>
-                                </TableCell>
-                                <TableCell class="align-top text-xs text-gray-600">{{ row.contributors.join(', ') || '—' }}</TableCell>
-                                <TableCell class="align-top text-gray-600">{{ row.obstacle ?? '—' }}</TableCell>
-                                <TableCell class="align-top text-gray-600">{{ row.solution ?? '—' }}</TableCell>
-                                <TableCell class="align-top text-gray-600">{{ row.follow_up_plan ?? '—' }}</TableCell>
-                            </TableRow>
+                            <template v-for="row in sortedRows(seg)" :key="row.performance_plan_id">
+                                <TableRow class="hover:bg-gray-50">
+                                    <TableCell class="align-top">
+                                        <p class="font-medium text-gray-800">{{ row.rk_description }}</p>
+                                        <p v-if="row.rk_code" class="text-xs text-gray-500">{{ row.rk_code }}</p>
+                                        <p v-if="row.is_overridden" class="mt-0.5 text-xs italic text-blue-500">Telah diparafrase</p>
+                                    </TableCell>
+                                    <TableCell class="align-top text-xs text-gray-600">{{ row.contributors.join(', ') || '—' }}</TableCell>
+                                    <TableCell class="text-right align-top text-gray-700">{{ row.target }} {{ row.target_unit ?? '' }}</TableCell>
+                                    <TableCell class="text-right align-top text-gray-700">{{ row.realization }}</TableCell>
+                                    <TableCell class="text-right align-top">
+                                        <span v-if="row.achievement != null" :class="achievementColor(row.achievement)">{{ row.achievement.toFixed(2) }}%</span>
+                                        <span v-else class="text-gray-400">—</span>
+                                    </TableCell>
+                                    <TableCell class="text-center align-top">
+                                        <template v-if="canManage">
+                                            <button
+                                                type="button"
+                                                :class="['inline-flex h-5 w-5 items-center justify-center rounded border-2 transition-colors', row.is_confirmed ? 'border-green-500 bg-green-500 text-white' : 'border-gray-300 hover:border-green-400']"
+                                                :title="row.is_confirmed ? `Dikonfirmasi oleh ${row.confirmed_by ?? 'PJ'}` : 'Klik untuk konfirmasi'"
+                                                @click="toggleConfirm(row)"
+                                            >
+                                                <Check v-if="row.is_confirmed" class="h-3 w-3" />
+                                            </button>
+                                            <p v-if="row.is_confirmed && row.confirmed_by" class="mt-0.5 text-xs text-green-600">{{ row.confirmed_by }}</p>
+                                        </template>
+                                        <template v-else>
+                                            <span :class="['inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium', row.is_confirmed ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500']">
+                                                {{ row.is_confirmed ? 'Terkonfirmasi' : 'Belum' }}
+                                            </span>
+                                        </template>
+                                    </TableCell>
+                                    <TableCell class="text-center align-top">
+                                        <button
+                                            type="button"
+                                            class="flex h-6 w-6 items-center justify-center rounded hover:bg-gray-100"
+                                            :title="expandedRows[row.performance_plan_id] ? 'Tutup panel' : 'Buka panel parafrase'"
+                                            @click="toggleExpand(row.performance_plan_id)"
+                                        >
+                                            <ChevronDown v-if="!expandedRows[row.performance_plan_id]" class="h-4 w-4 text-gray-500" />
+                                            <ChevronUp v-else class="h-4 w-4 text-gray-500" />
+                                        </button>
+                                    </TableCell>
+                                </TableRow>
+
+                                <!-- Expand panel -->
+                                <TableRow v-if="expandedRows[row.performance_plan_id]" :key="`${row.performance_plan_id}-panel`" class="bg-gray-50">
+                                    <TableCell colspan="8" class="px-6 py-4">
+                                        <div class="space-y-4">
+                                            <!-- Member kendala (read-only) -->
+                                            <div>
+                                                <p class="mb-1 text-xs font-medium text-gray-500">Kendala (anggota)</p>
+                                                <p class="rounded bg-white px-3 py-2 text-sm text-gray-700 ring-1 ring-gray-200">{{ row.obstacle_aggregated || '—' }}</p>
+                                            </div>
+
+                                            <!-- PJ paraphrase inputs -->
+                                            <template v-if="canManage">
+                                                <div class="grid grid-cols-1 gap-3 sm:grid-cols-3">
+                                                    <div>
+                                                        <Label class="text-xs">Kendala (PJ)</Label>
+                                                        <Textarea v-model="getParaForm(row).obstacle" :rows="2" class="mt-1 text-sm" />
+                                                    </div>
+                                                    <div>
+                                                        <Label class="text-xs">Solusi (PJ)</Label>
+                                                        <Textarea v-model="getParaForm(row).solution" :rows="2" class="mt-1 text-sm" />
+                                                    </div>
+                                                    <div>
+                                                        <Label class="text-xs">RTL (PJ)</Label>
+                                                        <Textarea v-model="getParaForm(row).follow_up_plan" :rows="2" class="mt-1 text-sm" />
+                                                    </div>
+                                                </div>
+                                                <div class="flex justify-end">
+                                                    <Button size="sm" :disabled="getParaForm(row).saving" @click="saveParaphrase(row)">
+                                                        Simpan parafrase
+                                                    </Button>
+                                                </div>
+                                            </template>
+
+                                            <!-- Read-only PJ paraphrase (non-PJ) -->
+                                            <template v-else>
+                                                <div class="grid grid-cols-1 gap-3 sm:grid-cols-3">
+                                                    <div>
+                                                        <p class="mb-1 text-xs font-medium text-gray-500">Kendala (PJ)</p>
+                                                        <p class="text-sm text-gray-700">{{ row.pj_obstacle || '—' }}</p>
+                                                    </div>
+                                                    <div>
+                                                        <p class="mb-1 text-xs font-medium text-gray-500">Solusi (PJ)</p>
+                                                        <p class="text-sm text-gray-700">{{ row.pj_solution || '—' }}</p>
+                                                    </div>
+                                                    <div>
+                                                        <p class="mb-1 text-xs font-medium text-gray-500">RTL (PJ)</p>
+                                                        <p class="text-sm text-gray-700">{{ row.pj_follow_up_plan || '—' }}</p>
+                                                    </div>
+                                                </div>
+                                            </template>
+                                        </div>
+                                    </TableCell>
+                                </TableRow>
+                            </template>
                         </TableBody>
                     </Table>
                 </div>
             </div>
 
-            <!-- Evidence (notula / foto / DH) -->
+            <!-- Evidence (notula / foto / DH) — unchanged -->
             <div>
                 <div class="mb-3 flex items-center justify-between">
                     <h2 class="text-sm font-semibold text-gray-700">Bukti Dukung Rapat</h2>

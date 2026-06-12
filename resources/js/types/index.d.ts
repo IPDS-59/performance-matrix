@@ -267,13 +267,20 @@ export interface RecapRow {
     realization: number;
     achievement: number | null;
     target_unit?: string | null;
-    obstacle: string | null;
+    obstacle: string | null; // merged (override ?? aggregated) — kept for read views
     solution: string | null;
     follow_up_plan: string | null;
     obstacle_aggregated: string | null;
     solution_aggregated: string | null;
     follow_up_aggregated: string | null;
+    // PJ paraphrase — raw override values (empty until PJ writes)
+    pj_obstacle: string | null;
+    pj_solution: string | null;
+    pj_follow_up_plan: string | null;
     is_overridden: boolean;
+    // Confirmation
+    is_confirmed: boolean;
+    confirmed_by: string | null;
     contributors: string[];
     // Quarterly (FRA) only
     follow_up_evidence_url?: string | null;

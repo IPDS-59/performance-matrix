@@ -284,3 +284,99 @@ it('latestClaimPeriod returns the claim with the highest period year/month', fun
     expect($result->period_year)->toBe(2026);
     expect($result->period_month)->toBe(6);
 });
+
+// ── Weekly override — paraphrase + confirmation ───────────────────────────────
+
+it('weekly override merges pj_obstacle and sets is_overridden', function () {
+    $team = Team::factory()->create();
+    $plan = PerformancePlan::factory()->create([
+        'project_id' => Project::factory()->create(['team_id' => $team->id])->id,
+    ]);
+
+    $weekStart = '2026-06-01';
+
+    recapClaim($plan, [
+        'week_start' => $weekStart,
+        'period_year' => 2026,
+        'period_month' => 6,
+        'period_quarter' => 2,
+        'obstacle' => 'kendala asli',
+    ]);
+
+    RecapOverride::factory()->create([
+        'team_id' => $team->id,
+        'performance_plan_id' => $plan->id,
+        'period_type' => 'week',
+        'period_year' => 2026,
+        'period_month' => null,
+        'week_start' => $weekStart,
+        'obstacle' => 'parafrase PJ',
+        'solution' => null,
+        'follow_up_plan' => null,
+        'confirmed_at' => null,
+        'confirmed_by' => null,
+    ]);
+
+    $row = $this->aggregator->weekly($team, $weekStart)[0]['rows'][0];
+
+    expect($row['pj_obstacle'])->toBe('parafrase PJ');
+    expect($row['obstacle_aggregated'])->toBe('kendala asli');
+    expect($row['is_overridden'])->toBeTrue();
+    expect($row['is_confirmed'])->toBeFalse();
+    expect($row['confirmed_by'])->toBeNull();
+});
+
+it('confirmed weekly override surfaces is_confirmed true and confirmed_by name', function () {
+    $team = Team::factory()->create();
+    $pj = Employee::factory()->create(['display_name' => 'Ahmad PJ']);
+    $plan = PerformancePlan::factory()->create([
+        'project_id' => Project::factory()->create(['team_id' => $team->id])->id,
+    ]);
+
+    $weekStart = '2026-06-01';
+
+    recapClaim($plan, [
+        'week_start' => $weekStart,
+        'period_year' => 2026,
+        'period_month' => 6,
+        'period_quarter' => 2,
+    ]);
+
+    RecapOverride::factory()->create([
+        'team_id' => $team->id,
+        'performance_plan_id' => $plan->id,
+        'period_type' => 'week',
+        'period_year' => 2026,
+        'period_month' => null,
+        'week_start' => $weekStart,
+        'confirmed_at' => now(),
+        'confirmed_by' => $pj->id,
+    ]);
+
+    $row = $this->aggregator->weekly($team, $weekStart)[0]['rows'][0];
+
+    expect($row['is_confirmed'])->toBeTrue();
+    expect($row['confirmed_by'])->toBe('Ahmad PJ');
+});
+
+it('row with no weekly override has is_confirmed false and pj fields null', function () {
+    $team = Team::factory()->create();
+    $plan = PerformancePlan::factory()->create([
+        'project_id' => Project::factory()->create(['team_id' => $team->id])->id,
+    ]);
+
+    $weekStart = '2026-06-01';
+
+    recapClaim($plan, [
+        'week_start' => $weekStart,
+        'period_year' => 2026,
+        'period_month' => 6,
+        'period_quarter' => 2,
+    ]);
+
+    $row = $this->aggregator->weekly($team, $weekStart)[0]['rows'][0];
+
+    expect($row['is_overridden'])->toBeFalse();
+    expect($row['is_confirmed'])->toBeFalse();
+    expect($row['pj_obstacle'])->toBeNull();
+});
