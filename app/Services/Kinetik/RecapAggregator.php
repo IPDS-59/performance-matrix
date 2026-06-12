@@ -207,7 +207,9 @@ class RecapAggregator
             'target' => $target,
             'realization' => $realization,
             'achievement' => $achievement,
-            'target_unit' => $plan?->target_unit,
+            // Unit must match the summed claim values (members enter target/realisasi
+            // in the claim's own unit, e.g. "Kegiatan"), not the plan's IKI unit.
+            'target_unit' => $first->target_unit ?? $plan?->target_unit,
             'obstacle' => $override?->obstacle ?? $obstacleAgg,
             'solution' => $override?->solution ?? $solutionAgg,
             'follow_up_plan' => $override?->follow_up_plan ?? $followUpAgg,

@@ -397,8 +397,6 @@ function achievementColor(val: number | string | null | undefined): string {
                                 <TableHead class="text-left">Kegiatan</TableHead>
                                 <TableHead class="text-right">Capaian</TableHead>
                                 <TableHead class="text-left">Kendala</TableHead>
-                                <TableHead class="text-left">Solusi</TableHead>
-                                <TableHead class="text-left">RTL</TableHead>
                             </TableRow>
                         </TableHeader>
                         <TableBody class="divide-y divide-gray-100">
@@ -420,8 +418,6 @@ function achievementColor(val: number | string | null | undefined): string {
                                     <span v-else class="text-gray-400">—</span>
                                 </TableCell>
                                 <TableCell class="align-top text-gray-600 max-w-xs">{{ claim.obstacle ?? '—' }}</TableCell>
-                                <TableCell class="align-top text-gray-600 max-w-xs">{{ claim.solution ?? '—' }}</TableCell>
-                                <TableCell class="align-top text-gray-600 max-w-xs">{{ claim.follow_up_plan ?? '—' }}</TableCell>
                             </TableRow>
                         </TableBody>
                     </Table>
