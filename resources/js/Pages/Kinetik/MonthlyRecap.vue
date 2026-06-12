@@ -139,23 +139,59 @@ function toggleConfirm(row: RecapRow) {
 
 // ── Paraphrase forms (per planId) ──────────────────────────────────────────
 
-type ParaForm = { obstacle: string; solution: string; follow_up_plan: string; saving: boolean; seededFromAgg: boolean };
+type SeedSource = 'pj' | 'inherited' | 'agg' | 'none';
+type ParaForm = { obstacle: string; solution: string; follow_up_plan: string; saving: boolean; seedSource: SeedSource };
 const paraForms = ref<Record<number, ParaForm>>({});
 
 function getParaForm(row: RecapRow): ParaForm {
     if (!paraForms.value[row.performance_plan_id]) {
-        const hasPjObstacle = row.pj_obstacle !== null && row.pj_obstacle !== '';
-        const seededFromAgg = !hasPjObstacle && !!row.obstacle_aggregated;
+        const hasPj = row.pj_obstacle !== null && row.pj_obstacle !== '';
+        const hasInherited = !!row.inherited_obstacle;
+
+        let seedSource: SeedSource;
+        let obstacleInit: string;
+        let solutionInit: string;
+        let followUpInit: string;
+
+        if (hasPj) {
+            seedSource = 'pj';
+            obstacleInit = row.pj_obstacle!;
+            solutionInit = row.pj_solution ?? '';
+            followUpInit = row.pj_follow_up_plan ?? '';
+        } else if (hasInherited) {
+            seedSource = 'inherited';
+            obstacleInit = row.inherited_obstacle!;
+            solutionInit = row.inherited_solution ?? '';
+            followUpInit = row.inherited_follow_up_plan ?? '';
+        } else if (row.obstacle_aggregated) {
+            seedSource = 'agg';
+            obstacleInit = row.obstacle_aggregated;
+            solutionInit = '';
+            followUpInit = '';
+        } else {
+            seedSource = 'none';
+            obstacleInit = '';
+            solutionInit = '';
+            followUpInit = '';
+        }
+
         paraForms.value[row.performance_plan_id] = {
-            obstacle: row.pj_obstacle ?? row.obstacle_aggregated ?? '',
-            solution: row.pj_solution ?? '',
-            follow_up_plan: row.pj_follow_up_plan ?? '',
+            obstacle: obstacleInit,
+            solution: solutionInit,
+            follow_up_plan: followUpInit,
             saving: false,
-            seededFromAgg,
+            seedSource,
         };
     }
 
     return paraForms.value[row.performance_plan_id];
+}
+
+function pullFromInherited(row: RecapRow) {
+    const f = getParaForm(row);
+    f.obstacle = row.inherited_obstacle ?? '';
+    f.solution = row.inherited_solution ?? '';
+    f.follow_up_plan = row.inherited_follow_up_plan ?? '';
 }
 
 function saveParaphrase(row: RecapRow) {
@@ -330,18 +366,30 @@ function saveParaphrase(row: RecapRow) {
                                                     <div>
                                                         <Label class="text-xs">Kendala (PJ)</Label>
                                                         <Textarea v-model="getParaForm(row).obstacle" :rows="2" class="mt-1 text-sm" />
-                                                        <p v-if="getParaForm(row).seededFromAgg" class="mt-0.5 text-xs italic text-gray-400">Prafilled dari kendala anggota</p>
+                                                        <p v-if="getParaForm(row).seedSource === 'inherited'" class="mt-0.5 text-xs italic text-gray-400">Dirangkum dari parafrase mingguan</p>
+                                                        <p v-else-if="getParaForm(row).seedSource === 'agg'" class="mt-0.5 text-xs italic text-gray-400">Prafilled dari kendala anggota</p>
                                                     </div>
                                                     <div>
                                                         <Label class="text-xs">Solusi (PJ)</Label>
                                                         <Textarea v-model="getParaForm(row).solution" :rows="2" class="mt-1 text-sm" />
+                                                        <p v-if="getParaForm(row).seedSource === 'inherited'" class="mt-0.5 text-xs italic text-gray-400">Dirangkum dari parafrase mingguan</p>
                                                     </div>
                                                     <div>
                                                         <Label class="text-xs">RTL (PJ)</Label>
                                                         <Textarea v-model="getParaForm(row).follow_up_plan" :rows="2" class="mt-1 text-sm" />
+                                                        <p v-if="getParaForm(row).seedSource === 'inherited'" class="mt-0.5 text-xs italic text-gray-400">Dirangkum dari parafrase mingguan</p>
                                                     </div>
                                                 </div>
-                                                <div class="flex justify-end">
+                                                <div class="flex items-center justify-between">
+                                                    <Button
+                                                        type="button"
+                                                        size="sm"
+                                                        variant="outline"
+                                                        :disabled="!row.inherited_obstacle && !row.inherited_solution && !row.inherited_follow_up_plan"
+                                                        @click="pullFromInherited(row)"
+                                                    >
+                                                        Tarik dari mingguan
+                                                    </Button>
                                                     <Button size="sm" :disabled="getParaForm(row).saving" @click="saveParaphrase(row)">
                                                         Simpan parafrase
                                                     </Button>

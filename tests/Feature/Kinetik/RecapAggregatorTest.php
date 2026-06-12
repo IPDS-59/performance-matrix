@@ -380,3 +380,167 @@ it('row with no weekly override has is_confirmed false and pj fields null', func
     expect($row['is_confirmed'])->toBeFalse();
     expect($row['pj_obstacle'])->toBeNull();
 });
+
+// ── Inherited (rolled-up) weekly paraphrase ───────────────────────────────────
+
+it('weekly override in January surfaces as inherited_* on the January monthly row when no monthly override exists', function () {
+    $team = Team::factory()->create();
+    $plan = PerformancePlan::factory()->create([
+        'project_id' => Project::factory()->create(['team_id' => $team->id])->id,
+    ]);
+
+    // A claim in January 2026
+    recapClaim($plan, [
+        'period_year' => 2026,
+        'period_month' => 1,
+        'period_quarter' => 1,
+        'week_start' => '2026-01-05',
+    ]);
+
+    // Weekly override for that week
+    RecapOverride::factory()->create([
+        'team_id' => $team->id,
+        'performance_plan_id' => $plan->id,
+        'period_type' => 'week',
+        'period_year' => 2026,
+        'period_month' => null,
+        'period_quarter' => null,
+        'week_start' => '2026-01-05',
+        'obstacle' => 'kendala minggu pertama',
+        'solution' => 'solusi mingguan',
+        'follow_up_plan' => null,
+        'confirmed_at' => null,
+        'confirmed_by' => null,
+    ]);
+
+    $row = $this->aggregator->monthly($team, 2026, 1)[0]['rows'][0];
+
+    expect($row['inherited_obstacle'])->toBe('kendala minggu pertama');
+    expect($row['inherited_solution'])->toBe('solusi mingguan');
+    expect($row['pj_obstacle'])->toBeNull();
+    expect($row['is_overridden'])->toBeFalse();
+});
+
+it('weekly override in January surfaces as inherited_* on the Q1 quarterly row', function () {
+    $team = Team::factory()->create();
+    $plan = PerformancePlan::factory()->create([
+        'project_id' => Project::factory()->create(['team_id' => $team->id])->id,
+    ]);
+
+    recapClaim($plan, [
+        'period_year' => 2026,
+        'period_month' => 1,
+        'period_quarter' => 1,
+        'week_start' => '2026-01-05',
+    ]);
+
+    RecapOverride::factory()->create([
+        'team_id' => $team->id,
+        'performance_plan_id' => $plan->id,
+        'period_type' => 'week',
+        'period_year' => 2026,
+        'period_month' => null,
+        'period_quarter' => null,
+        'week_start' => '2026-01-05',
+        'obstacle' => 'kendala Q1',
+        'solution' => 'solusi Q1',
+        'follow_up_plan' => null,
+        'confirmed_at' => null,
+        'confirmed_by' => null,
+    ]);
+
+    $row = $this->aggregator->quarterly($team, 2026, 1)[0]['rows'][0];
+
+    expect($row['inherited_obstacle'])->toBe('kendala Q1');
+    expect($row['inherited_solution'])->toBe('solusi Q1');
+    expect($row['pj_obstacle'])->toBeNull();
+});
+
+it('monthly override sets pj_obstacle while inherited_* still reflects the weekly roll-up', function () {
+    $team = Team::factory()->create();
+    $plan = PerformancePlan::factory()->create([
+        'project_id' => Project::factory()->create(['team_id' => $team->id])->id,
+    ]);
+
+    recapClaim($plan, [
+        'period_year' => 2026,
+        'period_month' => 1,
+        'period_quarter' => 1,
+        'week_start' => '2026-01-05',
+    ]);
+
+    // Weekly override
+    RecapOverride::factory()->create([
+        'team_id' => $team->id,
+        'performance_plan_id' => $plan->id,
+        'period_type' => 'week',
+        'period_year' => 2026,
+        'period_month' => null,
+        'period_quarter' => null,
+        'week_start' => '2026-01-05',
+        'obstacle' => 'kendala dari mingguan',
+        'solution' => null,
+        'follow_up_plan' => null,
+        'confirmed_at' => null,
+        'confirmed_by' => null,
+    ]);
+
+    // Monthly override
+    RecapOverride::factory()->create([
+        'team_id' => $team->id,
+        'performance_plan_id' => $plan->id,
+        'period_type' => 'month',
+        'period_year' => 2026,
+        'period_month' => 1,
+        'period_quarter' => null,
+        'week_start' => null,
+        'obstacle' => 'kendala bulanan yang sudah diedit',
+        'solution' => null,
+        'follow_up_plan' => null,
+        'confirmed_at' => null,
+        'confirmed_by' => null,
+    ]);
+
+    $row = $this->aggregator->monthly($team, 2026, 1)[0]['rows'][0];
+
+    expect($row['pj_obstacle'])->toBe('kendala bulanan yang sudah diedit');
+    expect($row['inherited_obstacle'])->toBe('kendala dari mingguan');
+    expect($row['is_overridden'])->toBeTrue();
+});
+
+it('weekly override in a different month does not leak into this month inherited', function () {
+    $team = Team::factory()->create();
+    $plan = PerformancePlan::factory()->create([
+        'project_id' => Project::factory()->create(['team_id' => $team->id])->id,
+    ]);
+
+    // Claim in January
+    recapClaim($plan, [
+        'period_year' => 2026,
+        'period_month' => 1,
+        'period_quarter' => 1,
+        'week_start' => '2026-01-05',
+    ]);
+
+    // Weekly override in February (different month)
+    RecapOverride::factory()->create([
+        'team_id' => $team->id,
+        'performance_plan_id' => $plan->id,
+        'period_type' => 'week',
+        'period_year' => 2026,
+        'period_month' => null,
+        'period_quarter' => null,
+        'week_start' => '2026-02-02',
+        'obstacle' => 'kendala bulan Februari',
+        'solution' => null,
+        'follow_up_plan' => null,
+        'confirmed_at' => null,
+        'confirmed_by' => null,
+    ]);
+
+    // January monthly should have no inherited from February's override
+    $row = $this->aggregator->monthly($team, 2026, 1)[0]['rows'][0];
+
+    expect($row['inherited_obstacle'])->toBeNull();
+    expect($row['inherited_solution'])->toBeNull();
+});

@@ -277,6 +277,10 @@ export interface RecapRow {
     pj_obstacle: string | null;
     pj_solution: string | null;
     pj_follow_up_plan: string | null;
+    // Rolled-up weekly paraphrase (monthly/quarterly only; null for weekly)
+    inherited_obstacle?: string | null;
+    inherited_solution?: string | null;
+    inherited_follow_up_plan?: string | null;
     is_overridden: boolean;
     // Confirmation
     is_confirmed: boolean;
