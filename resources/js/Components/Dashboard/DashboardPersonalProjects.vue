@@ -14,7 +14,7 @@ const { achievementColor, progressVariant } = useAchievementColor();
 
 function projectAvg(project: ProjectWithItems): number {
     const reports = project.work_items.flatMap((wi) => wi.performance_reports);
-    if (!reports.length) return 0;
+    if (!reports.length) return project.kinetik_avg ?? 0;
     const sum = reports.reduce((acc, r) => acc + Number(r.achievement_percentage), 0);
     return sum / reports.length;
 }
@@ -71,7 +71,7 @@ const projectsByTeam = computed(() => {
                                 </span>
                             </div>
                             <Progress :model-value="projectAvg(project)" class="mt-2 h-2" :indicator-class="progressVariant(projectAvg(project))" />
-                            <p class="mt-2 text-xs text-gray-400">{{ project.work_items.length }} item kerja</p>
+                            <p class="mt-2 text-xs text-gray-400">{{ project.work_items.length || project.kinetik_plan_count || 0 }} item kerja</p>
                         </CardContent>
                     </Card>
                 </div>
