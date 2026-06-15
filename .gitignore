@@ -48,6 +48,7 @@ kipapp.postman_collection.json
 # Session artifacts
 .playwright-mcp/
 .codegraph/*.pid
+.mcp.json
 
 # Local secrets (never commit)
 docs/credentials/
