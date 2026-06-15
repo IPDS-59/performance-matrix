@@ -128,6 +128,23 @@ class SyncKipStructureAction
             $this->provisionEmployees($source->fetchTeamMembers($timkerjaId))
         );
 
+        // Second-pass leader resolution: the leader employee may not have existed in
+        // the DB when projects were first upserted (new employee, synced for the
+        // first time as a project member or roster entry above). Re-resolve and
+        // backfill team + projects that still have no leader_id.
+        if (! $leader && $leaderNip) {
+            $leader = $this->resolveByNip((string) $leaderNip);
+            if ($leader) {
+                $team->leader_id = $leader->id;
+                $team->save();
+                $team->members()->syncWithoutDetaching([$leader->id => ['role' => 'leader']]);
+                Project::where('team_id', $team->id)
+                    ->whereIn('kip_external_id', $projects->map(fn ($p) => $p->externalId)->filter()->all())
+                    ->whereNull('leader_id')
+                    ->update(['leader_id' => $leader->id]);
+            }
+        }
+
         // Everyone working in this team (leader + project members + roster) is a
         // team member, so team-scoped views (recaps) resolve their membership.
         // Additive (syncWithoutDetaching) and never downgrades the leader's role.

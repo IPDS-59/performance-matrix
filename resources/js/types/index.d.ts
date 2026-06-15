@@ -222,6 +222,8 @@ export interface KipActivity {
     time_end?: string | null;
     evidence_url?: string | null;
     rk_name?: string | null;
+    rk_external_id?: string | null;
+    matched_plan_id?: number | null;
     is_claimed: boolean;
     claim?: ActivityClaim | null;
 }

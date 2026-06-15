@@ -13,6 +13,7 @@ class PerformancePlan extends Model
 
     protected $fillable = [
         'kip_external_id',
+        'skp_status',
         'project_id',
         'team_id',
         'code',

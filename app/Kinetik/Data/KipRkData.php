@@ -10,13 +10,16 @@ readonly class KipRkData
         public ?string $teamExternalId,
         public ?float $target,
         public ?string $targetUnit,
+        public ?string $skpStatus,
         public array $raw,
     ) {}
 
     /**
      * Build from a `/v1/skp/rk` row plus the parsed target from its IKI text.
+     *
+     * @param  ?string  $skpStatus  Status label from the parent SKP (e.g. "Ditetapkan")
      */
-    public static function fromApiRow(array $row, ?string $ikiText = null): self
+    public static function fromApiRow(array $row, ?string $ikiText = null, ?string $skpStatus = null): self
     {
         [$target, $unit] = self::parseTarget($ikiText);
 
@@ -26,6 +29,7 @@ readonly class KipRkData
             teamExternalId: isset($row['timkerjaid']) ? (string) $row['timkerjaid'] : null,
             target: $target,
             targetUnit: $unit,
+            skpStatus: $skpStatus,
             raw: $row,
         );
     }

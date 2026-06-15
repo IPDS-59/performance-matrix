@@ -37,13 +37,25 @@ class WeeklyActivityController extends Controller
         $weekStart = $anchor->copy()->startOfWeek(Carbon::MONDAY)->toDateString();
         $weekEnd = $anchor->copy()->endOfWeek(Carbon::SUNDAY)->toDateString();
 
-        $activities = $employee
+        $rawActivities = $employee
             ? KipActivity::with('claim')
                 ->where('employee_id', $employee->id)
                 ->whereBetween('activity_date_start', [$weekStart, $weekEnd])
                 ->orderBy('activity_date_start')
                 ->get()
             : collect();
+
+        // Resolve rk_external_id → local performance_plan_id so the frontend
+        // can auto-select the correct RK without requiring the user to pick manually.
+        $rkIds = $rawActivities->pluck('rk_external_id')->filter()->unique();
+        $planByRkId = $rkIds->isNotEmpty()
+            ? PerformancePlan::whereIn('kip_external_id', $rkIds)->pluck('id', 'kip_external_id')
+            : collect();
+
+        $activities = $rawActivities->map(fn (KipActivity $a) => array_merge(
+            $a->toArray(),
+            ['matched_plan_id' => $a->rk_external_id ? ($planByRkId->get($a->rk_external_id)) : null],
+        ));
 
         $recap = $employee
             ? ActivityClaim::with(['performancePlan.project', 'kipActivity'])

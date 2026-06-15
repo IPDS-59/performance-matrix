@@ -39,7 +39,7 @@ class KipIntegrationController extends Controller
                 'employees_with_nip' => Employee::where('is_active', true)->whereNotNull('nip_lama')->count(),
                 'employees_total' => Employee::where('is_active', true)->count(),
                 'activities_synced' => KipActivity::count(),
-                'last_fetched_at' => KipActivity::max('fetched_at'),
+                'last_fetched_at' => ($at = KipActivity::max('fetched_at')) ? \Carbon\Carbon::parse($at)->toIso8601String() : null,
                 'teams_synced' => Team::whereNotNull('kip_external_id')->count(),
                 'projects_synced' => Project::whereNotNull('kip_external_id')->count(),
             ],

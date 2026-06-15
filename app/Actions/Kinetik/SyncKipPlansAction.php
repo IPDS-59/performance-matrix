@@ -66,6 +66,9 @@ class SyncKipPlansAction
                 if ($rk->targetUnit !== null) {
                     $plan->target_unit = $rk->targetUnit;
                 }
+                if ($rk->skpStatus !== null) {
+                    $plan->skp_status = $rk->skpStatus;
+                }
                 $plan->pic_employee_id ??= $employee->id;
 
                 $plan->save();

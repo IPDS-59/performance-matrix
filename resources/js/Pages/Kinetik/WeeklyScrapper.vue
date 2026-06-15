@@ -60,7 +60,7 @@ function makeClaimForm(activity: KipActivity) {
     const c = activity.claim;
     return useForm<ClaimFormData>({
         kip_activity_id: activity.id,
-        performance_plan_id: c?.performance_plan_id ?? null,
+        performance_plan_id: c?.performance_plan_id ?? activity.matched_plan_id ?? null,
         work_item_id: null,
         target: c?.target != null ? String(c.target) : '',
         realization: c?.realization != null ? String(c.realization) : '',
