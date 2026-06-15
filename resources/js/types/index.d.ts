@@ -175,6 +175,10 @@ export interface ProjectWithItems {
         description: string;
         performance_reports: Array<{ achievement_percentage: number }>;
     }>;
+    /** Average achievement from Kinetik activity_claims for this team in the period. */
+    kinetik_avg?: number | null;
+    /** Number of distinct Kinetik plans claimed by this employee for this team in the period. */
+    kinetik_plan_count?: number;
 }
 
 export interface TeamProjectWithMembers {
