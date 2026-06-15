@@ -92,7 +92,7 @@ class DashboardController extends Controller
      */
     private function computeTeamProgress(int $year, int $month): Collection
     {
-        // Per-project averages for the requested period
+        // ── Old system: performance_reports → work_items → projects → teams ──
         $projectAvgs = DB::table('performance_reports')
             ->join('work_items', 'work_items.id', '=', 'performance_reports.work_item_id')
             ->join('projects', 'projects.id', '=', 'work_items.project_id')
@@ -108,7 +108,6 @@ class DashboardController extends Controller
             )
             ->get();
 
-        // Total projects per team (including those with no reports)
         $totalProjectsByTeam = DB::table('projects')
             ->where('year', $year)
             ->groupBy('team_id')
@@ -116,19 +115,61 @@ class DashboardController extends Controller
             ->get()
             ->keyBy('team_id');
 
-        // Roll up: team avg = sum(project avgs) / total projects in team
-        return $projectAvgs
+        $oldProgress = $projectAvgs
             ->groupBy('team_id')
             ->map(function ($rows, $teamId) use ($totalProjectsByTeam) {
                 $sumAvg = $rows->sum('project_avg');
                 $totalProjects = $totalProjectsByTeam[$teamId]->total ?? $rows->count();
-                $reportCount = $rows->sum('report_count');
 
                 return (object) [
                     'team_id' => (int) $teamId,
                     'avg_achievement' => $totalProjects > 0 ? $sumAvg / $totalProjects : 0,
-                    'report_count' => $reportCount,
+                    'report_count' => (int) $rows->sum('report_count'),
                 ];
+            })
+            ->keyBy('team_id');
+
+        // ── Kinetik system: activity_claims → performance_plans → teams ──
+        $kipProgress = DB::table('activity_claims')
+            ->join('performance_plans', 'performance_plans.id', '=', 'activity_claims.performance_plan_id')
+            ->where('activity_claims.status', 'saved')
+            ->where('activity_claims.period_year', $year)
+            ->where('activity_claims.period_month', $month)
+            ->whereNotNull('performance_plans.team_id')
+            ->whereNotNull('activity_claims.achievement')
+            ->groupBy('performance_plans.team_id')
+            ->select(
+                'performance_plans.team_id',
+                DB::raw('AVG(activity_claims.achievement) as avg_achievement'),
+                DB::raw('COUNT(activity_claims.id) as report_count'),
+            )
+            ->get()
+            ->keyBy('team_id');
+
+        // ── Merge: if both sources have data for a team, average them ──
+        return collect($oldProgress->keys())
+            ->merge($kipProgress->keys())
+            ->unique()
+            ->mapWithKeys(function ($teamId) use ($oldProgress, $kipProgress) {
+                $old = $oldProgress[$teamId] ?? null;
+                $kip = $kipProgress[$teamId] ?? null;
+
+                if ($old && $kip) {
+                    $avg = ((float) $old->avg_achievement + (float) $kip->avg_achievement) / 2;
+                    $count = $old->report_count + (int) $kip->report_count;
+                } elseif ($old) {
+                    $avg = (float) $old->avg_achievement;
+                    $count = $old->report_count;
+                } else {
+                    $avg = (float) $kip->avg_achievement;
+                    $count = (int) $kip->report_count;
+                }
+
+                return [(string) $teamId => (object) [
+                    'team_id' => (int) $teamId,
+                    'avg_achievement' => $avg,
+                    'report_count' => $count,
+                ]];
             })
             ->keyBy('team_id');
     }
@@ -266,9 +307,28 @@ class DashboardController extends Controller
             ->get();
 
         $totalAssigned = $projectIds->count();
-        $avgAchievement = $totalAssigned > 0
+        $oldAvg = $totalAssigned > 0
             ? $projectAvgs->sum('project_avg') / $totalAssigned
             : 0;
+
+        // Kinetik system: average achievement across this employee's saved claims
+        $kipResult = DB::table('activity_claims')
+            ->where('employee_id', $employee->id)
+            ->where('status', 'saved')
+            ->where('period_year', $year)
+            ->where('period_month', $month)
+            ->whereNotNull('achievement')
+            ->selectRaw('AVG(achievement) as avg_achievement, COUNT(*) as claim_count')
+            ->first();
+
+        $kipCount = (int) ($kipResult?->claim_count ?? 0);
+        $kipAvg = (float) ($kipResult?->avg_achievement ?? 0);
+
+        $avgAchievement = match (true) {
+            $oldAvg > 0 && $kipCount > 0 => ($oldAvg + $kipAvg) / 2,
+            $kipCount > 0 => $kipAvg,
+            default => $oldAvg,
+        };
 
         $isTeamLead = Project::where('leader_id', $employee->id)
             ->where('year', $year)
