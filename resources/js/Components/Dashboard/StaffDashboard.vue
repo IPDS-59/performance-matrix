@@ -25,13 +25,20 @@ const props = defineProps<{
     periodLabel: string;
 }>();
 
-// Merge old-system project cards with per-plan Kinetik cards.
-// Old cards show performance_reports data; Kinetik cards show the specific
-// claimed plan's achievement — not a team-wide average.
-const allProjects = computed<ProjectWithItems[]>(() => [
-    ...props.projects,
-    ...props.kinetikPlanCards,
-]);
+// When the employee has Kinetik claims, only show: old projects that have
+// actual performance_reports data + per-plan Kinetik cards.
+// This hides old project cards sitting at 0% (no performance_reports) when
+// the employee is already filing claims via the Kinetik system.
+// When the employee has no Kinetik claims at all, fall back to all old projects.
+const allProjects = computed<ProjectWithItems[]>(() => {
+    if (props.kinetikPlanCards.length > 0) {
+        const oldWithData = props.projects.filter((p) =>
+            p.work_items.some((wi) => wi.performance_reports.length > 0),
+        );
+        return [...oldWithData, ...props.kinetikPlanCards];
+    }
+    return props.projects;
+});
 </script>
 
 <template>
