@@ -57,14 +57,11 @@ export interface PerformanceIndicator {
     target_unit?: string | null;
     description?: string | null;
     team?: Team | null;
-    can_update?: boolean;
-    can_delete?: boolean;
 }
 
 export interface PerformancePlan {
     id: number;
-    project_id?: number | null;
-    team_id?: number | null;
+    project_id: number;
     code?: string | null;
     description: string;
     target?: number | string | null;
@@ -73,10 +70,7 @@ export interface PerformancePlan {
     period?: number | null;
     pic_employee_id?: number | null;
     project?: Project | null;
-    team?: Team | null;
     pic?: Employee | null;
-    can_update?: boolean;
-    can_delete?: boolean;
 }
 
 export interface WorkItem {
@@ -170,15 +164,7 @@ export interface ProjectWithItems {
     team_id: number;
     name: string;
     team?: { id: number; name: string } | null;
-    work_items: Array<{
-        id: number;
-        description: string;
-        performance_reports: Array<{ achievement_percentage: number }>;
-    }>;
-    /** Average achievement from Kinetik activity_claims for this team in the period. */
-    kinetik_avg?: number | null;
-    /** Number of distinct Kinetik plans claimed by this employee for this team in the period. */
-    kinetik_plan_count?: number;
+    achievement: number | null;
 }
 
 export interface TeamProjectWithMembers {
@@ -186,20 +172,6 @@ export interface TeamProjectWithMembers {
     name: string;
     team: { id: number; name: string } | null;
     members: TeamMember[];
-    work_items: Array<{
-        id: number;
-        description: string;
-        target: number;
-        target_unit: string;
-        performance_reports: Array<{
-            id: number;
-            realization: number;
-            achievement_percentage: number;
-            reported_by: number | null;
-            reporter: { id: number; name: string; display_name: string | null } | null;
-        }>;
-    }>;
-    /** Count of unique employees with saved Kinetik activity_claims for this team in the period. */
     kinetik_submitted_count?: number;
 }
 
@@ -228,8 +200,6 @@ export interface KipActivity {
     time_end?: string | null;
     evidence_url?: string | null;
     rk_name?: string | null;
-    rk_external_id?: string | null;
-    matched_plan_id?: number | null;
     is_claimed: boolean;
     claim?: ActivityClaim | null;
 }
@@ -261,7 +231,7 @@ export interface ActivityClaim {
 export interface PlanOption {
     id: number;
     description: string;
-    project_name: string | null;
+    project_name: string;
     team_name: string;
 }
 
@@ -269,31 +239,19 @@ export interface PlanOption {
 
 export interface RecapRow {
     performance_plan_id: number;
-    pic_employee_id?: number | null;
     rk_code?: string | null;
     rk_description: string;
     target: number;
     realization: number;
     achievement: number | null;
     target_unit?: string | null;
-    obstacle: string | null; // merged (override ?? aggregated) — kept for read views
+    obstacle: string | null;
     solution: string | null;
     follow_up_plan: string | null;
     obstacle_aggregated: string | null;
     solution_aggregated: string | null;
     follow_up_aggregated: string | null;
-    // PJ paraphrase — raw override values (empty until PJ writes)
-    pj_obstacle: string | null;
-    pj_solution: string | null;
-    pj_follow_up_plan: string | null;
-    // Rolled-up weekly paraphrase (monthly/quarterly only; null for weekly)
-    inherited_obstacle?: string | null;
-    inherited_solution?: string | null;
-    inherited_follow_up_plan?: string | null;
     is_overridden: boolean;
-    // Confirmation
-    is_confirmed: boolean;
-    confirmed_by: string | null;
     contributors: string[];
     // Quarterly (FRA) only
     follow_up_evidence_url?: string | null;
@@ -323,55 +281,4 @@ export interface TeamRecapEvidence {
 export interface TeamOption {
     id: number;
     name: string;
-}
-
-// ── Kinetik: kipApp integration ──────────────────────────────────────────────
-
-export interface KipCredential {
-    account_nip: string | null;
-    account_name: string | null;
-    expires_at: string | null;
-    is_expired: boolean;
-    is_expiring_soon: boolean;
-    updated_at: string | null;
-    updated_by: string | null;
-}
-
-export interface KipIntegrationStats {
-    employees_with_nip: number;
-    employees_total: number;
-    activities_synced: number;
-    last_fetched_at: string | null;
-    teams_synced: number;
-    projects_synced: number;
-}
-
-export interface KipSyncRun {
-    id: number;
-    status: 'running' | 'completed' | 'failed';
-    total: number;
-    processed: number;
-    summary: Record<string, number>;
-    message: string | null;
-}
-
-export interface Paginated<T> {
-    data: T[];
-    current_page: number;
-    last_page: number;
-    total: number;
-    links: Array<{ url: string | null; label: string; active: boolean }>;
-}
-
-export interface KipActivityRow {
-    id: number;
-    employee_name: string;
-    nip_lama: string | null;
-    description: string | null;
-    rk_name: string | null;
-    date_start: string | null;
-    date_end: string | null;
-    progress: number | null;
-    evidence_url: string | null;
-    is_claimed: boolean;
 }

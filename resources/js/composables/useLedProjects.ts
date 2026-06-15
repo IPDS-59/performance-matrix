@@ -18,12 +18,5 @@ export function ledProjectMemberCount(project: TeamProjectWithMembers): number {
 }
 
 export function ledProjectSubmittedCount(project: TeamProjectWithMembers): number {
-    const reportedBySet = new Set<number>();
-    for (const wi of project.work_items) {
-        for (const r of wi.performance_reports) {
-            if (r.reported_by !== null) reportedBySet.add(r.reported_by);
-        }
-    }
-    // Fall back to Kinetik claim count for projects without old-system work items
-    return reportedBySet.size > 0 ? reportedBySet.size : (project.kinetik_submitted_count ?? 0);
+    return project.kinetik_submitted_count ?? 0;
 }
