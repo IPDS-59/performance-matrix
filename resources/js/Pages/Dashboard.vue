@@ -15,7 +15,6 @@ const props = defineProps<{
     employee?: Employee;
     personal_stats?: PersonalStats;
     projects?: ProjectWithItems[];
-    kinetik_plan_cards?: ProjectWithItems[];
     team_projects?: TeamProjectWithMembers[];
     teams?: TeamWithMembers[];
     project_leaders_by_team?: Record<number, number[]>;
@@ -110,7 +109,6 @@ const teamLeaderMap = computed(() => {
             :employee="employee"
             :personal-stats="personal_stats"
             :projects="projects ?? []"
-            :kinetik-plan-cards="kinetik_plan_cards ?? []"
             :team-projects="team_projects ?? []"
             :team-list="teamList"
             :team-leader-map="teamLeaderMap"

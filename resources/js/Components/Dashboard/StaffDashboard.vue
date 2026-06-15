@@ -1,5 +1,4 @@
 <script setup lang="ts">
-import { computed } from 'vue';
 import type { Employee, PersonalStats, ProjectWithItems, TeamProjectWithMembers, TeamRankItem, EmployeeRankItem } from '@/types';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/Components/ui/tabs';
 import { Badge } from '@/Components/ui/badge';
@@ -11,11 +10,10 @@ import DashboardPersonalProjects from '@/Components/Dashboard/DashboardPersonalP
 import DashboardSectionHeading from '@/Components/Dashboard/DashboardSectionHeading.vue';
 import DashboardLedProjects from '@/Components/Dashboard/DashboardLedProjects.vue';
 
-const props = defineProps<{
+defineProps<{
     employee: Employee | undefined;
     personalStats: PersonalStats | undefined;
     projects: ProjectWithItems[];
-    kinetikPlanCards: ProjectWithItems[];
     teamProjects: TeamProjectWithMembers[];
     teamList: TeamRankItem[];
     teamLeaderMap: Map<number, number>;
@@ -24,21 +22,6 @@ const props = defineProps<{
     topEmployeesByAchievement: EmployeeRankItem[];
     periodLabel: string;
 }>();
-
-// When the employee has Kinetik claims, only show: old projects that have
-// actual performance_reports data + per-plan Kinetik cards.
-// This hides old project cards sitting at 0% (no performance_reports) when
-// the employee is already filing claims via the Kinetik system.
-// When the employee has no Kinetik claims at all, fall back to all old projects.
-const allProjects = computed<ProjectWithItems[]>(() => {
-    if (props.kinetikPlanCards.length > 0) {
-        const oldWithData = props.projects.filter((p) =>
-            p.work_items.some((wi) => wi.performance_reports.length > 0),
-        );
-        return [...oldWithData, ...props.kinetikPlanCards];
-    }
-    return props.projects;
-});
 </script>
 
 <template>
@@ -76,7 +59,7 @@ const allProjects = computed<ProjectWithItems[]>(() => {
                     />
 
                     <div class="mt-10">
-                        <DashboardPersonalProjects :projects="allProjects" />
+                        <DashboardPersonalProjects :projects="projects" />
                     </div>
                 </TabsContent>
                 <TabsContent value="team">
@@ -103,7 +86,7 @@ const allProjects = computed<ProjectWithItems[]>(() => {
             />
 
             <div class="mt-10">
-                <DashboardPersonalProjects :projects="allProjects" />
+                <DashboardPersonalProjects :projects="projects" />
             </div>
         </template>
     </template>
