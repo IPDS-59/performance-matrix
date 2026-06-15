@@ -195,6 +195,8 @@ export interface TeamProjectWithMembers {
             reporter: { id: number; name: string; display_name: string | null } | null;
         }>;
     }>;
+    /** Count of unique employees with saved Kinetik activity_claims for this team in the period. */
+    kinetik_submitted_count?: number;
 }
 
 export type PageProps<

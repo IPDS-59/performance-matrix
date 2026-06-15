@@ -24,5 +24,6 @@ export function ledProjectSubmittedCount(project: TeamProjectWithMembers): numbe
             if (r.reported_by !== null) reportedBySet.add(r.reported_by);
         }
     }
-    return reportedBySet.size;
+    // Fall back to Kinetik claim count for projects without old-system work items
+    return reportedBySet.size > 0 ? reportedBySet.size : (project.kinetik_submitted_count ?? 0);
 }
