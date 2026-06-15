@@ -296,6 +296,17 @@ class DashboardController extends Controller
             ->whereIn('project_id', $projectIds)
             ->pluck('id');
 
+        // For Kinetik employees, count performance_plans when no work items exist
+        $kipPlanCount = $workItemIds->isEmpty()
+            ? DB::table('activity_claims')
+                ->where('employee_id', $employee->id)
+                ->where('status', 'saved')
+                ->where('period_year', $year)
+                ->where('period_month', $month)
+                ->distinct()
+                ->count('performance_plan_id')
+            : 0;
+
         // Per-project avg → employee avg (projects without reports count as 0%)
         $projectAvgs = DB::table('performance_reports')
             ->join('work_items', 'work_items.id', '=', 'performance_reports.work_item_id')
@@ -337,7 +348,7 @@ class DashboardController extends Controller
         return [
             'teams_count' => $teamIds->count(),
             'projects_count' => $projectIds->count(),
-            'items_count' => $workItemIds->count(),
+            'items_count' => $workItemIds->count() ?: $kipPlanCount,
             'avg_achievement' => round($avgAchievement ?? 0, 2),
             'is_team_lead' => $isTeamLead,
         ];
@@ -387,6 +398,27 @@ class DashboardController extends Controller
                 ->select('projects.*')
                 ->get()
             : collect();
+
+        // Attach Kinetik claim counts per team so "Tim yang Saya Pimpin" can show
+        // "N sudah input" even for projects whose members use activity_claims instead
+        // of the old performance_reports system.
+        if ($teamProjects->isNotEmpty()) {
+            $projectTeamIds = $teamProjects->pluck('team_id')->unique()->filter();
+            $kipByTeam = DB::table('activity_claims')
+                ->join('performance_plans', 'performance_plans.id', '=', 'activity_claims.performance_plan_id')
+                ->where('activity_claims.status', 'saved')
+                ->where('activity_claims.period_year', $year)
+                ->where('activity_claims.period_month', $month)
+                ->whereIn('performance_plans.team_id', $projectTeamIds)
+                ->groupBy('performance_plans.team_id')
+                ->select('performance_plans.team_id', DB::raw('COUNT(DISTINCT activity_claims.employee_id) as submitted'))
+                ->get()
+                ->keyBy('team_id');
+
+            $teamProjects->each(function ($project) use ($kipByTeam) {
+                $project->kinetik_submitted_count = (int) ($kipByTeam[$project->team_id]?->submitted ?? 0);
+            });
+        }
 
         $teamProgress = $this->computeTeamProgress($year, $month);
 
