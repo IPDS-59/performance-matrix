@@ -150,6 +150,13 @@ class WeeklyActivityController extends Controller
             return back()->with('error', $e->getMessage());
         }
 
-        return back()->with('success', 'Kegiatan berhasil disimpan ke rekap mingguan.');
+        // Use an explicit redirect (not back()) so Inertia always gets a clean
+        // GET to the weekly page with the correct week param and fresh props.
+        $weekStart = Carbon::parse($validated['activity_date_start'])
+            ->startOfWeek(Carbon::MONDAY)
+            ->toDateString();
+
+        return redirect()->route('weekly.index', ['week' => $weekStart])
+            ->with('success', 'Kegiatan berhasil disimpan ke rekap mingguan.');
     }
 }
