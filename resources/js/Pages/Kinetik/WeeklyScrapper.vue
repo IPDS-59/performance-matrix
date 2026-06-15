@@ -8,9 +8,7 @@ import { Input } from '@/Components/ui/input';
 import { Label } from '@/Components/ui/label';
 import { Textarea } from '@/Components/ui/textarea';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/Components/ui/table';
-import { Popover, PopoverContent, PopoverTrigger } from '@/Components/ui/popover';
-import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/Components/ui/command';
-import { Check, ChevronsUpDown, ChevronLeft, ChevronRight, ExternalLink } from 'lucide-vue-next';
+import { ChevronLeft, ChevronRight, ExternalLink } from 'lucide-vue-next';
 import InputError from '@/Components/InputError.vue';
 import { useDateFormat } from '@/composables/useDateFormat';
 
@@ -82,9 +80,6 @@ const claimForms = ref<Record<number, ReturnType<typeof useForm<ClaimFormData>>>
     Object.fromEntries(props.activities.map(a => [a.id, makeClaimForm(a)]))
 );
 
-// Plan picker open state per activity
-const planPickerOpen = ref<Record<number, boolean>>({});
-
 // Per-activity form expansion. A claimed activity's data already lives in
 // "Rekap Tersimpan" below, so its form starts collapsed (showing only the
 // header + an "Ubah" toggle); unclaimed activities show the form to fill.
@@ -100,9 +95,9 @@ function toggleForm(activityId: number) {
 
 function planLabel(activityId: number): string {
     const planId = claimForms.value[activityId]?.performance_plan_id;
-    if (!planId) return '— Pilih RK —';
+    if (!planId) return '—';
     const plan = props.plans.find(p => p.id === planId);
-    if (!plan) return '— Pilih RK —';
+    if (!plan) return '—';
     return plan.project_name ? `${plan.description} (${plan.project_name})` : plan.description;
 }
 
@@ -245,49 +240,12 @@ function achievementColor(val: number | string | null | undefined): string {
                         <!-- Claim form (collapsed once claimed; reopen via "Ubah") -->
                         <div v-if="claimForms[activity.id] && isFormOpen(activity)" class="px-4 py-4">
                             <form @submit.prevent="submitClaim(activity.id)" class="space-y-3">
-                                <!-- RK picker -->
+                                <!-- RK (auto-assigned from KipApp sync) -->
                                 <div>
-                                    <Label>Rencana Kinerja (RK) <span class="text-red-500">*</span></Label>
-                                    <Popover v-model:open="planPickerOpen[activity.id]">
-                                        <PopoverTrigger as-child>
-                                            <Button
-                                                variant="outline"
-                                                role="combobox"
-                                                class="mt-1 w-full justify-between font-normal text-left"
-                                            >
-                                                <span class="truncate">{{ planLabel(activity.id) }}</span>
-                                                <ChevronsUpDown class="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                                            </Button>
-                                        </PopoverTrigger>
-                                        <PopoverContent class="w-[--radix-popover-trigger-width] p-0">
-                                            <Command>
-                                                <CommandInput placeholder="Cari rencana kinerja..." />
-                                                <CommandList>
-                                                    <CommandEmpty>Tidak ada hasil.</CommandEmpty>
-                                                    <CommandGroup>
-                                                        <CommandItem
-                                                            v-for="plan in plans"
-                                                            :key="plan.id"
-                                                            :value="`${plan.description} ${plan.project_name ?? ''} ${plan.team_name}`"
-                                                            @select="() => {
-                                                                claimForms[activity.id].performance_plan_id = plan.id;
-                                                                planPickerOpen[activity.id] = false;
-                                                            }"
-                                                        >
-                                                            <div class="min-w-0 flex-1">
-                                                                <p class="truncate text-sm">{{ plan.description }}</p>
-                                                                <p class="truncate text-xs text-gray-500">{{ plan.project_name ? `${plan.project_name} · ${plan.team_name}` : plan.team_name }}</p>
-                                                            </div>
-                                                            <Check
-                                                                v-if="claimForms[activity.id].performance_plan_id === plan.id"
-                                                                class="ml-2 h-4 w-4 shrink-0"
-                                                            />
-                                                        </CommandItem>
-                                                    </CommandGroup>
-                                                </CommandList>
-                                            </Command>
-                                        </PopoverContent>
-                                    </Popover>
+                                    <Label>Rencana Kinerja (RK)</Label>
+                                    <div class="mt-1 rounded-md border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-gray-800">
+                                        {{ planLabel(activity.id) }}
+                                    </div>
                                     <InputError :message="claimForms[activity.id].errors.performance_plan_id" />
                                 </div>
 
