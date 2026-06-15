@@ -107,6 +107,9 @@ class ApiKipStructureSource implements KipStructureSource
             ->flatMap(fn (array $g): array => $g['kegiatan'] ?? [])
             ->pluck('skpid')->filter()->unique()->values();
 
+        // Fetch SKP-level statuses (Ditetapkan, Sedang dibuat, etc.) keyed by skpid.
+        $skpStatusBySkpId = $this->fetchSkpStatusMap($nipLama);
+
         $plans = collect();
 
         foreach ($skpIds as $skpId) {
@@ -114,6 +117,8 @@ class ApiKipStructureSource implements KipStructureSource
             if (! $rkResponse->successful() || ! is_array($rkResponse->json())) {
                 continue;
             }
+
+            $skpStatus = $skpStatusBySkpId->get((string) $skpId);
 
             foreach ($rkResponse->json() as $rk) {
                 $rkId = $rk['rkid'] ?? null;
@@ -127,11 +132,35 @@ class ApiKipStructureSource implements KipStructureSource
                     $ikiText = $ikiResponse->json()[0]['iki'] ?? null;
                 }
 
-                $plans->push(KipRkData::fromApiRow($rk, $ikiText));
+                $plans->push(KipRkData::fromApiRow($rk, $ikiText, $skpStatus));
             }
         }
 
         return $plans->values();
+    }
+
+    /**
+     * Returns a map of skpid → statusskp label for the given employee.
+     * Best-effort: returns an empty collection on API failure so callers
+     * can proceed with null statuses rather than aborting the sync.
+     *
+     * @return \Illuminate\Support\Collection<string, string>
+     */
+    private function fetchSkpStatusMap(string $nipLama): \Illuminate\Support\Collection
+    {
+        $response = $this->client()->get('v1/skp', [
+            'niplama' => $nipLama,
+            'periodeid' => config('kinetik.kip.periode_id'),
+        ]);
+
+        if (! $response->successful() || ! is_array($response->json())) {
+            return collect();
+        }
+
+        return collect($response->json())
+            ->filter(fn (array $row): bool => isset($row['id'], $row['statusskp']))
+            ->pluck('statusskp', 'id')
+            ->mapWithKeys(fn (string $status, mixed $id): array => [(string) $id => $status]);
     }
 
     private function client(): PendingRequest
