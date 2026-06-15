@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import AppLayout from '@/Layouts/AppLayout.vue';
 import { Head, router } from '@inertiajs/vue3';
-import { computed, ref } from 'vue';
+import { ref } from 'vue';
 import type { RecapSegment, RecapRow, TeamOption, TeamRecapEvidence } from '@/types';
 import { Button } from '@/Components/ui/button';
 import { Input } from '@/Components/ui/input';
@@ -9,7 +9,7 @@ import { Label } from '@/Components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/Components/ui/select';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/Components/ui/table';
 import { Textarea } from '@/Components/ui/textarea';
-import { ChevronLeft, ChevronRight, ChevronDown, ChevronUp, ExternalLink, Trash2, Check, ChevronsUpDown } from 'lucide-vue-next';
+import { ChevronLeft, ChevronRight, ChevronDown, ChevronUp, ExternalLink, Trash2, ChevronsUpDown } from 'lucide-vue-next';
 import InputError from '@/Components/InputError.vue';
 import { useDateFormat } from '@/composables/useDateFormat';
 
@@ -65,7 +65,7 @@ const attentionOnly = ref(false);
 
 function needsAttention(row: RecapRow): boolean {
     const hasObstacle = !!row.obstacle_aggregated && row.obstacle_aggregated !== '—' && row.obstacle_aggregated !== 'N/A';
-    return (row.achievement ?? 0) < 100 || hasObstacle || !row.is_confirmed;
+    return (row.achievement ?? 0) < 100 || hasObstacle;
 }
 
 function attentionCount(seg: RecapSegment): number {
@@ -83,54 +83,12 @@ function filteredRows(seg: RecapSegment): RecapRow[] {
     );
 }
 
-// ── Bulk confirm ───────────────────────────────────────────────────────────
-
-const periodYear = computed(() => new Date(props.weekStart + 'T00:00:00').getFullYear());
-
-const bulkConfirmIds = computed(() =>
-    props.segments
-        .flatMap((seg) => seg.rows)
-        .filter((row) => (row.achievement ?? 0) >= 100 && !row.is_confirmed)
-        .map((row) => row.performance_plan_id),
-);
-
-const bulkConfirming = ref(false);
-
-function confirmBulk() {
-    if (!bulkConfirmIds.value.length) return;
-    bulkConfirming.value = true;
-    router.post(route('team-recap.override.confirm-bulk'), {
-        team_id: props.selectedTeamId,
-        period_type: 'week',
-        period_year: periodYear.value,
-        week_start: props.weekStart,
-        performance_plan_ids: bulkConfirmIds.value,
-    }, {
-        preserveScroll: true,
-        preserveState: true,
-        onFinish: () => { bulkConfirming.value = false; },
-    });
-}
-
 // ── Expand state ───────────────────────────────────────────────────────────
 
 const expandedRows = ref<Record<number, boolean>>({});
 
 function toggleExpand(planId: number) {
     expandedRows.value[planId] = !expandedRows.value[planId];
-}
-
-// ── Confirmation ───────────────────────────────────────────────────────────
-
-function toggleConfirm(row: RecapRow) {
-    router.post(route('team-recap.override.confirm'), {
-        team_id: props.selectedTeamId,
-        performance_plan_id: row.performance_plan_id,
-        period_type: 'week',
-        period_year: periodYear.value,
-        week_start: props.weekStart,
-        confirmed: !row.is_confirmed,
-    }, { preserveScroll: true, preserveState: true });
 }
 
 // ── Per-row paraphrase permission ──────────────────────────────────────────
@@ -271,16 +229,6 @@ function deleteEvidence(id: number) {
                         </span>
                     </button>
 
-                    <Button
-                        v-if="canManage"
-                        size="sm"
-                        variant="outline"
-                        :disabled="!bulkConfirmIds.length || bulkConfirming"
-                        @click="confirmBulk"
-                    >
-                        Konfirmasi semua (capaian 100%)
-                        <span v-if="bulkConfirmIds.length" class="ml-1 rounded-full bg-green-100 px-1.5 py-0.5 text-xs text-green-700">{{ bulkConfirmIds.length }}</span>
-                    </Button>
                 </div>
             </div>
 
@@ -311,7 +259,6 @@ function deleteEvidence(id: number) {
                                         <ChevronsUpDown class="h-3 w-3" :class="{ 'rotate-180': sortDir(String(seg.project_id ?? 'none')) === 'desc' }" />
                                     </span>
                                 </TableHead>
-                                <TableHead class="text-center">Konfirmasi</TableHead>
                                 <TableHead class="w-8" />
                             </TableRow>
                         </TableHeader>
@@ -331,24 +278,6 @@ function deleteEvidence(id: number) {
                                         <span v-else class="text-gray-400">—</span>
                                     </TableCell>
                                     <TableCell class="text-center align-top">
-                                        <template v-if="canManage">
-                                            <button
-                                                type="button"
-                                                :class="['inline-flex h-5 w-5 items-center justify-center rounded border-2 transition-colors', row.is_confirmed ? 'border-green-500 bg-green-500 text-white' : 'border-gray-300 hover:border-green-400']"
-                                                :title="row.is_confirmed ? `Dikonfirmasi oleh ${row.confirmed_by ?? 'PJ'}` : 'Klik untuk konfirmasi'"
-                                                @click="toggleConfirm(row)"
-                                            >
-                                                <Check v-if="row.is_confirmed" class="h-3 w-3" />
-                                            </button>
-                                            <p v-if="row.is_confirmed && row.confirmed_by" class="mt-0.5 text-xs text-green-600">{{ row.confirmed_by }}</p>
-                                        </template>
-                                        <template v-else>
-                                            <span :class="['inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium', row.is_confirmed ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500']">
-                                                {{ row.is_confirmed ? 'Terkonfirmasi' : 'Belum' }}
-                                            </span>
-                                        </template>
-                                    </TableCell>
-                                    <TableCell class="text-center align-top">
                                         <button
                                             type="button"
                                             class="flex h-6 w-6 items-center justify-center rounded hover:bg-gray-100"
@@ -363,7 +292,7 @@ function deleteEvidence(id: number) {
 
                                 <!-- Expand panel -->
                                 <TableRow v-if="expandedRows[row.performance_plan_id]" :key="`${row.performance_plan_id}-panel`" class="bg-gray-50">
-                                    <TableCell colspan="8" class="px-6 py-4">
+                                    <TableCell colspan="7" class="px-6 py-4">
                                         <div class="space-y-4">
                                             <!-- Member kendala (read-only) -->
                                             <div>
