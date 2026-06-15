@@ -63,11 +63,14 @@ onMounted(() => {
 
 const teamList = computed(() => {
     if (!props.teams || !props.team_progress) return [];
-    return props.teams.map(t => ({
-        ...t,
-        avg: props.team_progress![t.id]?.avg_achievement ?? 0,
-        count: props.team_progress![t.id]?.report_count ?? 0,
-    })).sort((a, b) => b.avg - a.avg);
+    return props.teams
+        .map(t => ({
+            ...t,
+            avg: props.team_progress![t.id]?.avg_achievement ?? 0,
+            count: props.team_progress![t.id]?.report_count ?? 0,
+        }))
+        .filter(t => t.count > 0)
+        .sort((a, b) => b.avg - a.avg);
 });
 
 const teamLeaderMap = computed(() => {
