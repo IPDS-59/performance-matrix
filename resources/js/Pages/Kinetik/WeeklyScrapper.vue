@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import AppLayout from '@/Layouts/AppLayout.vue';
 import { Head, router, useForm } from '@inertiajs/vue3';
-import { computed, ref } from 'vue';
+import { ref, watch } from 'vue';
 import type { KipActivity, ActivityClaim, PlanOption } from '@/types';
 import { Button } from '@/Components/ui/button';
 import { Input } from '@/Components/ui/input';
@@ -79,6 +79,19 @@ function makeClaimForm(activity: KipActivity) {
 const claimForms = ref<Record<number, ReturnType<typeof useForm<ClaimFormData>>>>(
     Object.fromEntries(props.activities.map(a => [a.id, makeClaimForm(a)]))
 );
+
+// When Inertia refreshes props after a claim, re-sync form state so the
+// "Tersimpan" badge and collapsed form reflect the server's fresh data.
+watch(() => props.activities, (newActivities) => {
+    newActivities.forEach(activity => {
+        const form = claimForms.value[activity.id];
+        if (!form) {
+            claimForms.value[activity.id] = makeClaimForm(activity);
+        } else if (activity.is_claimed && !form.isDirty) {
+            claimForms.value[activity.id] = makeClaimForm(activity);
+        }
+    });
+});
 
 // Per-activity form expansion. A claimed activity's data already lives in
 // "Rekap Tersimpan" below, so its form starts collapsed (showing only the
