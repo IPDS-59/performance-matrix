@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { computed } from 'vue';
 import type { Employee, PersonalStats, ProjectWithItems, TeamProjectWithMembers, TeamRankItem, EmployeeRankItem } from '@/types';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/Components/ui/tabs';
 import { Badge } from '@/Components/ui/badge';
@@ -14,6 +15,7 @@ const props = defineProps<{
     employee: Employee | undefined;
     personalStats: PersonalStats | undefined;
     projects: ProjectWithItems[];
+    kinetikPlanCards: ProjectWithItems[];
     teamProjects: TeamProjectWithMembers[];
     teamList: TeamRankItem[];
     teamLeaderMap: Map<number, number>;
@@ -22,6 +24,14 @@ const props = defineProps<{
     topEmployeesByAchievement: EmployeeRankItem[];
     periodLabel: string;
 }>();
+
+// Merge old-system project cards with per-plan Kinetik cards.
+// Old cards show performance_reports data; Kinetik cards show the specific
+// claimed plan's achievement — not a team-wide average.
+const allProjects = computed<ProjectWithItems[]>(() => [
+    ...props.projects,
+    ...props.kinetikPlanCards,
+]);
 </script>
 
 <template>
@@ -59,7 +69,7 @@ const props = defineProps<{
                     />
 
                     <div class="mt-10">
-                        <DashboardPersonalProjects :projects="projects" />
+                        <DashboardPersonalProjects :projects="allProjects" />
                     </div>
                 </TabsContent>
                 <TabsContent value="team">
@@ -86,7 +96,7 @@ const props = defineProps<{
             />
 
             <div class="mt-10">
-                <DashboardPersonalProjects :projects="projects" />
+                <DashboardPersonalProjects :projects="allProjects" />
             </div>
         </template>
     </template>
