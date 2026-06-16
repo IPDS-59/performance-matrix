@@ -325,6 +325,12 @@ if [ "$ZIP" = true ]; then
         # OS junk
         ".DS_Store"
         "Thumbs.db"
+        # Screenshots / image artefacts at repo root
+        "*.png"
+        "*.jpg"
+        "*.jpeg"
+        "*.gif"
+        "*.zip"
         # Dev dependencies
         "node_modules/*"
         # Test / dev-only files
@@ -343,6 +349,13 @@ if [ "$ZIP" = true ]; then
         "*.db"
         ".beads-credential-key"
         "storage/pail/*"
+        # Seeder production data files (gitignored but may exist on disk)
+        "database/seeders/data/*.prod.json"
+        # Local-only config / session files
+        ".mcp.json"
+        ".playwright-mcp/*"
+        ".kipapp/*"
+        "*.postman_collection.json"
         # Env files — .env.example intentionally kept as template
         ".env"
         ".env.prod"
@@ -373,7 +386,6 @@ if [ "$ZIP" = true ]; then
         "storage/framework/views/*"
         "storage/app/public/*"
         "public/hot"
-        "matriks-kinerja_*.zip"
     )
 
     EXCLUDE_ARGS=()
