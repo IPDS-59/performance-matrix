@@ -17,6 +17,12 @@ export interface TeamWeeklyRecapProps {
     weeklyNote: WeeklyTeamNote | null;
 }
 
+type ParaForm = {
+    solution: string;
+    follow_up_plan: string;
+    saving: boolean;
+};
+
 export function useTeamWeeklyRecap(props: TeamWeeklyRecapProps) {
     const { formatWeekRange } = useDateFormat();
 
@@ -83,7 +89,46 @@ export function useTeamWeeklyRecap(props: TeamWeeklyRecapProps) {
         expandedRows.value[planId] = !expandedRows.value[planId];
     }
 
-    // ── Single weekly PJ note ──────────────────────────────────────────────
+    // ── Per-row paraphrase permission ──────────────────────────────────────
+
+    function rowCanParaphrase(row: RecapRow): boolean {
+        return props.canManage || (props.currentEmployeeId !== null && row.pic_employee_id === props.currentEmployeeId);
+    }
+
+    // ── Paraphrase forms (per planId) — Kendala / Solusi / RTL ────────────
+
+    const paraForms = ref<Record<number, ParaForm>>({});
+
+    function getParaForm(row: RecapRow): ParaForm {
+        if (!paraForms.value[row.performance_plan_id]) {
+            paraForms.value[row.performance_plan_id] = {
+                solution: row.pj_solution ?? '',
+                follow_up_plan: row.pj_follow_up_plan ?? '',
+                saving: false,
+            };
+        }
+        return paraForms.value[row.performance_plan_id];
+    }
+
+    function saveParaphrase(row: RecapRow) {
+        const f = getParaForm(row);
+        f.saving = true;
+        router.post(route('team-recap.override.store'), {
+            team_id: props.selectedTeamId,
+            performance_plan_id: row.performance_plan_id,
+            period_type: 'week',
+            period_year: new Date(props.weekStart + 'T00:00:00').getFullYear(),
+            week_start: props.weekStart,
+            solution: f.solution,
+            follow_up_plan: f.follow_up_plan,
+        }, {
+            preserveScroll: true,
+            preserveState: true,
+            onFinish: () => { f.saving = false; },
+        });
+    }
+
+    // ── Single weekly PJ note (uraian + kendala + solusi + RTL) ───────────
 
     const weeklyNoteForm = ref({
         uraian: props.weeklyNote?.uraian ?? '',
@@ -190,6 +235,9 @@ export function useTeamWeeklyRecap(props: TeamWeeklyRecapProps) {
         filteredRows,
         expandedRows,
         toggleExpand,
+        rowCanParaphrase,
+        getParaForm,
+        saveParaphrase,
         weeklyNoteForm,
         prefillUraianFromMembers,
         saveWeeklyNote,

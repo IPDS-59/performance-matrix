@@ -147,7 +147,7 @@ class WeeklyActivityController extends Controller
         try {
             $action->execute($employee, $validated);
         } catch (AuthorizationException $e) {
-            return back()->with('error', $e->getMessage());
+            return back()->with('error', 'Tidak diizinkan: '.$e->getMessage());
         }
 
         // Use an explicit redirect (not back()) so Inertia always gets a clean
