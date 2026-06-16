@@ -7,6 +7,7 @@ use App\Models\PerformancePlan;
 use App\Models\RecapOverride;
 use App\Models\Team;
 use App\Models\TeamRecapEvidence;
+use App\Models\WeeklyTeamNote;
 use App\Services\Kinetik\RecapAggregator;
 use Carbon\Carbon;
 use Illuminate\Http\RedirectResponse;
@@ -45,6 +46,12 @@ class TeamRecapController extends Controller
                 ->get()
             : collect();
 
+        $weeklyNote = $team
+            ? WeeklyTeamNote::where('team_id', $team->id)
+                ->whereDate('week_start', $weekStart)
+                ->first()
+            : null;
+
         return Inertia::render('Kinetik/TeamWeeklyRecap', [
             'teams' => $this->teamOptions($teams),
             'selectedTeamId' => $team?->id,
@@ -56,6 +63,7 @@ class TeamRecapController extends Controller
             'nextWeek' => Carbon::parse($weekStart)->addWeek()->toDateString(),
             'canManage' => $team !== null && $this->isPj($employee, $team->id),
             'currentEmployeeId' => $employee?->id,
+            'weeklyNote' => $weeklyNote,
         ]);
     }
 
@@ -173,6 +181,41 @@ class TeamRecapController extends Controller
         return back()->with('success', 'Bukti dukung berhasil dihapus.');
     }
 
+    // ── Single weekly PJ note ────────────────────────────────────────────────
+
+    public function storeWeeklyNote(Request $request): RedirectResponse
+    {
+        $employee = $request->user()->employee;
+        abort_if($employee === null, 403, 'Akun tidak terhubung ke data pegawai.');
+
+        $validated = $request->validate([
+            'team_id' => ['required', 'integer', 'exists:teams,id'],
+            'week_start' => ['required', 'date'],
+            'uraian' => ['nullable', 'string'],
+            'obstacle' => ['nullable', 'string'],
+            'solution' => ['nullable', 'string'],
+            'follow_up_plan' => ['nullable', 'string'],
+        ]);
+
+        $this->authorizePj($employee, (int) $validated['team_id']);
+
+        WeeklyTeamNote::updateOrCreate(
+            [
+                'team_id' => $validated['team_id'],
+                'week_start' => $validated['week_start'],
+            ],
+            [
+                'uraian' => $validated['uraian'] ?? null,
+                'obstacle' => $validated['obstacle'] ?? null,
+                'solution' => $validated['solution'] ?? null,
+                'follow_up_plan' => $validated['follow_up_plan'] ?? null,
+                'created_by' => $employee->id,
+            ],
+        );
+
+        return back()->with('success', 'Catatan mingguan berhasil disimpan.');
+    }
+
     // ── Paraphrase / FRA follow-up override ──────────────────────────────────
 
     public function storeOverride(Request $request): RedirectResponse
@@ -188,6 +231,7 @@ class TeamRecapController extends Controller
             'period_month' => ['nullable', 'integer', 'between:1,12'],
             'period_quarter' => ['nullable', 'integer', 'between:1,4'],
             'week_start' => ['nullable', 'date', 'required_if:period_type,week'],
+            'uraian' => ['nullable', 'string'],
             'obstacle' => ['nullable', 'string'],
             'solution' => ['nullable', 'string'],
             'follow_up_plan' => ['nullable', 'string'],
@@ -214,6 +258,7 @@ class TeamRecapController extends Controller
                 'week_start' => $validated['week_start'] ?? null,
             ],
             [
+                'uraian' => $validated['uraian'] ?? null,
                 'obstacle' => $validated['obstacle'] ?? null,
                 'solution' => $validated['solution'] ?? null,
                 'follow_up_plan' => $validated['follow_up_plan'] ?? null,

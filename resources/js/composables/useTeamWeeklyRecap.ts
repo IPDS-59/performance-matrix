@@ -1,6 +1,6 @@
 import { ref } from 'vue';
 import { router } from '@inertiajs/vue3';
-import type { RecapSegment, RecapRow, TeamOption, TeamRecapEvidence } from '@/types';
+import type { RecapSegment, RecapRow, TeamOption, TeamRecapEvidence, WeeklyTeamNote } from '@/types';
 import { useDateFormat } from '@/composables/useDateFormat';
 
 export interface TeamWeeklyRecapProps {
@@ -14,15 +14,8 @@ export interface TeamWeeklyRecapProps {
     nextWeek: string;
     canManage: boolean;
     currentEmployeeId: number | null;
+    weeklyNote: WeeklyTeamNote | null;
 }
-
-type ParaForm = {
-    obstacle: string;
-    solution: string;
-    follow_up_plan: string;
-    saving: boolean;
-    seededFromAgg: boolean;
-};
 
 export function useTeamWeeklyRecap(props: TeamWeeklyRecapProps) {
     const { formatWeekRange } = useDateFormat();
@@ -90,47 +83,56 @@ export function useTeamWeeklyRecap(props: TeamWeeklyRecapProps) {
         expandedRows.value[planId] = !expandedRows.value[planId];
     }
 
-    // ── Per-row paraphrase permission ──────────────────────────────────────
+    // ── Single weekly PJ note ──────────────────────────────────────────────
 
-    function rowCanParaphrase(row: RecapRow): boolean {
-        return props.canManage || (props.currentEmployeeId !== null && row.pic_employee_id === props.currentEmployeeId);
-    }
+    const weeklyNoteForm = ref({
+        uraian: props.weeklyNote?.uraian ?? '',
+        obstacle: props.weeklyNote?.obstacle ?? '',
+        solution: props.weeklyNote?.solution ?? '',
+        follow_up_plan: props.weeklyNote?.follow_up_plan ?? '',
+        saving: false,
+    });
 
-    // ── Paraphrase forms (per planId) ──────────────────────────────────────
+    function prefillUraianFromMembers() {
+        // Collect all uraian_items across every row in every segment
+        const allItems = props.segments.flatMap(seg =>
+            seg.rows.flatMap(row => row.uraian_items ?? [])
+        );
+        if (!allItems.length) return;
 
-    const paraForms = ref<Record<number, ParaForm>>({});
-
-    function getParaForm(row: RecapRow): ParaForm {
-        if (!paraForms.value[row.performance_plan_id]) {
-            const hasPjObstacle = row.pj_obstacle !== null && row.pj_obstacle !== '';
-            const seededFromAgg = !hasPjObstacle && !!row.obstacle_aggregated;
-            paraForms.value[row.performance_plan_id] = {
-                obstacle: row.pj_obstacle ?? row.obstacle_aggregated ?? '',
-                solution: row.pj_solution ?? '',
-                follow_up_plan: row.pj_follow_up_plan ?? '',
-                saving: false,
-                seededFromAgg,
-            };
+        // Group by contributor name
+        const byPerson = new Map<string, string[]>();
+        for (const item of allItems) {
+            if (!byPerson.has(item.name)) byPerson.set(item.name, []);
+            byPerson.get(item.name)!.push(item.uraian);
         }
-        return paraForms.value[row.performance_plan_id];
+
+        // Format as numbered list: "1. Nama\n   - uraian"
+        const lines: string[] = [];
+        let i = 1;
+        for (const [name, uraians] of byPerson) {
+            lines.push(`${i}. ${name}`);
+            for (const u of uraians) {
+                lines.push(`   - ${u}`);
+            }
+            i++;
+        }
+        weeklyNoteForm.value.uraian = lines.join('\n');
     }
 
-    function saveParaphrase(row: RecapRow) {
-        const f = getParaForm(row);
-        f.saving = true;
-        router.post(route('team-recap.override.store'), {
+    function saveWeeklyNote() {
+        weeklyNoteForm.value.saving = true;
+        router.post(route('team-recap.weekly-note.store'), {
             team_id: props.selectedTeamId,
-            performance_plan_id: row.performance_plan_id,
-            period_type: 'week',
-            period_year: new Date(props.weekStart + 'T00:00:00').getFullYear(),
             week_start: props.weekStart,
-            obstacle: f.obstacle,
-            solution: f.solution,
-            follow_up_plan: f.follow_up_plan,
+            uraian: weeklyNoteForm.value.uraian,
+            obstacle: weeklyNoteForm.value.obstacle,
+            solution: weeklyNoteForm.value.solution,
+            follow_up_plan: weeklyNoteForm.value.follow_up_plan,
         }, {
             preserveScroll: true,
             preserveState: true,
-            onFinish: () => { f.saving = false; },
+            onFinish: () => { weeklyNoteForm.value.saving = false; },
         });
     }
 
@@ -188,9 +190,9 @@ export function useTeamWeeklyRecap(props: TeamWeeklyRecapProps) {
         filteredRows,
         expandedRows,
         toggleExpand,
-        rowCanParaphrase,
-        getParaForm,
-        saveParaphrase,
+        weeklyNoteForm,
+        prefillUraianFromMembers,
+        saveWeeklyNote,
         evidenceTypeLabel,
         showEvidenceForm,
         evidenceForm,

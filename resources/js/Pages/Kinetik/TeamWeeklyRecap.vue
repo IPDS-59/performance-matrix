@@ -24,9 +24,9 @@ const {
     filteredRows,
     expandedRows,
     toggleExpand,
-    rowCanParaphrase,
-    getParaForm,
-    saveParaphrase,
+    weeklyNoteForm,
+    prefillUraianFromMembers,
+    saveWeeklyNote,
     evidenceTypeLabel,
     showEvidenceForm,
     evidenceForm,
@@ -80,7 +80,6 @@ const {
                             {{ segments.reduce((sum, seg) => sum + attentionCount(seg), 0) }}
                         </span>
                     </button>
-
                 </div>
             </div>
 
@@ -120,7 +119,6 @@ const {
                                     <TableCell class="align-top">
                                         <p class="font-medium text-gray-800">{{ row.rk_description }}</p>
                                         <p v-if="row.rk_code" class="text-xs text-gray-500">{{ row.rk_code }}</p>
-                                        <p v-if="row.is_overridden" class="mt-0.5 text-xs italic text-blue-500">Telah diparafrase</p>
                                     </TableCell>
                                     <TableCell class="align-top text-xs text-gray-600">{{ row.contributors.join(', ') || '—' }}</TableCell>
                                     <TableCell class="text-right align-top text-gray-700">{{ row.target }} {{ row.target_unit ?? '' }}</TableCell>
@@ -133,7 +131,7 @@ const {
                                         <button
                                             type="button"
                                             class="flex h-6 w-6 items-center justify-center rounded hover:bg-gray-100"
-                                            :title="expandedRows[row.performance_plan_id] ? 'Tutup panel' : 'Buka panel parafrase'"
+                                            :title="expandedRows[row.performance_plan_id] ? 'Tutup detail' : 'Lihat detail anggota'"
                                             @click="toggleExpand(row.performance_plan_id)"
                                         >
                                             <ChevronDown v-if="!expandedRows[row.performance_plan_id]" class="h-4 w-4 text-gray-500" />
@@ -142,57 +140,19 @@ const {
                                     </TableCell>
                                 </TableRow>
 
-                                <!-- Expand panel -->
+                                <!-- Expand panel: member data only (read-only) -->
                                 <TableRow v-if="expandedRows[row.performance_plan_id]" :key="`${row.performance_plan_id}-panel`" class="bg-gray-50">
                                     <TableCell colspan="7" class="px-6 py-4">
-                                        <div class="space-y-4">
-                                            <!-- Member kendala (read-only) -->
+                                        <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                                            <div>
+                                                <p class="mb-1 text-xs font-medium text-gray-500">Uraian Kegiatan Anggota</p>
+                                                <p v-if="row.uraian_aggregated" class="whitespace-pre-line rounded bg-white px-3 py-2 text-sm text-gray-700 ring-1 ring-gray-200">{{ row.uraian_aggregated }}</p>
+                                                <p v-else class="rounded bg-white px-3 py-2 text-sm text-gray-400 ring-1 ring-gray-200">—</p>
+                                            </div>
                                             <div>
                                                 <p class="mb-1 text-xs font-medium text-gray-500">Kendala (anggota)</p>
                                                 <p class="rounded bg-white px-3 py-2 text-sm text-gray-700 ring-1 ring-gray-200">{{ row.obstacle_aggregated || '—' }}</p>
                                             </div>
-
-                                            <!-- Paraphrase inputs (PJ or this row's PIC) -->
-                                            <template v-if="rowCanParaphrase(row)">
-                                                <div class="grid grid-cols-1 gap-3 sm:grid-cols-3">
-                                                    <div>
-                                                        <Label class="text-xs">Kendala (PJ)</Label>
-                                                        <Textarea v-model="getParaForm(row).obstacle" :rows="2" class="mt-1 text-sm" />
-                                                        <p v-if="getParaForm(row).seededFromAgg" class="mt-0.5 text-xs italic text-gray-400">Prafilled dari kendala anggota</p>
-                                                    </div>
-                                                    <div>
-                                                        <Label class="text-xs">Solusi (PJ)</Label>
-                                                        <Textarea v-model="getParaForm(row).solution" :rows="2" class="mt-1 text-sm" />
-                                                    </div>
-                                                    <div>
-                                                        <Label class="text-xs">RTL (PJ)</Label>
-                                                        <Textarea v-model="getParaForm(row).follow_up_plan" :rows="2" class="mt-1 text-sm" />
-                                                    </div>
-                                                </div>
-                                                <div class="flex justify-end">
-                                                    <Button size="sm" :disabled="getParaForm(row).saving" @click="saveParaphrase(row)">
-                                                        Simpan parafrase
-                                                    </Button>
-                                                </div>
-                                            </template>
-
-                                            <!-- Read-only paraphrase (no paraphrase permission) -->
-                                            <template v-else>
-                                                <div class="grid grid-cols-1 gap-3 sm:grid-cols-3">
-                                                    <div>
-                                                        <p class="mb-1 text-xs font-medium text-gray-500">Kendala (PJ)</p>
-                                                        <p class="text-sm text-gray-700">{{ row.pj_obstacle || '—' }}</p>
-                                                    </div>
-                                                    <div>
-                                                        <p class="mb-1 text-xs font-medium text-gray-500">Solusi (PJ)</p>
-                                                        <p class="text-sm text-gray-700">{{ row.pj_solution || '—' }}</p>
-                                                    </div>
-                                                    <div>
-                                                        <p class="mb-1 text-xs font-medium text-gray-500">RTL (PJ)</p>
-                                                        <p class="text-sm text-gray-700">{{ row.pj_follow_up_plan || '—' }}</p>
-                                                    </div>
-                                                </div>
-                                            </template>
                                         </div>
                                     </TableCell>
                                 </TableRow>
@@ -202,7 +162,83 @@ const {
                 </div>
             </div>
 
-            <!-- Evidence (notula / foto / DH) — unchanged -->
+            <!-- Single PJ weekly summary form -->
+            <div class="mb-8 rounded-md border bg-white">
+                <div class="flex items-center justify-between border-b bg-gray-50 px-4 py-3">
+                    <h2 class="text-sm font-semibold text-gray-800">Ringkasan Mingguan PJ</h2>
+                    <span v-if="!canManage" class="text-xs text-gray-400">Hanya PJ yang dapat mengisi ringkasan</span>
+                </div>
+
+                <div v-if="canManage" class="space-y-4 p-4">
+                    <div>
+                        <div class="mb-1 flex items-center justify-between">
+                            <Label class="text-xs font-medium">Uraian Kegiatan</Label>
+                            <button
+                                v-if="segments.some(s => s.rows.some(r => r.uraian_items?.length))"
+                                type="button"
+                                class="text-xs text-primary hover:underline"
+                                @click="prefillUraianFromMembers"
+                            >
+                                Pre-fill dari uraian anggota
+                            </button>
+                        </div>
+                        <Textarea
+                            v-model="weeklyNoteForm.uraian"
+                            :rows="5"
+                            class="text-sm"
+                            placeholder="Tuliskan ringkasan seluruh kegiatan tim minggu ini…"
+                        />
+                    </div>
+
+                    <div class="grid grid-cols-1 gap-4 sm:grid-cols-3">
+                        <div>
+                            <Label class="mb-1 text-xs font-medium">Kendala</Label>
+                            <Textarea v-model="weeklyNoteForm.obstacle" :rows="3" class="text-sm" placeholder="Kendala yang dihadapi…" />
+                        </div>
+                        <div>
+                            <Label class="mb-1 text-xs font-medium">Solusi</Label>
+                            <Textarea v-model="weeklyNoteForm.solution" :rows="3" class="text-sm" placeholder="Solusi yang diterapkan…" />
+                        </div>
+                        <div>
+                            <Label class="mb-1 text-xs font-medium">RTL</Label>
+                            <Textarea v-model="weeklyNoteForm.follow_up_plan" :rows="3" class="text-sm" placeholder="Rencana tindak lanjut…" />
+                        </div>
+                    </div>
+
+                    <div class="flex justify-end">
+                        <Button size="sm" :disabled="weeklyNoteForm.saving" @click="saveWeeklyNote">
+                            Simpan Ringkasan
+                        </Button>
+                    </div>
+                </div>
+
+                <!-- Read-only view for non-PJ -->
+                <div v-else class="space-y-4 p-4">
+                    <div v-if="weeklyNote">
+                        <div>
+                            <p class="mb-1 text-xs font-medium text-gray-500">Uraian Kegiatan</p>
+                            <p class="whitespace-pre-line text-sm text-gray-800">{{ weeklyNote.uraian || '—' }}</p>
+                        </div>
+                        <div class="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-3">
+                            <div>
+                                <p class="mb-1 text-xs font-medium text-gray-500">Kendala</p>
+                                <p class="text-sm text-gray-700">{{ weeklyNote.obstacle || '—' }}</p>
+                            </div>
+                            <div>
+                                <p class="mb-1 text-xs font-medium text-gray-500">Solusi</p>
+                                <p class="text-sm text-gray-700">{{ weeklyNote.solution || '—' }}</p>
+                            </div>
+                            <div>
+                                <p class="mb-1 text-xs font-medium text-gray-500">RTL</p>
+                                <p class="text-sm text-gray-700">{{ weeklyNote.follow_up_plan || '—' }}</p>
+                            </div>
+                        </div>
+                    </div>
+                    <p v-else class="text-sm text-gray-400">Belum ada ringkasan mingguan dari PJ.</p>
+                </div>
+            </div>
+
+            <!-- Bukti Dukung Rapat -->
             <div>
                 <div class="mb-3 flex items-center justify-between">
                     <h2 class="text-sm font-semibold text-gray-700">Bukti Dukung Rapat</h2>
