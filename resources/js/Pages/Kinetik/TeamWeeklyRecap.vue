@@ -24,6 +24,9 @@ const {
     filteredRows,
     expandedRows,
     toggleExpand,
+    rowCanParaphrase,
+    getParaForm,
+    saveParaphrase,
     weeklyNoteForm,
     prefillUraianFromMembers,
     saveWeeklyNote,
@@ -140,19 +143,55 @@ const {
                                     </TableCell>
                                 </TableRow>
 
-                                <!-- Expand panel: member data only (read-only) -->
+                                <!-- Expand panel -->
                                 <TableRow v-if="expandedRows[row.performance_plan_id]" :key="`${row.performance_plan_id}-panel`" class="bg-gray-50">
                                     <TableCell colspan="7" class="px-6 py-4">
-                                        <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                                        <div class="space-y-4">
+                                            <!-- Member uraian (read-only reference) -->
                                             <div>
                                                 <p class="mb-1 text-xs font-medium text-gray-500">Uraian Kegiatan Anggota</p>
                                                 <p v-if="row.uraian_aggregated" class="whitespace-pre-line rounded bg-white px-3 py-2 text-sm text-gray-700 ring-1 ring-gray-200">{{ row.uraian_aggregated }}</p>
                                                 <p v-else class="rounded bg-white px-3 py-2 text-sm text-gray-400 ring-1 ring-gray-200">—</p>
                                             </div>
+
+                                            <!-- Member kendala (read-only) -->
                                             <div>
                                                 <p class="mb-1 text-xs font-medium text-gray-500">Kendala (anggota)</p>
                                                 <p class="rounded bg-white px-3 py-2 text-sm text-gray-700 ring-1 ring-gray-200">{{ row.obstacle_aggregated || '—' }}</p>
                                             </div>
+
+                                            <!-- PJ per-plan fields: Solusi / RTL only -->
+                                            <template v-if="rowCanParaphrase(row)">
+                                                <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                                                    <div>
+                                                        <Label class="text-xs">Solusi (PJ)</Label>
+                                                        <Textarea v-model="getParaForm(row).solution" :rows="2" class="mt-1 text-sm" />
+                                                    </div>
+                                                    <div>
+                                                        <Label class="text-xs">RTL (PJ)</Label>
+                                                        <Textarea v-model="getParaForm(row).follow_up_plan" :rows="2" class="mt-1 text-sm" />
+                                                    </div>
+                                                </div>
+                                                <div class="flex justify-end">
+                                                    <Button size="sm" :disabled="getParaForm(row).saving" @click="saveParaphrase(row)">
+                                                        Simpan
+                                                    </Button>
+                                                </div>
+                                            </template>
+
+                                            <!-- Read-only for non-PJ -->
+                                            <template v-else-if="row.pj_solution || row.pj_follow_up_plan">
+                                                <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                                                    <div>
+                                                        <p class="mb-1 text-xs font-medium text-gray-500">Solusi (PJ)</p>
+                                                        <p class="text-sm text-gray-700">{{ row.pj_solution || '—' }}</p>
+                                                    </div>
+                                                    <div>
+                                                        <p class="mb-1 text-xs font-medium text-gray-500">RTL (PJ)</p>
+                                                        <p class="text-sm text-gray-700">{{ row.pj_follow_up_plan || '—' }}</p>
+                                                    </div>
+                                                </div>
+                                            </template>
                                         </div>
                                     </TableCell>
                                 </TableRow>
@@ -170,6 +209,7 @@ const {
                 </div>
 
                 <div v-if="canManage" class="space-y-4 p-4">
+                    <!-- Uraian -->
                     <div>
                         <div class="mb-1 flex items-center justify-between">
                             <Label class="text-xs font-medium">Uraian Kegiatan</Label>
@@ -190,10 +230,11 @@ const {
                         />
                     </div>
 
+                    <!-- Kendala / Solusi / RTL -->
                     <div class="grid grid-cols-1 gap-4 sm:grid-cols-3">
                         <div>
                             <Label class="mb-1 text-xs font-medium">Kendala</Label>
-                            <Textarea v-model="weeklyNoteForm.obstacle" :rows="3" class="text-sm" placeholder="Kendala yang dihadapi…" />
+                            <Textarea v-model="weeklyNoteForm.obstacle" :rows="3" class="text-sm" placeholder="Kendala yang dihadapi minggu ini…" />
                         </div>
                         <div>
                             <Label class="mb-1 text-xs font-medium">Solusi</Label>
@@ -213,13 +254,13 @@ const {
                 </div>
 
                 <!-- Read-only view for non-PJ -->
-                <div v-else class="space-y-4 p-4">
+                <div v-else class="p-4">
                     <div v-if="weeklyNote">
-                        <div>
+                        <div class="mb-4">
                             <p class="mb-1 text-xs font-medium text-gray-500">Uraian Kegiatan</p>
                             <p class="whitespace-pre-line text-sm text-gray-800">{{ weeklyNote.uraian || '—' }}</p>
                         </div>
-                        <div class="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-3">
+                        <div class="grid grid-cols-1 gap-4 sm:grid-cols-3">
                             <div>
                                 <p class="mb-1 text-xs font-medium text-gray-500">Kendala</p>
                                 <p class="text-sm text-gray-700">{{ weeklyNote.obstacle || '—' }}</p>
