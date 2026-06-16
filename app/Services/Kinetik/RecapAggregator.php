@@ -101,7 +101,7 @@ class RecapAggregator
                 $w->where('team_id', $team->id)
                     ->orWhereHas('project', fn (Builder $p) => $p->where('team_id', $team->id));
             }))
-            ->with(['performancePlan.project', 'performancePlan.team', 'employee']);
+            ->with(['performancePlan.project', 'performancePlan.team', 'employee', 'kipActivity']);
     }
 
     /**
@@ -198,6 +198,19 @@ class RecapAggregator
         $realization = (float) $claims->sum('realization');
         $achievement = $target > 0 ? round($realization / $target * 100, 2) : null;
 
+        $uraianAgg = $this->joinLines(
+            $claims->map(fn (ActivityClaim $c) => $c->kipActivity?->description)
+        );
+
+        $uraianItems = $claims
+            ->filter(fn (ActivityClaim $c) => filled($c->kipActivity?->description))
+            ->map(fn (ActivityClaim $c) => [
+                'name' => $c->employee?->display_name ?? $c->employee?->name ?? 'Anggota',
+                'uraian' => trim((string) $c->kipActivity->description),
+            ])
+            ->values()
+            ->all();
+
         $obstacleAgg = $this->joinText($claims->pluck('obstacle'));
         $solutionAgg = $this->joinText($claims->pluck('solution'));
         $followUpAgg = $this->joinText($claims->pluck('follow_up_plan'));
@@ -214,6 +227,8 @@ class RecapAggregator
 
         $row = [
             'performance_plan_id' => $first->performance_plan_id,
+            'uraian_aggregated' => $uraianAgg,
+            'uraian_items' => $uraianItems,
             'pic_employee_id' => $plan?->pic_employee_id,
             'rk_code' => $plan?->code,
             'rk_description' => $plan?->description ?? '—',
@@ -236,6 +251,7 @@ class RecapAggregator
             'inherited_obstacle' => $inheritedRow['obstacle'] ?? null,
             'inherited_solution' => $inheritedRow['solution'] ?? null,
             'inherited_follow_up_plan' => $inheritedRow['follow_up_plan'] ?? null,
+            'pj_uraian' => $override?->uraian,
             'is_confirmed' => $override?->confirmed_at !== null,
             'confirmed_by' => $override?->confirmedBy?->display_name ?? $override?->confirmedBy?->name,
             'contributors' => $contributors,
@@ -276,6 +292,22 @@ class RecapAggregator
                     'follow_up_plan' => $this->joinText($rows->pluck('follow_up_plan')),
                 ];
             });
+    }
+
+    /**
+     * Join non-empty text fragments with newlines, preserving duplicates so each
+     * member's activity description appears individually.
+     *
+     * @param  Collection<int, string|null>  $values
+     */
+    private function joinLines(Collection $values): ?string
+    {
+        $joined = $values
+            ->filter(fn ($v) => filled($v))
+            ->map(fn ($v) => trim((string) $v))
+            ->implode("\n");
+
+        return $joined === '' ? null : $joined;
     }
 
     /**

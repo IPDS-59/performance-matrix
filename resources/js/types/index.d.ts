@@ -247,6 +247,8 @@ export interface RecapRow {
     performance_plan_id: number;
     rk_code?: string | null;
     rk_description: string;
+    uraian_aggregated?: string | null;
+    uraian_items?: Array<{ name: string; uraian: string }>;
     target: number;
     realization: number;
     achievement: number | null;
@@ -263,6 +265,7 @@ export interface RecapRow {
     is_confirmed?: boolean;
     confirmed_by?: string | null;
     // PJ paraphrase fields (read-only view for non-PJ members)
+    pj_uraian?: string | null;
     pj_obstacle?: string | null;
     pj_solution?: string | null;
     pj_follow_up_plan?: string | null;
@@ -300,6 +303,16 @@ export interface TeamRecapEvidence {
 export interface TeamOption {
     id: number;
     name: string;
+}
+
+export interface WeeklyTeamNote {
+    id: number;
+    team_id: number;
+    week_start: string;
+    uraian: string | null;
+    obstacle: string | null;
+    solution: string | null;
+    follow_up_plan: string | null;
 }
 
 export interface KipSyncRun {
