@@ -28,7 +28,7 @@ const {
     getParaForm,
     saveParaphrase,
     weeklyNoteForm,
-    prefillUraianFromMembers,
+    prefillFromMembers,
     saveWeeklyNote,
     evidenceTypeLabel,
     showEvidenceForm,
@@ -217,9 +217,9 @@ const {
                                 v-if="segments.some(s => s.rows.some(r => r.uraian_items?.length))"
                                 type="button"
                                 class="text-xs text-primary hover:underline"
-                                @click="prefillUraianFromMembers"
+                                @click="prefillFromMembers"
                             >
-                                Pre-fill dari uraian anggota
+                                Pre-fill dari data anggota
                             </button>
                         </div>
                         <Textarea

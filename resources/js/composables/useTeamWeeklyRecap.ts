@@ -138,31 +138,38 @@ export function useTeamWeeklyRecap(props: TeamWeeklyRecapProps) {
         saving: false,
     });
 
-    function prefillUraianFromMembers() {
-        // Collect all uraian_items across every row in every segment
-        const allItems = props.segments.flatMap(seg =>
-            seg.rows.flatMap(row => row.uraian_items ?? [])
-        );
-        if (!allItems.length) return;
+    function prefillFromMembers() {
+        const allRows = props.segments.flatMap(seg => seg.rows);
 
-        // Group by contributor name
-        const byPerson = new Map<string, string[]>();
-        for (const item of allItems) {
-            if (!byPerson.has(item.name)) byPerson.set(item.name, []);
-            byPerson.get(item.name)!.push(item.uraian);
-        }
-
-        // Format as numbered list: "1. Nama\n   - uraian"
-        const lines: string[] = [];
-        let i = 1;
-        for (const [name, uraians] of byPerson) {
-            lines.push(`${i}. ${name}`);
-            for (const u of uraians) {
-                lines.push(`   - ${u}`);
+        // ── Uraian: group by contributor name ────────────────────────────────
+        const allItems = allRows.flatMap(row => row.uraian_items ?? []);
+        if (allItems.length) {
+            const byPerson = new Map<string, string[]>();
+            for (const item of allItems) {
+                if (!byPerson.has(item.name)) byPerson.set(item.name, []);
+                byPerson.get(item.name)!.push(item.uraian);
             }
-            i++;
+            const lines: string[] = [];
+            let i = 1;
+            for (const [name, uraians] of byPerson) {
+                lines.push(`${i}. ${name}`);
+                for (const u of uraians) { lines.push(`   - ${u}`); }
+                i++;
+            }
+            weeklyNoteForm.value.uraian = lines.join('\n');
         }
-        weeklyNoteForm.value.uraian = lines.join('\n');
+
+        // ── Kendala / Solusi / RTL: collect unique non-empty aggregated values ─
+        function joinAgg(values: (string | null | undefined)[]): string {
+            return [...new Set(values.filter((v): v is string => !!v && v.trim() !== ''))]
+                .join('\n');
+        }
+        const obstacles = joinAgg(allRows.map(r => r.obstacle_aggregated));
+        const solutions = joinAgg(allRows.map(r => r.solution_aggregated));
+        const followUps = joinAgg(allRows.map(r => r.follow_up_aggregated));
+        if (obstacles) weeklyNoteForm.value.obstacle = obstacles;
+        if (solutions) weeklyNoteForm.value.solution = solutions;
+        if (followUps) weeklyNoteForm.value.follow_up_plan = followUps;
     }
 
     function saveWeeklyNote() {
@@ -239,7 +246,7 @@ export function useTeamWeeklyRecap(props: TeamWeeklyRecapProps) {
         getParaForm,
         saveParaphrase,
         weeklyNoteForm,
-        prefillUraianFromMembers,
+        prefillFromMembers,
         saveWeeklyNote,
         evidenceTypeLabel,
         showEvidenceForm,
