@@ -10,7 +10,7 @@
         "lint": "eslint resources/js --ext .ts,.vue --fix"
     },
     "devDependencies": {
-        "@inertiajs/vue3": "^3.3.0",
+        "@inertiajs/vue3": "^3.4.0",
         "@tailwindcss/vite": "^4.3.0",
         "@vitejs/plugin-vue": "^6.0.7",
         "@vitest/coverage-v8": "^4.1.4",
