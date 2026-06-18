@@ -2,6 +2,7 @@
 import type { PersonalStats } from '@/types';
 import { useAchievementColor } from '@/composables/useAchievementColor';
 import { Progress } from '@/Components/ui/progress';
+import { Link } from '@inertiajs/vue3';
 
 defineProps<{
     stats: PersonalStats;
@@ -13,7 +14,10 @@ const { achievementColor, progressVariant, avgIconBgColor, avgIconColor } = useA
 <template>
     <div class="mb-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <!-- Tim Kerja -->
-        <div class="rounded-lg border bg-white p-6 shadow-sm">
+        <Link
+            :href="route('team-recap.weekly')"
+            class="group block rounded-lg border bg-white p-6 shadow-sm transition-shadow hover:shadow-md"
+        >
             <div class="flex items-start gap-4">
                 <div
                     class="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-blue-100"
@@ -35,14 +39,17 @@ const { achievementColor, progressVariant, avgIconBgColor, avgIconColor } = useA
                     </svg>
                 </div>
                 <div class="min-w-0 flex-1">
-                    <p class="text-sm font-medium text-gray-500">Tim Kerja</p>
+                    <p class="text-sm font-medium text-gray-500 group-hover:text-primary">Tim Kerja</p>
                     <p class="mt-1 text-2xl font-bold text-gray-900">{{ stats.teams_count }}</p>
                 </div>
             </div>
-        </div>
+        </Link>
 
         <!-- Proyek -->
-        <div class="rounded-lg border bg-white p-6 shadow-sm">
+        <Link
+            :href="route('projects.index')"
+            class="group block rounded-lg border bg-white p-6 shadow-sm transition-shadow hover:shadow-md"
+        >
             <div class="flex items-start gap-4">
                 <div
                     class="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-indigo-100"
@@ -64,14 +71,17 @@ const { achievementColor, progressVariant, avgIconBgColor, avgIconColor } = useA
                     </svg>
                 </div>
                 <div class="min-w-0 flex-1">
-                    <p class="text-sm font-medium text-gray-500">Proyek</p>
+                    <p class="text-sm font-medium text-gray-500 group-hover:text-primary">Proyek</p>
                     <p class="mt-1 text-2xl font-bold text-gray-900">{{ stats.projects_count }}</p>
                 </div>
             </div>
-        </div>
+        </Link>
 
         <!-- Item Kerja -->
-        <div class="rounded-lg border bg-white p-6 shadow-sm">
+        <Link
+            :href="route('weekly.index')"
+            class="group block rounded-lg border bg-white p-6 shadow-sm transition-shadow hover:shadow-md"
+        >
             <div class="flex items-start gap-4">
                 <div
                     class="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-teal-100"
@@ -93,14 +103,17 @@ const { achievementColor, progressVariant, avgIconBgColor, avgIconColor } = useA
                     </svg>
                 </div>
                 <div class="min-w-0 flex-1">
-                    <p class="text-sm font-medium text-gray-500">Item Kerja</p>
+                    <p class="text-sm font-medium text-gray-500 group-hover:text-primary">Item Kerja</p>
                     <p class="mt-1 text-2xl font-bold text-gray-900">{{ stats.items_count }}</p>
                 </div>
             </div>
-        </div>
+        </Link>
 
         <!-- Rata-rata Capaian -->
-        <div class="rounded-lg border bg-white p-6 shadow-sm">
+        <Link
+            :href="route('team-recap.weekly')"
+            class="group block rounded-lg border bg-white p-6 shadow-sm transition-shadow hover:shadow-md"
+        >
             <div class="flex items-start gap-4">
                 <div
                     :class="[
@@ -125,7 +138,7 @@ const { achievementColor, progressVariant, avgIconBgColor, avgIconColor } = useA
                     </svg>
                 </div>
                 <div class="min-w-0 flex-1">
-                    <p class="text-sm font-medium text-gray-500">Rata-rata Capaian</p>
+                    <p class="text-sm font-medium text-gray-500 group-hover:text-primary">Rata-rata Capaian</p>
                     <p :class="['mt-1 text-2xl font-bold', achievementColor(stats.avg_achievement)]">
                         {{ stats.avg_achievement.toFixed(1) }}%
                     </p>
@@ -136,6 +149,6 @@ const { achievementColor, progressVariant, avgIconBgColor, avgIconColor } = useA
                     />
                 </div>
             </div>
-        </div>
+        </Link>
     </div>
 </template>
