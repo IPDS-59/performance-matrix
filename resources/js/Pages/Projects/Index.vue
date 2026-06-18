@@ -162,7 +162,7 @@ const teamGroups = computed(() => {
                                     <TableHead>Ketua</TableHead>
                                     <TableHead>Anggota</TableHead>
                                     <TableHead>Status</TableHead>
-                                    <TableHead class="text-right">Aksi</TableHead>
+                                    <TableHead v-if="canCreate" class="text-right">Aksi</TableHead>
                                 </TableRow>
                             </TableHeader>
                             <TableBody class="divide-y">
@@ -188,7 +188,7 @@ const teamGroups = computed(() => {
                                             {{ statusConfig[project.status]?.label ?? project.status }}
                                         </span>
                                     </TableCell>
-                                    <TableCell class="text-right">
+                                    <TableCell v-if="canCreate" class="text-right">
                                         <div class="inline-flex gap-2">
                                             <Button variant="outline" size="sm" as-child>
                                                 <Link :href="route('projects.edit', project.id)">Edit</Link>
