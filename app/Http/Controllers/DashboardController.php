@@ -187,15 +187,16 @@ class DashboardController extends Controller
     {
         $isTeamLead = Team::where('leader_id', $employee->id)->exists();
 
-        // Determine which team's plans to count
         $myTeamId = $isTeamLead
             ? Team::where('leader_id', $employee->id)->value('id')
             : $employee->team_id;
 
-        // Total plans in the team (all — not filtered by whether claims exist)
-        $totalPlans = $myTeamId
-            ? DB::table('performance_plans')->where('team_id', $myTeamId)->count()
-            : 0;
+        // Count actual project memberships for the current year (cross-team aware)
+        $totalProjects = DB::table('project_members')
+            ->join('projects', 'projects.id', '=', 'project_members.project_id')
+            ->where('project_members.employee_id', $employee->id)
+            ->where('projects.year', $year)
+            ->count();
 
         // Average achievement from actual saved claims this period
         if ($isTeamLead && $myTeamId) {
@@ -223,8 +224,8 @@ class DashboardController extends Controller
 
         return [
             'teams_count' => $myTeamId ? 1 : 0,
-            'projects_count' => (int) $totalPlans,
-            'items_count' => (int) $totalPlans,
+            'projects_count' => (int) $totalProjects,
+            'items_count' => (int) $totalProjects,
             'avg_achievement' => round((float) ($avgResult?->avg_achievement ?? 0), 2),
             'is_team_lead' => $isTeamLead,
         ];
