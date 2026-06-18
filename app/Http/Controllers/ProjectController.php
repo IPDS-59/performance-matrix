@@ -19,18 +19,25 @@ class ProjectController extends Controller
         $this->authorize('viewAny', Project::class);
 
         $user = $request->user();
+        $employee = $user->employee;
         $isAdmin = $user->hasPermissionTo('manage-projects');
         $year = $request->integer('year', now()->year);
         $teamId = $request->integer('team_id');
 
         // Non-admin: restrict to their own team
         if (! $isAdmin && ! $teamId) {
-            $teamId = $user->employee?->team_id;
+            $teamId = $employee?->team_id;
         }
+
+        // Regular members (not admin, not team lead) only see projects they belong to.
+        $isTeamLead = ! $isAdmin && $employee && Team::where('leader_id', $employee->id)->exists();
 
         $projects = Project::with('team:id,name', 'leader:id,name,display_name')
             ->withCount('members')
             ->when($teamId, fn ($q) => $q->where('team_id', $teamId))
+            ->when(! $isAdmin && ! $isTeamLead && $employee, fn ($q) =>
+                $q->whereHas('members', fn ($q2) => $q2->where('employees.id', $employee->id))
+            )
             ->where('year', $year)
             ->orderBy('name')
             ->get();
