@@ -139,6 +139,7 @@ const { achievementColor, progressVariant, avgIconBgColor, avgIconColor } = useA
                 </div>
                 <div class="min-w-0 flex-1">
                     <p class="text-sm font-medium text-gray-500 group-hover:text-primary">Rata-rata Capaian</p>
+                    <p class="text-xs text-gray-400">{{ stats.is_team_lead ? 'seluruh tim' : 'pribadi' }}</p>
                     <p :class="['mt-1 text-2xl font-bold', achievementColor(stats.avg_achievement)]">
                         {{ stats.avg_achievement.toFixed(1) }}%
                     </p>
