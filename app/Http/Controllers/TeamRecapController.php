@@ -3,14 +3,17 @@
 namespace App\Http\Controllers;
 
 use App\Models\Employee;
+use App\Models\PerformancePlan;
 use App\Models\RecapOverride;
 use App\Models\Team;
 use App\Models\TeamRecapEvidence;
+use App\Models\WeeklyTeamNote;
 use App\Services\Kinetik\RecapAggregator;
 use Carbon\Carbon;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -24,9 +27,12 @@ class TeamRecapController extends Controller
     {
         $employee = $request->user()->employee;
         $teams = $this->teamsFor($employee);
-        $team = $this->selectedTeam($request, $teams);
+        $team = $this->selectedTeam($request, $teams, $employee);
 
-        $anchor = $request->query('week') ? Carbon::parse($request->query('week')) : now();
+        $defaultWeek = $team ? $this->aggregator->defaultWeekStart($team) : null;
+        $anchor = $request->query('week')
+            ? Carbon::parse($request->query('week'))
+            : ($defaultWeek ? Carbon::parse($defaultWeek) : now());
         $weekStart = $anchor->copy()->startOfWeek(Carbon::MONDAY)->toDateString();
         $weekEnd = $anchor->copy()->endOfWeek(Carbon::SUNDAY)->toDateString();
 
@@ -40,6 +46,12 @@ class TeamRecapController extends Controller
                 ->get()
             : collect();
 
+        $weeklyNote = $team
+            ? WeeklyTeamNote::where('team_id', $team->id)
+                ->whereDate('week_start', $weekStart)
+                ->first()
+            : null;
+
         return Inertia::render('Kinetik/TeamWeeklyRecap', [
             'teams' => $this->teamOptions($teams),
             'selectedTeamId' => $team?->id,
@@ -49,6 +61,9 @@ class TeamRecapController extends Controller
             'weekEnd' => $weekEnd,
             'prevWeek' => Carbon::parse($weekStart)->subWeek()->toDateString(),
             'nextWeek' => Carbon::parse($weekStart)->addWeek()->toDateString(),
+            'canManage' => $team !== null && $this->isPj($employee, $team->id),
+            'currentEmployeeId' => $employee?->id,
+            'weeklyNote' => $weeklyNote,
         ]);
     }
 
@@ -58,10 +73,19 @@ class TeamRecapController extends Controller
     {
         $employee = $request->user()->employee;
         $teams = $this->teamsFor($employee);
-        $team = $this->selectedTeam($request, $teams);
+        $team = $this->selectedTeam($request, $teams, $employee);
 
-        $year = (int) $request->query('year', now()->year);
-        $month = (int) $request->query('month', now()->month);
+        $hasYearParam = $request->query('year') !== null;
+        $hasMonthParam = $request->query('month') !== null;
+
+        if (! $hasYearParam && ! $hasMonthParam && $team) {
+            $latest = $this->aggregator->latestClaimPeriod($team);
+            $year = $latest?->period_year ?? now()->year;
+            $month = $latest?->period_month ?? now()->month;
+        } else {
+            $year = (int) $request->query('year', now()->year);
+            $month = (int) $request->query('month', now()->month);
+        }
 
         $segments = $team ? $this->aggregator->monthly($team, $year, $month) : [];
 
@@ -71,6 +95,8 @@ class TeamRecapController extends Controller
             'segments' => $segments,
             'year' => $year,
             'month' => $month,
+            'canManage' => $team !== null && $this->isPj($employee, $team->id),
+            'currentEmployeeId' => $employee?->id,
         ]);
     }
 
@@ -80,10 +106,19 @@ class TeamRecapController extends Controller
     {
         $employee = $request->user()->employee;
         $teams = $this->teamsFor($employee);
-        $team = $this->selectedTeam($request, $teams);
+        $team = $this->selectedTeam($request, $teams, $employee);
 
-        $year = (int) $request->query('year', now()->year);
-        $quarter = (int) $request->query('quarter', (int) intdiv(now()->month - 1, 3) + 1);
+        $hasYearParam = $request->query('year') !== null;
+        $hasQuarterParam = $request->query('quarter') !== null;
+
+        if (! $hasYearParam && ! $hasQuarterParam && $team) {
+            $latest = $this->aggregator->latestClaimPeriod($team);
+            $year = $latest?->period_year ?? now()->year;
+            $quarter = $latest?->period_quarter ?? (int) intdiv(now()->month - 1, 3) + 1;
+        } else {
+            $year = (int) $request->query('year', now()->year);
+            $quarter = (int) $request->query('quarter', (int) intdiv(now()->month - 1, 3) + 1);
+        }
 
         $segments = $team ? $this->aggregator->quarterly($team, $year, $quarter) : [];
 
@@ -94,6 +129,8 @@ class TeamRecapController extends Controller
             'year' => $year,
             'quarter' => $quarter,
             'pics' => $team ? $this->teamMemberOptions($team) : [],
+            'canManage' => $team !== null && $this->isPj($employee, $team->id),
+            'currentEmployeeId' => $employee?->id,
         ]);
     }
 
@@ -113,7 +150,7 @@ class TeamRecapController extends Controller
             'url' => ['required', 'url', 'max:2048'],
         ]);
 
-        $this->authorizeMembership($employee, (int) $validated['team_id']);
+        $this->authorizePj($employee, (int) $validated['team_id']);
 
         $weekStart = Carbon::parse($validated['week_start']);
 
@@ -137,11 +174,46 @@ class TeamRecapController extends Controller
         $employee = $request->user()->employee;
         abort_if($employee === null, 403, 'Akun tidak terhubung ke data pegawai.');
 
-        $this->authorizeMembership($employee, $evidence->team_id);
+        $this->authorizePj($employee, $evidence->team_id);
 
         $evidence->delete();
 
         return back()->with('success', 'Bukti dukung berhasil dihapus.');
+    }
+
+    // ── Single weekly PJ note ────────────────────────────────────────────────
+
+    public function storeWeeklyNote(Request $request): RedirectResponse
+    {
+        $employee = $request->user()->employee;
+        abort_if($employee === null, 403, 'Akun tidak terhubung ke data pegawai.');
+
+        $validated = $request->validate([
+            'team_id' => ['required', 'integer', 'exists:teams,id'],
+            'week_start' => ['required', 'date'],
+            'uraian' => ['nullable', 'string'],
+            'obstacle' => ['nullable', 'string'],
+            'solution' => ['nullable', 'string'],
+            'follow_up_plan' => ['nullable', 'string'],
+        ]);
+
+        $this->authorizePj($employee, (int) $validated['team_id']);
+
+        WeeklyTeamNote::updateOrCreate(
+            [
+                'team_id' => $validated['team_id'],
+                'week_start' => $validated['week_start'],
+            ],
+            [
+                'uraian' => $validated['uraian'] ?? null,
+                'obstacle' => $validated['obstacle'] ?? null,
+                'solution' => $validated['solution'] ?? null,
+                'follow_up_plan' => $validated['follow_up_plan'] ?? null,
+                'created_by' => $employee->id,
+            ],
+        );
+
+        return back()->with('success', 'Catatan mingguan berhasil disimpan.');
     }
 
     // ── Paraphrase / FRA follow-up override ──────────────────────────────────
@@ -154,10 +226,12 @@ class TeamRecapController extends Controller
         $validated = $request->validate([
             'team_id' => ['required', 'integer', 'exists:teams,id'],
             'performance_plan_id' => ['required', 'integer', 'exists:performance_plans,id'],
-            'period_type' => ['required', 'in:month,quarter'],
-            'period_year' => ['required', 'integer'],
+            'period_type' => ['required', 'in:week,month,quarter'],
+            'period_year' => ['nullable', 'integer'],
             'period_month' => ['nullable', 'integer', 'between:1,12'],
             'period_quarter' => ['nullable', 'integer', 'between:1,4'],
+            'week_start' => ['nullable', 'date', 'required_if:period_type,week'],
+            'uraian' => ['nullable', 'string'],
             'obstacle' => ['nullable', 'string'],
             'solution' => ['nullable', 'string'],
             'follow_up_plan' => ['nullable', 'string'],
@@ -166,7 +240,12 @@ class TeamRecapController extends Controller
             'follow_up_deadline' => ['nullable', 'date'],
         ]);
 
-        $this->authorizeMembership($employee, (int) $validated['team_id']);
+        if (($validated['period_type'] ?? '') === 'week' && empty($validated['period_year'])) {
+            $validated['period_year'] = Carbon::parse($validated['week_start'])->year;
+        }
+
+        $plan = PerformancePlan::findOrFail((int) $validated['performance_plan_id']);
+        $this->authorizeParaphrase($employee, (int) $validated['team_id'], $plan);
 
         RecapOverride::updateOrCreate(
             [
@@ -176,8 +255,10 @@ class TeamRecapController extends Controller
                 'period_year' => $validated['period_year'],
                 'period_month' => $validated['period_month'] ?? null,
                 'period_quarter' => $validated['period_quarter'] ?? null,
+                'week_start' => $validated['week_start'] ?? null,
             ],
             [
+                'uraian' => $validated['uraian'] ?? null,
                 'obstacle' => $validated['obstacle'] ?? null,
                 'solution' => $validated['solution'] ?? null,
                 'follow_up_plan' => $validated['follow_up_plan'] ?? null,
@@ -189,6 +270,87 @@ class TeamRecapController extends Controller
         );
 
         return back()->with('success', 'Rekap berhasil diparafrase.');
+    }
+
+    // ── Bulk confirm (achievement ≥ 100%) ────────────────────────────────────
+
+    public function confirmBulk(Request $request): RedirectResponse
+    {
+        $employee = $request->user()->employee;
+        abort_if($employee === null, 403, 'Akun tidak terhubung ke data pegawai.');
+
+        $validated = $request->validate([
+            'team_id' => ['required', 'integer', 'exists:teams,id'],
+            'period_type' => ['required', 'in:week,month,quarter'],
+            'period_year' => ['required', 'integer'],
+            'period_month' => ['nullable', 'integer', 'between:1,12'],
+            'period_quarter' => ['nullable', 'integer', 'between:1,4'],
+            'week_start' => ['nullable', 'date', 'required_if:period_type,week'],
+            'performance_plan_ids' => ['required', 'array'],
+            'performance_plan_ids.*' => ['integer', 'exists:performance_plans,id'],
+        ]);
+
+        $this->authorizePj($employee, (int) $validated['team_id']);
+
+        $periodKey = [
+            'team_id' => $validated['team_id'],
+            'period_type' => $validated['period_type'],
+            'period_year' => $validated['period_year'],
+            'period_month' => $validated['period_month'] ?? null,
+            'period_quarter' => $validated['period_quarter'] ?? null,
+            'week_start' => $validated['week_start'] ?? null,
+        ];
+
+        DB::transaction(function () use ($validated, $periodKey, $employee) {
+            foreach ($validated['performance_plan_ids'] as $planId) {
+                RecapOverride::updateOrCreate(
+                    array_merge($periodKey, ['performance_plan_id' => $planId]),
+                    ['confirmed_at' => now(), 'confirmed_by' => $employee->id],
+                );
+            }
+        });
+
+        $count = count($validated['performance_plan_ids']);
+
+        return back()->with('success', "{$count} RK berhasil dikonfirmasi.");
+    }
+
+    // ── Confirm / unconfirm individual RK row ─────────────────────────────────
+
+    public function confirmOverride(Request $request): RedirectResponse
+    {
+        $employee = $request->user()->employee;
+        abort_if($employee === null, 403, 'Akun tidak terhubung ke data pegawai.');
+
+        $validated = $request->validate([
+            'team_id' => ['required', 'integer', 'exists:teams,id'],
+            'performance_plan_id' => ['required', 'integer', 'exists:performance_plans,id'],
+            'period_type' => ['required', 'in:week,month,quarter'],
+            'period_year' => ['required', 'integer'],
+            'period_month' => ['nullable', 'integer', 'between:1,12'],
+            'period_quarter' => ['nullable', 'integer', 'between:1,4'],
+            'week_start' => ['nullable', 'date', 'required_if:period_type,week'],
+            'confirmed' => ['required', 'boolean'],
+        ]);
+
+        $this->authorizePj($employee, (int) $validated['team_id']);
+
+        $key = [
+            'team_id' => $validated['team_id'],
+            'performance_plan_id' => $validated['performance_plan_id'],
+            'period_type' => $validated['period_type'],
+            'period_year' => $validated['period_year'],
+            'period_month' => $validated['period_month'] ?? null,
+            'period_quarter' => $validated['period_quarter'] ?? null,
+            'week_start' => $validated['week_start'] ?? null,
+        ];
+
+        RecapOverride::updateOrCreate($key, [
+            'confirmed_at' => $validated['confirmed'] ? now() : null,
+            'confirmed_by' => $validated['confirmed'] ? $employee->id : null,
+        ]);
+
+        return back()->with('success', $validated['confirmed'] ? 'RK dikonfirmasi.' : 'Konfirmasi dibatalkan.');
     }
 
     // ── Helpers ──────────────────────────────────────────────────────────────
@@ -206,14 +368,24 @@ class TeamRecapController extends Controller
     }
 
     /**
+     * Resolve the active team from the request. When no ?team param is present,
+     * prefers a team the employee leads; falls back to alphabetical first.
+     *
      * @param  Collection<int, Team>  $teams
      */
-    private function selectedTeam(Request $request, Collection $teams): ?Team
+    private function selectedTeam(Request $request, Collection $teams, ?Employee $employee = null): ?Team
     {
         $requested = $request->query('team');
 
         if ($requested !== null) {
             return $teams->firstWhere('id', (int) $requested) ?? $teams->first();
+        }
+
+        if ($employee !== null) {
+            $led = $teams->first(fn (Team $t) => $this->isPj($employee, $t->id));
+            if ($led !== null) {
+                return $led;
+            }
         }
 
         return $teams->first();
@@ -240,10 +412,42 @@ class TeamRecapController extends Controller
             ->all();
     }
 
-    private function authorizeMembership(Employee $employee, int $teamId): void
+    /**
+     * PJ = team leader (teams.leader_id) or a member with the 'leader' pivot role.
+     * Per the RFC, only the PJ may upload meeting evidence and paraphrase recaps.
+     */
+    private function isPj(Employee $employee, int $teamId): bool
     {
-        $isMember = $employee->teams()->where('teams.id', $teamId)->exists();
+        return Team::where('id', $teamId)->where('leader_id', $employee->id)->exists()
+            || $employee->teams()
+                ->where('teams.id', $teamId)
+                ->wherePivot('role', 'leader')
+                ->exists();
+    }
 
-        abort_unless($isMember, 403, 'Anda tidak memiliki akses ke rekap tim ini.');
+    private function authorizePj(Employee $employee, int $teamId): void
+    {
+        abort_unless(
+            $this->isPj($employee, $teamId),
+            403,
+            'Hanya PJ / Ketua Tim yang dapat mengelola bukti dan parafrase rekap.',
+        );
+    }
+
+    /**
+     * For paraphrase drafting: the PJ OR the RK's assigned PIC may draft.
+     */
+    private function canParaphrasePlan(Employee $employee, int $teamId, PerformancePlan $plan): bool
+    {
+        return $this->isPj($employee, $teamId) || $plan->pic_employee_id === $employee->id;
+    }
+
+    private function authorizeParaphrase(Employee $employee, int $teamId, PerformancePlan $plan): void
+    {
+        abort_unless(
+            $this->canParaphrasePlan($employee, $teamId, $plan),
+            403,
+            'Hanya PJ atau PIC RK yang dapat membuat parafrase rekap.',
+        );
     }
 }

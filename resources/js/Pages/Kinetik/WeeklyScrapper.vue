@@ -1,16 +1,14 @@
 <script setup lang="ts">
 import AppLayout from '@/Layouts/AppLayout.vue';
 import { Head, router, useForm } from '@inertiajs/vue3';
-import { computed, ref } from 'vue';
+import { ref, watch } from 'vue';
 import type { KipActivity, ActivityClaim, PlanOption } from '@/types';
 import { Button } from '@/Components/ui/button';
 import { Input } from '@/Components/ui/input';
 import { Label } from '@/Components/ui/label';
 import { Textarea } from '@/Components/ui/textarea';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/Components/ui/table';
-import { Popover, PopoverContent, PopoverTrigger } from '@/Components/ui/popover';
-import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/Components/ui/command';
-import { Check, ChevronsUpDown, ChevronLeft, ChevronRight, ExternalLink, RefreshCw } from 'lucide-vue-next';
+import { ChevronLeft, ChevronRight, ExternalLink } from 'lucide-vue-next';
 import InputError from '@/Components/InputError.vue';
 import { useDateFormat } from '@/composables/useDateFormat';
 
@@ -27,42 +25,13 @@ const props = defineProps<{
     weekEnd: string;
     prevWeek: string;
     nextWeek: string;
+    isPj: boolean;
 }>();
 
 // ── Week navigation ────────────────────────────────────────────────────────
 
 function goToWeek(week: string) {
     router.get(route('weekly.index'), { week }, { preserveState: false });
-}
-
-// ── kipApp sync ────────────────────────────────────────────────────────────
-
-const syncForm = useForm({});
-
-function syncKipActivities() {
-    syncForm.post(route('weekly.sync'), { preserveScroll: true });
-}
-
-// ── Manual activity form ───────────────────────────────────────────────────
-
-const showAddForm = ref(false);
-
-const manualForm = useForm({
-    description: '',
-    activity_date_start: props.weekStart,
-    activity_date_end: '',
-    start_time: '',
-    end_time: '',
-    evidence_url: '',
-});
-
-function submitManualActivity() {
-    manualForm.post(route('weekly.activity.store'), {
-        onSuccess: () => {
-            manualForm.reset();
-            showAddForm.value = false;
-        },
-    });
 }
 
 // ── Claim forms (one per activity row) ────────────────────────────────────
@@ -89,7 +58,7 @@ function makeClaimForm(activity: KipActivity) {
     const c = activity.claim;
     return useForm<ClaimFormData>({
         kip_activity_id: activity.id,
-        performance_plan_id: c?.performance_plan_id ?? null,
+        performance_plan_id: c?.performance_plan_id ?? activity.matched_plan_id ?? null,
         work_item_id: null,
         target: c?.target != null ? String(c.target) : '',
         realization: c?.realization != null ? String(c.realization) : '',
@@ -111,20 +80,49 @@ const claimForms = ref<Record<number, ReturnType<typeof useForm<ClaimFormData>>>
     Object.fromEntries(props.activities.map(a => [a.id, makeClaimForm(a)]))
 );
 
-// Plan picker open state per activity
-const planPickerOpen = ref<Record<number, boolean>>({});
+// When Inertia refreshes props after a claim, re-sync form state so the
+// "Tersimpan" badge and collapsed form reflect the server's fresh data.
+watch(() => props.activities, (newActivities) => {
+    newActivities.forEach(activity => {
+        const form = claimForms.value[activity.id];
+        if (!form) {
+            claimForms.value[activity.id] = makeClaimForm(activity);
+        } else if (activity.is_claimed && !form.isDirty) {
+            claimForms.value[activity.id] = makeClaimForm(activity);
+        }
+    });
+});
+
+// Per-activity form expansion. A claimed activity's data already lives in
+// "Rekap Tersimpan" below, so its form starts collapsed (showing only the
+// header + an "Ubah" toggle); unclaimed activities show the form to fill.
+const expandedForms = ref<Record<number, boolean>>({});
+
+function isFormOpen(activity: KipActivity): boolean {
+    return !activity.is_claimed || expandedForms.value[activity.id] === true;
+}
+
+function toggleForm(activityId: number) {
+    expandedForms.value[activityId] = !expandedForms.value[activityId];
+}
 
 function planLabel(activityId: number): string {
     const planId = claimForms.value[activityId]?.performance_plan_id;
-    if (!planId) return '— Pilih RK —';
+    if (!planId) return '—';
     const plan = props.plans.find(p => p.id === planId);
-    return plan ? `${plan.description} (${plan.project_name})` : '— Pilih RK —';
+    if (!plan) return '—';
+    return plan.project_name ? `${plan.description} (${plan.project_name})` : plan.description;
 }
 
 function submitClaim(activityId: number) {
     const form = claimForms.value[activityId];
     if (!form) return;
-    form.post(route('weekly.claim'));
+    form.post(route('weekly.claim'), {
+        preserveScroll: true,
+        onSuccess: () => {
+            expandedForms.value[activityId] = false;
+        },
+    });
 }
 
 // ── Auto-computed achievement display ─────────────────────────────────────
@@ -161,14 +159,6 @@ function achievementColor(val: number | string | null | undefined): string {
         </div>
 
         <template v-else>
-            <!-- kipApp sync -->
-            <div class="mb-3 flex justify-end">
-                <Button size="sm" variant="outline" :disabled="syncForm.processing" @click="syncKipActivities">
-                    <RefreshCw :class="['mr-1 h-4 w-4', syncForm.processing ? 'animate-spin' : '']" />
-                    {{ syncForm.processing ? 'Menyinkronkan…' : 'Sinkronkan kipApp' }}
-                </Button>
-            </div>
-
             <!-- Week navigator -->
             <div class="mb-6 flex items-center justify-between gap-4 rounded-md border bg-white px-4 py-3">
                 <button
@@ -195,68 +185,6 @@ function achievementColor(val: number | string | null | undefined): string {
             </div>
 
             <!-- Tambah Kegiatan collapsible -->
-            <div class="mb-6 rounded-md border bg-white">
-                <button
-                    type="button"
-                    class="flex w-full items-center justify-between px-4 py-3 text-sm font-medium text-gray-800 hover:bg-gray-50 transition-colors"
-                    @click="showAddForm = !showAddForm"
-                >
-                    <span>Tambah Kegiatan Manual</span>
-                    <svg
-                        :class="['h-4 w-4 text-gray-400 transition-transform', showAddForm ? 'rotate-180' : '']"
-                        fill="none" stroke="currentColor" viewBox="0 0 24 24"
-                    >
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
-                    </svg>
-                </button>
-
-                <div v-if="showAddForm" class="border-t px-4 py-4">
-                    <form @submit.prevent="submitManualActivity" class="space-y-3">
-                        <div>
-                            <Label for="manual-desc">Uraian Kegiatan <span class="text-red-500">*</span></Label>
-                            <Textarea
-                                id="manual-desc"
-                                v-model="manualForm.description"
-                                :rows="3"
-                                class="mt-1"
-                                placeholder="Deskripsi kegiatan..."
-                            />
-                            <InputError :message="manualForm.errors.description" />
-                        </div>
-                        <div class="grid grid-cols-2 gap-3">
-                            <div>
-                                <Label for="manual-date-start">Tanggal Mulai <span class="text-red-500">*</span></Label>
-                                <Input id="manual-date-start" type="date" v-model="manualForm.activity_date_start" class="mt-1" />
-                                <InputError :message="manualForm.errors.activity_date_start" />
-                            </div>
-                            <div>
-                                <Label for="manual-date-end">Tanggal Selesai</Label>
-                                <Input id="manual-date-end" type="date" v-model="manualForm.activity_date_end" class="mt-1" />
-                                <InputError :message="manualForm.errors.activity_date_end" />
-                            </div>
-                        </div>
-                        <div class="grid grid-cols-2 gap-3">
-                            <div>
-                                <Label for="manual-time-start">Jam Mulai</Label>
-                                <Input id="manual-time-start" type="time" v-model="manualForm.start_time" class="mt-1" />
-                            </div>
-                            <div>
-                                <Label for="manual-time-end">Jam Selesai</Label>
-                                <Input id="manual-time-end" type="time" v-model="manualForm.end_time" class="mt-1" />
-                            </div>
-                        </div>
-                        <div>
-                            <Label for="manual-evidence">URL Bukti Dukung</Label>
-                            <Input id="manual-evidence" type="url" v-model="manualForm.evidence_url" class="mt-1" placeholder="https://..." />
-                            <InputError :message="manualForm.errors.evidence_url" />
-                        </div>
-                        <div class="flex justify-end gap-2 pt-1">
-                            <Button type="button" variant="outline" size="sm" @click="showAddForm = false">Batal</Button>
-                            <Button type="submit" size="sm" :disabled="manualForm.processing">Tambah</Button>
-                        </div>
-                    </form>
-                </div>
-            </div>
 
             <!-- Activities table with claim forms -->
             <div class="mb-6">
@@ -308,56 +236,29 @@ function achievementColor(val: number | string | null | undefined): string {
                                     >
                                         {{ activity.is_claimed ? 'Tersimpan' : 'Belum diklaim' }}
                                     </span>
+                                    <Button
+                                        v-if="activity.is_claimed"
+                                        type="button"
+                                        variant="ghost"
+                                        size="sm"
+                                        class="h-7 px-2 text-xs"
+                                        @click="toggleForm(activity.id)"
+                                    >
+                                        {{ isFormOpen(activity) ? 'Tutup' : 'Ubah' }}
+                                    </Button>
                                 </div>
                             </div>
                         </div>
 
-                        <!-- Claim form -->
-                        <div v-if="claimForms[activity.id]" class="px-4 py-4">
+                        <!-- Claim form (collapsed once claimed; reopen via "Ubah") -->
+                        <div v-if="claimForms[activity.id] && isFormOpen(activity)" class="px-4 py-4">
                             <form @submit.prevent="submitClaim(activity.id)" class="space-y-3">
-                                <!-- RK picker -->
+                                <!-- RK (auto-assigned from KipApp sync) -->
                                 <div>
-                                    <Label>Rencana Kinerja (RK) <span class="text-red-500">*</span></Label>
-                                    <Popover v-model:open="planPickerOpen[activity.id]">
-                                        <PopoverTrigger as-child>
-                                            <Button
-                                                variant="outline"
-                                                role="combobox"
-                                                class="mt-1 w-full justify-between font-normal text-left"
-                                            >
-                                                <span class="truncate">{{ planLabel(activity.id) }}</span>
-                                                <ChevronsUpDown class="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                                            </Button>
-                                        </PopoverTrigger>
-                                        <PopoverContent class="w-[--radix-popover-trigger-width] p-0">
-                                            <Command>
-                                                <CommandInput placeholder="Cari rencana kinerja..." />
-                                                <CommandList>
-                                                    <CommandEmpty>Tidak ada hasil.</CommandEmpty>
-                                                    <CommandGroup>
-                                                        <CommandItem
-                                                            v-for="plan in plans"
-                                                            :key="plan.id"
-                                                            :value="`${plan.description} ${plan.project_name} ${plan.team_name}`"
-                                                            @select="() => {
-                                                                claimForms[activity.id].performance_plan_id = plan.id;
-                                                                planPickerOpen[activity.id] = false;
-                                                            }"
-                                                        >
-                                                            <div class="min-w-0 flex-1">
-                                                                <p class="truncate text-sm">{{ plan.description }}</p>
-                                                                <p class="truncate text-xs text-gray-500">{{ plan.project_name }} · {{ plan.team_name }}</p>
-                                                            </div>
-                                                            <Check
-                                                                v-if="claimForms[activity.id].performance_plan_id === plan.id"
-                                                                class="ml-2 h-4 w-4 shrink-0"
-                                                            />
-                                                        </CommandItem>
-                                                    </CommandGroup>
-                                                </CommandList>
-                                            </Command>
-                                        </PopoverContent>
-                                    </Popover>
+                                    <Label>Rencana Kinerja (RK)</Label>
+                                    <div class="mt-1 rounded-md border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-gray-800">
+                                        {{ planLabel(activity.id) }}
+                                    </div>
                                     <InputError :message="claimForms[activity.id].errors.performance_plan_id" />
                                 </div>
 
@@ -401,9 +302,9 @@ function achievementColor(val: number | string | null | undefined): string {
                                     Capaian: <span class="font-semibold">{{ computedAchievement(activity.id) }}</span>
                                 </div>
 
-                                <!-- Kendala / Solusi / RTL -->
+                                <!-- Kendala (wajib). Solusi & RTL hanya untuk PJ. -->
                                 <div>
-                                    <Label :for="`obstacle-${activity.id}`">Kendala</Label>
+                                    <Label :for="`obstacle-${activity.id}`">Kendala <span class="text-red-500">*</span></Label>
                                     <Textarea
                                         :id="`obstacle-${activity.id}`"
                                         v-model="claimForms[activity.id].obstacle"
@@ -411,27 +312,30 @@ function achievementColor(val: number | string | null | undefined): string {
                                         class="mt-1"
                                         placeholder="Kendala yang dihadapi..."
                                     />
+                                    <InputError :message="claimForms[activity.id].errors.obstacle" />
                                 </div>
-                                <div>
-                                    <Label :for="`solution-${activity.id}`">Solusi</Label>
-                                    <Textarea
-                                        :id="`solution-${activity.id}`"
-                                        v-model="claimForms[activity.id].solution"
-                                        :rows="2"
-                                        class="mt-1"
-                                        placeholder="Solusi yang diterapkan..."
-                                    />
-                                </div>
-                                <div>
-                                    <Label :for="`rtl-${activity.id}`">Rencana Tindak Lanjut</Label>
-                                    <Textarea
-                                        :id="`rtl-${activity.id}`"
-                                        v-model="claimForms[activity.id].follow_up_plan"
-                                        :rows="2"
-                                        class="mt-1"
-                                        placeholder="Rencana tindak lanjut..."
-                                    />
-                                </div>
+                                <template v-if="isPj">
+                                    <div>
+                                        <Label :for="`solution-${activity.id}`">Solusi</Label>
+                                        <Textarea
+                                            :id="`solution-${activity.id}`"
+                                            v-model="claimForms[activity.id].solution"
+                                            :rows="2"
+                                            class="mt-1"
+                                            placeholder="Solusi yang diterapkan..."
+                                        />
+                                    </div>
+                                    <div>
+                                        <Label :for="`rtl-${activity.id}`">Rencana Tindak Lanjut</Label>
+                                        <Textarea
+                                            :id="`rtl-${activity.id}`"
+                                            v-model="claimForms[activity.id].follow_up_plan"
+                                            :rows="2"
+                                            class="mt-1"
+                                            placeholder="Rencana tindak lanjut..."
+                                        />
+                                    </div>
+                                </template>
 
                                 <div class="flex justify-end pt-1">
                                     <Button
@@ -464,8 +368,6 @@ function achievementColor(val: number | string | null | undefined): string {
                                 <TableHead class="text-left">Kegiatan</TableHead>
                                 <TableHead class="text-right">Capaian</TableHead>
                                 <TableHead class="text-left">Kendala</TableHead>
-                                <TableHead class="text-left">Solusi</TableHead>
-                                <TableHead class="text-left">RTL</TableHead>
                             </TableRow>
                         </TableHeader>
                         <TableBody class="divide-y divide-gray-100">
@@ -487,8 +389,6 @@ function achievementColor(val: number | string | null | undefined): string {
                                     <span v-else class="text-gray-400">—</span>
                                 </TableCell>
                                 <TableCell class="align-top text-gray-600 max-w-xs">{{ claim.obstacle ?? '—' }}</TableCell>
-                                <TableCell class="align-top text-gray-600 max-w-xs">{{ claim.solution ?? '—' }}</TableCell>
-                                <TableCell class="align-top text-gray-600 max-w-xs">{{ claim.follow_up_plan ?? '—' }}</TableCell>
                             </TableRow>
                         </TableBody>
                     </Table>

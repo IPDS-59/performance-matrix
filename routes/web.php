@@ -3,6 +3,7 @@
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\EmployeeController;
 use App\Http\Controllers\EmployeeReportController;
+use App\Http\Controllers\KipActivityController;
 use App\Http\Controllers\KipIntegrationController;
 use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\PerformanceApprovalController;
@@ -86,25 +87,30 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::delete('/report-attachments/{attachment}', [ReportAttachmentController::class, 'destroy'])->name('report-attachments.destroy');
     Route::patch('/report-attachments/{attachment}/review', [ReportAttachmentController::class, 'review'])->name('report-attachments.review');
 
+    // kipApp activities — admins see all, others see their own
+    Route::get('/kegiatan-kipapp', [KipActivityController::class, 'index'])->name('kip-activities.index');
+
     // Weekly activity scrapper / recap
     Route::get('/rekap-mingguan', [WeeklyActivityController::class, 'index'])->name('weekly.index');
-    Route::post('/rekap-mingguan/sync', [WeeklyActivityController::class, 'sync'])->name('weekly.sync');
     Route::post('/rekap-mingguan/claim', [WeeklyActivityController::class, 'storeClaim'])->name('weekly.claim');
-    Route::post('/rekap-mingguan/kegiatan', [WeeklyActivityController::class, 'storeManualActivity'])->name('weekly.activity.store');
 
     // Team recaps (weekly / monthly / quarterly FRA)
     Route::get('/rekap-tim', [TeamRecapController::class, 'weekly'])->name('team-recap.weekly');
     Route::get('/rekap-bulanan', [TeamRecapController::class, 'monthly'])->name('team-recap.monthly');
     Route::get('/rekap-triwulanan', [TeamRecapController::class, 'quarterly'])->name('team-recap.quarterly');
+    Route::post('/rekap-tim/weekly-note', [TeamRecapController::class, 'storeWeeklyNote'])->name('team-recap.weekly-note.store');
     Route::post('/rekap-tim/evidence', [TeamRecapController::class, 'storeEvidence'])->name('team-recap.evidence.store');
     Route::delete('/rekap-tim/evidence/{evidence}', [TeamRecapController::class, 'destroyEvidence'])->name('team-recap.evidence.destroy');
     Route::post('/rekap-tim/override', [TeamRecapController::class, 'storeOverride'])->name('team-recap.override.store');
+    Route::post('/rekap-tim/override/confirm', [TeamRecapController::class, 'confirmOverride'])->name('team-recap.override.confirm');
+    Route::post('/rekap-tim/override/confirm-bulk', [TeamRecapController::class, 'confirmBulk'])->name('team-recap.override.confirm-bulk');
 
     // kipApp integration (admin: store token + centralized sync)
     Route::middleware('can:manage-kip-integration')->group(function () {
         Route::get('/integrasi-kipapp', [KipIntegrationController::class, 'index'])->name('kip-integration.index');
         Route::post('/integrasi-kipapp/token', [KipIntegrationController::class, 'storeToken'])->name('kip-integration.token');
         Route::post('/integrasi-kipapp/sync', [KipIntegrationController::class, 'syncAll'])->name('kip-integration.sync');
+        Route::post('/integrasi-kipapp/sync-structure', [KipIntegrationController::class, 'syncStructure'])->name('kip-integration.sync-structure');
     });
 
     // Profile

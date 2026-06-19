@@ -13,5 +13,31 @@ return [
         'token' => env('KIP_TOKEN'),
 
         'timeout' => (int) env('KIP_TIMEOUT', 15),
+
+        // Structure sync (Tim/Projek/Anggota) — enumerates all teams of a unit
+        // kerja via /v1/monitoring/hirarki/daerah, then pulls each team's
+        // projects + members.
+        'admin_niplama' => env('KIP_ADMIN_NIPLAMA'),
+
+        // Office scope for the team directory (monitoring/hirarki/daerah).
+        'unitkerja_id' => env('KIP_UNITKERJA_ID', '100'),
+        'wilayah_id' => env('KIP_WILAYAH_ID', '7200_11'),
+
+        // kipApp period identifier used by the structure endpoints (not the quarter).
+        'periode_id' => (int) env('KIP_PERIODE_ID', 8),
+
+        'tahun' => (int) env('KIP_TAHUN', (int) date('Y')),
+
+        // Login accounts for synced employees. kipApp does not expose employee
+        // emails, so they are derived as firstname@<domain> (same pattern as
+        // UserSeeder; second name appended on collision). Password "password".
+        'create_logins' => (bool) env('KIP_CREATE_LOGINS', true),
+        'email_domain' => env('KIP_EMAIL_DOMAIN', 'bpssulteng.id'),
+        'real_email_domain' => env('KIP_REAL_EMAIL_DOMAIN', 'bps.go.id'),
+        'username_map_path' => env('KIP_USERNAME_MAP_PATH', database_path('data/kipapp-usernames.json')),
+        'default_password' => env('KIP_DEFAULT_PASSWORD', 'password'),
+
+        // Employees processed per chunk during the no-queue activity sync.
+        'activity_chunk' => (int) env('KIP_ACTIVITY_CHUNK', 5),
     ],
 ];

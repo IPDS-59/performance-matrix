@@ -15,6 +15,7 @@ class Team extends Model
     protected $fillable = [
         'name',
         'code',
+        'kip_external_id',
         'description',
         'is_active',
         'leader_id',

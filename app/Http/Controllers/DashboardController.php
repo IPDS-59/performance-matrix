@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Employee;
 use App\Models\Project;
 use App\Models\Team;
+use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
@@ -82,54 +83,30 @@ class DashboardController extends Controller
     }
 
     /**
-     * Compute team achievement as: avg of per-project averages.
-     *
-     * A flat AVG across all reports inflates teams whose one active project
-     * has many 100% reports. By averaging per-project first we ensure each
-     * project contributes equally. Projects with zero reports in the period
-     * count as 0% so a team with 10 projects and only 1 reporting 100%
-     * won't show 100%.
+     * Compute team achievement from Kinetik activity_claims.
+     * Average achievement per team across all saved claims for the period.
      */
     private function computeTeamProgress(int $year, int $month): Collection
     {
-        // Per-project averages for the requested period
-        $projectAvgs = DB::table('performance_reports')
-            ->join('work_items', 'work_items.id', '=', 'performance_reports.work_item_id')
-            ->join('projects', 'projects.id', '=', 'work_items.project_id')
-            ->where('performance_reports.period_year', $year)
-            ->where('performance_reports.period_month', $month)
-            ->where('projects.year', $year)
-            ->groupBy('projects.team_id', 'projects.id')
+        return DB::table('activity_claims')
+            ->join('performance_plans', 'performance_plans.id', '=', 'activity_claims.performance_plan_id')
+            ->where('activity_claims.status', 'saved')
+            ->where('activity_claims.period_year', $year)
+            ->where('activity_claims.period_month', $month)
+            ->whereNotNull('activity_claims.achievement')
+            ->whereNotNull('performance_plans.team_id')
+            ->groupBy('performance_plans.team_id')
             ->select(
-                'projects.team_id',
-                'projects.id as project_id',
-                DB::raw('AVG(performance_reports.achievement_percentage) as project_avg'),
-                DB::raw('COUNT(performance_reports.id) as report_count')
+                'performance_plans.team_id',
+                DB::raw('AVG(activity_claims.achievement) as avg_achievement'),
+                DB::raw('COUNT(DISTINCT activity_claims.performance_plan_id) as report_count'),
             )
-            ->get();
-
-        // Total projects per team (including those with no reports)
-        $totalProjectsByTeam = DB::table('projects')
-            ->where('year', $year)
-            ->groupBy('team_id')
-            ->select('team_id', DB::raw('COUNT(*) as total'))
             ->get()
-            ->keyBy('team_id');
-
-        // Roll up: team avg = sum(project avgs) / total projects in team
-        return $projectAvgs
-            ->groupBy('team_id')
-            ->map(function ($rows, $teamId) use ($totalProjectsByTeam) {
-                $sumAvg = $rows->sum('project_avg');
-                $totalProjects = $totalProjectsByTeam[$teamId]->total ?? $rows->count();
-                $reportCount = $rows->sum('report_count');
-
-                return (object) [
-                    'team_id' => (int) $teamId,
-                    'avg_achievement' => $totalProjects > 0 ? $sumAvg / $totalProjects : 0,
-                    'report_count' => $reportCount,
-                ];
-            })
+            ->map(fn ($row) => (object) [
+                'team_id' => (int) $row->team_id,
+                'avg_achievement' => (float) $row->avg_achievement,
+                'report_count' => (int) $row->report_count,
+            ])
             ->keyBy('team_id');
     }
 
@@ -146,62 +123,33 @@ class DashboardController extends Controller
     }
 
     /**
-     * Top employees ranked by achievement: per-project avg ÷ total assigned projects.
-     *
-     * An employee assigned to 5 projects who only reported on 1 at 100%
-     * gets 20%, not 100%.
+     * Top employees ranked by average achievement from Kinetik activity_claims.
      */
     private function topEmployeesByAchievement(int $year, int $month, int $limit = 10): Collection
     {
-        // Per-employee per-project averages
-        $perProject = DB::table('performance_reports')
-            ->join('work_items', 'work_items.id', '=', 'performance_reports.work_item_id')
-            ->join('projects', 'projects.id', '=', 'work_items.project_id')
-            ->where('performance_reports.period_year', $year)
-            ->where('performance_reports.period_month', $month)
-            ->where('projects.year', $year)
-            ->groupBy('performance_reports.reported_by', 'projects.id')
+        return DB::table('activity_claims')
+            ->join('employees', 'employees.id', '=', 'activity_claims.employee_id')
+            ->where('activity_claims.status', 'saved')
+            ->where('activity_claims.period_year', $year)
+            ->where('activity_claims.period_month', $month)
+            ->whereNotNull('activity_claims.achievement')
+            ->where('employees.is_active', true)
+            ->groupBy('activity_claims.employee_id', 'employees.name', 'employees.display_name')
             ->select(
-                'performance_reports.reported_by',
-                'projects.id as project_id',
-                DB::raw('AVG(performance_reports.achievement_percentage) as project_avg')
+                'activity_claims.employee_id as id',
+                'employees.name',
+                'employees.display_name',
+                DB::raw('AVG(activity_claims.achievement) as avg_achievement')
             )
-            ->get();
-
-        // Total assigned projects per employee
-        $assignedCounts = DB::table('project_members')
-            ->join('projects', 'projects.id', '=', 'project_members.project_id')
-            ->where('projects.year', $year)
-            ->groupBy('project_members.employee_id')
-            ->select('project_members.employee_id', DB::raw('COUNT(DISTINCT project_members.project_id) as total'))
+            ->orderByDesc('avg_achievement')
+            ->limit($limit)
             ->get()
-            ->keyBy('employee_id');
-
-        $employees = DB::table('employees')
-            ->where('is_active', true)
-            ->get(['id', 'name', 'display_name'])
-            ->keyBy('id');
-
-        return $perProject
-            ->groupBy('reported_by')
-            ->map(function ($rows, $employeeId) use ($assignedCounts, $employees) {
-                $emp = $employees[$employeeId] ?? null;
-                if (! $emp) {
-                    return null;
-                }
-                $total = $assignedCounts[$employeeId]->total ?? $rows->count();
-
-                return (object) [
-                    'id' => (int) $employeeId,
-                    'name' => $emp->name,
-                    'display_name' => $emp->display_name,
-                    'avg_achievement' => $total > 0 ? $rows->sum('project_avg') / $total : 0,
-                ];
-            })
-            ->filter()
-            ->sortByDesc('avg_achievement')
-            ->take($limit)
-            ->values();
+            ->map(fn ($row) => (object) [
+                'id' => (int) $row->id,
+                'name' => $row->name,
+                'display_name' => $row->display_name,
+                'avg_achievement' => round((float) $row->avg_achievement, 2),
+            ]);
     }
 
     /**
@@ -237,53 +185,74 @@ class DashboardController extends Controller
 
     private function personalStats(Employee $employee, int $year, int $month): array
     {
-        $projectIds = DB::table('project_members')
+        $isTeamLead = Team::where('leader_id', $employee->id)->exists();
+
+        $myTeamId = $isTeamLead
+            ? Team::where('leader_id', $employee->id)->value('id')
+            : $employee->team_id;
+
+        // Count actual project memberships and distinct teams for the current year
+        $membershipBase = DB::table('project_members')
             ->join('projects', 'projects.id', '=', 'project_members.project_id')
             ->where('project_members.employee_id', $employee->id)
-            ->where('projects.year', $year)
-            ->pluck('project_members.project_id')
-            ->unique()
-            ->values();
+            ->where('projects.year', $year);
 
-        $teamIds = DB::table('projects')
-            ->whereIn('id', $projectIds)
-            ->pluck('team_id')
-            ->unique()
-            ->values();
+        $totalProjects = (clone $membershipBase)->count();
+        $totalTeams = (clone $membershipBase)->distinct()->count('projects.team_id');
 
-        $workItemIds = DB::table('work_items')
-            ->whereIn('project_id', $projectIds)
-            ->pluck('id');
+        // Item Kerja: kip_activities for the year — same source as the "Kegiatan Saya"
+        // weekly page, so the numbers are consistent.
+        if ($isTeamLead && $myTeamId) {
+            $totalItems = DB::table('kip_activities')
+                ->join('employees', 'employees.id', '=', 'kip_activities.employee_id')
+                ->join('project_members', 'project_members.employee_id', '=', 'employees.id')
+                ->join('projects', 'projects.id', '=', 'project_members.project_id')
+                ->where('projects.team_id', $myTeamId)
+                ->where('projects.year', $year)
+                ->where('kip_activities.source_year', $year)
+                ->distinct()
+                ->count('kip_activities.id');
+        } else {
+            $totalItems = DB::table('kip_activities')
+                ->where('employee_id', $employee->id)
+                ->where('source_year', $year)
+                ->count();
+        }
 
-        // Per-project avg → employee avg (projects without reports count as 0%)
-        $projectAvgs = DB::table('performance_reports')
-            ->join('work_items', 'work_items.id', '=', 'performance_reports.work_item_id')
-            ->whereIn('work_items.project_id', $projectIds)
-            ->where('performance_reports.period_year', $year)
-            ->where('performance_reports.period_month', $month)
-            ->groupBy('work_items.project_id')
-            ->select(DB::raw('AVG(performance_reports.achievement_percentage) as project_avg'))
-            ->get();
-
-        $totalAssigned = $projectIds->count();
-        $avgAchievement = $totalAssigned > 0
-            ? $projectAvgs->sum('project_avg') / $totalAssigned
-            : 0;
-
-        $isTeamLead = Project::where('leader_id', $employee->id)
-            ->where('year', $year)
-            ->exists();
+        // Average achievement from actual saved claims this period
+        if ($isTeamLead && $myTeamId) {
+            // PJ: use team-wide claims
+            $avgResult = DB::table('activity_claims')
+                ->join('performance_plans', 'performance_plans.id', '=', 'activity_claims.performance_plan_id')
+                ->where('activity_claims.status', 'saved')
+                ->where('activity_claims.period_year', $year)
+                ->where('activity_claims.period_month', $month)
+                ->whereNotNull('activity_claims.achievement')
+                ->where('performance_plans.team_id', $myTeamId)
+                ->selectRaw('AVG(activity_claims.achievement) as avg_achievement')
+                ->first();
+        } else {
+            // Member: only personal claims
+            $avgResult = DB::table('activity_claims')
+                ->where('employee_id', $employee->id)
+                ->where('status', 'saved')
+                ->where('period_year', $year)
+                ->where('period_month', $month)
+                ->whereNotNull('achievement')
+                ->selectRaw('AVG(achievement) as avg_achievement')
+                ->first();
+        }
 
         return [
-            'teams_count' => $teamIds->count(),
-            'projects_count' => $projectIds->count(),
-            'items_count' => $workItemIds->count(),
-            'avg_achievement' => round($avgAchievement ?? 0, 2),
+            'teams_count' => (int) $totalTeams,
+            'projects_count' => (int) $totalProjects,
+            'items_count' => (int) $totalItems,
+            'avg_achievement' => round((float) ($avgResult?->avg_achievement ?? 0), 2),
             'is_team_lead' => $isTeamLead,
         ];
     }
 
-    private function staffDashboard($user, int $year, int $month): Response
+    private function staffDashboard(User $user, int $year, int $month): Response
     {
         $employee = $user->employee;
 
@@ -294,28 +263,53 @@ class DashboardController extends Controller
             ]);
         }
 
-        $isTeamLead = Project::where('leader_id', $employee->id)->where('year', $year)->exists();
+        $isTeamLead = Team::where('leader_id', $employee->id)->exists();
 
-        $projects = Project::with([
-            'workItems.performanceReports' => fn ($q) => $q->where('period_year', $year)->where('period_month', $month),
-            'team:id,name',
-        ])
-            ->whereHas('members', fn ($q) => $q->where('employees.id', $employee->id))
-            ->where('year', $year)
-            ->join('teams', 'teams.id', '=', 'projects.team_id')
-            ->orderBy('teams.name')
-            ->orderBy('projects.name')
-            ->select('projects.*')
-            ->get();
+        // PJ with no personal claims: show all team plans; otherwise show personal plans
+        $myTeamId = $isTeamLead ? Team::where('leader_id', $employee->id)->value('id') : null;
+        $hasPersonalClaims = DB::table('activity_claims')
+            ->where('employee_id', $employee->id)
+            ->where('status', 'saved')
+            ->where('period_year', $year)
+            ->where('period_month', $month)
+            ->exists();
+
+        $projectsBase = DB::table('performance_plans')
+            ->join('activity_claims', 'activity_claims.performance_plan_id', '=', 'performance_plans.id')
+            ->join('teams', 'teams.id', '=', 'performance_plans.team_id')
+            ->where('activity_claims.status', 'saved')
+            ->where('activity_claims.period_year', $year)
+            ->where('activity_claims.period_month', $month)
+            ->whereNotNull('activity_claims.achievement');
+
+        if ($isTeamLead && ! $hasPersonalClaims && $myTeamId) {
+            $projectsBase->where('performance_plans.team_id', $myTeamId);
+        } else {
+            $projectsBase->where('activity_claims.employee_id', $employee->id);
+        }
+
+        $projects = $projectsBase
+            ->groupBy('performance_plans.id', 'performance_plans.description', 'performance_plans.team_id', 'teams.name')
+            ->select(
+                'performance_plans.id',
+                'performance_plans.description as name',
+                'performance_plans.team_id',
+                'teams.name as team_name',
+                DB::raw('AVG(activity_claims.achievement) as achievement'),
+            )
+            ->get()
+            ->map(fn ($plan) => [
+                'id' => $plan->id,
+                'team_id' => $plan->team_id,
+                'name' => $plan->name,
+                'team' => ['id' => $plan->team_id, 'name' => $plan->team_name],
+                'achievement' => round((float) $plan->achievement, 2),
+            ])
+            ->values();
 
         $teamProjects = $isTeamLead
             ? Project::with([
-                'workItems' => fn ($q) => $q->with([
-                    'performanceReports' => fn ($q) => $q
-                        ->where('period_year', $year)
-                        ->where('period_month', $month)
-                        ->with('reporter:id,name,display_name'),
-                ]),
+                'workItems',
                 'members:id,name,display_name',
                 'team:id,name',
             ])
@@ -327,6 +321,27 @@ class DashboardController extends Controller
                 ->select('projects.*')
                 ->get()
             : collect();
+
+        // Attach Kinetik claim counts per team so "Tim yang Saya Pimpin" can show
+        // "N sudah input" even for projects whose members use activity_claims instead
+        // of the old performance_reports system.
+        if ($teamProjects->isNotEmpty()) {
+            $projectTeamIds = $teamProjects->pluck('team_id')->unique()->filter();
+            $kipByTeam = DB::table('activity_claims')
+                ->join('performance_plans', 'performance_plans.id', '=', 'activity_claims.performance_plan_id')
+                ->where('activity_claims.status', 'saved')
+                ->where('activity_claims.period_year', $year)
+                ->where('activity_claims.period_month', $month)
+                ->whereIn('performance_plans.team_id', $projectTeamIds)
+                ->groupBy('performance_plans.team_id')
+                ->select('performance_plans.team_id', DB::raw('COUNT(DISTINCT activity_claims.employee_id) as submitted'))
+                ->get()
+                ->keyBy('team_id');
+
+            $teamProjects->each(function ($project) use ($kipByTeam) {
+                $project->kinetik_submitted_count = (int) ($kipByTeam[$project->team_id]?->submitted ?? 0);
+            });
+        }
 
         $teamProgress = $this->computeTeamProgress($year, $month);
 
@@ -374,7 +389,7 @@ class DashboardController extends Controller
         ]);
     }
 
-    private function headDashboard($user, int $year, int $month): Response
+    private function headDashboard(User $user, int $year, int $month): Response
     {
         $teamProgress = $this->computeTeamProgress($year, $month);
 
@@ -422,38 +437,32 @@ class DashboardController extends Controller
             $data['employee'] = $employee->only('id', 'name', 'display_name');
             $data['personal_stats'] = $this->personalStats($employee, $year, $month);
 
-            // Personal projects with work items (same as staff view)
-            $data['projects'] = Project::with([
-                'workItems' => fn ($q) => $q
-                    ->whereHas('assignments', fn ($q) => $q->where('employee_id', $employee->id))
-                    ->with([
-                        'assignments' => fn ($q) => $q->where('employee_id', $employee->id),
-                        'performanceReports' => fn ($q) => $q
-                            ->where('period_year', $year)
-                            ->where('reported_by', $employee->id)
-                            ->with('attachments'),
-                    ]),
-                'team:id,name',
-            ])
-                ->whereHas('members', fn ($q) => $q->where('employees.id', $employee->id))
-                ->where('year', $year)
-                ->join('teams', 'teams.id', '=', 'projects.team_id')
-                ->orderBy('teams.name')
-                ->orderBy('projects.name')
-                ->select('projects.*')
+            // Personal Kinetik plan cards (same structure as staffDashboard)
+            $data['projects'] = DB::table('performance_plans')
+                ->join('activity_claims', 'activity_claims.performance_plan_id', '=', 'performance_plans.id')
+                ->join('teams', 'teams.id', '=', 'performance_plans.team_id')
+                ->where('activity_claims.employee_id', $employee->id)
+                ->where('activity_claims.status', 'saved')
+                ->where('activity_claims.period_year', $year)
+                ->where('activity_claims.period_month', $month)
+                ->whereNotNull('activity_claims.achievement')
+                ->groupBy('performance_plans.id', 'performance_plans.description', 'performance_plans.team_id', 'teams.name')
+                ->select(
+                    'performance_plans.id',
+                    'performance_plans.description as name',
+                    'performance_plans.team_id',
+                    'teams.name as team_name',
+                    DB::raw('AVG(activity_claims.achievement) as achievement'),
+                )
                 ->get()
-                ->map(function ($project) {
-                    $project->workItems->transform(function ($wi) {
-                        $assignment = $wi->assignments->first();
-                        $wi->target = $assignment?->target ?? $wi->target;
-                        $wi->target_unit = $assignment?->target_unit ?? $wi->target_unit;
-                        unset($wi->assignments);
-
-                        return $wi;
-                    });
-
-                    return $project;
-                });
+                ->map(fn ($plan) => [
+                    'id' => $plan->id,
+                    'team_id' => $plan->team_id,
+                    'name' => $plan->name,
+                    'team' => ['id' => $plan->team_id, 'name' => $plan->team_name],
+                    'achievement' => round((float) $plan->achievement, 2),
+                ])
+                ->values();
         }
 
         return Inertia::render('Dashboard', $data);

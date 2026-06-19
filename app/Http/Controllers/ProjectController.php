@@ -19,25 +19,39 @@ class ProjectController extends Controller
         $this->authorize('viewAny', Project::class);
 
         $user = $request->user();
+        $employee = $user->employee;
         $isAdmin = $user->hasPermissionTo('manage-projects');
         $year = $request->integer('year', now()->year);
         $teamId = $request->integer('team_id');
 
-        // Non-admin: restrict to their own team
-        if (! $isAdmin && ! $teamId) {
-            $teamId = $user->employee?->team_id;
+        // Team leads: default to showing their own team when no team filter is set.
+        // Regular members: no team scoping by default — the whereHas below handles their restriction.
+        $isTeamLead = ! $isAdmin && $employee && Team::where('leader_id', $employee->id)->exists();
+        if (! $isAdmin && ! $isTeamLead && ! $teamId) {
+            // keep $teamId = 0 so the team_id WHERE clause is skipped; member filter does the scoping
+        } elseif (! $isAdmin && ! $teamId) {
+            $teamId = $employee?->team_id;
         }
 
         $projects = Project::with('team:id,name', 'leader:id,name,display_name')
             ->withCount('members')
             ->when($teamId, fn ($q) => $q->where('team_id', $teamId))
+            ->when(! $isAdmin && ! $isTeamLead && $employee, fn ($q) =>
+                $q->whereHas('members', fn ($q2) => $q2->where('employees.id', $employee->id))
+            )
             ->where('year', $year)
             ->orderBy('name')
             ->get();
 
-        $teams = $isAdmin
-            ? Team::where('is_active', true)->orderBy('name')->get(['id', 'name'])
-            : Team::where('id', $teamId)->get(['id', 'name']);
+        if ($isAdmin) {
+            $teams = Team::where('is_active', true)->orderBy('name')->get(['id', 'name']);
+        } elseif ($isTeamLead) {
+            $teams = Team::where('id', $teamId)->get(['id', 'name']);
+        } else {
+            // Regular member: show all teams they have projects in this year
+            $memberTeamIds = $projects->pluck('team.id')->filter()->unique();
+            $teams = Team::whereIn('id', $memberTeamIds)->orderBy('name')->get(['id', 'name']);
+        }
 
         $canCreate = $user->can('create', Project::class);
 

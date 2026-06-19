@@ -57,6 +57,8 @@ export interface PerformanceIndicator {
     target_unit?: string | null;
     description?: string | null;
     team?: Team | null;
+    can_update?: boolean;
+    can_delete?: boolean;
 }
 
 export interface PerformancePlan {
@@ -71,6 +73,9 @@ export interface PerformancePlan {
     pic_employee_id?: number | null;
     project?: Project | null;
     pic?: Employee | null;
+    team?: Team | null;
+    can_update?: boolean;
+    can_delete?: boolean;
 }
 
 export interface WorkItem {
@@ -164,11 +169,7 @@ export interface ProjectWithItems {
     team_id: number;
     name: string;
     team?: { id: number; name: string } | null;
-    work_items: Array<{
-        id: number;
-        description: string;
-        performance_reports: Array<{ achievement_percentage: number }>;
-    }>;
+    achievement: number | null;
 }
 
 export interface TeamProjectWithMembers {
@@ -176,19 +177,7 @@ export interface TeamProjectWithMembers {
     name: string;
     team: { id: number; name: string } | null;
     members: TeamMember[];
-    work_items: Array<{
-        id: number;
-        description: string;
-        target: number;
-        target_unit: string;
-        performance_reports: Array<{
-            id: number;
-            realization: number;
-            achievement_percentage: number;
-            reported_by: number | null;
-            reporter: { id: number; name: string; display_name: string | null } | null;
-        }>;
-    }>;
+    kinetik_submitted_count?: number;
 }
 
 export type PageProps<
@@ -217,6 +206,7 @@ export interface KipActivity {
     evidence_url?: string | null;
     rk_name?: string | null;
     is_claimed: boolean;
+    matched_plan_id?: number | null;
     claim?: ActivityClaim | null;
 }
 
@@ -257,6 +247,8 @@ export interface RecapRow {
     performance_plan_id: number;
     rk_code?: string | null;
     rk_description: string;
+    uraian_aggregated?: string | null;
+    uraian_items?: Array<{ name: string; uraian: string }>;
     target: number;
     realization: number;
     achievement: number | null;
@@ -269,6 +261,20 @@ export interface RecapRow {
     follow_up_aggregated: string | null;
     is_overridden: boolean;
     contributors: string[];
+    // Confirmation
+    is_confirmed?: boolean;
+    confirmed_by?: string | null;
+    // PJ paraphrase fields (read-only view for non-PJ members)
+    pj_uraian?: string | null;
+    pj_obstacle?: string | null;
+    pj_solution?: string | null;
+    pj_follow_up_plan?: string | null;
+    // Inherited from previous weekly paraphrase (used to prefill monthly/quarterly)
+    inherited_obstacle?: string | null;
+    inherited_solution?: string | null;
+    inherited_follow_up_plan?: string | null;
+    // PIC employee id (for row-level paraphrase permission)
+    pic_employee_id?: number | null;
     // Quarterly (FRA) only
     follow_up_evidence_url?: string | null;
     follow_up_pic?: string | null;
@@ -297,4 +303,72 @@ export interface TeamRecapEvidence {
 export interface TeamOption {
     id: number;
     name: string;
+}
+
+export interface WeeklyTeamNote {
+    id: number;
+    team_id: number;
+    week_start: string;
+    uraian: string | null;
+    obstacle: string | null;
+    solution: string | null;
+    follow_up_plan: string | null;
+}
+
+export interface KipSyncRun {
+    id: number;
+    status: string;
+    total: number | null;
+    processed: number;
+    summary: Record<string, unknown>;
+    message?: string | null;
+}
+
+export interface KipCredential {
+    account_nip?: string | null;
+    account_name?: string | null;
+    expires_at: string | null;
+    is_expired: boolean;
+    is_expiring_soon?: boolean;
+    updated_at: string | null;
+    updated_by: string | null;
+}
+
+export interface KipIntegrationStats {
+    employees_with_nip: number;
+    employees_total: number;
+    activities_synced: number;
+    last_fetched_at: string | null;
+    teams_synced: number;
+    projects_synced: number;
+}
+
+export interface KipActivityRow {
+    id: number;
+    employee_id: number;
+    employee_name: string;
+    nip_lama?: string | null;
+    date_start: string;
+    description?: string | null;
+    rk_name?: string | null;
+    progress?: number | null;
+    is_claimed: boolean;
+    evidence_url?: string | null;
+}
+
+export interface PaginationLink {
+    url: string | null;
+    label: string;
+    active: boolean;
+}
+
+export interface Paginated<T> {
+    data: T[];
+    current_page: number;
+    last_page: number;
+    per_page: number;
+    total: number;
+    from?: number | null;
+    to?: number | null;
+    links: PaginationLink[];
 }

@@ -48,3 +48,24 @@ kipapp.postman_collection.json
 # Session artifacts
 .playwright-mcp/
 .codegraph/*.pid
+.mcp.json
+
+# Local secrets (never commit)
+docs/credentials/
+
+# Internal Kinetik docs (not for the repo)
+docs/kinetik/
+
+# Internal artifacts in docs/ root (screenshots, spreadsheets, archives — local only)
+docs/*.png
+docs/*.jpg
+docs/*.jpeg
+docs/*.xlsx
+docs/*.rar
+docs/*.txt
+docs/*.zip
+
+# Export/build archives at repo root
+/*.zip
+/*.png
+/*.jpg

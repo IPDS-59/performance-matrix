@@ -21,26 +21,14 @@ function makeMember(id: number, role: string): TeamMember {
 
 function makeProject(
     members: TeamMember[],
-    reportedByValues: (number | null)[][],
+    kinetikSubmittedCount?: number,
 ): TeamProjectWithMembers {
     return {
         id: 1,
         name: 'Test Project',
         team: { id: 10, name: 'Team A' },
         members,
-        work_items: reportedByValues.map((reporters, wiIdx) => ({
-            id: wiIdx + 1,
-            description: `Work item ${wiIdx + 1}`,
-            target: 100,
-            target_unit: 'unit',
-            performance_reports: reporters.map((reportedBy, rIdx) => ({
-                id: rIdx + 1,
-                realization: 80,
-                achievement_percentage: 80,
-                reported_by: reportedBy,
-                reporter: null,
-            })),
-        })),
+        kinetik_submitted_count: kinetikSubmittedCount,
     };
 }
 
@@ -97,12 +85,12 @@ describe('leaderBadgeLabel', () => {
 
 describe('ledProjectMemberCount', () => {
     it('returns number of members', () => {
-        const project = makeProject([makeMember(1, 'leader'), makeMember(2, 'member')], []);
+        const project = makeProject([makeMember(1, 'leader'), makeMember(2, 'member')]);
         expect(ledProjectMemberCount(project)).toBe(2);
     });
 
     it('returns 0 for empty members', () => {
-        const project = makeProject([], []);
+        const project = makeProject([]);
         expect(ledProjectMemberCount(project)).toBe(0);
     });
 });
@@ -110,35 +98,21 @@ describe('ledProjectMemberCount', () => {
 // ── ledProjectSubmittedCount ─────────────────────────────────────────────────
 
 describe('ledProjectSubmittedCount', () => {
-    it('counts distinct reporters across all work items', () => {
+    it('returns kinetik_submitted_count', () => {
         const project = makeProject(
             [makeMember(1, 'leader'), makeMember(2, 'member'), makeMember(3, 'member')],
-            [
-                [1, 2],   // work item 1: reporters 1 and 2
-                [2, 3],   // work item 2: reporters 2 and 3
-            ],
+            3,
         );
-        // Distinct set: {1, 2, 3}
         expect(ledProjectSubmittedCount(project)).toBe(3);
     });
 
-    it('does not double-count the same reporter', () => {
-        const project = makeProject([], [[1], [1], [1]]);
-        expect(ledProjectSubmittedCount(project)).toBe(1);
-    });
-
-    it('ignores null reported_by', () => {
-        const project = makeProject([], [[null, 1, null]]);
-        expect(ledProjectSubmittedCount(project)).toBe(1);
-    });
-
-    it('returns 0 when no reports exist', () => {
-        const project = makeProject([], []);
+    it('returns 0 when kinetik_submitted_count is undefined', () => {
+        const project = makeProject([]);
         expect(ledProjectSubmittedCount(project)).toBe(0);
     });
 
-    it('returns 0 when all reported_by are null', () => {
-        const project = makeProject([], [[null, null]]);
+    it('returns 0 when kinetik_submitted_count is 0', () => {
+        const project = makeProject([], 0);
         expect(ledProjectSubmittedCount(project)).toBe(0);
     });
 });

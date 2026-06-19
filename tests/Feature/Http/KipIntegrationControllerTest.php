@@ -6,6 +6,8 @@ use App\Kinetik\Sources\MockKipActivitySource;
 use App\Models\Employee;
 use App\Models\KipActivity;
 use App\Models\KipCredential;
+use App\Models\KipSyncRun;
+use App\Models\Team;
 use Illuminate\Support\Facades\Http;
 
 /**
@@ -82,7 +84,7 @@ it('makes the authenticator prefer the stored credential over config', function 
 
 // ── Centralized sync ──────────────────────────────────────────────────────
 
-it('syncs all active employees with a nip_lama', function () {
+it('syncs all active employees with a nip_lama in one chunk', function () {
     $this->app->bind(KipActivitySource::class, MockKipActivitySource::class);
     KipCredential::create(['token' => 'admin-token']);
 
@@ -92,13 +94,43 @@ it('syncs all active employees with a nip_lama', function () {
     ]);
     Employee::factory()->create(['is_active' => true, 'nip_lama' => null]); // skipped
 
+    // 2 employees <= default chunk (5) -> completes in a single step.
     $this->actingAs(adminUser())
         ->post(route('kip-integration.sync'))
-        ->assertRedirect()
-        ->assertSessionHas('success');
+        ->assertRedirect();
+
+    $run = KipSyncRun::where('type', 'activities')->latest('id')->first();
+    expect($run->status)->toBe('completed')
+        ->and($run->total)->toBe(2)
+        ->and($run->summary['activities'])->toBe(6);
 
     // MockKipActivitySource returns 3 activities per employee → 2 employees = 6
     expect(KipActivity::count())->toBe(6);
+});
+
+it('processes the activity sync in chunks across requests', function () {
+    config(['kinetik.kip.activity_chunk' => 1]);
+    $this->app->bind(KipActivitySource::class, MockKipActivitySource::class);
+    KipCredential::create(['token' => 'admin-token']);
+
+    Employee::factory()->count(2)->create([
+        'is_active' => true,
+        'nip_lama' => fn () => fake()->unique()->numerify('3400#####'),
+    ]);
+
+    $admin = adminUser();
+
+    // Step 1: one employee processed, run still running.
+    $this->actingAs($admin)->post(route('kip-integration.sync'))->assertRedirect();
+    $run = KipSyncRun::where('type', 'activities')->latest('id')->first();
+    expect($run->processed)->toBe(1)->and($run->status)->toBe('running');
+
+    // Step 2: last employee, run completes.
+    $this->actingAs($admin)->post(route('kip-integration.sync'))->assertRedirect();
+    $run->refresh();
+    expect($run->processed)->toBe(2)
+        ->and($run->status)->toBe('completed')
+        ->and(KipActivity::count())->toBe(6);
 });
 
 it('blocks sync when no token is configured', function () {
@@ -106,6 +138,55 @@ it('blocks sync when no token is configured', function () {
 
     $this->actingAs(adminUser())
         ->post(route('kip-integration.sync'))
+        ->assertRedirect()
+        ->assertSessionHas('error');
+});
+
+// ── Chunked structure sync (no queue) ────────────────────────────────────
+
+it('processes the structure sync one team per request and tracks progress', function () {
+    config(['kinetik.kip.token' => 'admin-token', 'kinetik.kip.create_logins' => false]);
+
+    Http::fake([
+        'kipapp.bps.go.id/api/v1/monitoring/hirarki/daerah*' => Http::response([
+            'data' => [
+                ['id' => '106436', 'namaTim' => 'UMUM'],
+                ['id' => '106453', 'namaTim' => 'MTI'],
+            ],
+        ], 200),
+        'kipapp.bps.go.id/api/v1/proyek*' => Http::response([[
+            'timkerjaid' => '106436', 'namatim' => 'UMUM',
+            'proyekid' => 'p1', 'namaproyek' => 'Projek A',
+            'anggota' => [['anggotaid' => 'a1', 'niplama' => '340000001', 'nama' => 'Ada']],
+        ]], 200),
+        'kipapp.bps.go.id/api/v1/timkerja/anggota*' => Http::response([], 200),
+    ]);
+
+    $admin = adminUser();
+
+    // Step 1: starts the run and processes the first team.
+    $this->actingAs($admin)->post(route('kip-integration.sync-structure'))->assertRedirect();
+
+    $run = KipSyncRun::where('type', 'structure')->latest('id')->first();
+    expect($run)->not->toBeNull()
+        ->and($run->total)->toBe(2)
+        ->and($run->processed)->toBe(1)
+        ->and($run->status)->toBe('running');
+
+    // Step 2: processes the last team and completes.
+    $this->actingAs($admin)->post(route('kip-integration.sync-structure'))->assertRedirect();
+
+    $run->refresh();
+    expect($run->processed)->toBe(2)
+        ->and($run->status)->toBe('completed')
+        ->and(Team::whereNotNull('kip_external_id')->count())->toBe(2);
+});
+
+it('blocks structure sync when no token is configured', function () {
+    config(['kinetik.kip.token' => null]);
+
+    $this->actingAs(adminUser())
+        ->post(route('kip-integration.sync-structure'))
         ->assertRedirect()
         ->assertSessionHas('error');
 });

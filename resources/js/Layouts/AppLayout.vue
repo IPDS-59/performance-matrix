@@ -11,7 +11,7 @@ import {
 const page = usePage();
 const sidebar = useSidebarStore();
 
-const user = computed(() => page.props.auth.user as { name: string; email: string; role: string });
+const user = computed(() => page.props.auth.user as { name: string; email: string; role: string; position?: string | null });
 const isAdmin = computed(() => user.value.role === 'admin');
 const isHead = computed(() => user.value.role === 'head');
 const isStaff = computed(() => user.value.role === 'staff');
@@ -126,7 +126,7 @@ onUnmounted(() => {
                         alt="BPS Sulteng"
                         class="h-8 w-8 rounded object-contain bg-white p-0.5"
                     />
-                    <span class="truncate">Matriks Kinerja</span>
+                    <span class="truncate">Kinetik</span>
                 </Link>
                 <button
                     @click="sidebar.toggle()"
@@ -170,9 +170,9 @@ onUnmounted(() => {
                     <span v-if="sidebar.isOpen">Matriks</span>
                 </Link>
 
-                <!-- Performance entry (staff + head) -->
+                <!-- Performance entry (legacy Domain A; hidden for staff — kipApp claim flow replaces it) -->
                 <Link
-                    v-if="isStaff || isHead"
+                    v-if="isHead"
                     :href="route('performance.index')"
                     :class="route().current('performance.*') ? 'bg-white/20' : 'hover:bg-white/10'"
                     class="flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors"
@@ -328,6 +328,19 @@ onUnmounted(() => {
                     </svg>
                     <span v-if="sidebar.isOpen">Integrasi kipApp</span>
                 </Link>
+
+                <!-- kipApp activities list (admins see all; others see their own) -->
+                <Link
+                    v-if="isAdmin || hasEmployee"
+                    :href="route('kip-activities.index')"
+                    :class="route().current('kip-activities.*') ? 'bg-white/20' : 'hover:bg-white/10'"
+                    class="flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors"
+                >
+                    <svg class="h-5 w-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/>
+                    </svg>
+                    <span v-if="sidebar.isOpen">{{ isAdmin ? 'Kegiatan kipApp' : 'Kegiatan Saya' }}</span>
+                </Link>
             </nav>
 
             <!-- User footer -->
@@ -338,7 +351,7 @@ onUnmounted(() => {
                     </div>
                     <div v-if="sidebar.isOpen" class="min-w-0 flex-1">
                         <p class="truncate text-sm font-medium">{{ user.name }}</p>
-                        <p class="truncate text-xs text-white/60">{{ user.role }}</p>
+                        <p class="truncate text-xs text-white/60">{{ user.position || user.role }}</p>
                     </div>
                 </div>
                 <div v-if="sidebar.isOpen" class="mt-2 flex gap-2">

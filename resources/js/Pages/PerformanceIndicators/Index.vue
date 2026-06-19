@@ -81,7 +81,6 @@ function executeDelete() {
             <Table>
                 <TableHeader>
                     <TableRow>
-                        <TableHead>Kode</TableHead>
                         <TableHead>Nama IKU</TableHead>
                         <TableHead>Tim</TableHead>
                         <TableHead>Tahun</TableHead>
@@ -91,10 +90,9 @@ function executeDelete() {
                 </TableHeader>
                 <TableBody>
                     <TableRow v-if="!indicators.length">
-                        <TableCell colspan="6" class="text-center text-gray-400 py-8">Belum ada data.</TableCell>
+                        <TableCell colspan="5" class="text-center text-gray-400 py-8">Belum ada data.</TableCell>
                     </TableRow>
                     <TableRow v-for="indicator in indicators" :key="indicator.id">
-                        <TableCell class="font-mono text-sm">{{ indicator.code ?? '—' }}</TableCell>
                         <TableCell>{{ indicator.name }}</TableCell>
                         <TableCell>{{ indicator.team?.name ?? '—' }}</TableCell>
                         <TableCell>{{ indicator.year }}</TableCell>
@@ -105,14 +103,15 @@ function executeDelete() {
                             <template v-else>—</template>
                         </TableCell>
                         <TableCell class="text-right">
-                            <div class="inline-flex gap-2">
-                                <Button variant="outline" size="sm" as-child>
+                            <div v-if="indicator.can_update || indicator.can_delete" class="inline-flex gap-2">
+                                <Button v-if="indicator.can_update" variant="outline" size="sm" as-child>
                                     <Link :href="route('performance-indicators.edit', indicator.id)">Edit</Link>
                                 </Button>
-                                <Button variant="destructive" size="sm" @click="confirmDelete(indicator.id, indicator.name)">
+                                <Button v-if="indicator.can_delete" variant="destructive" size="sm" @click="confirmDelete(indicator.id, indicator.name)">
                                     Hapus
                                 </Button>
                             </div>
+                            <span v-else class="text-gray-400">—</span>
                         </TableCell>
                     </TableRow>
                 </TableBody>

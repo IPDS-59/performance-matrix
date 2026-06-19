@@ -9,8 +9,14 @@ use Illuminate\Support\Collection;
 
 class SyncKipActivitiesAction
 {
+    public function __construct(
+        private readonly BackfillRkAction $backfillRk,
+    ) {}
+
     /**
-     * Fetch and upsert unsent kipApp activities for a collection of employees.
+     * Fetch and upsert kipApp activities (submitted + unsent) for a collection of employees,
+     * then backfill RK (performance_plans) from those activities so they are
+     * claimable.
      *
      * Employees without a nip_lama are silently skipped.
      * The operation is idempotent: re-running will update existing rows but not
@@ -28,7 +34,7 @@ class SyncKipActivitiesAction
                 continue;
             }
 
-            $activities = $source->fetchUnsentActivities($employee->nip_lama);
+            $activities = $source->fetchActivities($employee->nip_lama);
 
             foreach ($activities as $dto) {
                 KipActivity::updateOrCreate(
@@ -56,6 +62,8 @@ class SyncKipActivitiesAction
 
                 $count++;
             }
+
+            $this->backfillRk->execute($employee);
         }
 
         return $count;

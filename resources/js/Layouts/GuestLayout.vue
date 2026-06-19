@@ -10,7 +10,7 @@
                 alt="BPS Sulteng"
                 class="h-32 w-32 mb-8"
             />
-            <h1 class="text-3xl font-bold text-center leading-tight">Matriks Kinerja</h1>
+            <h1 class="text-3xl font-bold text-center leading-tight">Kinetik</h1>
             <p class="mt-3 text-base text-white/70 text-center">
                 BPS Provinsi Sulawesi Tengah
             </p>

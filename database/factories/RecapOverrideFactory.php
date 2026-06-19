@@ -28,6 +28,9 @@ class RecapOverrideFactory extends Factory
             'follow_up_pic_employee_id' => null,
             'follow_up_deadline' => null,
             'created_by' => null,
+            'week_start' => null,
+            'confirmed_at' => null,
+            'confirmed_by' => null,
         ];
     }
 }
