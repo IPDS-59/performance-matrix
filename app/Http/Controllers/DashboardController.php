@@ -200,6 +200,20 @@ class DashboardController extends Controller
         $totalProjects = (clone $membershipBase)->count();
         $totalTeams = (clone $membershipBase)->distinct()->count('projects.team_id');
 
+        // Item Kerja: saved activity claims this period (personal for members, team-wide for PJ)
+        $claimsBase = DB::table('activity_claims')->where('status', 'saved')
+            ->where('period_year', $year)
+            ->where('period_month', $month);
+
+        if ($isTeamLead && $myTeamId) {
+            $totalItems = (clone $claimsBase)
+                ->join('performance_plans', 'performance_plans.id', '=', 'activity_claims.performance_plan_id')
+                ->where('performance_plans.team_id', $myTeamId)
+                ->count();
+        } else {
+            $totalItems = (clone $claimsBase)->where('employee_id', $employee->id)->count();
+        }
+
         // Average achievement from actual saved claims this period
         if ($isTeamLead && $myTeamId) {
             // PJ: use team-wide claims
@@ -227,7 +241,7 @@ class DashboardController extends Controller
         return [
             'teams_count' => (int) $totalTeams,
             'projects_count' => (int) $totalProjects,
-            'items_count' => (int) $totalProjects,
+            'items_count' => (int) $totalItems,
             'avg_achievement' => round((float) ($avgResult?->avg_achievement ?? 0), 2),
             'is_team_lead' => $isTeamLead,
         ];
