@@ -200,18 +200,23 @@ class DashboardController extends Controller
         $totalProjects = (clone $membershipBase)->count();
         $totalTeams = (clone $membershipBase)->distinct()->count('projects.team_id');
 
-        // Item Kerja: saved activity claims this period (personal for members, team-wide for PJ)
-        $claimsBase = DB::table('activity_claims')->where('status', 'saved')
-            ->where('period_year', $year)
-            ->where('period_month', $month);
-
+        // Item Kerja: kip_activities for the year — same source as the "Kegiatan Saya"
+        // weekly page, so the numbers are consistent.
         if ($isTeamLead && $myTeamId) {
-            $totalItems = (clone $claimsBase)
-                ->join('performance_plans', 'performance_plans.id', '=', 'activity_claims.performance_plan_id')
-                ->where('performance_plans.team_id', $myTeamId)
-                ->count();
+            $totalItems = DB::table('kip_activities')
+                ->join('employees', 'employees.id', '=', 'kip_activities.employee_id')
+                ->join('project_members', 'project_members.employee_id', '=', 'employees.id')
+                ->join('projects', 'projects.id', '=', 'project_members.project_id')
+                ->where('projects.team_id', $myTeamId)
+                ->where('projects.year', $year)
+                ->where('kip_activities.source_year', $year)
+                ->distinct()
+                ->count('kip_activities.id');
         } else {
-            $totalItems = (clone $claimsBase)->where('employee_id', $employee->id)->count();
+            $totalItems = DB::table('kip_activities')
+                ->where('employee_id', $employee->id)
+                ->where('source_year', $year)
+                ->count();
         }
 
         // Average achievement from actual saved claims this period
