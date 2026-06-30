@@ -44,7 +44,7 @@ importers:
     devDependencies:
       '@inertiajs/vue3':
         specifier: ^3.3.0
-        version: 3.3.0(axios@1.17.0)(vue@3.5.35(typescript@6.0.3))
+        version: 3.3.0(axios@1.18.1)(vue@3.5.35(typescript@6.0.3))
       '@tailwindcss/vite':
         specifier: ^4.3.0
         version: 4.3.0(vite@8.0.16(jiti@2.7.0))
@@ -58,8 +58,8 @@ importers:
         specifier: ^2.4.10
         version: 2.4.10(@vue/compiler-dom@3.5.35)(@vue/server-renderer@3.5.35(vue@3.5.35(typescript@6.0.3)))(vue@3.5.35(typescript@6.0.3))
       axios:
-        specifier: '>=1.11.0 <=1.18.0'
-        version: 1.17.0
+        specifier: '>=1.11.0 <=1.19.0'
+        version: 1.18.1
       concurrently:
         specifier: ^10.0.3
         version: 10.0.3
@@ -914,8 +914,8 @@ packages:
   asynckit@0.4.0:
     resolution: {integrity: sha512-Oei9OH4tRh0YqU3GxhX79dM/mwVgvbZJaSNaRk+bshkj0S5cfHcgYakreBjrHwatXKbz+IoIdYLxrKim2MjW0Q==}
 
-  axios@1.17.0:
-    resolution: {integrity: sha512-J8SwNxprqqpbfenehxWYXE7CW+wM1BB4w3+N+g+/Wx40xM4rsLrfPmHHxSWIxJLYDgSY/HqlFPIYb2/S3rxafw==}
+  axios@1.18.1:
+    resolution: {integrity: sha512-3nTvFlvpn9Zu/RkHUqtc7/+al4UpRW5az71ap5zccp6e8RAYEzhMTecX8Dz1wWDYrPpUoB1HAQEGEAEvUr7S9g==}
 
   babel-plugin-macros@3.1.0:
     resolution: {integrity: sha512-Cg7TFGpIr01vOQNODXOOaGz2NpCU5gl8x1qJFbb6hbZxR7XrcE2vtbAsTAbJ7/xwJtUuJEw8K8Zr/AE0LHlesg==}
@@ -1318,8 +1318,8 @@ packages:
     resolution: {integrity: sha512-gIXjKqtFuWEgzFRJA9WCQeSJLZDjgJUOMCMzxtvFq/37KojM1BFGufqsCy0r4qSQmYLsZYMeyRqzIWOMup03sw==}
     engines: {node: '>=14'}
 
-  form-data@4.0.5:
-    resolution: {integrity: sha512-8RipRLol37bNs2bhoV67fiTEvdTrbMUYcFTiy3+wuuOnUog2QBHCZWXDRijWQfAkhBj2Uf5UnVaiWwA5vdd82w==}
+  form-data@4.0.6:
+    resolution: {integrity: sha512-vKatAh4SlVfgbv+YtmhiRjhEMJsYpsG1Y2rMQtR+SVSbytsSD1YGzDIcrAJmdFec88u/+VoGmxnl+80gL1tRCQ==}
     engines: {node: '>= 6'}
 
   frac@1.1.2:
@@ -2432,19 +2432,19 @@ snapshots:
       - '@vue/composition-api'
       - vue
 
-  '@inertiajs/core@3.3.0(axios@1.17.0)':
+  '@inertiajs/core@3.3.0(axios@1.18.1)':
     dependencies:
       '@jridgewell/trace-mapping': 0.3.31
       es-toolkit: 1.47.0
-      laravel-precognition: 2.0.0(axios@1.17.0)
+      laravel-precognition: 2.0.0(axios@1.18.1)
     optionalDependencies:
-      axios: 1.17.0
+      axios: 1.18.1
 
-  '@inertiajs/vue3@3.3.0(axios@1.17.0)(vue@3.5.35(typescript@6.0.3))':
+  '@inertiajs/vue3@3.3.0(axios@1.18.1)(vue@3.5.35(typescript@6.0.3))':
     dependencies:
-      '@inertiajs/core': 3.3.0(axios@1.17.0)
+      '@inertiajs/core': 3.3.0(axios@1.18.1)
       es-toolkit: 1.47.0
-      laravel-precognition: 2.0.0(axios@1.17.0)
+      laravel-precognition: 2.0.0(axios@1.18.1)
       vue: 3.5.35(typescript@6.0.3)
     transitivePeerDependencies:
       - axios
@@ -3161,10 +3161,10 @@ snapshots:
 
   asynckit@0.4.0: {}
 
-  axios@1.17.0:
+  axios@1.18.1:
     dependencies:
       follow-redirects: 1.16.0
-      form-data: 4.0.5
+      form-data: 4.0.6
       https-proxy-agent: 5.0.1
       proxy-from-env: 2.1.0
     transitivePeerDependencies:
@@ -3564,7 +3564,7 @@ snapshots:
       cross-spawn: 7.0.6
       signal-exit: 4.1.0
 
-  form-data@4.0.5:
+  form-data@4.0.6:
     dependencies:
       asynckit: 0.4.0
       combined-stream: 1.0.8
@@ -3757,11 +3757,11 @@ snapshots:
 
   kind-of@6.0.3: {}
 
-  laravel-precognition@2.0.0(axios@1.17.0):
+  laravel-precognition@2.0.0(axios@1.18.1):
     dependencies:
       es-toolkit: 1.47.0
     optionalDependencies:
-      axios: 1.17.0
+      axios: 1.18.1
 
   laravel-vite-plugin@3.1.0(vite@8.0.16(jiti@2.7.0)):
     dependencies:
