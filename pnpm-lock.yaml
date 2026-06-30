@@ -94,8 +94,8 @@ importers:
         specifier: ^0.18.5
         version: 0.18.5
       ziggy-js:
-        specifier: ^2.6.2
-        version: 2.6.2
+        specifier: ^2.6.3
+        version: 2.6.3
 
 packages:
 
@@ -2216,8 +2216,8 @@ packages:
     resolution: {integrity: sha512-4UEqdc2RYGHZc7Doyqkrqiln3p9X2DZVxaGbwhn2pi7MrRagKaOcIKe8L3OxYcbhXLgLFUS3zAYuQjKBQgmuNg==}
     engines: {node: ^20.19.0 || ^22.12.0 || >=23}
 
-  ziggy-js@2.6.2:
-    resolution: {integrity: sha512-41xc9wRvv5Olh8pZjKSaL5vDAjw4BfTDMFoeLwRpDGc2B+uqcdwIKd81EHs6uwpqahdRrU7uMab0xWj0hBSDjg==}
+  ziggy-js@2.6.3:
+    resolution: {integrity: sha512-YcuXM0BohyWUsQcibMmlGMrfF01BQogRjrfg/AWQhG3rB/Swt76/SJxH5AH8X8Xn5aDWxGpYKdXV7Fo5g+BVLQ==}
 
 snapshots:
 
@@ -4344,6 +4344,6 @@ snapshots:
       y18n: 5.0.8
       yargs-parser: 22.0.0
 
-  ziggy-js@2.6.2:
+  ziggy-js@2.6.3:
     dependencies:
       qs-esm: 7.0.3
