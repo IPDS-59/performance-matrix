@@ -17,7 +17,7 @@ const CYCLE = [
     { who: 'Kinetik', what: 'Tarik data kipApp setiap pagi' },
     { who: 'Anggota', what: 'Klaim kegiatan di Rekap Mingguan' },
     { who: 'PJ', what: 'Rapat tim, ringkasan, bukti, kunci' },
-    { who: 'Pimpinan', what: 'Baca Ringkasan Semua Tim, rapat' },
+    { who: 'Pimpinan', what: 'Review Bersama dan Catatan Pimpinan' },
 ];
 
 function print() {

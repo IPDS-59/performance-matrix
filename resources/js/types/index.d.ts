@@ -341,6 +341,8 @@ export interface OverviewTeam {
     members_complete: number | null;
     /** Team PJ (ketua tim). */
     leader: string | null;
+    /** Catatan Pimpinan on the whole team for this period. */
+    note: string | null;
     projects: OverviewProject[];
 }
 
@@ -353,7 +355,12 @@ export interface OverviewProject {
     members: number | null;
     rows: number;
     avg_achievement: number | null;
+    /** Catatan Pimpinan on this project for this period. */
+    note: string | null;
 }
+
+/** Review Bersama status of a capaian. `none` = no data yet. */
+export type ReviewStatus = 'achieved' | 'progress' | 'low' | 'none';
 
 /** One step of the "Siap rapat" checklist. */
 export interface ChecklistStep {

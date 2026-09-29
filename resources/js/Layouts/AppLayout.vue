@@ -49,7 +49,7 @@ const navSections = computed<NavSection[]>(() => {
         {
             title: 'Rekap Tim',
             items: [
-                { label: 'Semua Tim', href: route('team-recap.overview'), active: is('team-recap.overview'), icon: LayoutList, show: isHead.value || isAdmin.value },
+                { label: 'Review Bersama', href: route('team-recap.overview'), active: is('team-recap.overview'), icon: LayoutList, show: isHead.value || isAdmin.value },
                 { label: 'Mingguan', href: route('team-recap.weekly'), active: is('team-recap.weekly'), icon: CalendarDays, show: hasEmployee.value || isHead.value || isAdmin.value },
                 { label: 'Bulanan', href: route('team-recap.monthly'), active: is('team-recap.monthly'), icon: CalendarRange, show: hasEmployee.value || isHead.value || isAdmin.value },
                 { label: 'Triwulanan (FRA)', href: route('team-recap.quarterly'), active: is('team-recap.quarterly'), icon: FileChartColumn, show: hasEmployee.value || isHead.value || isAdmin.value },

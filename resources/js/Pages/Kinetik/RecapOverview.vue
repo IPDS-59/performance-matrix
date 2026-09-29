@@ -2,13 +2,16 @@
 import AppLayout from '@/Layouts/AppLayout.vue';
 import { Head, Link, router } from '@inertiajs/vue3';
 import { computed, ref } from 'vue';
-import type { OverviewTeam, RecapPeriodType } from '@/types';
+import type { OverviewTeam, RecapPeriodType, ReviewStatus } from '@/types';
 import { Button } from '@/Components/ui/button';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/Components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/Components/ui/table';
 import { ArrowRight, ChevronDown, ChevronLeft, ChevronRight, Download, Lock, LockOpen } from 'lucide-vue-next';
 import { useDateFormat } from '@/composables/useDateFormat';
 import { useAchievementColor } from '@/composables/useAchievementColor';
 import { useRecapExport } from '@/composables/useRecapExport';
+import { REVIEW_STATUS_META, reviewStatus } from '@/composables/useReviewStatus';
+import LeadershipNoteCell from '@/Components/Kinetik/LeadershipNoteCell.vue';
 
 const props = defineProps<{
     periodType: RecapPeriodType;
@@ -18,6 +21,7 @@ const props = defineProps<{
     weekStart: string;
     weekEnd: string;
     teams: OverviewTeam[];
+    canWriteNotes: boolean;
 }>();
 
 const MONTHS = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
@@ -73,6 +77,26 @@ function exportPeriod() {
 
 // Teams with data first, then alphabetical: the head reads what exists.
 const sortedTeams = computed(() => [...props.teams].sort((a, b) => Number(b.rows > 0) - Number(a.rows > 0) || a.name.localeCompare(b.name)));
+
+// ── Review filters (client side: the page already holds every team) ────────
+
+const STATUS_FILTERS: Array<ReviewStatus | 'all'> = ['all', 'achieved', 'progress', 'low', 'none'];
+const teamFilter = ref('all');
+const statusFilter = ref<ReviewStatus | 'all'>('all');
+const statusCount = (status: ReviewStatus | 'all') =>
+    status === 'all' ? props.teams.length : props.teams.filter(t => reviewStatus(t.avg_achievement) === status).length;
+const visibleTeams = computed(() => sortedTeams.value.filter(t =>
+    (teamFilter.value === 'all' || String(t.id) === teamFilter.value)
+    && (statusFilter.value === 'all' || reviewStatus(t.avg_achievement) === statusFilter.value)));
+
+// Store-endpoint fields for a note on this period.
+const periodPayload = computed(() => ({
+    period_type: props.periodType,
+    period_year: props.year,
+    week_start: props.periodType === 'week' ? props.weekStart : null,
+    period_month: props.periodType === 'month' ? props.month : null,
+    period_quarter: props.periodType === 'quarter' ? props.quarter : null,
+}));
 const withData = computed(() => props.teams.filter(t => t.rows > 0));
 const officeAverage = computed(() => {
     const values = withData.value.map(t => t.avg_achievement).filter((v): v is number => v !== null);
@@ -80,7 +104,7 @@ const officeAverage = computed(() => {
 });
 const lockedCount = computed(() => props.teams.filter(t => t.locked).length);
 const isWeek = computed(() => props.periodType === 'week');
-const columnCount = computed(() => (isWeek.value ? 8 : 7));
+const columnCount = computed(() => (isWeek.value ? 10 : 9));
 
 // Expanded team rows (project breakdown with each project's PIC).
 const expanded = ref<Set<number>>(new Set());
@@ -92,9 +116,9 @@ function toggle(teamId: number) {
 </script>
 
 <template>
-    <Head title="Ringkasan Semua Tim" />
+    <Head title="Review Bersama" />
     <AppLayout>
-        <template #title>Ringkasan Semua Tim</template>
+        <template #title>Review Bersama</template>
 
         <!-- Period controls -->
         <div class="mb-4 flex flex-col gap-3 rounded-lg border bg-white p-3 sm:p-4 lg:flex-row lg:items-center lg:justify-between">
@@ -154,6 +178,35 @@ function toggle(teamId: number) {
             </div>
         </dl>
 
+        <!-- Review filters -->
+        <div class="mb-3 flex flex-col gap-2 sm:flex-row sm:items-center">
+            <Select v-model="teamFilter">
+                <SelectTrigger class="w-full sm:w-72" aria-label="Filter tim">
+                    <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                    <SelectItem value="all">Semua tim</SelectItem>
+                    <SelectItem v-for="t in sortedTeams" :key="t.id" :value="String(t.id)">{{ t.name }}</SelectItem>
+                </SelectContent>
+            </Select>
+            <div class="flex flex-wrap gap-1.5" role="group" aria-label="Filter status capaian">
+                <button
+                    v-for="status in STATUS_FILTERS"
+                    :key="status"
+                    type="button"
+                    :aria-pressed="statusFilter === status"
+                    :class="[
+                        'inline-flex h-8 items-center gap-1.5 rounded-full border px-3 text-xs font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary',
+                        statusFilter === status ? 'border-primary bg-primary text-primary-foreground' : 'border-gray-200 bg-white text-gray-600 hover:border-gray-300 hover:text-gray-900',
+                    ]"
+                    @click="statusFilter = status"
+                >
+                    {{ status === 'all' ? 'Semua' : REVIEW_STATUS_META[status].label }}
+                    <span class="tabular-nums opacity-75">{{ statusCount(status) }}</span>
+                </button>
+            </div>
+        </div>
+
         <!-- Per-team table -->
         <div class="overflow-hidden rounded-lg border bg-white">
             <Table class="text-sm">
@@ -166,11 +219,13 @@ function toggle(teamId: number) {
                         <TableHead class="text-right">Dikonfirmasi</TableHead>
                         <TableHead v-if="isWeek" class="text-right">Anggota lengkap</TableHead>
                         <TableHead>Status</TableHead>
+                        <TableHead>Kunci</TableHead>
+                        <TableHead class="min-w-[16rem]">Catatan Pimpinan</TableHead>
                         <TableHead class="w-10"><span class="sr-only">Buka</span></TableHead>
                     </TableRow>
                 </TableHeader>
                 <TableBody class="divide-y divide-gray-100">
-                    <template v-for="team in sortedTeams" :key="team.id">
+                    <template v-for="team in visibleTeams" :key="team.id">
                     <TableRow :class="team.rows ? 'hover:bg-gray-50' : 'text-gray-500'">
                         <TableCell class="whitespace-normal font-medium leading-snug">
                             <div class="flex items-start gap-1.5">
@@ -209,12 +264,20 @@ function toggle(teamId: number) {
                             <template v-else>—</template>
                         </TableCell>
                         <TableCell>
+                            <span :class="['inline-flex whitespace-nowrap rounded-full px-2 py-0.5 text-xs font-medium', REVIEW_STATUS_META[reviewStatus(team.avg_achievement)].chip]">
+                                {{ REVIEW_STATUS_META[reviewStatus(team.avg_achievement)].label }}
+                            </span>
+                        </TableCell>
+                        <TableCell>
                             <span v-if="team.locked" class="inline-flex items-center gap-1 rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-800">
                                 <Lock class="h-3 w-3" aria-hidden="true" /> Dikunci
                             </span>
                             <span v-else class="inline-flex items-center gap-1 rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-600">
                                 <LockOpen class="h-3 w-3" aria-hidden="true" /> Terbuka
                             </span>
+                        </TableCell>
+                        <TableCell class="whitespace-normal">
+                            <LeadershipNoteCell :note="team.note" :can-write="canWriteNotes" :subject="team.name" :payload="{ ...periodPayload, team_id: team.id, project_id: null }" />
                         </TableCell>
                         <TableCell>
                             <Link :href="teamHref(team)" class="flex h-8 w-8 items-center justify-center rounded-md text-gray-400 hover:bg-gray-100 hover:text-primary" :aria-label="`Buka rekap ${team.name}`">
@@ -233,7 +296,8 @@ function toggle(teamId: number) {
                                         <th class="pb-1.5 pr-4 font-medium">PIC / Ketua projek</th>
                                         <th class="pb-1.5 pr-4 text-right font-medium">Anggota</th>
                                         <th class="pb-1.5 pr-4 text-right font-medium">Baris RK</th>
-                                        <th class="pb-1.5 text-right font-medium">Capaian</th>
+                                        <th class="pb-1.5 pr-4 text-right font-medium">Capaian</th>
+                                        <th class="pb-1.5 font-medium">Catatan Pimpinan</th>
                                     </tr>
                                 </thead>
                                 <tbody class="divide-y divide-gray-200/70">
@@ -242,9 +306,18 @@ function toggle(teamId: number) {
                                         <td class="py-1.5 pr-4 leading-snug text-gray-700">{{ project.leader ?? '—' }}</td>
                                         <td class="py-1.5 pr-4 text-right tabular-nums text-gray-600">{{ project.members ?? '—' }}</td>
                                         <td class="py-1.5 pr-4 text-right tabular-nums text-gray-600">{{ project.rows || '—' }}</td>
-                                        <td class="py-1.5 text-right tabular-nums">
+                                        <td class="py-1.5 pr-4 text-right tabular-nums">
                                             <span v-if="project.avg_achievement !== null" :class="['font-semibold', achievementColor(project.avg_achievement)]">{{ project.avg_achievement.toFixed(1) }}%</span>
                                             <span v-else class="text-xs text-gray-400">Belum ada data</span>
+                                        </td>
+                                        <td class="min-w-[14rem] py-1.5">
+                                            <LeadershipNoteCell
+                                                v-if="project.id !== null"
+                                                :note="project.note"
+                                                :can-write="canWriteNotes"
+                                                :subject="project.name"
+                                                :payload="{ ...periodPayload, team_id: team.id, project_id: project.id }"
+                                            />
                                         </td>
                                     </tr>
                                 </tbody>
@@ -255,6 +328,12 @@ function toggle(teamId: number) {
                     </template>
                     <TableRow v-if="!teams.length">
                         <TableCell :colspan="columnCount" class="py-10 text-center text-sm text-gray-500">Tidak ada tim yang dapat Anda lihat.</TableCell>
+                    </TableRow>
+                    <TableRow v-else-if="!visibleTeams.length">
+                        <TableCell :colspan="columnCount" class="py-10 text-center text-sm text-gray-500">
+                            Tidak ada tim dengan filter ini.
+                            <button type="button" class="ml-1 font-medium text-primary hover:underline" @click="teamFilter = 'all'; statusFilter = 'all'">Tampilkan semua</button>
+                        </TableCell>
                     </TableRow>
                 </TableBody>
             </Table>

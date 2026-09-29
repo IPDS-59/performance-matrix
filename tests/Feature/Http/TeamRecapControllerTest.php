@@ -2,6 +2,7 @@
 
 use App\Models\ActivityClaim;
 use App\Models\Employee;
+use App\Models\LeadershipNote;
 use App\Models\PerformancePlan;
 use App\Models\Project;
 use App\Models\RecapLock;
@@ -1064,4 +1065,60 @@ it('shows the head each team PJ and each project with its PIC', function () {
             ->where('teams.0.projects.0.members', 1)
             ->where('teams.0.projects.0.rows', 1)
         );
+});
+
+// ── Catatan Pimpinan (Review Bersama) ────────────────────────────────────────
+
+it('lets the head write, update and clear a note on a locked team period', function () {
+    $team = Team::factory()->create();
+    $project = Project::factory()->create(['team_id' => $team->id, 'year' => 2026]);
+    RecapLock::create(['team_id' => $team->id, 'period_type' => 'month', 'period_year' => 2026, 'period_month' => 6]);
+    $head = headUser();
+    $period = ['team_id' => $team->id, 'period_type' => 'month', 'period_year' => 2026, 'period_month' => 6];
+
+    $this->actingAs($head)->post(route('team-recap.leadership-note'), [...$period, 'body' => 'Percepat pencacahan'])->assertRedirect();
+    $this->actingAs($head)->post(route('team-recap.leadership-note'), [...$period, 'body' => 'Sudah dibahas'])->assertRedirect();
+    $this->actingAs($head)->post(route('team-recap.leadership-note'), [...$period, 'project_id' => $project->id, 'body' => 'Cek PIC'])->assertRedirect();
+
+    expect(LeadershipNote::count())->toBe(2)
+        ->and(LeadershipNote::whereNull('project_id')->value('body'))->toBe('Sudah dibahas');
+
+    $this->actingAs($head)
+        ->get(route('team-recap.overview', ['period_type' => 'month', 'year' => 2026, 'month' => 6]))
+        ->assertInertia(fn ($page) => $page
+            ->where('canWriteNotes', true)
+            ->where('teams.0.note', 'Sudah dibahas')
+            ->where('teams.0.projects.0.note', 'Cek PIC')
+        );
+
+    $this->actingAs($head)->post(route('team-recap.leadership-note'), [...$period, 'body' => ''])->assertRedirect();
+    expect(LeadershipNote::whereNull('project_id')->exists())->toBeFalse();
+});
+
+it('keeps weekly notes on the monday of the week', function () {
+    $team = Team::factory()->create();
+    $period = ['team_id' => $team->id, 'period_type' => 'week', 'period_year' => 2026, 'week_start' => '2026-06-03'];
+
+    $this->actingAs(headUser())->post(route('team-recap.leadership-note'), [...$period, 'body' => 'A']);
+    $this->actingAs(headUser())->post(route('team-recap.leadership-note'), [...$period, 'body' => 'B']);
+
+    expect(LeadershipNote::count())->toBe(1)
+        ->and(LeadershipNote::first()->week_start)->toBe('2026-06-01');
+});
+
+it('forbids notes from anyone but the head', function () {
+    [$user, , $team] = pjOfTeam();
+
+    $this->actingAs($user)
+        ->post(route('team-recap.leadership-note'), ['team_id' => $team->id, 'period_type' => 'month', 'period_year' => 2026, 'period_month' => 6, 'body' => 'x'])
+        ->assertForbidden();
+});
+
+it('rejects a note on a project of another team', function () {
+    $team = Team::factory()->create();
+    $other = Project::factory()->create(['year' => 2026]);
+
+    $this->actingAs(headUser())
+        ->post(route('team-recap.leadership-note'), ['team_id' => $team->id, 'project_id' => $other->id, 'period_type' => 'month', 'period_year' => 2026, 'period_month' => 6, 'body' => 'x'])
+        ->assertStatus(422);
 });

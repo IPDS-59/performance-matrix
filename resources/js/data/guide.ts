@@ -66,7 +66,7 @@ export const SHOTS = {
     },
     pimpinanSemuaTim: {
         src: '/images/pedoman/pimpinan-semua-tim.webp',
-        alt: 'Halaman Ringkasan Semua Tim untuk pimpinan',
+        alt: 'Halaman Review Bersama untuk pimpinan',
         width: 1024, height: 836,
         markers: [
             { n: 1, x: 2.6, y: 7.2, label: 'Pilih Mingguan, Bulanan atau Triwulanan.' },
@@ -132,7 +132,7 @@ export interface GuideFlow {
 export const GUIDE_OVERVIEW = [
     { who: 'Anggota', what: 'Mengisi kegiatan harian di kipApp, lalu mengklaim kegiatan mingguan di Kinetik.' },
     { who: 'PJ / Ketua Tim', what: 'Meninjau rekap tim, mengisi solusi dan rencana tindak lanjut, menambah bukti rapat, lalu mengunci rekap sebelum rapat.' },
-    { who: 'Pimpinan', what: 'Membaca rekap semua tim dan mengunduh Excel untuk rapat. Pimpinan hanya membaca.' },
+    { who: 'Pimpinan', what: 'Membaca rekap semua tim di Review Bersama, menulis Catatan Pimpinan, dan mengunduh Excel untuk rapat.' },
 ];
 
 export const GUIDE_FLOWS: GuideFlow[] = [
@@ -272,12 +272,12 @@ export const GUIDE_FLOWS: GuideFlow[] = [
     {
         role: 'pimpinan',
         label: 'Pimpinan',
-        summary: 'Anda membaca rekap seluruh kantor per minggu, bulan atau triwulan. Pimpinan hanya membaca; perubahan dilakukan oleh PJ.',
+        summary: 'Anda membaca rekap seluruh kantor per minggu, bulan atau triwulan dan menulis Catatan Pimpinan. Isi rekap tetap diubah oleh PJ.',
         replaces: 'Membaca sheet "Rapat Mingguan" dan "Rapat Bulanan"',
         steps: [
             {
-                title: 'Buka Ringkasan Semua Tim',
-                where: 'Menu Rekap Tim → Semua Tim',
+                title: 'Buka Review Bersama',
+                where: 'Menu Rekap Tim → Review Bersama',
                 route: 'team-recap.overview',
                 body: [
                     'Pilih Mingguan, Bulanan atau Triwulanan, lalu pilih periode dengan ‹ dan ›.',
@@ -291,9 +291,19 @@ export const GUIDE_FLOWS: GuideFlow[] = [
                     'Setiap baris adalah satu tim: PJ (penanggung jawab), jumlah baris RK, rata-rata capaian, baris dikonfirmasi, dan status Dikunci / Terbuka.',
                     'Klik panah di depan nama tim untuk melihat semua projek tim itu beserta PIC / ketua projek, jumlah anggota, baris RK dan capaian per projek.',
                     'Pada periode mingguan ada kolom "Anggota lengkap".',
+                    'Kolom Status: Tercapai (capaian 100% atau lebih), Progres (70% sampai di bawah 100%), Rendah (di bawah 70%).',
+                    'Saring dengan pilihan tim dan tombol status di atas tabel, misalnya hanya tim yang Rendah.',
                     '"Belum ada data" berarti belum ada klaim tersimpan, bukan capaian 0%.',
                 ],
                 tip: 'Rekap yang sudah "Dikunci" berarti PJ sudah menyiapkannya untuk rapat dan isinya tidak berubah lagi.',
+            },
+            {
+                title: 'Tulis Catatan Pimpinan',
+                body: [
+                    'Klik "Tulis catatan" di kolom Catatan Pimpinan untuk tim, atau di tabel projek untuk satu projek.',
+                    'Catatan berlaku untuk periode yang sedang dibuka dan tetap bisa ditulis walaupun rekap sudah dikunci PJ.',
+                    'Untuk menghapus catatan, kosongkan isinya lalu klik Simpan.',
+                ],
             },
             {
                 title: 'Buka rekap sebuah tim',
