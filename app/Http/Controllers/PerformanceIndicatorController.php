@@ -17,7 +17,8 @@ class PerformanceIndicatorController extends Controller
         $this->authorize('viewAny', PerformanceIndicator::class);
 
         $user = $request->user();
-        $isAdmin = $user->hasPermissionTo('manage-projects');
+        // The head reads every team's data; edit rights still come from the policies.
+        $isAdmin = $user->hasPermissionTo('manage-projects') || $user->hasRole('head');
         $year = $request->integer('year', now()->year);
         $teamId = $request->integer('team_id');
 

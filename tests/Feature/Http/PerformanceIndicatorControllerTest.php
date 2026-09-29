@@ -226,3 +226,15 @@ it('iku index includes can_update and can_delete = true for admin', function () 
             ->where('indicators.0.can_delete', true)
         );
 });
+
+it('shows the head every team\'s IKU, read-only', function () {
+    PerformanceIndicator::factory()->count(2)->create();
+
+    $this->actingAs(headUser())
+        ->get(route('performance-indicators.index'))
+        ->assertInertia(fn ($page) => $page
+            ->has('indicators', 2)
+            ->where('indicators.0.can_update', false)
+            ->where('canCreate', false)
+        );
+});

@@ -19,7 +19,8 @@ class PerformancePlanController extends Controller
         $this->authorize('viewAny', PerformancePlan::class);
 
         $user = $request->user();
-        $isAdmin = $user->hasPermissionTo('manage-projects');
+        // The head reads every team's data; edit rights still come from the policies.
+        $isAdmin = $user->hasPermissionTo('manage-projects') || $user->hasRole('head');
         $projectId = $request->integer('project_id');
         $employee = $user->employee;
 

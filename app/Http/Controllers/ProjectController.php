@@ -20,7 +20,8 @@ class ProjectController extends Controller
 
         $user = $request->user();
         $employee = $user->employee;
-        $isAdmin = $user->hasPermissionTo('manage-projects');
+        // The head reads every team's data; edit rights still come from the policies.
+        $isAdmin = $user->hasPermissionTo('manage-projects') || $user->hasRole('head');
         $year = $request->integer('year', now()->year);
         $teamId = $request->integer('team_id');
 
@@ -36,12 +37,15 @@ class ProjectController extends Controller
         $projects = Project::with('team:id,name', 'leader:id,name,display_name')
             ->withCount('members')
             ->when($teamId, fn ($q) => $q->where('team_id', $teamId))
-            ->when(! $isAdmin && ! $isTeamLead && $employee, fn ($q) =>
-                $q->whereHas('members', fn ($q2) => $q2->where('employees.id', $employee->id))
+            ->when(! $isAdmin && ! $isTeamLead && $employee, fn ($q) => $q->whereHas('members', fn ($q2) => $q2->where('employees.id', $employee->id))
             )
             ->where('year', $year)
             ->orderBy('name')
-            ->get();
+            ->get()
+            ->each(function (Project $project) use ($user) {
+                $project->setAttribute('can_update', $user->can('update', $project));
+                $project->setAttribute('can_delete', $user->can('delete', $project));
+            });
 
         if ($isAdmin) {
             $teams = Team::where('is_active', true)->orderBy('name')->get(['id', 'name']);

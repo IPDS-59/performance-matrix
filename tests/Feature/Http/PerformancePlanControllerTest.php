@@ -268,3 +268,15 @@ it('index includes can_update and can_delete flags; staff with no led team gets 
             ->where('plans.0.can_delete', false)
         );
 });
+
+it('shows the head every RK, read-only', function () {
+    PerformancePlan::factory()->count(2)->create();
+
+    $this->actingAs(headUser())
+        ->get(route('performance-plans.index'))
+        ->assertInertia(fn ($page) => $page
+            ->has('plans', 2)
+            ->where('plans.0.can_update', false)
+            ->where('canCreate', false)
+        );
+});

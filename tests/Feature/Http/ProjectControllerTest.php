@@ -199,3 +199,37 @@ it('leader_id defaults to the team lead when omitted', function () {
     expect($project->leader_id)->toBe($employee->id);
     expect($project->members()->where('employees.id', $employee->id)->wherePivot('role', 'leader')->exists())->toBeTrue();
 });
+
+it('flags only the team lead\'s own projects as editable', function () {
+    $user = staffUser();
+    $lead = Employee::factory()->create(['user_id' => $user->id]);
+    $ownTeam = Team::factory()->create(['leader_id' => $lead->id]);
+    $lead->update(['team_id' => $ownTeam->id]);
+    $otherTeam = Team::factory()->create();
+    Project::factory()->create(['team_id' => $ownTeam->id, 'year' => now()->year]);
+    Project::factory()->create(['team_id' => $otherTeam->id, 'year' => now()->year]);
+
+    $this->actingAs($user)
+        ->get(route('projects.index', ['team_id' => $otherTeam->id]))
+        ->assertInertia(fn ($page) => $page
+            ->where('projects.0.team_id', $otherTeam->id)
+            ->where('projects.0.can_update', false)
+            ->where('projects.0.can_delete', false)
+        );
+
+    $this->actingAs($user)
+        ->get(route('projects.index'))
+        ->assertInertia(fn ($page) => $page->where('projects.0.can_update', true));
+});
+
+it('shows the head every project, read-only', function () {
+    Project::factory()->count(2)->create(['year' => now()->year]);
+
+    $this->actingAs(headUser())
+        ->get(route('projects.index'))
+        ->assertInertia(fn ($page) => $page
+            ->has('projects', 2)
+            ->where('projects.0.can_update', false)
+            ->where('canCreate', false)
+        );
+});
