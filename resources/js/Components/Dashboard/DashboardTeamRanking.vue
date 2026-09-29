@@ -43,6 +43,10 @@ function shortLabel(name: string, code?: string | null): string {
     return name.length > 14 ? `${name.slice(0, 12)}…` : name;
 }
 
+// Teams with no saved claim this month have count 0; showing them as a red 0%
+// would read as failure, so the chart waits for real data.
+const hasAnyData = computed(() => props.teamList.some(t => t.count > 0));
+
 const barChartUnovisData = computed<BarChartDatum[]>(() =>
     props.teamList.map(t => ({ label: t.name, code: shortLabel(t.name, t.code), value: t.avg })),
 );
@@ -121,7 +125,7 @@ function leaderBadgeLabel(employeeId: number, team: { id: number; leader_id?: nu
                 <CardTitle class="text-base">{{ title }}{{ monthLabel ? ` — ${monthLabel}` : '' }}</CardTitle>
             </CardHeader>
             <CardContent>
-                <div v-if="teamList.length" class="h-64 overflow-x-auto [&::-webkit-scrollbar]:h-1.5 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-gray-200">
+                <div v-if="hasAnyData" class="h-64 overflow-x-auto [&::-webkit-scrollbar]:h-1.5 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-gray-200">
                     <div class="h-full" :style="{ width: `${Math.max(barChartUnovisData.length * 90, 320)}px` }">
                         <VisXYContainer :data="barChartUnovisData" :yDomain="[0, 100]" :style="{ height: '100%' }">
                             <VisGroupedBar :x="barX" :y="barY" :color="barColor" :roundedCorners="6" :barMinHeight="0" />
@@ -132,7 +136,7 @@ function leaderBadgeLabel(employeeId: number, team: { id: number; leader_id?: nu
                     </div>
                 </div>
                 <div v-else class="flex h-64 items-center justify-center rounded-lg border border-dashed border-gray-200 bg-gray-50">
-                    <p class="text-sm text-gray-400">Belum ada data capaian tim bulan ini</p>
+                    <p class="px-4 text-center text-sm text-gray-500">Belum ada klaim tersimpan untuk bulan ini. Grafik muncul setelah anggota menyimpan klaim.</p>
                 </div>
             </CardContent>
         </Card>
@@ -153,14 +157,15 @@ function leaderBadgeLabel(employeeId: number, team: { id: number; leader_id?: nu
                                     :aria-expanded="isTeamExpanded(team.id)"
                                     @click="toggleTeam(team.id)"
                                 >
-                                    <span class="w-5 shrink-0 text-right text-xs font-bold text-gray-400">{{ idx + 1 }}</span>
+                                    <span class="w-5 shrink-0 text-right text-xs font-bold text-gray-400 tabular-nums">{{ team.count > 0 ? idx + 1 : '' }}</span>
                                     <div class="min-w-0 flex-1">
                                         <p class="truncate text-sm font-medium">{{ team.name }}</p>
-                                        <div class="mt-1 h-1.5 w-full rounded-full bg-gray-200 overflow-hidden">
-                                            <div :class="['h-full rounded-full transition-all', progressVariant(team.avg)]" :style="`width: ${team.avg}%`" />
+                                        <div class="mt-1 h-1.5 w-full overflow-hidden rounded-full bg-gray-100">
+                                            <div v-if="team.count > 0" :class="['h-full rounded-full transition-all', progressVariant(team.avg)]" :style="`width: ${Math.min(team.avg, 100)}%`" />
                                         </div>
                                     </div>
-                                    <span :class="['shrink-0 text-sm font-bold', achievementColor(team.avg)]">{{ team.avg.toFixed(1) }}%</span>
+                                    <span v-if="team.count > 0" :class="['shrink-0 text-sm font-bold tabular-nums', achievementColor(team.avg)]">{{ team.avg.toFixed(1) }}%</span>
+                                    <span v-else class="shrink-0 text-xs text-gray-400">Belum ada data</span>
                                     <svg
                                         :class="['h-4 w-4 shrink-0 text-gray-400 transition-transform', isTeamExpanded(team.id) ? 'rotate-180' : '']"
                                         fill="none" stroke="currentColor" viewBox="0 0 24 24"
@@ -199,7 +204,7 @@ function leaderBadgeLabel(employeeId: number, team: { id: number; leader_id?: nu
                     </div>
                     <!-- Scroll indicator -->
                     <div v-if="teamList.length > 4" class="pointer-events-none absolute inset-x-0 bottom-0 flex justify-center bg-gradient-to-t from-white via-white/60 to-transparent py-1.5">
-                        <svg class="h-4 w-4 animate-bounce text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                        <svg class="h-4 w-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                             <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/>
                         </svg>
                     </div>

@@ -248,6 +248,8 @@ class DashboardController extends Controller
             'projects_count' => (int) $totalProjects,
             'items_count' => (int) $totalItems,
             'avg_achievement' => round((float) ($avgResult?->avg_achievement ?? 0), 2),
+            // False when no claim has an achievement yet, so the UI can say "no data" instead of 0%.
+            'has_achievement' => $avgResult?->avg_achievement !== null,
             'is_team_lead' => $isTeamLead,
         ];
     }
@@ -432,7 +434,9 @@ class DashboardController extends Controller
             'filters' => compact('year', 'month'),
         ];
 
-        if ($user->employee) {
+        // Personal cards only for a head who also works in a team; a head with
+        // no team would see four cards that always read 0.
+        if ($user->employee?->teams()->exists()) {
             $employee = $user->employee;
             $data['employee'] = $employee->only('id', 'name', 'display_name');
             $data['personal_stats'] = $this->personalStats($employee, $year, $month);

@@ -118,12 +118,12 @@ const { achievementColor, progressVariant, avgIconBgColor, avgIconColor } = useA
                 <div
                     :class="[
                         'flex h-12 w-12 shrink-0 items-center justify-center rounded-full',
-                        avgIconBgColor(stats.avg_achievement),
+                        stats.has_achievement ? avgIconBgColor(stats.avg_achievement) : 'bg-gray-100',
                     ]"
                     aria-hidden="true"
                 >
                     <svg
-                        :class="['h-6 w-6', avgIconColor(stats.avg_achievement)]"
+                        :class="['h-6 w-6', stats.has_achievement ? avgIconColor(stats.avg_achievement) : 'text-gray-400']"
                         xmlns="http://www.w3.org/2000/svg"
                         fill="none"
                         viewBox="0 0 24 24"
@@ -140,14 +140,20 @@ const { achievementColor, progressVariant, avgIconBgColor, avgIconColor } = useA
                 <div class="min-w-0 flex-1">
                     <p class="text-sm font-medium text-gray-500 group-hover:text-primary">Rata-rata Capaian</p>
                     <p class="text-xs text-gray-400">{{ stats.is_team_lead ? 'seluruh tim' : 'pribadi' }}</p>
-                    <p :class="['mt-1 text-2xl font-bold', achievementColor(stats.avg_achievement)]">
-                        {{ stats.avg_achievement.toFixed(1) }}%
-                    </p>
-                    <Progress
-                        :model-value="stats.avg_achievement"
-                        class="mt-2"
-                        :indicator-class="progressVariant(stats.avg_achievement)"
-                    />
+                    <template v-if="stats.has_achievement">
+                        <p :class="['mt-1 text-2xl font-bold tabular-nums', achievementColor(stats.avg_achievement)]">
+                            {{ stats.avg_achievement.toFixed(1) }}%
+                        </p>
+                        <Progress
+                            :model-value="stats.avg_achievement"
+                            class="mt-2"
+                            :indicator-class="progressVariant(stats.avg_achievement)"
+                        />
+                    </template>
+                    <template v-else>
+                        <p class="mt-1 text-2xl font-bold text-gray-300">—</p>
+                        <p class="mt-1 text-xs text-gray-500">Belum ada klaim tersimpan bulan ini</p>
+                    </template>
                 </div>
             </div>
         </Link>
