@@ -4,9 +4,12 @@ use App\Kinetik\Auth\ConfigBearerAuthenticator;
 use App\Kinetik\Contracts\KipActivitySource;
 use App\Kinetik\Sources\MockKipActivitySource;
 use App\Models\Employee;
+use App\Models\EmployeeCareer;
 use App\Models\KipActivity;
 use App\Models\KipCredential;
 use App\Models\KipSyncRun;
+use App\Models\PerformancePlan;
+use App\Models\Project;
 use App\Models\Team;
 use Illuminate\Support\Facades\Http;
 
@@ -193,7 +196,7 @@ it('blocks structure sync when no token is configured', function () {
 
 it('syncs Angka Kredit data in chunks until the run completes', function () {
     config(['kinetik.kip.source' => 'mock', 'kinetik.kip.token' => 'test', 'kinetik.kip.career_chunk' => 1]);
-    \App\Models\Employee::factory()->count(2)->create(['is_active' => true, 'nip_lama' => fn () => (string) fake()->unique()->numerify('34#######')]);
+    Employee::factory()->count(2)->create(['is_active' => true, 'nip_lama' => fn () => (string) fake()->unique()->numerify('34#######')]);
     $admin = adminUser();
 
     $this->actingAs($admin)->post(route('kip-integration.sync-careers'))->assertRedirect();
@@ -204,7 +207,7 @@ it('syncs Angka Kredit data in chunks until the run completes', function () {
     $run->refresh();
     expect($run->status)->toBe('completed')
         ->and($run->summary['employees'])->toBe(2)
-        ->and(\App\Models\EmployeeCareer::whereNotNull('synced_at')->count())->toBe(2);
+        ->and(EmployeeCareer::whereNotNull('synced_at')->count())->toBe(2);
 
     $this->actingAs($admin)->get(route('kip-integration.index'))
         ->assertInertia(fn ($page) => $page->where('careerRun.status', 'completed')->where('stats.careers_synced', 2));
@@ -213,7 +216,7 @@ it('syncs Angka Kredit data in chunks until the run completes', function () {
 it('stops the Angka Kredit sync when every employee in a chunk fails', function () {
     config(['kinetik.kip.source' => 'api', 'kinetik.kip.token' => 'expired']);
     Http::fake(['*' => Http::response(['message' => 'Unauthorized'], 401)]);
-    \App\Models\Employee::factory()->create(['is_active' => true, 'nip_lama' => '340000009']);
+    Employee::factory()->create(['is_active' => true, 'nip_lama' => '340000009']);
 
     $this->actingAs(adminUser())->post(route('kip-integration.sync-careers'))->assertSessionHas('error');
 
@@ -222,4 +225,25 @@ it('stops the Angka Kredit sync when every employee in a chunk fails', function 
 
 it('keeps Angka Kredit sync admin-only', function () {
     $this->actingAs(staffUser())->post(route('kip-integration.sync-careers'))->assertForbidden();
+});
+
+it('stores the leader RK of each proyek and links RK under it during the structure sync', function () {
+    config(['kinetik.kip.token' => 'admin-token', 'kinetik.kip.create_logins' => false]);
+    Http::fake([
+        'kipapp.bps.go.id/api/v1/monitoring/hirarki/daerah*' => Http::response(['data' => [['id' => '106453', 'namaTim' => 'MTI']]], 200),
+        'kipapp.bps.go.id/api/v1/proyek*' => Http::response([[
+            'timkerjaid' => '106453', 'namatim' => 'MTI', 'proyekid' => 'p9', 'namaproyek' => 'Metodologi Sakernas',
+            'rkketuaid' => '345759', 'rencanakinerjaketua' => 'Terlaksananya Dukungan Metodologi Kependudukan',
+            'anggota' => [],
+        ]], 200),
+        'kipapp.bps.go.id/api/v1/*' => Http::response([], 200),
+    ]);
+    $team = Team::factory()->create(['kip_external_id' => '106453']);
+    $plan = PerformancePlan::factory()->create(['team_id' => $team->id, 'project_id' => null, 'leader_rk' => 'Terlaksananya Dukungan Metodologi Kependudukan']);
+
+    $this->actingAs(adminUser())->post(route('kip-integration.sync-structure'))->assertSessionHasNoErrors()->assertSessionMissing('error');
+
+    $project = Project::where('kip_external_id', 'p9')->first();
+    expect($project->leader_rk)->toBe('Terlaksananya Dukungan Metodologi Kependudukan')
+        ->and($plan->fresh()->project_id)->toBe($project->id);
 });

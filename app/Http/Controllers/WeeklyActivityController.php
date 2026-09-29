@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Actions\Kinetik\LinkPlansToProjectsAction;
 use App\Actions\Kinetik\SaveActivityClaimAction;
 use App\Models\ActivityClaim;
 use App\Models\Employee;
@@ -87,12 +88,16 @@ class WeeklyActivityController extends Controller
         if ($employee) {
             $teamIds = $employee->teams()->pluck('teams.id');
 
-            $plans = PerformancePlan::with('project.team', 'team')
+            $planModels = PerformancePlan::with('project.team', 'team')
                 ->where(function ($q) use ($teamIds) {
                     $q->whereIn('team_id', $teamIds)
                         ->orWhereHas('project', fn ($p) => $p->whereIn('team_id', $teamIds));
                 })
-                ->get()
+                ->get();
+            // Projek under the RK's leader RK, when that leader RK has several.
+            $candidates = app(LinkPlansToProjectsAction::class)->candidates($planModels);
+
+            $plans = $planModels
                 ->map(fn (PerformancePlan $plan) => [
                     'id' => $plan->id,
                     'description' => $plan->description,
@@ -100,6 +105,7 @@ class WeeklyActivityController extends Controller
                     'project_name' => $plan->project?->name ?? null,
                     'team_id' => $plan->project?->team_id ?? $plan->team_id,
                     'team_name' => $plan->project?->team?->name ?? $plan->team?->name ?? '—',
+                    'project_candidates' => $candidates->get($plan->id, []),
                 ]);
 
             // Projek choices for team-scoped RKs; the member's own projects first.

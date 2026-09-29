@@ -6,6 +6,7 @@ use App\Kinetik\Contracts\KipActivitySource;
 use App\Kinetik\Contracts\KipAuthenticator;
 use App\Kinetik\Data\KipActivityData;
 use App\Kinetik\Data\KipPlanData;
+use App\Kinetik\Data\KipRkData;
 use App\Kinetik\Exceptions\KipApiException;
 use Illuminate\Http\Client\PendingRequest;
 use Illuminate\Support\Collection;
@@ -100,6 +101,33 @@ class ApiKipActivitySource implements KipActivitySource
      *
      * @return Collection<int, string>
      */
+    public function fetchYearlyRks(string $pegawaiId): Collection
+    {
+        $response = $this->client()->get('v1/skp', [
+            'periodeid' => config('kinetik.kip.periode_id'),
+            'pegawaiid' => $pegawaiId,
+            'jenis' => 1,
+        ]);
+
+        if (! $response->successful()) {
+            throw KipApiException::fromResponse($response, 'fetchYearlyRks');
+        }
+
+        $skps = $response->json();
+
+        return collect(is_array($skps) && array_is_list($skps) ? $skps : [])
+            ->pluck('id')
+            ->filter()
+            ->flatMap(function ($skpId) {
+                $rows = $this->client()->get('v1/skp/rk', ['skpid' => $skpId])->json();
+
+                return is_array($rows) && array_is_list($rows) ? $rows : [];
+            })
+            ->filter(fn ($row) => is_array($row) && filled($row['rkid'] ?? null))
+            ->map(fn (array $row) => KipRkData::fromApiRow($row))
+            ->values();
+    }
+
     private function fetchPeriodSkpIds(string $pegawaiId): Collection
     {
         $response = $this->client()->get('v1/skp', [

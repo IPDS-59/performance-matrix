@@ -14,7 +14,7 @@ use Illuminate\Support\Collection;
  * Complements BackfillRkAction (which creates claimable RKs from activities) by
  * setting the authoritative team and numeric target/unit.
  *
- * @phpstan-type PlanCounts array{created:int, enriched:int}
+ * @phpstan-type PlanCounts array{created:int, enriched:int, linked:int}
  */
 class SyncKipPlansAction
 {
@@ -69,6 +69,10 @@ class SyncKipPlansAction
                 if ($rk->skpStatus !== null) {
                     $plan->skp_status = $rk->skpStatus;
                 }
+                // The leader RK this RK is cascaded from (links it to a Projek).
+                if (filled($rk->raw['rencanakinerjaatasan'] ?? null)) {
+                    $plan->leader_rk = trim($rk->raw['rencanakinerjaatasan']);
+                }
                 $plan->pic_employee_id ??= $employee->id;
 
                 $plan->save();
@@ -77,6 +81,6 @@ class SyncKipPlansAction
             }
         }
 
-        return ['created' => $created, 'enriched' => $enriched];
+        return ['created' => $created, 'enriched' => $enriched, 'linked' => (new LinkPlansToProjectsAction)->execute()];
     }
 }

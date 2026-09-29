@@ -246,6 +246,8 @@ export interface PlanOption {
     project_name: string;
     team_id: number | null;
     team_name: string;
+    /** Projek under this RK's leader RK in kipApp, when there are several; empty = any Projek of the team. */
+    project_candidates: number[];
 }
 
 export interface ProjectOption {

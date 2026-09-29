@@ -161,6 +161,9 @@ class SyncKipStructureAction
 
         $this->assignHomeTeam($team, $teamEmployees);
 
+        // RK whose leader RK owns exactly one Projek now belong to that Projek.
+        $this->counts['plans_linked'] += (new LinkPlansToProjectsAction)->execute($team->id);
+
         return $this->counts;
     }
 
@@ -194,6 +197,8 @@ class SyncKipStructureAction
         $project->kip_external_id = $data->externalId;
         $project->team_id = $team->id;
         $project->name = $data->name !== '' ? $data->name : "Projek {$data->externalId}";
+        // The team leader's RK this Projek hangs under (links member RK to it).
+        $project->leader_rk = filled($data->raw['rencanakinerjaketua'] ?? null) ? trim($data->raw['rencanakinerjaketua']) : $project->leader_rk;
         if ($leaderId) {
             $project->leader_id = $leaderId;
         }
@@ -463,6 +468,7 @@ class SyncKipStructureAction
             'outside_office' => 0,
             'team_member_links' => 0,
             'skipped_no_niplama' => 0,
+            'plans_linked' => 0,
         ];
     }
 

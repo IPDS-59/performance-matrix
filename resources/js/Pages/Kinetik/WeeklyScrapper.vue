@@ -64,7 +64,10 @@ type ClaimFormData = {
 function projectOptions(planId: number | null): ProjectOption[] {
     const plan = props.plans.find(p => p.id === planId);
     if (!plan || plan.project_id || !plan.team_id) return [];
-    return props.projects.filter(p => p.team_id === plan.team_id);
+    const inTeam = props.projects.filter(p => p.team_id === plan.team_id);
+    // kipApp hangs Projek under the leader's RK: offer only those when known.
+    const narrowed = plan.project_candidates?.length ? inTeam.filter(p => plan.project_candidates.includes(p.id)) : [];
+    return narrowed.length ? narrowed : inTeam;
 }
 
 // kipApp links an RK to a team, not a Projek. Pre-select, in order: the Projek

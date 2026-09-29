@@ -562,3 +562,13 @@ it('remembers the Projek the member chose last time for each RK', function () {
     $this->actingAs($user)->get(route('weekly.index'))
         ->assertInertia(fn ($page) => $page->where("recentProjects.{$plan->id}", $new->id));
 });
+
+it('offers only the Projek under the RK leader RK when kipApp has several', function () {
+    [$user, , $team, $plan] = claimant();
+    [$a, $b] = Project::factory()->count(2)->create(['team_id' => $team->id, 'leader_rk' => 'RK Ketua TIK']);
+    Project::factory()->create(['team_id' => $team->id, 'leader_rk' => 'RK Ketua lain']);
+    $plan->update(['leader_rk' => 'RK Ketua TIK']);
+
+    $this->actingAs($user)->get(route('weekly.index'))
+        ->assertInertia(fn ($page) => $page->where('plans', fn ($plans) => collect(collect($plans)->firstWhere('id', $plan->id)['project_candidates'])->sort()->values()->all() === collect([$a->id, $b->id])->sort()->values()->all()));
+});

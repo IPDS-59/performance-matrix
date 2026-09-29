@@ -18,6 +18,7 @@ class PerformancePlan extends Model
         'team_id',
         'code',
         'description',
+        'leader_rk',
         'target',
         'target_unit',
         'period_type',

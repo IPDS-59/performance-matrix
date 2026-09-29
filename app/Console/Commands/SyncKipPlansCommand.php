@@ -36,7 +36,7 @@ class SyncKipPlansCommand extends Command
 
         $summary = $action->execute($source, $employees);
 
-        $this->info("RK created: {$summary['created']}, enriched: {$summary['enriched']}.");
+        $this->info("RK created: {$summary['created']}, enriched: {$summary['enriched']}, linked to a Projek: {$summary['linked']}.");
 
         return self::SUCCESS;
     }

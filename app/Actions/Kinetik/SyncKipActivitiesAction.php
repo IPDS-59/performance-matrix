@@ -6,11 +6,14 @@ use App\Kinetik\Contracts\KipActivitySource;
 use App\Models\Employee;
 use App\Models\KipActivity;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Log;
+use Throwable;
 
 class SyncKipActivitiesAction
 {
     public function __construct(
         private readonly BackfillRkAction $backfillRk,
+        private readonly LinkPlansToProjectsAction $links,
     ) {}
 
     /**
@@ -64,7 +67,19 @@ class SyncKipActivitiesAction
             }
 
             $this->backfillRk->execute($employee);
+
+            // Leader RK of each RK, to link RK to their Projek. Two kipApp
+            // calls; a failure here must not stop the activity sync.
+            if ($employee->kip_pegawai_id) {
+                try {
+                    $this->links->rememberLeaderRks($source->fetchYearlyRks((string) $employee->kip_pegawai_id));
+                } catch (Throwable $e) {
+                    Log::warning('Leader RK sync failed', ['employee_id' => $employee->id, 'error' => $e->getMessage()]);
+                }
+            }
         }
+
+        $this->links->execute();
 
         return $count;
     }
