@@ -468,7 +468,7 @@ export const GUIDE_FLOWS: GuideFlow[] = [
 export const GUIDE_FAQ = [
     {
         q: 'Rencana Kinerja pada kegiatan saya kosong. Apa yang harus dilakukan?',
-        a: 'RK belum cocok dengan data kipApp. Tunggu sinkronisasi berikutnya atau minta admin menyinkronkan ulang. Jika tetap kosong, periksa RK kegiatan itu di kipApp.',
+        a: 'Kinetik mencocokkan RK dari kipApp dengan RK tim Anda. Jika tidak ditemukan, formulir menampilkan pilihan "Pilih RK": pilih RK yang sesuai lalu simpan. Jika RK Anda tidak ada di daftar, minta admin menjalankan Sinkronisasi Struktur.',
     },
     {
         q: 'Saya tidak bisa menyimpan klaim: "Rekap tim untuk periode ini sudah dikunci PJ".',

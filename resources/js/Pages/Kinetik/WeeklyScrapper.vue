@@ -126,6 +126,28 @@ function toggleForm(activityId: number) {
     expandedForms.value[activityId] = !expandedForms.value[activityId];
 }
 
+// kipApp's RK matched one of the member's RKs: shown read-only. Otherwise the
+// member picks the RK here instead of being stuck with an empty one.
+function hasAutoPlan(activity: KipActivity): boolean {
+    return activity.matched_plan_id != null && props.plans.some(p => p.id === activity.matched_plan_id);
+}
+
+// RK choices grouped by team, for the manual pick.
+const plansByTeam = computed(() => {
+    const groups = new Map<string, PlanOption[]>();
+    for (const plan of [...props.plans].sort((a, b) => a.description.localeCompare(b.description))) {
+        if (!groups.has(plan.team_name)) groups.set(plan.team_name, []);
+        groups.get(plan.team_name)!.push(plan);
+    }
+    return [...groups.entries()].sort(([a], [b]) => a.localeCompare(b));
+});
+
+function choosePlan(activityId: number, value: unknown) {
+    const form = claimForms.value[activityId];
+    form.performance_plan_id = value ? Number(value) : null;
+    form.project_id = defaultProjectId(form.performance_plan_id);
+}
+
 function planLabel(activityId: number): string {
     const planId = claimForms.value[activityId]?.performance_plan_id;
     if (!planId) return '—';
@@ -348,11 +370,34 @@ function achievementColor(val: number | string | null | undefined): string {
                                 <!-- 1. Where this activity counts -->
                                 <fieldset class="space-y-3">
                                     <legend class="mb-2 text-xs font-semibold uppercase tracking-wide text-gray-500">Rencana Kinerja</legend>
-                                    <div>
+                                    <div v-if="hasAutoPlan(activity)">
                                         <p class="rounded-md border border-gray-200 bg-gray-50 px-3 py-2 text-sm leading-snug text-gray-800">
                                             {{ planLabel(activity.id) }}
                                         </p>
                                         <p class="mt-1 text-xs text-gray-500">Terisi otomatis dari kipApp.</p>
+                                        <InputError :message="claimForms[activity.id].errors.performance_plan_id" />
+                                    </div>
+                                    <div v-else>
+                                        <Label :for="`plan-${activity.id}`">Pilih RK</Label>
+                                        <Select
+                                            :model-value="claimForms[activity.id].performance_plan_id ? String(claimForms[activity.id].performance_plan_id) : undefined"
+                                            @update:model-value="(v) => choosePlan(activity.id, v)"
+                                        >
+                                            <SelectTrigger :id="`plan-${activity.id}`" class="mt-1 h-auto min-h-9 w-full whitespace-normal text-left">
+                                                <SelectValue placeholder="Pilih Rencana Kinerja" />
+                                            </SelectTrigger>
+                                            <SelectContent class="max-w-[min(42rem,90vw)]">
+                                                <template v-for="[team, teamPlans] in plansByTeam" :key="team">
+                                                    <div class="px-2 pb-1 pt-2 text-[11px] font-semibold uppercase tracking-wide text-gray-500">{{ team }}</div>
+                                                    <SelectItem v-for="plan in teamPlans" :key="plan.id" :value="String(plan.id)" class="whitespace-normal">
+                                                        {{ plan.project_name ? `${plan.description} (${plan.project_name})` : plan.description }}
+                                                    </SelectItem>
+                                                </template>
+                                            </SelectContent>
+                                        </Select>
+                                        <p class="mt-1 text-xs text-amber-700">
+                                            RK kipApp<template v-if="activity.rk_name"> "{{ activity.rk_name }}"</template> tidak ditemukan di tim Anda. Pilih RK yang sesuai.
+                                        </p>
                                         <InputError :message="claimForms[activity.id].errors.performance_plan_id" />
                                     </div>
 

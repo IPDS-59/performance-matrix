@@ -14,6 +14,7 @@ use Carbon\Carbon;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
@@ -50,27 +51,23 @@ class WeeklyActivityController extends Controller
                 ->get()
             : collect();
 
-        // Resolve rk_external_id → local performance_plan_id so the frontend
-        // can auto-select the correct RK without requiring the user to pick manually.
-        $rkIds = $rawActivities->pluck('rk_external_id')->filter()->unique();
-        $planByRkId = $rkIds->isNotEmpty()
-            ? PerformancePlan::whereIn('kip_external_id', $rkIds)->pluck('id', 'kip_external_id')
-            : collect();
+        // kipApp RK of each activity → local performance_plan_id, so the RK is
+        // filled in without the member picking it.
+        $matchedPlan = $this->matchPlans($rawActivities, $employee?->teams()->pluck('teams.id') ?? collect());
 
         // Team of each matched RK, to tell the member up front when the PJ locked the period.
-        $planIds = $planByRkId->values()->merge($rawActivities->pluck('claim.performance_plan_id'))->filter()->unique();
+        $planIds = $matchedPlan->values()->merge($rawActivities->pluck('claim.performance_plan_id'))->filter()->unique();
         $teamByPlanId = PerformancePlan::with('project:id,team_id')
             ->whereIn('id', $planIds)
             ->get()
             ->mapWithKeys(fn (PerformancePlan $plan) => [$plan->id => $plan->project?->team_id ?? $plan->team_id]);
 
-        $activities = $rawActivities->map(function (KipActivity $a) use ($planByRkId, $teamByPlanId) {
-            $planId = $a->claim?->performance_plan_id
-                ?? ($a->rk_external_id ? $planByRkId->get($a->rk_external_id) : null);
+        $activities = $rawActivities->map(function (KipActivity $a) use ($matchedPlan, $teamByPlanId) {
+            $planId = $a->claim?->performance_plan_id ?? $matchedPlan->get($a->id);
             $teamId = $planId ? $teamByPlanId->get($planId) : null;
 
             return array_merge($a->toArray(), [
-                'matched_plan_id' => $a->rk_external_id ? $planByRkId->get($a->rk_external_id) : null,
+                'matched_plan_id' => $matchedPlan->get($a->id),
                 'locked' => $teamId !== null && RecapLock::coversDate($teamId, Carbon::parse($a->activity_date_start)),
             ]);
         });
@@ -244,5 +241,37 @@ class WeeklyActivityController extends Controller
 
         return redirect()->route('weekly.index', ['week' => $weekStart])
             ->with('success', 'Kegiatan berhasil disimpan ke rekap mingguan.');
+    }
+
+    /**
+     * Local RK of each activity, keyed by activity id. First by the kipApp RK
+     * id. kipApp gives every employee their own RK id even when the RK text
+     * is shared, and the RK sync keeps one local RK per text (BackfillRkAction),
+     * so most ids only match by name. The name match prefers an RK of the
+     * employee's own teams.
+     *
+     * @param  Collection<int, KipActivity>  $activities
+     * @param  Collection<int, int>  $teamIds
+     * @return Collection<int, int>
+     */
+    private function matchPlans(Collection $activities, Collection $teamIds): Collection
+    {
+        $byKipId = PerformancePlan::whereIn('kip_external_id', $activities->pluck('rk_external_id')->filter()->unique())
+            ->pluck('id', 'kip_external_id');
+
+        $normalize = fn (?string $text) => mb_strtolower(preg_replace('/\s+/', ' ', trim((string) $text)));
+        $names = $activities->reject(fn (KipActivity $a) => $byKipId->has($a->rk_external_id))
+            ->pluck('rk_name')->filter()->map($normalize)->unique();
+
+        $byName = $names->isEmpty() ? collect() : PerformancePlan::with('project:id,team_id')
+            ->whereIn(DB::raw('LOWER(TRIM(description))'), $names->all())
+            ->get()
+            ->sortBy(fn (PerformancePlan $plan) => $teamIds->contains($plan->project?->team_id ?? $plan->team_id) ? 0 : 1)
+            ->groupBy(fn (PerformancePlan $plan) => $normalize($plan->description))
+            ->map(fn (Collection $plans) => $plans->first()->id);
+
+        return $activities->mapWithKeys(fn (KipActivity $a) => [
+            $a->id => $byKipId->get($a->rk_external_id) ?? $byName->get($normalize($a->rk_name)),
+        ])->filter();
     }
 }

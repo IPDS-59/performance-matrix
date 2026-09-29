@@ -532,3 +532,23 @@ it('flags activities in a locked period so the form can say so up front', functi
         ->get(route('weekly.index', ['week' => '2026-06-01']))
         ->assertInertia(fn ($page) => $page->where('activities.0.locked', true));
 });
+
+it('matches an activity RK by name when kipApp gives the member their own RK id', function () {
+    [$user, $employee, $team, $plan] = claimant();
+    $plan->update(['kip_external_id' => '111', 'description' => 'Terlaksananya Dukungan Metodologi SAKERNAS']);
+    // Same text in another team: the member's own team wins.
+    PerformancePlan::factory()->create(['project_id' => null, 'team_id' => Team::factory()->create()->id, 'kip_external_id' => '222', 'description' => 'Terlaksananya Dukungan Metodologi SAKERNAS']);
+    $byName = KipActivity::factory()->create([
+        'employee_id' => $employee->id, 'activity_date_start' => '2026-06-24',
+        'rk_external_id' => '999', 'rk_name' => ' terlaksananya dukungan  metodologi SAKERNAS ',
+    ]);
+    $unknown = KipActivity::factory()->create([
+        'employee_id' => $employee->id, 'activity_date_start' => '2026-06-25',
+        'rk_external_id' => '998', 'rk_name' => 'RK yang tidak ada',
+    ]);
+
+    $this->actingAs($user)->get(route('weekly.index', ['week' => '2026-06-22']))
+        ->assertInertia(fn ($page) => $page
+            ->where('activities', fn ($rows) => collect($rows)->firstWhere('id', $byName->id)['matched_plan_id'] === $plan->id
+                && collect($rows)->firstWhere('id', $unknown->id)['matched_plan_id'] === null));
+});
