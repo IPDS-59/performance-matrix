@@ -20,6 +20,7 @@ class Employee extends Model
         'employee_number',
         'nip_lama',
         'nip_baru',
+        'kip_pegawai_id',
         'position',
         'office',
         'display_name',
@@ -28,6 +29,8 @@ class Employee extends Model
 
     protected $casts = [
         'is_active' => 'boolean',
+        'kip_in_office' => 'boolean',
+        'kip_office_checked_at' => 'datetime',
     ];
 
     public function user(): BelongsTo

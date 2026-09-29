@@ -392,3 +392,49 @@ it('does not add x-auth header when token is empty', function () {
         return empty($request->header('x-auth'));
     });
 });
+
+// ---------------------------------------------------------------------------
+// fetchActivities — third source: every monthly SKP of the period
+// ---------------------------------------------------------------------------
+
+it('fetches sent activities of past months through the period SKP list', function () {
+    config(['kinetik.kip.periode_id' => 8]);
+
+    // Live shape 2026-09-28: current month has no RK, nothing unsent, but two
+    // past monthly SKPs still hold sent activities.
+    Http::fake([
+        'kipapp.bps.go.id/api/v1/dashboard/rkpegawai*' => Http::response(['jumlahrk' => 0], 200),
+        'kipapp.bps.go.id/api/v1/dashboard/kegiatanpegawai/belumkirim*' => Http::response([], 200),
+        'kipapp.bps.go.id/api/v1/skp*' => Http::response([
+            ['id' => '1285321', 'pegawaiid' => '84890', 'statusskp' => 'Dinilai', 'periodepenilaianid' => 1],
+            ['id' => '1286717', 'pegawaiid' => '84890', 'statusskp' => 'Dinilai', 'periodepenilaianid' => 2],
+        ], 200),
+        'kipapp.bps.go.id/api/v1/kegiatan?skpid=1285321' => Http::response([
+            ['kegiatanperhariid' => '1', 'rkid' => '9', 'kegiatan' => 'Januari', 'tanggal' => '2026-01-05', 'periodeid' => 8, 'tahun' => 2026],
+        ], 200),
+        'kipapp.bps.go.id/api/v1/kegiatan?skpid=1286717' => Http::response([
+            ['kegiatanperhariid' => '2', 'rkid' => '9', 'kegiatan' => 'Februari', 'tanggal' => '2026-02-03', 'periodeid' => 8, 'tahun' => 2026],
+        ], 200),
+    ]);
+
+    $source = new ApiKipActivitySource(new ConfigBearerAuthenticator);
+    $activities = $source->fetchActivities('340060924', '84890');
+
+    expect($activities->pluck('externalId')->sort()->values()->all())->toBe(['1', '2']);
+    Http::assertSent(fn ($request) => str_contains($request->url(), 'v1/skp?')
+        && str_contains($request->url(), 'periodeid=8')
+        && str_contains($request->url(), 'pegawaiid=84890')
+        && str_contains($request->url(), 'jenis=2'));
+});
+
+it('skips the period SKP list when the kipApp employee id is unknown', function () {
+    Http::fake([
+        'kipapp.bps.go.id/api/v1/dashboard/rkpegawai*' => Http::response(['jumlahrk' => 0], 200),
+        'kipapp.bps.go.id/api/v1/dashboard/kegiatanpegawai/belumkirim*' => Http::response([], 200),
+    ]);
+
+    $source = new ApiKipActivitySource(new ConfigBearerAuthenticator);
+
+    expect($source->fetchActivities('340060924'))->toBeEmpty();
+    Http::assertNotSent(fn ($request) => str_contains($request->url(), 'v1/skp?'));
+});

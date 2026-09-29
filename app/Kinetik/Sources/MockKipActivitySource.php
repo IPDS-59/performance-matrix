@@ -15,7 +15,7 @@ use Illuminate\Support\Collection;
  */
 class MockKipActivitySource implements KipActivitySource
 {
-    public function fetchActivities(string $nipLama): Collection
+    public function fetchActivities(string $nipLama, ?string $pegawaiId = null): Collection
     {
         return collect([
             KipActivityData::fromApiRow([

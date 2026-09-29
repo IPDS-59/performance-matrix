@@ -35,7 +35,7 @@ class ApiKipActivitySource implements KipActivitySource
      * GET /v1/kegiatan?skpid=<skpid> is called and ALL rows (sent + unsent)
      * are returned — no filtering on sentAt.
      */
-    public function fetchActivities(string $nipLama): Collection
+    public function fetchActivities(string $nipLama, ?string $pegawaiId = null): Collection
     {
         // Source 1: rkpegawai (state-independent)
         $rkResponse = $this->client()
@@ -76,14 +76,48 @@ class ApiKipActivitySource implements KipActivitySource
                     ->all();
             });
 
+        // Source 3: every periodic (quarterly) SKP of the period (what kipApp's own
+        // "Pelaksanaan" page lists). rkpegawai only covers the current month and
+        // belumkirim only unsent activities, so without this, activities already
+        // sent in past months are never fetched.
+        $periodSkpIds = $pegawaiId !== null ? $this->fetchPeriodSkpIds($pegawaiId) : collect();
+
         $skpIds = $rkSkpIds
             ->merge($belumKirimSkpIds)
+            ->merge($periodSkpIds)
             ->filter()
             ->unique()
             ->values();
 
         return $skpIds
             ->flatMap(fn (string $skpId): Collection => $this->fetchActivitiesBySkp($skpId))
+            ->values();
+    }
+
+    /**
+     * SKP ids of every periodic (quarterly) SKP (jenis=2) an employee has in the configured
+     * period, from GET v1/skp?periodeid=&pegawaiid=&jenis=2.
+     *
+     * @return Collection<int, string>
+     */
+    private function fetchPeriodSkpIds(string $pegawaiId): Collection
+    {
+        $response = $this->client()->get('v1/skp', [
+            'periodeid' => config('kinetik.kip.periode_id'),
+            'pegawaiid' => $pegawaiId,
+            'jenis' => 2,
+        ]);
+
+        if (! $response->successful()) {
+            throw KipApiException::fromResponse($response, 'fetchPeriodSkpIds');
+        }
+
+        $rows = $response->json();
+
+        return collect(is_array($rows) && array_is_list($rows) ? $rows : [])
+            ->pluck('id')
+            ->filter()
+            ->map(fn ($id) => (string) $id)
             ->values();
     }
 

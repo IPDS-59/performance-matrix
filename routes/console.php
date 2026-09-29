@@ -8,11 +8,14 @@ Artisan::command('inspire', function () {
     $this->comment(Inspiring::quote());
 })->purpose('Display an inspiring quote');
 
-// Kinetik: pull unsent kipApp activities every Monday at 05:00
-Schedule::command('kinetik:sync-kip-activities')->weeklyOn(1, '05:00');
+// Kinetik: pull kipApp activities daily at 05:00 (Probis item 5)
+Schedule::command('kinetik:sync-kip-activities')->dailyAt('05:00');
 
-// Kinetik: mirror kipApp structure (teams/projects/members) every Monday at 04:30
-Schedule::command('kinetik:sync-kip-structure')->weeklyOn(1, '04:30');
+// Kinetik: mirror kipApp structure (teams/projects/members) daily at 04:30
+Schedule::command('kinetik:sync-kip-structure')->dailyAt('04:30');
 
-// Kinetik: enrich RK with team + parsed IKI targets every Monday at 04:45
-Schedule::command('kinetik:sync-kip-plans')->weeklyOn(1, '04:45');
+// Kinetik: keep only BPS Provinsi Sulawesi Tengah staff, after the structure sync
+Schedule::command('kinetik:verify-office --apply')->dailyAt('04:40');
+
+// Kinetik: enrich RK with team + parsed IKI targets daily at 04:45
+Schedule::command('kinetik:sync-kip-plans')->dailyAt('04:45');

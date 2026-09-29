@@ -3,6 +3,7 @@
 namespace App\Kinetik\Contracts;
 
 use App\Kinetik\Data\KipMemberData;
+use App\Kinetik\Data\KipOfficeData;
 use App\Kinetik\Data\KipProjectData;
 use App\Kinetik\Data\KipRkData;
 use App\Kinetik\Data\KipTeamData;
@@ -32,6 +33,13 @@ interface KipStructureSource
      * @return Collection<int, KipMemberData>
      */
     public function fetchTeamMembers(string $timkerjaId): Collection;
+
+    /**
+     * Where an employee works now (v1/pegawai/lokasi). Empty when unknown.
+     *
+     * @return list<KipOfficeData>
+     */
+    public function fetchEmployeeOffices(string $nipLama): array;
 
     /**
      * Cascade: an employee's RK list with targets parsed from IKI text

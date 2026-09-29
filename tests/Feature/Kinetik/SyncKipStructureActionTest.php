@@ -41,7 +41,7 @@ function fakeStructure(): void
                 'namaproyek' => ' Pengembangan SDM ',
                 'anggota' => [
                     ['anggotaid' => 'a1', 'niplama' => '340013832', 'nama' => 'Imron'],
-                    ['anggotaid' => 'a2', 'niplama' => '340053881', 'nama' => 'Asmawati'],
+                    ['anggotaid' => 'a2', 'pegawaiid' => '84890', 'niplama' => '340053881', 'nama' => 'Asmawati'],
                     ['anggotaid' => 'a3', 'niplama' => '999999999', 'nama' => 'Unknown'],
                 ],
             ],
@@ -168,7 +168,7 @@ it('skips member rows without a niplama', function () {
         ->and($summary['employees_created'])->toBe(1);
 });
 
-it('makes project members and roster team members so recaps resolve', function () {
+it('makes project members team members, ignoring the unreliable team roster', function () {
     fakeStructure();
     $leader = Employee::factory()->create(['nip_lama' => '340013832']);
 
@@ -176,8 +176,11 @@ it('makes project members and roster team members so recaps resolve', function (
 
     $team = Team::where('kip_external_id', '106436')->first();
 
-    // leader (340013832) + project members (340053881, 999999999) + roster (340017503)
-    expect($team->members()->count())->toBe(4)
+    // leader (340013832) + project members (340053881, 999999999). The
+    // timkerja/anggota "roster" (340017503) is not read: live, it returns one
+    // unrelated person from another province.
+    expect($team->members()->count())->toBe(3)
+        ->and(Employee::where('nip_lama', '340017503')->exists())->toBeFalse()
         ->and($team->members()->wherePivot('role', 'leader')->pluck('employees.id')->all())->toBe([$leader->id]);
 
     // Project member with no team roster entry still resolves a team membership.
@@ -309,9 +312,9 @@ it('falls back to derived email when niplama is not in the username map', functi
 
     runStructureSync();
 
-    $verawati = Employee::where('nip_lama', '340017503')->first();
-    expect($verawati->user_id)->not->toBeNull();
-    expect(User::find($verawati->user_id)->email)->toBe('verawati@bpssulteng.id');
+    $asmawati = Employee::where('nip_lama', '340053881')->first();
+    expect($asmawati->user_id)->not->toBeNull();
+    expect(User::find($asmawati->user_id)->email)->toBe('asmawati@bpssulteng.id');
 });
 
 it('upgrades an existing derived-email login to the real email on re-sync', function () {
@@ -410,4 +413,84 @@ it('provisions the team leader when niplamaketua is not in the project roster', 
 
     expect($team->leader_id)->toBe($leader->id)
         ->and($team->members()->wherePivot('role', 'leader')->pluck('employees.id')->all())->toContain($leader->id);
+});
+
+it('stores the kipApp employee id used to list monthly SKPs', function () {
+    fakeStructure();
+    $employee = Employee::factory()->create(['nip_lama' => '340053881', 'name' => 'Asmawati']);
+
+    runStructureSync();
+
+    expect($employee->fresh()->kip_pegawai_id)->toBe('84890');
+});
+
+// ── Office guard: only BPS Provinsi Sulawesi Tengah ──────────────────────────
+
+function lokasi(string $wilayahId, string $unitId, string $wilayah = 'X', string $unit = 'BPS X'): array
+{
+    return ['wilayah' => [['id' => $wilayahId, 'wilayah' => $wilayah, 'unitkerja' => [['id' => $unitId, 'unitkerja' => $unit]]]]];
+}
+
+it('keeps only project members who work at BPS Provinsi Sulawesi Tengah', function () {
+    config(['kinetik.kip.wilayah_id' => '7200_11', 'kinetik.kip.unitkerja_id' => '100']);
+    Http::fake([
+        'kipapp.bps.go.id/api/v1/pegawai/lokasi?*niplama=340053881*' => Http::response(lokasi('1802_11', '101', 'Tanggamus', 'BPS Kabupaten/Kota'), 200),
+        'kipapp.bps.go.id/api/v1/pegawai/lokasi*' => Http::response(lokasi('7200_11', '100', 'Sulawesi Tengah', 'BPS Provinsi'), 200),
+    ]);
+    fakeStructure();
+    Employee::factory()->create(['nip_lama' => '340013832']);
+
+    $summary = runStructureSync();
+
+    $outsider = Employee::where('nip_lama', '340053881')->first();
+    expect($summary['outside_office'])->toBe(1)
+        ->and($outsider->is_active)->toBeFalse()
+        ->and($outsider->teams()->count())->toBe(0)
+        ->and($outsider->projects()->count())->toBe(0)
+        ->and($outsider->kip_office)->toBe('BPS Kabupaten/Kota Tanggamus')
+        ->and(Employee::where('nip_lama', '999999999')->first()->teams()->count())->toBe(1);
+});
+
+it('never drops anyone when the office lookup fails', function () {
+    Http::fake([
+        'kipapp.bps.go.id/api/v1/pegawai/lokasi*' => Http::response(null, 500),
+    ]);
+    fakeStructure();
+    Employee::factory()->create(['nip_lama' => '340013832']);
+
+    $summary = runStructureSync();
+
+    expect($summary['outside_office'])->toBe(0)
+        ->and(Employee::where('nip_lama', '340053881')->first()->is_active)->toBeTrue();
+});
+
+it('verify-office reports outsiders and removes them only with --apply', function () {
+    config(['kinetik.kip.wilayah_id' => '7200_11', 'kinetik.kip.unitkerja_id' => '100']);
+    Http::fake([
+        'kipapp.bps.go.id/api/v1/pegawai/lokasi?*niplama=340054640*' => Http::response(lokasi('1505_11', '101', 'Muaro Jambi', 'BPS Kabupaten/Kota'), 200),
+        'kipapp.bps.go.id/api/v1/pegawai/lokasi*' => Http::response(lokasi('7200_11', '100'), 200),
+    ]);
+    $team = Team::factory()->create();
+    $outsider = Employee::factory()->create(['nip_lama' => '340054640']);
+    $staff = Employee::factory()->create(['nip_lama' => '340060924']);
+    $team->members()->attach([$outsider->id => ['role' => 'member'], $staff->id => ['role' => 'member']]);
+
+    $this->artisan('kinetik:verify-office')->assertSuccessful();
+    expect($outsider->fresh()->is_active)->toBeTrue();
+
+    $this->artisan('kinetik:verify-office --apply')->assertSuccessful();
+    expect($outsider->fresh()->is_active)->toBeFalse()
+        ->and($outsider->teams()->count())->toBe(0)
+        ->and($staff->fresh()->is_active)->toBeTrue()
+        ->and($staff->teams()->count())->toBe(1);
+});
+
+it('verify-office never removes head or admin accounts', function () {
+    Http::fake(['kipapp.bps.go.id/api/v1/pegawai/lokasi*' => Http::response(lokasi('9999_11', '1'), 200)]);
+    $head = headUser();
+    $employee = Employee::factory()->create(['nip_lama' => '340013341', 'user_id' => $head->id]);
+
+    $this->artisan('kinetik:verify-office --apply')->assertSuccessful();
+
+    expect($employee->fresh()->is_active)->toBeTrue();
 });

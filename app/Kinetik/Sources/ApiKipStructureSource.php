@@ -5,6 +5,7 @@ namespace App\Kinetik\Sources;
 use App\Kinetik\Contracts\KipAuthenticator;
 use App\Kinetik\Contracts\KipStructureSource;
 use App\Kinetik\Data\KipMemberData;
+use App\Kinetik\Data\KipOfficeData;
 use App\Kinetik\Data\KipProjectData;
 use App\Kinetik\Data\KipRkData;
 use App\Kinetik\Data\KipTeamData;
@@ -89,6 +90,24 @@ class ApiKipStructureSource implements KipStructureSource
             ->values();
     }
 
+    public function fetchEmployeeOffices(string $nipLama): array
+    {
+        $response = $this->client()->get('v1/pegawai/lokasi', [
+            'periodeid' => config('kinetik.kip.periode_id'),
+            'niplama' => $nipLama,
+            'isjpt' => 0,
+            'istimkerja' => 1,
+        ]);
+
+        if (! $response->successful()) {
+            throw KipApiException::fromResponse($response, 'fetchEmployeeOffices');
+        }
+
+        $json = $response->json();
+
+        return is_array($json) ? KipOfficeData::listFromLokasi($json) : [];
+    }
+
     public function fetchEmployeePlans(string $nipLama): Collection
     {
         $response = $this->client()
@@ -144,9 +163,9 @@ class ApiKipStructureSource implements KipStructureSource
      * Best-effort: returns an empty collection on API failure so callers
      * can proceed with null statuses rather than aborting the sync.
      *
-     * @return \Illuminate\Support\Collection<string, string>
+     * @return Collection<string, string>
      */
-    private function fetchSkpStatusMap(string $nipLama): \Illuminate\Support\Collection
+    private function fetchSkpStatusMap(string $nipLama): Collection
     {
         $response = $this->client()->get('v1/skp', [
             'niplama' => $nipLama,

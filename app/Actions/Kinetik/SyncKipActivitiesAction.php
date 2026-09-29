@@ -34,7 +34,7 @@ class SyncKipActivitiesAction
                 continue;
             }
 
-            $activities = $source->fetchActivities($employee->nip_lama);
+            $activities = $source->fetchActivities($employee->nip_lama, $employee->kip_pegawai_id);
 
             foreach ($activities as $dto) {
                 KipActivity::updateOrCreate(

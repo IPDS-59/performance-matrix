@@ -12,9 +12,10 @@ interface KipActivitySource
      * Fetch all daily activities (submitted + unsent) for an employee.
      *
      * @param  string  $nipLama  Legacy 9-digit NIP (niplama)
+     * @param  string|null  $pegawaiId  kipApp internal employee id; enables discovery of every periodic (quarterly) SKP
      * @return Collection<int, KipActivityData>
      */
-    public function fetchActivities(string $nipLama): Collection;
+    public function fetchActivities(string $nipLama, ?string $pegawaiId = null): Collection;
 
     /**
      * Fetch Rencana Kinerja (RK) list for an employee.

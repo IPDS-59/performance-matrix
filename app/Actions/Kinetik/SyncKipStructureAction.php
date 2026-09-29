@@ -5,6 +5,7 @@ namespace App\Actions\Kinetik;
 use App\Kinetik\Contracts\KipStructureSource;
 use App\Kinetik\Data\KipMemberData;
 use App\Kinetik\Data\KipProjectData;
+use App\Kinetik\OfficeGuard;
 use App\Models\Employee;
 use App\Models\PerformanceIndicator;
 use App\Models\Project;
@@ -32,7 +33,7 @@ use Spatie\Permission\Models\Role;
  *  - project_members is kipApp-owned -> full sync. employee_team is shared with
  *    Domain A -> additive syncWithoutDetaching only.
  *
- * @phpstan-type Counts array{teams:int, projects:int, indicators:int, employees_created:int, employees_updated:int, users_created:int, project_member_links:int, team_member_links:int, skipped_no_niplama:int}
+ * @phpstan-type Counts array{teams:int, projects:int, indicators:int, employees_created:int, employees_updated:int, users_created:int, project_member_links:int, outside_office:int, team_member_links:int, skipped_no_niplama:int}
  */
 class SyncKipStructureAction
 {
@@ -77,6 +78,7 @@ class SyncKipStructureAction
     {
         $this->employeeCache = collect();
         $this->counts = $this->emptyCounts();
+        $guard = new OfficeGuard($source);
 
         $projects = $source->fetchTeamProjects($timkerjaId);
 
@@ -107,7 +109,7 @@ class SyncKipStructureAction
             $project = $this->upsertProject($team, $projectData, $leader?->id, $indicator?->id);
             $this->counts['projects']++;
 
-            $members = $this->provisionEmployees($projectData->members);
+            $members = $this->onlyOurOffice($guard, $this->provisionEmployees($projectData->members));
             $project->members()->sync(
                 $members->mapWithKeys(fn (Employee $e) => [
                     $e->id => ['role' => ($leader && $e->id === $leader->id) ? 'leader' : 'member'],
@@ -123,10 +125,9 @@ class SyncKipStructureAction
             $this->counts['project_member_links'] += $members->count();
         }
 
-        // Team roster (timkerja/anggota) — provision; pivot handled below.
-        $teamEmployees = $teamEmployees->concat(
-            $this->provisionEmployees($source->fetchTeamMembers($timkerjaId))
-        );
+        // Not read: kipApp timkerja/anggota?id=<team> returns one unrelated
+        // person from another province, not the team roster (live 2026-09-28).
+        // Membership comes from the PJ and the project members only.
 
         // Second-pass leader resolution: the leader employee may not have existed in
         // the DB when projects were first upserted (new employee, synced for the
@@ -273,6 +274,10 @@ class SyncKipStructureAction
         if ($m->nipBaru) {
             $employee->nip_baru = $m->nipBaru;
         }
+        // Key for the periodic (quarterly) SKP list used by the activity sync.
+        if ($m->pegawaiId) {
+            $employee->kip_pegawai_id = $m->pegawaiId;
+        }
         if ($m->jabatanName) {
             $employee->position = $m->jabatanName;
         }
@@ -408,6 +413,27 @@ class SyncKipStructureAction
     /**
      * @param  Collection<int, Employee>  $employees
      */
+    /**
+     * Keep only staff of our office; anyone kipApp places elsewhere is evicted.
+     * Unknown (lookup failed) is kept so an API hiccup never drops real staff.
+     *
+     * @param  Collection<int, Employee>  $employees
+     * @return Collection<int, Employee>
+     */
+    private function onlyOurOffice(OfficeGuard $guard, Collection $employees): Collection
+    {
+        return $employees->filter(function (Employee $employee) use ($guard) {
+            if ($guard->check($employee) === false) {
+                $guard->evict($employee);
+                $this->counts['outside_office']++;
+
+                return false;
+            }
+
+            return true;
+        })->values();
+    }
+
     private function assignHomeTeam(Team $team, Collection $employees): void
     {
         foreach ($employees->unique('id') as $employee) {
@@ -434,6 +460,7 @@ class SyncKipStructureAction
             'employees_updated' => 0,
             'users_created' => 0,
             'project_member_links' => 0,
+            'outside_office' => 0,
             'team_member_links' => 0,
             'skipped_no_niplama' => 0,
         ];

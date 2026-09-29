@@ -4,6 +4,7 @@ namespace App\Kinetik\Sources;
 
 use App\Kinetik\Contracts\KipStructureSource;
 use App\Kinetik\Data\KipMemberData;
+use App\Kinetik\Data\KipOfficeData;
 use App\Kinetik\Data\KipProjectData;
 use App\Kinetik\Data\KipRkData;
 use App\Kinetik\Data\KipTeamData;
@@ -39,6 +40,15 @@ class MockKipStructureSource implements KipStructureSource
                 ['anggotaid' => "{$timkerjaId}-{$i}-b", 'pegawaiid' => '2', 'niplama' => "34000{$timkerjaId}2", 'nipbaru' => '2', 'nama' => 'Anggota Dua', 'jabatanid' => '50', 'namajabatan' => 'Statistisi'],
             ],
         ]));
+    }
+
+    public function fetchEmployeeOffices(string $nipLama): array
+    {
+        // Mock staff all work at the configured office.
+        return [new KipOfficeData(
+            (string) config('kinetik.kip.wilayah_id'), 'Sulawesi Tengah',
+            (string) config('kinetik.kip.unitkerja_id'), 'BPS Provinsi',
+        )];
     }
 
     public function fetchTeamMembers(string $timkerjaId): Collection

@@ -13,6 +13,7 @@ use App\Models\KipCredential;
 use App\Models\KipSyncRun;
 use App\Models\Project;
 use App\Models\Team;
+use Carbon\Carbon;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -39,7 +40,7 @@ class KipIntegrationController extends Controller
                 'employees_with_nip' => Employee::where('is_active', true)->whereNotNull('nip_lama')->count(),
                 'employees_total' => Employee::where('is_active', true)->count(),
                 'activities_synced' => KipActivity::count(),
-                'last_fetched_at' => ($at = KipActivity::max('fetched_at')) ? \Carbon\Carbon::parse($at)->toIso8601String() : null,
+                'last_fetched_at' => ($at = KipActivity::max('fetched_at')) ? Carbon::parse($at)->toIso8601String() : null,
                 'teams_synced' => Team::whereNotNull('kip_external_id')->count(),
                 'projects_synced' => Project::whereNotNull('kip_external_id')->count(),
             ],
