@@ -2,6 +2,7 @@
 
 namespace App\Http\Middleware;
 
+use App\Http\Controllers\CreditController;
 use App\Models\PerformanceIndicator;
 use App\Models\PerformancePlan;
 use App\Models\Project;
@@ -48,6 +49,7 @@ class HandleInertiaRequests extends Middleware
                 'view_projects' => $request->user() ? rescue(fn () => $request->user()->can('viewAny', Project::class), false) : false,
                 'view_indicators' => $request->user() ? rescue(fn () => $request->user()->can('viewAny', PerformanceIndicator::class), false) : false,
                 'view_plans' => $request->user() ? rescue(fn () => $request->user()->can('viewAny', PerformancePlan::class), false) : false,
+                'view_team_credits' => $request->user() ? rescue(fn () => CreditController::visibleTeams($request)->isNotEmpty(), false) : false,
             ],
             'flash' => [
                 'success' => $request->session()->get('success'),

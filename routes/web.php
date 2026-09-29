@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\CreditController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\EmployeeController;
 use App\Http\Controllers\EmployeeReportController;
@@ -116,6 +117,11 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('/rekap-tim/split', [TeamRecapController::class, 'splitRows'])->name('team-recap.split');
     Route::post('/rekap-tim/override/confirm', [TeamRecapController::class, 'confirmOverride'])->name('team-recap.override.confirm');
     Route::post('/rekap-tim/override/confirm-bulk', [TeamRecapController::class, 'confirmBulk'])->name('team-recap.override.confirm-bulk');
+
+    // Angka Kredit (own, team, admin PAK value)
+    Route::get('/angka-kredit', [CreditController::class, 'mine'])->name('credit.mine');
+    Route::get('/angka-kredit/tim', [CreditController::class, 'team'])->name('credit.team');
+    Route::put('/angka-kredit/{employee}/awal', [CreditController::class, 'updateBase'])->name('credit.base');
 
     // kipApp integration (admin: store token + centralized sync)
     Route::middleware('can:manage-kip-integration')->group(function () {

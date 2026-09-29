@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Employee extends Model
@@ -68,6 +69,16 @@ class Employee extends Model
     public function performanceReports(): HasMany
     {
         return $this->hasMany(PerformanceReport::class, 'reported_by');
+    }
+
+    public function career(): HasOne
+    {
+        return $this->hasOne(EmployeeCareer::class);
+    }
+
+    public function performanceRatings(): HasMany
+    {
+        return $this->hasMany(KipPerformanceRating::class);
     }
 
     public function teams(): BelongsToMany

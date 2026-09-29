@@ -465,3 +465,43 @@ export interface Paginated<T> {
     to?: number | null;
     links: PaginationLink[];
 }
+
+// ── Angka Kredit ─────────────────────────────────────────────────────────────
+
+/** ready: AK and 2 years done · ak_ready: AK done, waiting for 2 years · near: at most 2 quarters at Baik to go. */
+export type CreditStatus = 'ready' | 'ak_ready' | 'near' | 'progress' | 'top' | 'no_data' | 'non_jf';
+
+export interface CreditQuarter {
+    label: string;
+    ak: number;
+    predikat: string | null;
+    /** false = SKP not rated yet; counted as Baik. */
+    final: boolean;
+}
+
+/** Angka Kredit progress of one employee (CreditCalculator). Fields after `status` are absent for no_data / non_jf. */
+export interface CreditSummary {
+    employee_id: number;
+    name: string;
+    jabatan: string | null;
+    golongan: string | null;
+    pangkat: string | null;
+    status: CreditStatus;
+    level?: string;
+    coefficient?: number;
+    /** pangkat = next golongan in the jenjang; jenjang = next jenjang; null at the top. */
+    kind?: 'pangkat' | 'jenjang' | null;
+    next_label?: string | null;
+    target?: number | null;
+    earned?: number;
+    /** Part of `earned` from SKPs that are not rated yet. */
+    estimated?: number;
+    gap?: number | null;
+    quarters_to_go?: number | null;
+    counted_from?: string;
+    golongan_since?: string | null;
+    eligible_from?: string | null;
+    ak_base?: number | null;
+    ak_base_date?: string | null;
+    quarters?: CreditQuarter[];
+}

@@ -4,7 +4,9 @@ namespace App\Kinetik\Contracts;
 
 use App\Kinetik\Data\KipMemberData;
 use App\Kinetik\Data\KipOfficeData;
+use App\Kinetik\Data\KipPositionData;
 use App\Kinetik\Data\KipProjectData;
+use App\Kinetik\Data\KipRatingData;
 use App\Kinetik\Data\KipRkData;
 use App\Kinetik\Data\KipTeamData;
 use Illuminate\Support\Collection;
@@ -48,4 +50,19 @@ interface KipStructureSource
      * @return Collection<int, KipRkData>
      */
     public function fetchEmployeePlans(string $nipLama): Collection;
+
+    /**
+     * Position history of an employee (v1/pegawai?niplama=), one record per
+     * kipApp pegawaiid, with tmt, jabatan and golongan.
+     *
+     * @return list<KipPositionData>
+     */
+    public function fetchPositionHistory(string $nipLama): array;
+
+    /**
+     * Every periodic SKP rating of one pegawaiid, all years (v1/skp?jenis=2).
+     *
+     * @return list<KipRatingData>
+     */
+    public function fetchPeriodicRatings(string $pegawaiId): array;
 }

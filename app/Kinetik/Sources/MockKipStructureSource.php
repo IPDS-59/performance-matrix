@@ -5,6 +5,8 @@ namespace App\Kinetik\Sources;
 use App\Kinetik\Contracts\KipStructureSource;
 use App\Kinetik\Data\KipMemberData;
 use App\Kinetik\Data\KipOfficeData;
+use App\Kinetik\Data\KipPositionData;
+use App\Kinetik\Data\KipRatingData;
 use App\Kinetik\Data\KipProjectData;
 use App\Kinetik\Data\KipRkData;
 use App\Kinetik\Data\KipTeamData;
@@ -49,6 +51,22 @@ class MockKipStructureSource implements KipStructureSource
             (string) config('kinetik.kip.wilayah_id'), 'Sulawesi Tengah',
             (string) config('kinetik.kip.unitkerja_id'), 'BPS Provinsi',
         )];
+    }
+
+    public function fetchPositionHistory(string $nipLama): array
+    {
+        return [
+            new KipPositionData("{$nipLama}-1", '2023-01-02', 'Statistisi Ahli Pertama', 'III/a', 'Penata Muda'),
+            new KipPositionData("{$nipLama}-2", '2025-04-01', 'Statistisi Ahli Pertama', 'III/b', 'Penata Muda Tk. I'),
+        ];
+    }
+
+    public function fetchPeriodicRatings(string $pegawaiId): array
+    {
+        return [
+            new KipRatingData("{$pegawaiId}-q1", '2026-01-01', '2026-03-31', 'Statistisi Ahli Pertama', 'Baik', 100.0, 'Dinilai'),
+            new KipRatingData("{$pegawaiId}-q2", '2026-04-01', '2026-06-30', 'Statistisi Ahli Pertama', 'Sangat Baik', 110.0, 'Dinilai'),
+        ];
     }
 
     public function fetchTeamMembers(string $timkerjaId): Collection

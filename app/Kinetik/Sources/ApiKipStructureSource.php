@@ -6,6 +6,8 @@ use App\Kinetik\Contracts\KipAuthenticator;
 use App\Kinetik\Contracts\KipStructureSource;
 use App\Kinetik\Data\KipMemberData;
 use App\Kinetik\Data\KipOfficeData;
+use App\Kinetik\Data\KipPositionData;
+use App\Kinetik\Data\KipRatingData;
 use App\Kinetik\Data\KipProjectData;
 use App\Kinetik\Data\KipRkData;
 use App\Kinetik\Data\KipTeamData;
@@ -106,6 +108,39 @@ class ApiKipStructureSource implements KipStructureSource
         $json = $response->json();
 
         return is_array($json) ? KipOfficeData::listFromLokasi($json) : [];
+    }
+
+    public function fetchPositionHistory(string $nipLama): array
+    {
+        $response = $this->client()->get('v1/pegawai', ['niplama' => $nipLama]);
+
+        if (! $response->successful()) {
+            throw KipApiException::fromResponse($response, 'fetchPositionHistory');
+        }
+
+        return collect($response->json() ?: [])
+            ->filter(fn ($row) => is_array($row) && (string) ($row['niplama'] ?? '') === $nipLama)
+            ->map(fn (array $row) => KipPositionData::fromApiRow($row))
+            ->sortBy('tmt')
+            ->values()
+            ->all();
+    }
+
+    public function fetchPeriodicRatings(string $pegawaiId): array
+    {
+        // No periodeid: kipApp then returns every year.
+        $response = $this->client()->get('v1/skp', ['pegawaiid' => $pegawaiId, 'jenis' => 2]);
+
+        if (! $response->successful()) {
+            throw KipApiException::fromResponse($response, 'fetchPeriodicRatings');
+        }
+
+        return collect($response->json() ?: [])
+            ->filter(fn ($row) => is_array($row))
+            ->map(fn (array $row) => KipRatingData::fromApiRow($row))
+            ->filter()
+            ->values()
+            ->all();
     }
 
     public function fetchEmployeePlans(string $nipLama): Collection

@@ -193,6 +193,17 @@ export const GUIDE_FLOWS: GuideFlow[] = [
                     'Rekap Tim menampilkan rekap tim Anda. Anda dapat membaca, tetapi hanya PJ yang mengubah ringkasan.',
                 ],
             },
+            {
+                title: 'Pantau Angka Kredit',
+                where: 'Menu Kegiatan → Angka Kredit Saya',
+                route: 'credit.mine',
+                body: [
+                    'Halaman ini menghitung Angka Kredit (AK) dari golongan dan predikat SKP Anda di kipApp.',
+                    'Batang kemajuan menunjukkan AK yang sudah terkumpul menuju pangkat atau jenjang berikutnya, sisa AK, dan perkiraan jumlah triwulan lagi dengan predikat Baik.',
+                    'Triwulan yang belum dinilai ditandai Estimasi dan dihitung dengan predikat Baik.',
+                ],
+                tip: 'Angka ini adalah pemantauan. Usulan kenaikan pangkat tetap memakai PAK resmi.',
+            },
         ],
     },
     {
@@ -269,6 +280,15 @@ export const GUIDE_FLOWS: GuideFlow[] = [
             {
                 title: 'Unduh Excel untuk rapat',
                 body: ['"Unduh Excel" menghasilkan satu sheet dengan format Rapat Mingguan / Rapat Bulanan / FRA untuk semua tim yang dapat Anda lihat.'],
+            },
+            {
+                title: 'Pantau Angka Kredit anggota',
+                where: 'Menu Rekap Tim → Angka Kredit Tim',
+                route: 'credit.team',
+                body: [
+                    'Daftar anggota diurutkan dari yang paling dekat ke kenaikan: Siap diusulkan, AK cukup tetapi menunggu 2 tahun, Hampir (paling lama 2 triwulan lagi), lalu Berjalan.',
+                    'Pimpinan dan admin melihat semua tim. PJ melihat anggota tim yang dipimpinnya.',
+                ],
             },
         ],
     },
@@ -369,6 +389,16 @@ export const GUIDE_FLOWS: GuideFlow[] = [
                     'Pastikan setiap pegawai punya NIP Lama; NIP Lama adalah kunci untuk menarik kegiatan dari kipApp.',
                     'Kinetik hanya menyimpan pegawai BPS Provinsi Sulawesi Tengah. Setiap sinkronisasi memeriksa kantor pegawai di kipApp; pegawai kabupaten/kota atau provinsi lain otomatis dinonaktifkan dan dikeluarkan dari tim.',
                     'Ketua tim (PJ) diambil dari kipApp. Perbaiki di kipApp, lalu sinkronkan ulang.',
+                ],
+            },
+            {
+                title: 'Angka Kredit dari PAK',
+                where: 'Menu Rekap Tim → Angka Kredit Tim',
+                route: 'credit.team',
+                body: [
+                    'Golongan dan predikat SKP ditarik dari kipApp setiap Senin pagi. Tanpa PAK, AK dihitung dari SKP sejak golongan atau jenjang saat ini.',
+                    'Jika pegawai punya PAK terakhir, klik ikon pensil di barisnya, isi AK kumulatif dan tanggal berlakunya. AK sesudah tanggal itu ditambahkan dari predikat kipApp.',
+                    'Kosongkan kedua kolom untuk kembali ke estimasi.',
                 ],
             },
         ],

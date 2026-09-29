@@ -2,7 +2,7 @@
 import { Link, router, usePage } from '@inertiajs/vue3';
 import { computed, onMounted, onUnmounted, ref, type Component } from 'vue';
 import {
-    BookOpen, CalendarCheck, CalendarDays, CalendarRange, ClipboardCheck, FileChartColumn, FileText, FolderKanban,
+    Award, BookOpen, CalendarCheck, CalendarDays, CalendarRange, ClipboardCheck, FileChartColumn, FileText, FolderKanban,
     House, LayoutGrid, LayoutList, ListChecks, ListTodo, LogOut, Menu, PanelLeftClose, PanelLeftOpen, Target, UserRound, Users, X, Zap,
 } from 'lucide-vue-next';
 import { useSidebarStore } from '@/stores/sidebar';
@@ -22,6 +22,7 @@ const isStaff = computed(() => user.value.role === 'staff');
 const canViewProjects = computed(() => (page.props.can as Record<string, boolean>)?.view_projects ?? false);
 const canViewIndicators = computed(() => (page.props.can as Record<string, boolean>)?.view_indicators ?? false);
 const canViewPlans = computed(() => (page.props.can as Record<string, boolean>)?.view_plans ?? false);
+const canViewTeamCredits = computed(() => (page.props.can as Record<string, boolean>)?.view_team_credits ?? false);
 const hasEmployee = computed(() => !!(page.props.auth as { has_employee?: boolean })?.has_employee);
 
 // ── Navigation model (grouped by who uses it) ─────────────────────────────
@@ -44,6 +45,7 @@ const navSections = computed<NavSection[]>(() => {
             items: [
                 { label: 'Rekap Mingguan', href: route('weekly.index'), active: is('weekly.*'), icon: CalendarCheck, show: hasEmployee.value && !isHead.value },
                 { label: isAdmin.value ? 'Kegiatan kipApp' : 'Kegiatan Saya', href: route('kip-activities.index'), active: is('kip-activities.*'), icon: ListChecks, show: isAdmin.value || (hasEmployee.value && !isHead.value) },
+                { label: 'Angka Kredit Saya', href: route('credit.mine'), active: is('credit.mine'), icon: Award, show: hasEmployee.value },
             ],
         },
         {
@@ -53,6 +55,7 @@ const navSections = computed<NavSection[]>(() => {
                 { label: 'Mingguan', href: route('team-recap.weekly'), active: is('team-recap.weekly'), icon: CalendarDays, show: hasEmployee.value || isHead.value || isAdmin.value },
                 { label: 'Bulanan', href: route('team-recap.monthly'), active: is('team-recap.monthly'), icon: CalendarRange, show: hasEmployee.value || isHead.value || isAdmin.value },
                 { label: 'Triwulanan (FRA)', href: route('team-recap.quarterly'), active: is('team-recap.quarterly'), icon: FileChartColumn, show: hasEmployee.value || isHead.value || isAdmin.value },
+                { label: 'Angka Kredit Tim', href: route('credit.team'), active: is('credit.team'), icon: Award, show: canViewTeamCredits.value },
             ],
         },
         {
