@@ -174,17 +174,20 @@ class ApiKipStructureSource implements KipStructureSource
 
             $skpStatus = $skpStatusBySkpId->get((string) $skpId);
 
+            // skp/iki ignores rkid and returns every IKI of the SKP: fetch once,
+            // then take each RK's own IKI by its rkid.
+            $ikiResponse = $this->client()->get('v1/skp/iki', ['skpid' => $skpId]);
+            $ikiByRk = collect($ikiResponse->successful() && is_array($ikiResponse->json()) ? $ikiResponse->json() : [])
+                ->filter(fn ($row) => is_array($row) && filled($row['rkid'] ?? null))
+                ->groupBy(fn (array $row) => (string) $row['rkid']);
+
             foreach ($rkResponse->json() as $rk) {
                 $rkId = $rk['rkid'] ?? null;
                 if (empty($rkId)) {
                     continue;
                 }
 
-                $ikiResponse = $this->client()->get('v1/skp/iki', ['skpid' => $skpId, 'rkid' => $rkId]);
-                $ikiText = null;
-                if ($ikiResponse->successful() && is_array($ikiResponse->json())) {
-                    $ikiText = $ikiResponse->json()[0]['iki'] ?? null;
-                }
+                $ikiText = $ikiByRk->get((string) $rkId)?->first()['iki'] ?? null;
 
                 $plans->push(KipRkData::fromApiRow($rk, $ikiText, $skpStatus));
             }

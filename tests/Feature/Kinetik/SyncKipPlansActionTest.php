@@ -25,7 +25,9 @@ function fakeCascade(): void
         'kipapp.bps.go.id/api/v1/skp/rk*' => Http::response([
             ['rkid' => '13962139', 'rencanakinerja' => 'Terlaksananya Dukungan Metodologi', 'timkerjaid' => '106453'],
         ], 200),
+        // Like kipApp: every IKI of the SKP, whatever rkid is asked for.
         'kipapp.bps.go.id/api/v1/skp/iki*' => Http::response([
+            ['ikiid' => '0', 'rkid' => '99999999', 'iki' => 'Jumlah inovasi sebanyak 5 Inovasi'],
             ['ikiid' => '1', 'rkid' => '13962139', 'iki' => 'Persentase Dukungan Metodologi: 100%'],
         ], 200),
     ]);
