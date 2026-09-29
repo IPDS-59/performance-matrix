@@ -116,6 +116,7 @@ export interface PersonalStats {
     projects_count: number;
     items_count: number;
     avg_achievement: number;
+    has_achievement: boolean;
     is_team_lead: boolean;
 }
 
@@ -207,6 +208,8 @@ export interface KipActivity {
     rk_name?: string | null;
     is_claimed: boolean;
     matched_plan_id?: number | null;
+    /** True when the PJ locked the recap period this activity falls in. */
+    locked?: boolean;
     claim?: ActivityClaim | null;
 }
 
@@ -215,6 +218,7 @@ export interface ActivityClaim {
     kip_activity_id?: number | null;
     employee_id: number;
     performance_plan_id: number;
+    project_id?: number | null;
     work_item_id?: number | null;
     target?: string | number | null;
     realization?: string | number | null;
@@ -232,19 +236,32 @@ export interface ActivityClaim {
     week_start: string;
     performance_plan?: PerformancePlan & { project?: { name: string; team?: { name: string } | null } | null } | null;
     kip_activity?: KipActivity | null;
+    project?: { id: number; name: string } | null;
 }
 
 export interface PlanOption {
     id: number;
     description: string;
+    project_id: number | null;
     project_name: string;
+    team_id: number | null;
     team_name: string;
+}
+
+export interface ProjectOption {
+    id: number;
+    name: string;
+    team_id: number;
+    is_member: boolean;
 }
 
 // ── Kinetik / Team recaps (Phase 4) ──────────────────────────────────────────
 
 export interface RecapRow {
+    /** "planId:projectId" — one RK within one Projek. */
+    row_key: string;
     performance_plan_id: number;
+    project_id: number | null;
     rk_code?: string | null;
     rk_description: string;
     uraian_aggregated?: string | null;
@@ -298,6 +315,73 @@ export interface TeamRecapEvidence {
     title?: string | null;
     url: string;
     uploaded_by?: number | null;
+}
+
+export type RecapPeriodType = 'week' | 'month' | 'quarter';
+
+/** One team member's input for the week (GET team-recap.weekly `members`). */
+export interface MemberCompleteness {
+    employee_id: number;
+    name: string;
+    total: number;
+    saved: number;
+    status: 'complete' | 'partial' | 'empty' | 'no_activity';
+}
+
+/** One team in the all-teams overview (GET team-recap.overview). */
+export interface OverviewTeam {
+    id: number;
+    name: string;
+    rows: number;
+    confirmed: number;
+    avg_achievement: number | null;
+    locked: boolean;
+    /** Weekly only */
+    members_active: number | null;
+    members_complete: number | null;
+    /** Team PJ (ketua tim). */
+    leader: string | null;
+    projects: OverviewProject[];
+}
+
+/** One project inside an overview team row. `id` null = rows without a Projek. */
+export interface OverviewProject {
+    id: number | null;
+    name: string;
+    /** Ketua / PIC of the project. */
+    leader: string | null;
+    members: number | null;
+    rows: number;
+    avg_achievement: number | null;
+}
+
+/** One step of the "Siap rapat" checklist. */
+export interface ChecklistStep {
+    label: string;
+    done: boolean;
+    detail: string;
+    /** id of the page section this step points to */
+    target?: string;
+}
+
+/** PJ lock on one team recap period (null = open). */
+export interface RecapLockState {
+    locked_at: string | null;
+    locked_by: string | null;
+}
+
+/** One team in the office-wide export (GET team-recap.export). */
+export interface RecapExportTeam {
+    team_name: string;
+    segments: RecapSegment[];
+    /** Weekly only: evidence URLs keyed by type. */
+    evidences: Partial<Record<TeamRecapEvidence['type'], string[]>>;
+}
+
+export interface RecapExport {
+    period_type: RecapPeriodType;
+    week_start: string | null;
+    teams: RecapExportTeam[];
 }
 
 export interface TeamOption {

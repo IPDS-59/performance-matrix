@@ -1,14 +1,18 @@
 <script setup lang="ts">
 import AppLayout from '@/Layouts/AppLayout.vue';
+import RecapLockBar from '@/Components/Kinetik/RecapLockBar.vue';
+import RecapToolbar from '@/Components/Kinetik/RecapToolbar.vue';
+import MeetingChecklist from '@/Components/Kinetik/MeetingChecklist.vue';
+import { periodChecklist } from '@/composables/useMeetingChecklist';
 import { Head, router } from '@inertiajs/vue3';
 import { computed, ref } from 'vue';
-import type { RecapSegment, RecapRow, TeamOption } from '@/types';
+import type { RecapSegment, RecapRow, TeamOption, RecapLockState } from '@/types';
 import { Button } from '@/Components/ui/button';
 import { Label } from '@/Components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/Components/ui/select';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/Components/ui/table';
 import { Textarea } from '@/Components/ui/textarea';
-import { ChevronLeft, ChevronRight, ChevronDown, ChevronUp, Check, ChevronsUpDown } from 'lucide-vue-next';
+import { ChevronDown, ChevronUp, Check, ChevronsUpDown } from 'lucide-vue-next';
+import { useRecapExport } from '@/composables/useRecapExport';
 
 const props = defineProps<{
     teams: TeamOption[];
@@ -17,12 +21,18 @@ const props = defineProps<{
     year: number;
     month: number;
     canManage: boolean;
+    canLock: boolean;
+    lock: RecapLockState | null;
     currentEmployeeId: number | null;
 }>();
 
 const MONTHS = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
 
 const monthLabel = computed(() => `${MONTHS[props.month - 1]} ${props.year}`);
+
+const { exporting, download } = useRecapExport();
+
+const checklist = computed(() => periodChecklist({ segments: props.segments, lock: props.lock }));
 
 // ── Navigation ─────────────────────────────────────────────────────────────
 
@@ -95,8 +105,7 @@ function filteredRows(seg: RecapSegment): RecapRow[] {
 const bulkConfirmIds = computed(() =>
     props.segments
         .flatMap((seg) => seg.rows)
-        .filter((row) => (row.achievement ?? 0) >= 100 && !row.is_confirmed)
-        .map((row) => row.performance_plan_id),
+        .filter((row) => (row.achievement ?? 0) >= 100 && !row.is_confirmed),
 );
 
 const bulkConfirming = ref(false);
@@ -109,7 +118,8 @@ function confirmBulk() {
         period_type: 'month',
         period_year: props.year,
         period_month: props.month,
-        performance_plan_ids: bulkConfirmIds.value,
+        performance_plan_ids: bulkConfirmIds.value.map((row) => row.performance_plan_id),
+        project_ids: bulkConfirmIds.value.map((row) => row.project_id),
     }, {
         preserveScroll: true,
         preserveState: true,
@@ -119,10 +129,10 @@ function confirmBulk() {
 
 // ── Expand state ───────────────────────────────────────────────────────────
 
-const expandedRows = ref<Record<number, boolean>>({});
+const expandedRows = ref<Record<string, boolean>>({});
 
-function toggleExpand(planId: number) {
-    expandedRows.value[planId] = !expandedRows.value[planId];
+function toggleExpand(key: string) {
+    expandedRows.value[key] = !expandedRows.value[key];
 }
 
 // ── Confirmation ───────────────────────────────────────────────────────────
@@ -131,6 +141,7 @@ function toggleConfirm(row: RecapRow) {
     router.post(route('team-recap.override.confirm'), {
         team_id: props.selectedTeamId,
         performance_plan_id: row.performance_plan_id,
+        project_id: row.project_id,
         period_type: 'month',
         period_year: props.year,
         period_month: props.month,
@@ -141,6 +152,7 @@ function toggleConfirm(row: RecapRow) {
 // ── Per-row paraphrase permission ──────────────────────────────────────────
 
 function rowCanParaphrase(row: RecapRow): boolean {
+    if (props.lock) return false;
     return props.canManage || (props.currentEmployeeId !== null && row.pic_employee_id === props.currentEmployeeId);
 }
 
@@ -148,10 +160,10 @@ function rowCanParaphrase(row: RecapRow): boolean {
 
 type SeedSource = 'pj' | 'inherited' | 'agg' | 'none';
 type ParaForm = { obstacle: string; solution: string; follow_up_plan: string; saving: boolean; seedSource: SeedSource };
-const paraForms = ref<Record<number, ParaForm>>({});
+const paraForms = ref<Record<string, ParaForm>>({});
 
 function getParaForm(row: RecapRow): ParaForm {
-    if (!paraForms.value[row.performance_plan_id]) {
+    if (!paraForms.value[row.row_key]) {
         const hasPj = row.pj_obstacle !== null && row.pj_obstacle !== '';
         const hasInherited = !!row.inherited_obstacle;
 
@@ -182,7 +194,7 @@ function getParaForm(row: RecapRow): ParaForm {
             followUpInit = '';
         }
 
-        paraForms.value[row.performance_plan_id] = {
+        paraForms.value[row.row_key] = {
             obstacle: obstacleInit,
             solution: solutionInit,
             follow_up_plan: followUpInit,
@@ -191,7 +203,7 @@ function getParaForm(row: RecapRow): ParaForm {
         };
     }
 
-    return paraForms.value[row.performance_plan_id];
+    return paraForms.value[row.row_key];
 }
 
 function pullFromInherited(row: RecapRow) {
@@ -207,6 +219,7 @@ function saveParaphrase(row: RecapRow) {
     router.post(route('team-recap.override.store'), {
         team_id: props.selectedTeamId,
         performance_plan_id: row.performance_plan_id,
+        project_id: row.project_id,
         period_type: 'month',
         period_year: props.year,
         period_month: props.month,
@@ -231,65 +244,50 @@ function saveParaphrase(row: RecapRow) {
         </div>
 
         <template v-else>
-            <!-- Controls -->
-            <div class="mb-6 flex flex-wrap items-center justify-between gap-4 rounded-md border bg-white px-4 py-3">
-                <Select
-                    :model-value="selectedTeamId != null ? String(selectedTeamId) : undefined"
-                    @update:model-value="(v) => navigate({ team: Number(v) })"
-                >
-                    <SelectTrigger class="w-auto min-w-[16rem]">
-                        <SelectValue placeholder="Pilih tim" />
-                    </SelectTrigger>
-                    <SelectContent>
-                        <SelectItem v-for="t in teams" :key="t.id" :value="String(t.id)">{{ t.name }}</SelectItem>
-                    </SelectContent>
-                </Select>
-
-                <div class="flex items-center gap-3">
-                    <button type="button" class="flex h-8 w-8 items-center justify-center rounded hover:bg-gray-100" title="Bulan sebelumnya" @click="prevMonth">
-                        <ChevronLeft class="h-4 w-4" />
-                    </button>
-                    <span class="text-sm font-medium text-gray-700">{{ monthLabel }}</span>
-                    <button type="button" class="flex h-8 w-8 items-center justify-center rounded hover:bg-gray-100" title="Bulan berikutnya" @click="nextMonth">
-                        <ChevronRight class="h-4 w-4" />
-                    </button>
-                </div>
-
-                <div class="flex flex-wrap items-center gap-2">
-                    <button
-                        type="button"
-                        :class="['inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-medium transition-colors', attentionOnly ? 'border-orange-400 bg-orange-50 text-orange-700' : 'border-gray-200 bg-white text-gray-600 hover:border-orange-300 hover:text-orange-600']"
-                        @click="attentionOnly = !attentionOnly"
-                    >
-                        Perlu perhatian
-                        <span :class="['rounded-full px-1.5 py-0.5 text-xs', attentionOnly ? 'bg-orange-400 text-white' : 'bg-gray-200 text-gray-600']">
-                            {{ segments.reduce((sum, seg) => sum + attentionCount(seg), 0) }}
-                        </span>
-                    </button>
-
+            <RecapToolbar
+                v-model:attention-only="attentionOnly"
+                :teams="teams"
+                :selected-team-id="selectedTeamId"
+                :period-label="monthLabel"
+                prev-label="Bulan sebelumnya"
+                next-label="Bulan berikutnya"
+                :attention-total="segments.reduce((sum, seg) => sum + attentionCount(seg), 0)"
+                :exporting="exporting"
+                @change-team="navigate({ team: $event })"
+                @prev="prevMonth()"
+                @next="nextMonth()"
+                @export="download({ period_type: 'month', year, month }, `Rapat Bulanan ${monthLabel}.xlsx`)"
+            >
+                <template #actions>
                     <Button
                         v-if="canManage"
                         size="sm"
                         variant="outline"
                         :disabled="!bulkConfirmIds.length || bulkConfirming"
+                        title="Tandai semua baris dengan capaian 100% sebagai terkonfirmasi"
                         @click="confirmBulk"
                     >
-                        Konfirmasi semua (capaian 100%)
-                        <span v-if="bulkConfirmIds.length" class="ml-1 rounded-full bg-green-100 px-1.5 py-0.5 text-xs text-green-700">{{ bulkConfirmIds.length }}</span>
+                        <Check class="mr-1.5 h-4 w-4 text-green-600" />
+                        Konfirmasi semua capaian 100%
+                        <span v-if="bulkConfirmIds.length" class="ml-1.5 rounded-full bg-green-100 px-1.5 text-[11px] text-green-700 tabular-nums">{{ bulkConfirmIds.length }}</span>
                     </Button>
-                </div>
-            </div>
+                </template>
+            </RecapToolbar>
+
+            <MeetingChecklist v-if="selectedTeamId" :steps="checklist" />
+
+            <RecapLockBar :team-id="selectedTeamId" :lock="lock" :can-lock="canLock" :period="{ period_type: 'month', period_year: year, period_month: month }" />
 
             <!-- Segments by project -->
             <div v-if="!segments.length" class="mb-6 rounded-md border border-dashed border-gray-200 bg-gray-50 py-10 text-center text-sm text-gray-400">
                 Belum ada rekap tersimpan untuk tim ini pada bulan ini.
             </div>
 
-            <div v-else class="space-y-6">
+            <div v-else id="rekap-baris" class="scroll-mt-4 space-y-6">
                 <div v-for="seg in segments" :key="seg.project_id ?? 'none'" class="overflow-hidden rounded-md border bg-white">
-                    <div class="flex items-center justify-between border-b bg-gray-50 px-4 py-3">
-                        <h3 class="text-sm font-semibold text-gray-800">{{ seg.project_name }}</h3>
-                        <span v-if="attentionCount(seg) > 0" class="inline-flex items-center rounded-full bg-orange-100 px-2 py-0.5 text-xs font-medium text-orange-700">
+                    <div class="flex items-center justify-between gap-3 border-b bg-gray-50 px-4 py-3">
+                        <h3 class="min-w-0 text-sm font-semibold text-gray-800">{{ seg.project_name }}</h3>
+                        <span v-if="attentionCount(seg) > 0" class="inline-flex shrink-0 items-center whitespace-nowrap rounded-full bg-orange-100 px-2 py-0.5 text-xs font-medium text-orange-700">
                             {{ attentionCount(seg) }} perlu perhatian
                         </span>
                     </div>
@@ -297,8 +295,8 @@ function saveParaphrase(row: RecapRow) {
                     <Table class="w-full text-sm">
                         <TableHeader>
                             <TableRow class="border-b bg-gray-50 text-xs font-medium uppercase tracking-wide text-gray-500">
-                                <TableHead class="text-left">Rencana Kinerja</TableHead>
-                                <TableHead class="text-left text-xs">Kontributor</TableHead>
+                                <TableHead class="min-w-[13rem] text-left sm:min-w-[18rem]">Rencana Kinerja</TableHead>
+                                <TableHead class="hidden text-left text-xs md:table-cell">Kontributor</TableHead>
                                 <TableHead class="text-right">Target</TableHead>
                                 <TableHead class="text-right">Realisasi</TableHead>
                                 <TableHead class="cursor-pointer select-none text-right" @click="toggleSort(String(seg.project_id ?? 'none'))">
@@ -312,17 +310,17 @@ function saveParaphrase(row: RecapRow) {
                             </TableRow>
                         </TableHeader>
                         <TableBody class="divide-y divide-gray-100">
-                            <template v-for="row in filteredRows(seg)" :key="row.performance_plan_id">
+                            <template v-for="row in filteredRows(seg)" :key="row.row_key">
                                 <TableRow class="hover:bg-gray-50">
-                                    <TableCell class="align-top">
-                                        <p class="font-medium text-gray-800">{{ row.rk_description }}</p>
+                                    <TableCell class="min-w-[13rem] whitespace-normal align-top sm:min-w-[18rem]">
+                                        <p class="font-medium leading-snug text-gray-800">{{ row.rk_description }}</p>
                                         <p v-if="row.rk_code" class="text-xs text-gray-500">{{ row.rk_code }}</p>
                                         <p v-if="row.is_overridden" class="mt-0.5 text-xs italic text-blue-500">Telah diparafrase</p>
                                     </TableCell>
-                                    <TableCell class="align-top text-xs text-gray-600">{{ row.contributors.join(', ') || '—' }}</TableCell>
-                                    <TableCell class="text-right align-top text-gray-700">{{ row.target }} {{ row.target_unit ?? '' }}</TableCell>
-                                    <TableCell class="text-right align-top text-gray-700">{{ row.realization }}</TableCell>
-                                    <TableCell class="text-right align-top">
+                                    <TableCell class="hidden min-w-[10rem] max-w-[16rem] whitespace-normal align-top md:table-cell text-xs leading-snug text-gray-600">{{ row.contributors.join(', ') || '—' }}</TableCell>
+                                    <TableCell class="text-right align-top tabular-nums text-gray-700">{{ row.target }} {{ row.target_unit ?? '' }}</TableCell>
+                                    <TableCell class="text-right align-top tabular-nums text-gray-700">{{ row.realization }}</TableCell>
+                                    <TableCell class="text-right align-top tabular-nums">
                                         <span v-if="row.achievement != null" :class="achievementColor(row.achievement)">{{ row.achievement.toFixed(2) }}%</span>
                                         <span v-else class="text-gray-400">—</span>
                                     </TableCell>
@@ -348,18 +346,18 @@ function saveParaphrase(row: RecapRow) {
                                         <button
                                             type="button"
                                             class="flex h-6 w-6 items-center justify-center rounded hover:bg-gray-100"
-                                            :title="expandedRows[row.performance_plan_id] ? 'Tutup panel' : 'Buka panel parafrase'"
-                                            @click="toggleExpand(row.performance_plan_id)"
+                                            :title="expandedRows[row.row_key] ? 'Tutup panel' : 'Buka panel parafrase'"
+                                            @click="toggleExpand(row.row_key)"
                                         >
-                                            <ChevronDown v-if="!expandedRows[row.performance_plan_id]" class="h-4 w-4 text-gray-500" />
+                                            <ChevronDown v-if="!expandedRows[row.row_key]" class="h-4 w-4 text-gray-500" />
                                             <ChevronUp v-else class="h-4 w-4 text-gray-500" />
                                         </button>
                                     </TableCell>
                                 </TableRow>
 
                                 <!-- Expand panel -->
-                                <TableRow v-if="expandedRows[row.performance_plan_id]" :key="`${row.performance_plan_id}-panel`" class="bg-gray-50">
-                                    <TableCell colspan="8" class="px-6 py-4">
+                                <TableRow v-if="expandedRows[row.row_key]" :key="`${row.row_key}-panel`" class="bg-gray-50">
+                                    <TableCell colspan="8" class="whitespace-normal px-4 py-4 sm:px-6">
                                         <div class="space-y-4">
                                             <!-- Member kendala (read-only) -->
                                             <div>

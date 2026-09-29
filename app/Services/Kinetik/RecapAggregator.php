@@ -3,6 +3,8 @@
 namespace App\Services\Kinetik;
 
 use App\Models\ActivityClaim;
+use App\Models\KipActivity;
+use App\Models\Project;
 use App\Models\RecapOverride;
 use App\Models\Team;
 use Carbon\Carbon;
@@ -32,6 +34,52 @@ class RecapAggregator
         $overrides = $this->overrides($team, 'week', $year, weekStart: $weekStart);
 
         return $this->segment($claims, $overrides, withFollowUp: false, inherited: collect());
+    }
+
+    /**
+     * Per-member input status for a week, like the member blocks in the old
+     * "Kegiatan Mingguan Anggota" sheet: how many kipApp activities each team
+     * member has that week and how many they already saved as claims.
+     *
+     * @return array<int, array{employee_id: int, name: string, total: int, saved: int, status: string}>
+     */
+    public function memberCompleteness(Team $team, string $weekStart): array
+    {
+        $members = $team->members()->orderBy('employees.name')->get();
+        $ids = $members->pluck('id');
+        $weekEnd = Carbon::parse($weekStart)->endOfWeek(Carbon::SUNDAY)->toDateString();
+
+        $totals = KipActivity::whereIn('employee_id', $ids)
+            ->whereDate('activity_date_start', '>=', $weekStart)
+            ->whereDate('activity_date_start', '<=', $weekEnd)
+            ->selectRaw('employee_id, COUNT(*) as n')
+            ->groupBy('employee_id')
+            ->pluck('n', 'employee_id');
+
+        $saved = ActivityClaim::whereIn('employee_id', $ids)
+            ->where('status', 'saved')
+            ->whereDate('week_start', $weekStart)
+            ->selectRaw('employee_id, COUNT(*) as n')
+            ->groupBy('employee_id')
+            ->pluck('n', 'employee_id');
+
+        return $members->map(function ($member) use ($totals, $saved) {
+            $total = (int) ($totals[$member->id] ?? 0);
+            $done = (int) ($saved[$member->id] ?? 0);
+
+            return [
+                'employee_id' => $member->id,
+                'name' => $member->display_name ?? $member->name,
+                'total' => $total,
+                'saved' => $done,
+                'status' => match (true) {
+                    $total === 0 && $done === 0 => 'no_activity',
+                    $done >= $total => 'complete',
+                    $done === 0 => 'empty',
+                    default => 'partial',
+                },
+            ];
+        })->values()->all();
     }
 
     /**
@@ -101,7 +149,7 @@ class RecapAggregator
                 $w->where('team_id', $team->id)
                     ->orWhereHas('project', fn (Builder $p) => $p->where('team_id', $team->id));
             }))
-            ->with(['performancePlan.project', 'performancePlan.team', 'employee', 'kipActivity']);
+            ->with(['performancePlan.project', 'performancePlan.team', 'project', 'employee', 'kipActivity']);
     }
 
     /**
@@ -124,7 +172,7 @@ class RecapAggregator
     }
 
     /**
-     * Override rows for the period, keyed by performance_plan_id.
+     * Override rows for the period, keyed by rowKey(plan, project).
      *
      * @return Collection<int, RecapOverride>
      */
@@ -145,7 +193,23 @@ class RecapAggregator
             ->when($quarter !== null, fn (Builder $q) => $q->where('period_quarter', $quarter))
             ->when($weekStart !== null, fn (Builder $q) => $q->whereDate('week_start', $weekStart))
             ->get()
-            ->keyBy('performance_plan_id');
+            ->keyBy(fn (RecapOverride $o) => self::rowKey($o->performance_plan_id, $o->project_id));
+    }
+
+    /**
+     * Identity of one recap row: an RK within a Projek (project may be null).
+     */
+    public static function rowKey(int $planId, ?int $projectId): string
+    {
+        return $planId.':'.($projectId ?? '');
+    }
+
+    /**
+     * The Projek a claim counts toward: the member's choice, else the RK's own.
+     */
+    private function projectOf(ActivityClaim $claim): ?Project
+    {
+        return $claim->project ?? $claim->performancePlan?->project;
     }
 
     /**
@@ -159,13 +223,13 @@ class RecapAggregator
     private function segment(Collection $claims, Collection $overrides, bool $withFollowUp, Collection $inherited): array
     {
         return $claims
-            ->groupBy(fn (ActivityClaim $c) => $c->performancePlan?->project?->id ?? 0)
+            ->groupBy(fn (ActivityClaim $c) => $this->projectOf($c)?->id ?? 0)
             ->map(function (Collection $projectClaims) use ($overrides, $withFollowUp, $inherited) {
-                $project = $projectClaims->first()->performancePlan?->project;
+                $project = $this->projectOf($projectClaims->first());
 
                 $rows = $projectClaims
                     ->groupBy('performance_plan_id')
-                    ->map(fn (Collection $rk) => $this->aggregateRk($rk, $overrides, $withFollowUp, $inherited))
+                    ->map(fn (Collection $rk) => $this->aggregateRk($rk, $project?->id, $overrides, $withFollowUp, $inherited))
                     ->values()
                     ->all();
 
@@ -189,7 +253,7 @@ class RecapAggregator
      * @param  Collection<int, array{obstacle: string|null, solution: string|null, follow_up_plan: string|null}>  $inherited
      * @return array<string, mixed>
      */
-    private function aggregateRk(Collection $claims, Collection $overrides, bool $withFollowUp, Collection $inherited): array
+    private function aggregateRk(Collection $claims, ?int $projectId, Collection $overrides, bool $withFollowUp, Collection $inherited): array
     {
         $first = $claims->first();
         $plan = $first->performancePlan;
@@ -215,8 +279,11 @@ class RecapAggregator
         $solutionAgg = $this->joinText($claims->pluck('solution'));
         $followUpAgg = $this->joinText($claims->pluck('follow_up_plan'));
 
-        $override = $overrides->get($first->performance_plan_id);
-        $inheritedRow = $inherited->get($first->performance_plan_id);
+        $key = self::rowKey($first->performance_plan_id, $projectId);
+        // Paraphrases saved before claims carried a Projek have no project_id.
+        $legacyKey = self::rowKey($first->performance_plan_id, null);
+        $override = $overrides->get($key) ?? $overrides->get($legacyKey);
+        $inheritedRow = $inherited->get($key) ?? $inherited->get($legacyKey);
 
         $contributors = $claims
             ->map(fn (ActivityClaim $c) => $c->employee?->display_name ?? $c->employee?->name)
@@ -226,7 +293,9 @@ class RecapAggregator
             ->all();
 
         $row = [
+            'row_key' => $key,
             'performance_plan_id' => $first->performance_plan_id,
+            'project_id' => $projectId,
             'uraian_aggregated' => $uraianAgg,
             'uraian_items' => $uraianItems,
             'pic_employee_id' => $plan?->pic_employee_id,
@@ -269,7 +338,7 @@ class RecapAggregator
 
     /**
      * Build a map of inherited (rolled-up) weekly paraphrase text for a team
-     * and date range. Returns a Collection keyed by performance_plan_id, each
+     * and date range. Returns a Collection keyed by rowKey(plan, project), each
      * value being {obstacle, solution, follow_up_plan} combined from all WEEKLY
      * RecapOverrides whose week_start falls within [$start..$end].
      *
@@ -284,7 +353,7 @@ class RecapAggregator
             ->whereDate('week_start', '>=', $start)
             ->whereDate('week_start', '<=', $end)
             ->get()
-            ->groupBy('performance_plan_id')
+            ->groupBy(fn (RecapOverride $o) => self::rowKey($o->performance_plan_id, $o->project_id))
             ->map(function (Collection $rows): array {
                 return [
                     'obstacle' => $this->joinText($rows->pluck('obstacle')),

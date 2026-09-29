@@ -2,7 +2,10 @@ import { defineStore } from 'pinia';
 import { ref } from 'vue';
 
 export const useSidebarStore = defineStore('sidebar', () => {
+    // Desktop: expanded (labels) vs collapsed (icons only).
     const isOpen = ref(true);
+    // Mobile: off-canvas drawer visibility.
+    const mobileOpen = ref(false);
 
     function toggle() {
         isOpen.value = !isOpen.value;
@@ -16,5 +19,13 @@ export const useSidebarStore = defineStore('sidebar', () => {
         isOpen.value = true;
     }
 
-    return { isOpen, toggle, close, open };
+    function openMobile() {
+        mobileOpen.value = true;
+    }
+
+    function closeMobile() {
+        mobileOpen.value = false;
+    }
+
+    return { isOpen, mobileOpen, toggle, close, open, openMobile, closeMobile };
 });

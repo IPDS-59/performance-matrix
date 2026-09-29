@@ -14,6 +14,7 @@ class ActivityClaim extends Model
         'kip_activity_id',
         'employee_id',
         'performance_plan_id',
+        'project_id',
         'work_item_id',
         'target',
         'realization',
@@ -64,6 +65,11 @@ class ActivityClaim extends Model
     public function performancePlan(): BelongsTo
     {
         return $this->belongsTo(PerformancePlan::class);
+    }
+
+    public function project(): BelongsTo
+    {
+        return $this->belongsTo(Project::class);
     }
 
     public function workItem(): BelongsTo

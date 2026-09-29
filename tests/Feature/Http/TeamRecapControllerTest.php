@@ -4,6 +4,7 @@ use App\Models\ActivityClaim;
 use App\Models\Employee;
 use App\Models\PerformancePlan;
 use App\Models\Project;
+use App\Models\RecapLock;
 use App\Models\RecapOverride;
 use App\Models\Team;
 use App\Models\TeamRecapEvidence;
@@ -849,4 +850,218 @@ it('a plain member (not PIC, not PJ) gets 403 on storeOverride', function () {
         ->assertForbidden();
 
     $this->assertDatabaseMissing('recap_overrides', ['performance_plan_id' => $plan->id]);
+});
+
+// ── Head / admin office-wide view ────────────────────────────────────────────
+
+it('lets the head see every team in the recap selector', function () {
+    Team::factory()->count(3)->create();
+
+    $this->actingAs(headUser())
+        ->get(route('team-recap.monthly'))
+        ->assertInertia(fn ($page) => $page
+            ->has('teams', 3)
+            ->where('canManage', false)
+        );
+});
+
+it('keeps a staff member limited to their own teams', function () {
+    [$user] = memberOfTeam();
+    Team::factory()->count(2)->create();
+
+    $this->actingAs($user)
+        ->get(route('team-recap.monthly'))
+        ->assertInertia(fn ($page) => $page->has('teams', 1));
+});
+
+// ── PJ uraian paraphrase ─────────────────────────────────────────────────────
+
+it('saves the PJ uraian paraphrase', function () {
+    [$user, , $team] = pjOfTeam();
+    $plan = PerformancePlan::factory()->create(['project_id' => null, 'team_id' => $team->id]);
+
+    $this->actingAs($user)->post(route('team-recap.override.store'), [
+        'team_id' => $team->id,
+        'performance_plan_id' => $plan->id,
+        'period_type' => 'month',
+        'period_year' => 2026,
+        'period_month' => 6,
+        'uraian' => 'Uraian ringkas PJ',
+    ])->assertRedirect();
+
+    expect(RecapOverride::firstOrFail()->uraian)->toBe('Uraian ringkas PJ');
+});
+
+// ── Excel export ─────────────────────────────────────────────────────────────
+
+it('exports the monthly recap for every team the head can see', function () {
+    $team = Team::factory()->create(['name' => 'A MTI']);
+    Team::factory()->create(['name' => 'B Umum']);
+    $member = Employee::factory()->create(['team_id' => $team->id]);
+    $project = Project::factory()->create(['team_id' => $team->id]);
+    $plan = PerformancePlan::factory()->create(['project_id' => null, 'team_id' => $team->id]);
+    ActivityClaim::factory()->saved()->create([
+        'employee_id' => $member->id,
+        'performance_plan_id' => $plan->id, 'project_id' => $project->id,
+        'period_year' => 2026, 'period_month' => 6, 'period_quarter' => 2, 'week_start' => '2026-06-01',
+    ]);
+
+    $this->actingAs(headUser())
+        ->getJson(route('team-recap.export', ['period_type' => 'month', 'year' => 2026, 'month' => 6]))
+        ->assertOk()
+        ->assertJsonCount(2, 'teams')
+        ->assertJsonPath('teams.0.team_name', 'A MTI')
+        ->assertJsonPath('teams.0.segments.0.project_id', $project->id)
+        ->assertJsonPath('teams.1.segments', []);
+});
+
+it('exports weekly evidence links grouped by type', function () {
+    [$user, , $team] = memberOfTeam();
+    TeamRecapEvidence::factory()->create([
+        'team_id' => $team->id, 'period_type' => 'week', 'period_year' => 2026,
+        'week_start' => '2026-06-01', 'type' => 'notula', 'url' => 'https://example.test/notula',
+    ]);
+
+    $this->actingAs($user)
+        ->getJson(route('team-recap.export', ['period_type' => 'week', 'week' => '2026-06-03']))
+        ->assertOk()
+        ->assertJsonPath('week_start', '2026-06-01')
+        ->assertJsonPath('teams.0.evidences.notula.0', 'https://example.test/notula');
+});
+
+it('validates the export period', function () {
+    [$user] = memberOfTeam();
+
+    $this->actingAs($user)
+        ->getJson(route('team-recap.export', ['period_type' => 'month']))
+        ->assertUnprocessable();
+});
+
+// ── PJ lock before the meeting ───────────────────────────────────────────────
+
+it('lets the PJ lock a month and then blocks paraphrase and sign-off', function () {
+    [$user, , $team] = pjOfTeam();
+    $plan = PerformancePlan::factory()->create(['project_id' => null, 'team_id' => $team->id]);
+    $period = ['team_id' => $team->id, 'period_type' => 'month', 'period_year' => 2026, 'period_month' => 6];
+
+    $this->actingAs($user)->post(route('team-recap.lock'), [...$period, 'locked' => true])->assertRedirect();
+
+    $this->actingAs($user)
+        ->get(route('team-recap.monthly', ['team' => $team->id, 'year' => 2026, 'month' => 6]))
+        ->assertInertia(fn ($page) => $page
+            ->where('canManage', false)
+            ->where('canLock', true)
+            ->whereNot('lock', null)
+        );
+
+    $this->actingAs($user)
+        ->post(route('team-recap.override.store'), [...$period, 'performance_plan_id' => $plan->id, 'obstacle' => 'x'])
+        ->assertSessionHas('error');
+    $this->actingAs($user)
+        ->post(route('team-recap.override.confirm'), [...$period, 'performance_plan_id' => $plan->id, 'confirmed' => true])
+        ->assertSessionHas('error');
+
+    expect(RecapOverride::count())->toBe(0);
+
+    // Unlock re-opens the period.
+    $this->actingAs($user)->post(route('team-recap.lock'), [...$period, 'locked' => false]);
+    $this->actingAs($user)
+        ->post(route('team-recap.override.store'), [...$period, 'performance_plan_id' => $plan->id, 'obstacle' => 'x'])
+        ->assertSessionMissing('error');
+    expect(RecapOverride::count())->toBe(1);
+});
+
+it('blocks weekly evidence when the week is locked', function () {
+    [$user, , $team] = pjOfTeam();
+    $this->actingAs($user)->post(route('team-recap.lock'), [
+        'team_id' => $team->id, 'period_type' => 'week', 'period_year' => 2026, 'week_start' => '2026-06-01', 'locked' => true,
+    ]);
+
+    $this->actingAs($user)->post(route('team-recap.evidence.store'), [
+        'team_id' => $team->id, 'week_start' => '2026-06-01', 'type' => 'notula', 'url' => 'https://example.test/n',
+    ])->assertSessionHas('error');
+
+    expect(TeamRecapEvidence::count())->toBe(0);
+});
+
+it('does not let a non-PJ member lock a recap', function () {
+    [$user, , $team] = memberOfTeam();
+
+    $this->actingAs($user)->post(route('team-recap.lock'), [
+        'team_id' => $team->id, 'period_type' => 'month', 'period_year' => 2026, 'period_month' => 6, 'locked' => true,
+    ])->assertForbidden();
+});
+
+it('sends member completeness with the weekly recap', function () {
+    [$user, $employee, $team] = pjOfTeam();
+
+    $this->actingAs($user)
+        ->get(route('team-recap.weekly', ['team' => $team->id, 'week' => '2026-06-01']))
+        ->assertInertia(fn ($page) => $page
+            ->has('members', 1)
+            ->where('members.0.employee_id', $employee->id)
+            ->where('members.0.status', 'no_activity')
+        );
+});
+
+// ── All-teams overview ───────────────────────────────────────────────────────
+
+it('gives the head one overview row per team with capaian, sign-off and lock', function () {
+    $team = Team::factory()->create(['name' => 'A MTI']);
+    Team::factory()->create(['name' => 'B Umum']);
+    $member = Employee::factory()->create(['team_id' => $team->id]);
+    $plan = PerformancePlan::factory()->create(['project_id' => null, 'team_id' => $team->id]);
+    ActivityClaim::factory()->saved()->create([
+        'employee_id' => $member->id, 'performance_plan_id' => $plan->id,
+        'target' => 4, 'realization' => 2, 'achievement' => 50,
+        'period_year' => 2026, 'period_month' => 6, 'period_quarter' => 2, 'week_start' => '2026-06-01',
+    ]);
+    RecapLock::create(['team_id' => $team->id, 'period_type' => 'month', 'period_year' => 2026, 'period_month' => 6]);
+
+    $this->actingAs(headUser())
+        ->get(route('team-recap.overview', ['period_type' => 'month', 'year' => 2026, 'month' => 6]))
+        ->assertInertia(fn ($page) => $page
+            ->component('Kinetik/RecapOverview')
+            ->where('teams.0.name', 'A MTI')
+            ->where('teams.0.rows', 1)
+            ->where('teams.0.avg_achievement', 50)
+            ->where('teams.0.locked', true)
+            ->where('teams.1.rows', 0)
+            ->where('teams.1.avg_achievement', null)
+            ->where('teams.1.locked', false)
+        );
+});
+
+it('adds member completeness to the weekly overview', function () {
+    [$user, , $team] = pjOfTeam();
+
+    $this->actingAs($user)
+        ->get(route('team-recap.overview', ['period_type' => 'week', 'week' => '2026-06-03']))
+        ->assertInertia(fn ($page) => $page
+            ->where('weekStart', '2026-06-01')
+            ->where('teams.0.id', $team->id)
+            ->where('teams.0.members_active', 0)
+        );
+});
+
+it('shows the head each team PJ and each project with its PIC', function () {
+    $pj = Employee::factory()->create(['display_name' => 'Hespri']);
+    $team = Team::factory()->create(['name' => 'MTI', 'leader_id' => $pj->id]);
+    $project = Project::factory()->create(['team_id' => $team->id, 'leader_id' => $pj->id, 'year' => 2026, 'name' => 'Kinetik']);
+    $project->members()->attach($pj->id, ['role' => 'leader']);
+    $plan = PerformancePlan::factory()->create(['project_id' => null, 'team_id' => $team->id]);
+    ActivityClaim::factory()->saved()->create([
+        'employee_id' => $pj->id, 'performance_plan_id' => $plan->id, 'project_id' => $project->id,
+        'achievement' => 80, 'period_year' => 2026, 'period_month' => 6, 'period_quarter' => 2, 'week_start' => '2026-06-01',
+    ]);
+
+    $this->actingAs(headUser())
+        ->get(route('team-recap.overview', ['period_type' => 'month', 'year' => 2026, 'month' => 6]))
+        ->assertInertia(fn ($page) => $page
+            ->where('teams.0.leader', 'Hespri')
+            ->where('teams.0.projects.0.name', 'Kinetik')
+            ->where('teams.0.projects.0.leader', 'Hespri')
+            ->where('teams.0.projects.0.members', 1)
+            ->where('teams.0.projects.0.rows', 1)
+        );
 });

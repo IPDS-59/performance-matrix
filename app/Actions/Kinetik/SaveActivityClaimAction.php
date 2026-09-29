@@ -6,8 +6,11 @@ use App\Models\ActivityClaim;
 use App\Models\Employee;
 use App\Models\KipActivity;
 use App\Models\PerformancePlan;
+use App\Models\Project;
+use App\Models\RecapLock;
 use Carbon\Carbon;
 use Illuminate\Auth\Access\AuthorizationException;
+use Illuminate\Validation\ValidationException;
 
 class SaveActivityClaimAction
 {
@@ -28,7 +31,11 @@ class SaveActivityClaimAction
 
         $this->authorize($employee, $plan);
 
+        $projectId = $this->resolveProjectId($plan, $data['project_id'] ?? null);
+
         $dateStart = Carbon::parse($data['activity_date_start']);
+
+        $this->ensureUnlocked($plan, $dateStart, $data['kip_activity_id'] ?? null);
 
         $weekStart = $dateStart->copy()->startOfWeek(Carbon::MONDAY)->toDateString();
         $periodYear = (int) $dateStart->year;
@@ -48,6 +55,7 @@ class SaveActivityClaimAction
         $payload = [
             'employee_id' => $employee->id,
             'performance_plan_id' => $plan->id,
+            'project_id' => $projectId,
             'work_item_id' => $data['work_item_id'] ?? null,
             'target' => $target,
             'realization' => $realization,
@@ -89,6 +97,58 @@ class SaveActivityClaimAction
         }
 
         return $claim;
+    }
+
+    /**
+     * A PJ locks the team recap before the meeting. Claims in a locked period
+     * (the new date, or the date of the claim being edited) are frozen.
+     *
+     * @throws ValidationException
+     */
+    private function ensureUnlocked(PerformancePlan $plan, Carbon $date, mixed $kipActivityId): void
+    {
+        $teamId = $plan->project?->team_id ?? $plan->team_id;
+
+        $existingDate = $kipActivityId !== null
+            ? ActivityClaim::where('kip_activity_id', $kipActivityId)->value('activity_date_start')
+            : null;
+
+        $dates = array_filter([$date, $existingDate ? Carbon::parse($existingDate) : null]);
+
+        foreach ($dates as $d) {
+            if ($teamId !== null && RecapLock::coversDate($teamId, $d)) {
+                throw ValidationException::withMessages([
+                    'performance_plan_id' => 'Rekap tim untuk periode ini sudah dikunci PJ. Minta PJ membuka kunci untuk mengubah.',
+                ]);
+            }
+        }
+    }
+
+    /**
+     * The claimed Projek must belong to the RK's team. An RK tied to a project
+     * always uses that project; a team-scoped RK takes the member's choice.
+     */
+    private function resolveProjectId(PerformancePlan $plan, mixed $projectId): ?int
+    {
+        if ($plan->project_id !== null) {
+            return $plan->project_id;
+        }
+
+        if ($projectId === null || $projectId === '') {
+            return null;
+        }
+
+        $valid = Project::whereKey((int) $projectId)
+            ->where('team_id', $plan->team_id)
+            ->exists();
+
+        if (! $valid) {
+            throw ValidationException::withMessages([
+                'project_id' => 'Projek tidak termasuk dalam tim Rencana Kinerja ini.',
+            ]);
+        }
+
+        return (int) $projectId;
     }
 
     /**

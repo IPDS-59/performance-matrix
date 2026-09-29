@@ -1,6 +1,10 @@
 <script setup lang="ts">
 import { Link, router, usePage } from '@inertiajs/vue3';
-import { computed, onMounted, onUnmounted, ref } from 'vue';
+import { computed, onMounted, onUnmounted, ref, type Component } from 'vue';
+import {
+    BookOpen, CalendarCheck, CalendarDays, CalendarRange, ClipboardCheck, FileChartColumn, FileText, FolderKanban,
+    House, LayoutGrid, LayoutList, ListChecks, ListTodo, LogOut, Menu, PanelLeftClose, PanelLeftOpen, Target, UserRound, Users, X, Zap,
+} from 'lucide-vue-next';
 import { useSidebarStore } from '@/stores/sidebar';
 import { Notivue, Notification, push } from 'notivue';
 import {
@@ -19,6 +23,71 @@ const canViewProjects = computed(() => (page.props.can as Record<string, boolean
 const canViewIndicators = computed(() => (page.props.can as Record<string, boolean>)?.view_indicators ?? false);
 const canViewPlans = computed(() => (page.props.can as Record<string, boolean>)?.view_plans ?? false);
 const hasEmployee = computed(() => !!(page.props.auth as { has_employee?: boolean })?.has_employee);
+
+// ── Navigation model (grouped by who uses it) ─────────────────────────────
+interface NavItem { label: string; href: string; active: boolean; icon: Component; show: boolean }
+interface NavSection { title?: string; items: NavItem[] }
+
+const navSections = computed<NavSection[]>(() => {
+    void page.url; // recompute active state on every visit
+    const is = (name: string) => route().current(name);
+    const sections: NavSection[] = [
+        {
+            items: [
+                { label: 'Beranda', href: route('dashboard'), active: is('dashboard'), icon: House, show: true },
+                { label: 'Matriks', href: route('matrix'), active: is('matrix'), icon: LayoutGrid, show: true },
+            ],
+        },
+        {
+            // Personal claim tools; the head only reads, so they stay hidden for the head.
+            title: 'Kegiatan',
+            items: [
+                { label: 'Rekap Mingguan', href: route('weekly.index'), active: is('weekly.*'), icon: CalendarCheck, show: hasEmployee.value && !isHead.value },
+                { label: isAdmin.value ? 'Kegiatan kipApp' : 'Kegiatan Saya', href: route('kip-activities.index'), active: is('kip-activities.*'), icon: ListChecks, show: isAdmin.value || (hasEmployee.value && !isHead.value) },
+            ],
+        },
+        {
+            title: 'Rekap Tim',
+            items: [
+                { label: 'Semua Tim', href: route('team-recap.overview'), active: is('team-recap.overview'), icon: LayoutList, show: isHead.value || isAdmin.value },
+                { label: 'Mingguan', href: route('team-recap.weekly'), active: is('team-recap.weekly'), icon: CalendarDays, show: hasEmployee.value || isHead.value || isAdmin.value },
+                { label: 'Bulanan', href: route('team-recap.monthly'), active: is('team-recap.monthly'), icon: CalendarRange, show: hasEmployee.value || isHead.value || isAdmin.value },
+                { label: 'Triwulanan (FRA)', href: route('team-recap.quarterly'), active: is('team-recap.quarterly'), icon: FileChartColumn, show: hasEmployee.value || isHead.value || isAdmin.value },
+            ],
+        },
+        {
+            title: 'Laporan',
+            items: [
+                { label: 'Laporan Pegawai', href: route('laporan.pegawai'), active: is('laporan.*'), icon: FileText, show: isAdmin.value || isHead.value },
+                { label: 'Input Kinerja', href: route('performance.index'), active: is('performance.*'), icon: ClipboardCheck, show: isHead.value },
+            ],
+        },
+        {
+            title: 'Data Master',
+            items: [
+                { label: 'Tim Kerja', href: route('teams.index'), active: is('teams.*'), icon: Users, show: isAdmin.value },
+                { label: 'Pegawai', href: route('employees.index'), active: is('employees.*'), icon: UserRound, show: isAdmin.value },
+                { label: 'Proyek', href: route('projects.index'), active: is('projects.*'), icon: FolderKanban, show: canViewProjects.value },
+                { label: 'IKU', href: route('performance-indicators.index'), active: is('performance-indicators.*'), icon: Target, show: canViewIndicators.value },
+                { label: 'Rencana Kinerja (RK)', href: route('performance-plans.index'), active: is('performance-plans.*'), icon: ListTodo, show: canViewPlans.value },
+                { label: 'Integrasi kipApp', href: route('kip-integration.index'), active: is('kip-integration.*'), icon: Zap, show: isAdmin.value },
+            ],
+        },
+        {
+            title: 'Bantuan',
+            items: [
+                { label: 'Buku Pedoman', href: route('guide'), active: is('guide'), icon: BookOpen, show: true },
+            ],
+        },
+    ];
+
+    return sections
+        .map(section => ({ ...section, items: section.items.filter(item => item.show) }))
+        .filter(section => section.items.length);
+});
+
+// Labels are visible when the desktop sidebar is expanded, and always in the mobile drawer.
+const showLabels = computed(() => sidebar.isOpen || sidebar.mobileOpen);
 
 // ── Notifications ─────────────────────────────────────────────────────────
 const unreadCount = ref(0);
@@ -87,12 +156,20 @@ async function executeDeleteNotif() {
 
 let pollInterval: ReturnType<typeof setInterval> | null = null;
 let removeSuccessListener: (() => void) | null = null;
+let removeNavigateListener: (() => void) | null = null;
+
+function closeDrawerOnEscape(event: KeyboardEvent) {
+    if (event.key === 'Escape') sidebar.closeMobile();
+}
 
 onMounted(() => {
     fetchNotifications();
     pollInterval = setInterval(() => {
         if (document.visibilityState === 'visible') fetchNotifications();
     }, 60_000);
+
+    removeNavigateListener = router.on('navigate', () => sidebar.closeMobile());
+    window.addEventListener('keydown', closeDrawerOnEscape);
 
     removeSuccessListener = router.on('success', (event: { detail: { page: { props: unknown } } }) => {
         const flash = (event.detail.page.props as Record<string, unknown>).flash as Record<string, string> | undefined;
@@ -104,269 +181,121 @@ onMounted(() => {
 onUnmounted(() => {
     if (pollInterval !== null) clearInterval(pollInterval);
     removeSuccessListener?.();
+    removeNavigateListener?.();
+    window.removeEventListener('keydown', closeDrawerOnEscape);
 });
 </script>
 
 <template>
-    <div class="flex h-screen bg-gray-50">
-        <!-- Sidebar -->
+    <div class="flex h-screen bg-gray-50 print:block print:h-auto print:bg-white">
+        <!-- Mobile drawer backdrop -->
+        <div
+            v-if="sidebar.mobileOpen"
+            class="fixed inset-0 z-40 bg-gray-900/40 lg:hidden print:hidden"
+            aria-hidden="true"
+            @click="sidebar.closeMobile()"
+        />
+
+        <!-- Sidebar: off-canvas drawer below lg, collapsible rail on desktop -->
         <aside
-            :class="sidebar.isOpen ? 'w-64' : 'w-16'"
-            class="flex flex-col bg-[#1B4B8A] text-white transition-all duration-200 ease-in-out"
+            :class="[
+                sidebar.mobileOpen ? 'translate-x-0' : '-translate-x-full',
+                sidebar.isOpen ? 'lg:w-64' : 'lg:w-16',
+            ]"
+            class="fixed inset-y-0 left-0 z-50 flex w-72 flex-col print:hidden bg-[#1B4B8A] text-white transition-[transform,width] duration-200 ease-out lg:static lg:translate-x-0"
+            aria-label="Navigasi utama"
         >
             <!-- Logo area -->
-            <div class="flex h-16 items-center justify-between px-4">
+            <div class="flex h-16 shrink-0 items-center justify-between gap-2 px-4">
                 <Link
-                    v-if="sidebar.isOpen"
+                    v-if="showLabels"
                     :href="route('dashboard')"
-                    class="flex items-center gap-2 font-semibold text-sm leading-tight"
+                    class="flex min-w-0 items-center gap-2 text-sm font-semibold leading-tight"
                 >
                     <img
                         src="/images/bps-sulteng-logo.svg"
                         alt="BPS Sulteng"
-                        class="h-8 w-8 rounded object-contain bg-white p-0.5"
+                        class="h-8 w-8 shrink-0 rounded bg-white object-contain p-0.5"
                     />
                     <span class="truncate">Kinetik</span>
                 </Link>
                 <button
+                    type="button"
+                    class="hidden rounded p-1.5 transition-colors hover:bg-white/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70 lg:block"
+                    :aria-label="sidebar.isOpen ? 'Ciutkan menu' : 'Lebarkan menu'"
+                    :aria-expanded="sidebar.isOpen"
                     @click="sidebar.toggle()"
-                    class="rounded p-1 hover:bg-white/20 transition-colors"
-                    aria-label="Toggle sidebar"
                 >
-                    <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path
-                            stroke-linecap="round"
-                            stroke-linejoin="round"
-                            stroke-width="2"
-                            d="M4 6h16M4 12h16M4 18h16"
-                        />
-                    </svg>
+                    <PanelLeftClose v-if="sidebar.isOpen" class="h-5 w-5" />
+                    <PanelLeftOpen v-else class="h-5 w-5" />
+                </button>
+                <button
+                    type="button"
+                    class="rounded p-1.5 transition-colors hover:bg-white/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70 lg:hidden"
+                    aria-label="Tutup menu"
+                    @click="sidebar.closeMobile()"
+                >
+                    <X class="h-5 w-5" />
                 </button>
             </div>
 
             <!-- Nav links -->
-            <nav class="flex-1 space-y-1 px-2 py-4">
-                <!-- Dashboard (all) -->
-                <Link
-                    :href="route('dashboard')"
-                    :class="route().current('dashboard') ? 'bg-white/20' : 'hover:bg-white/10'"
-                    class="flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors"
-                >
-                    <svg class="h-5 w-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l9-9 9 9M5 10v10h5v-6h4v6h5V10"/>
-                    </svg>
-                    <span v-if="sidebar.isOpen">Beranda</span>
-                </Link>
-
-                <!-- Matrix (all roles) -->
-                <Link
-                    :href="route('matrix')"
-                    :class="route().current('matrix') ? 'bg-white/20' : 'hover:bg-white/10'"
-                    class="flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors"
-                >
-                    <svg class="h-5 w-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 10h16M4 14h16M4 18h16"/>
-                    </svg>
-                    <span v-if="sidebar.isOpen">Matriks</span>
-                </Link>
-
-                <!-- Performance entry (legacy Domain A; hidden for staff — kipApp claim flow replaces it) -->
-                <Link
-                    v-if="isHead"
-                    :href="route('performance.index')"
-                    :class="route().current('performance.*') ? 'bg-white/20' : 'hover:bg-white/10'"
-                    class="flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors"
-                >
-                    <svg class="h-5 w-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                    </svg>
-                    <span v-if="sidebar.isOpen">Input Kinerja</span>
-                </Link>
-
-                <!-- Rekap Mingguan (anyone with an employee record) -->
-                <Link
-                    v-if="hasEmployee"
-                    :href="route('weekly.index')"
-                    :class="route().current('weekly.*') ? 'bg-white/20' : 'hover:bg-white/10'"
-                    class="flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors"
-                >
-                    <svg class="h-5 w-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
-                    </svg>
-                    <span v-if="sidebar.isOpen">Rekap Mingguan</span>
-                </Link>
-
-                <!-- Rekap Tim (anyone with an employee record) -->
-                <Link
-                    v-if="hasEmployee"
-                    :href="route('team-recap.weekly')"
-                    :class="route().current('team-recap.weekly') ? 'bg-white/20' : 'hover:bg-white/10'"
-                    class="flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors"
-                >
-                    <svg class="h-5 w-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a4 4 0 00-3-3.87M9 20H4v-2a4 4 0 013-3.87m6-4a4 4 0 11-8 0 4 4 0 018 0zm6 0a4 4 0 11-8 0 4 4 0 018 0z"/>
-                    </svg>
-                    <span v-if="sidebar.isOpen">Rekap Tim</span>
-                </Link>
-
-                <Link
-                    v-if="hasEmployee"
-                    :href="route('team-recap.monthly')"
-                    :class="route().current('team-recap.monthly') ? 'bg-white/20' : 'hover:bg-white/10'"
-                    class="flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors"
-                >
-                    <svg class="h-5 w-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
-                    </svg>
-                    <span v-if="sidebar.isOpen">Rekap Bulanan</span>
-                </Link>
-
-                <Link
-                    v-if="hasEmployee"
-                    :href="route('team-recap.quarterly')"
-                    :class="route().current('team-recap.quarterly') ? 'bg-white/20' : 'hover:bg-white/10'"
-                    class="flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors"
-                >
-                    <svg class="h-5 w-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
-                    </svg>
-                    <span v-if="sidebar.isOpen">Rekap Triwulanan</span>
-                </Link>
-
-                <!-- Reports (head + admin) -->
-                <template v-if="isAdmin || isHead">
-                    <div v-if="sidebar.isOpen" class="mt-4 px-3 text-xs font-semibold text-white/50 uppercase tracking-wider">
-                        Laporan
+            <nav class="flex-1 overflow-y-auto px-2 pb-4">
+                <div v-for="(section, index) in navSections" :key="section.title ?? 'main'" :class="index > 0 ? 'mt-5' : 'mt-1'">
+                    <p
+                        v-if="section.title && showLabels"
+                        class="mb-1 px-3 text-[11px] font-semibold uppercase tracking-wider text-white/55"
+                    >
+                        {{ section.title }}
+                    </p>
+                    <div v-else-if="section.title" class="mx-3 mb-2 border-t border-white/15" aria-hidden="true" />
+                    <div class="space-y-0.5">
+                        <Link
+                            v-for="item in section.items"
+                            :key="item.href"
+                            :href="item.href"
+                            :aria-current="item.active ? 'page' : undefined"
+                            :title="showLabels ? undefined : item.label"
+                            :class="[
+                                'group relative flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70',
+                                item.active ? 'bg-white/15 text-white' : 'text-white/80 hover:bg-white/10 hover:text-white',
+                            ]"
+                        >
+                            <span v-if="item.active" class="absolute inset-y-1.5 left-0 w-0.5 rounded-full bg-white" aria-hidden="true" />
+                            <component :is="item.icon" class="h-[18px] w-[18px] shrink-0" aria-hidden="true" />
+                            <span v-if="showLabels" class="truncate">{{ item.label }}</span>
+                            <span v-else class="sr-only">{{ item.label }}</span>
+                        </Link>
                     </div>
-                    <Link
-                        :href="route('laporan.pegawai')"
-                        :class="route().current('laporan.*') ? 'bg-white/20' : 'hover:bg-white/10'"
-                        class="flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors"
-                    >
-                        <svg class="h-5 w-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
-                        </svg>
-                        <span v-if="sidebar.isOpen">Laporan Pegawai</span>
-                    </Link>
-                </template>
-
-                <!-- Admin section -->
-                <template v-if="isAdmin">
-                    <div v-if="sidebar.isOpen" class="mt-4 px-3 text-xs font-semibold text-white/50 uppercase tracking-wider">
-                        Manajemen Data
-                    </div>
-                    <Link
-                        :href="route('teams.index')"
-                        :class="route().current('teams.*') ? 'bg-white/20' : 'hover:bg-white/10'"
-                        class="flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors"
-                    >
-                        <svg class="h-5 w-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0"/>
-                        </svg>
-                        <span v-if="sidebar.isOpen">Tim Kerja</span>
-                    </Link>
-                    <Link
-                        :href="route('employees.index')"
-                        :class="route().current('employees.*') ? 'bg-white/20' : 'hover:bg-white/10'"
-                        class="flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors"
-                    >
-                        <svg class="h-5 w-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
-                        </svg>
-                        <span v-if="sidebar.isOpen">Pegawai</span>
-                    </Link>
-                </template>
-
-                <!-- Projects link (admin + team leads) -->
-                <Link
-                    v-if="canViewProjects"
-                    :href="route('projects.index')"
-                    :class="route().current('projects.*') ? 'bg-white/20' : 'hover:bg-white/10'"
-                    class="flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors"
-                >
-                    <svg class="h-5 w-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
-                    </svg>
-                    <span v-if="sidebar.isOpen">Proyek</span>
-                </Link>
-
-                <!-- IKU (admin + team leads) -->
-                <Link
-                    v-if="canViewIndicators"
-                    :href="route('performance-indicators.index')"
-                    :class="route().current('performance-indicators.*') ? 'bg-white/20' : 'hover:bg-white/10'"
-                    class="flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors"
-                >
-                    <svg class="h-5 w-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
-                    </svg>
-                    <span v-if="sidebar.isOpen">IKU</span>
-                </Link>
-
-                <!-- Rencana Kinerja (admin + team leads) -->
-                <Link
-                    v-if="canViewPlans"
-                    :href="route('performance-plans.index')"
-                    :class="route().current('performance-plans.*') ? 'bg-white/20' : 'hover:bg-white/10'"
-                    class="flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors"
-                >
-                    <svg class="h-5 w-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"/>
-                    </svg>
-                    <span v-if="sidebar.isOpen">Rencana Kinerja (RK)</span>
-                </Link>
-
-                <!-- kipApp integration (admin) -->
-                <Link
-                    v-if="isAdmin"
-                    :href="route('kip-integration.index')"
-                    :class="route().current('kip-integration.*') ? 'bg-white/20' : 'hover:bg-white/10'"
-                    class="flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors"
-                >
-                    <svg class="h-5 w-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
-                    </svg>
-                    <span v-if="sidebar.isOpen">Integrasi kipApp</span>
-                </Link>
-
-                <!-- kipApp activities list (admins see all; others see their own) -->
-                <Link
-                    v-if="isAdmin || hasEmployee"
-                    :href="route('kip-activities.index')"
-                    :class="route().current('kip-activities.*') ? 'bg-white/20' : 'hover:bg-white/10'"
-                    class="flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors"
-                >
-                    <svg class="h-5 w-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/>
-                    </svg>
-                    <span v-if="sidebar.isOpen">{{ isAdmin ? 'Kegiatan kipApp' : 'Kegiatan Saya' }}</span>
-                </Link>
+                </div>
             </nav>
 
             <!-- User footer -->
-            <div class="border-t border-white/20 p-3">
+            <div class="shrink-0 border-t border-white/15 p-3">
                 <div class="flex items-center gap-3">
                     <div class="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-white/20 text-xs font-semibold uppercase">
                         {{ user.name.charAt(0) }}
                     </div>
-                    <div v-if="sidebar.isOpen" class="min-w-0 flex-1">
+                    <div v-if="showLabels" class="min-w-0 flex-1">
                         <p class="truncate text-sm font-medium">{{ user.name }}</p>
-                        <p class="truncate text-xs text-white/60">{{ user.position || user.role }}</p>
+                        <p class="truncate text-xs text-white/65">{{ user.position || user.role }}</p>
                     </div>
                 </div>
-                <div v-if="sidebar.isOpen" class="mt-2 flex gap-2">
+                <div v-if="showLabels" class="mt-2 flex gap-2">
                     <Link
                         :href="route('profile.edit')"
-                        class="flex-1 rounded py-1 text-center text-xs text-white/70 hover:text-white hover:bg-white/10 transition-colors"
+                        class="flex flex-1 items-center justify-center gap-1.5 rounded py-1.5 text-xs text-white/75 transition-colors hover:bg-white/10 hover:text-white"
                     >
+                        <UserRound class="h-3.5 w-3.5" aria-hidden="true" />
                         Profil
                     </Link>
                     <Link
                         :href="route('logout')"
                         method="post"
                         as="button"
-                        class="flex-1 rounded py-1 text-center text-xs text-white/70 hover:text-white hover:bg-white/10 transition-colors"
+                        class="flex flex-1 items-center justify-center gap-1.5 rounded py-1.5 text-xs text-white/75 transition-colors hover:bg-white/10 hover:text-white"
                     >
+                        <LogOut class="h-3.5 w-3.5" aria-hidden="true" />
                         Keluar
                     </Link>
                 </div>
@@ -374,12 +303,23 @@ onUnmounted(() => {
         </aside>
 
         <!-- Main content -->
-        <div class="flex flex-1 flex-col min-w-0 overflow-hidden">
+        <div class="flex flex-1 flex-col min-w-0 overflow-hidden print:overflow-visible">
             <!-- Top bar -->
-            <header class="flex h-16 items-center justify-between bg-white border-b border-gray-200 px-6">
-                <h1 class="text-lg font-semibold text-gray-800">
-                    <slot name="title" />
-                </h1>
+            <header class="flex h-16 shrink-0 print:hidden items-center justify-between gap-3 border-b border-gray-200 bg-white px-4 sm:px-6">
+                <div class="flex min-w-0 items-center gap-2">
+                    <button
+                        type="button"
+                        class="-ml-1 rounded-md p-2 text-gray-600 transition-colors hover:bg-gray-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary lg:hidden"
+                        aria-label="Buka menu"
+                        :aria-expanded="sidebar.mobileOpen"
+                        @click="sidebar.openMobile()"
+                    >
+                        <Menu class="h-5 w-5" />
+                    </button>
+                    <h1 class="truncate text-base font-semibold text-gray-800 sm:text-lg">
+                        <slot name="title" />
+                    </h1>
+                </div>
                 <div class="flex items-center gap-3 text-sm text-gray-500">
                     <span class="hidden sm:inline">BPS Provinsi Sulawesi Tengah</span>
 
@@ -405,7 +345,7 @@ onUnmounted(() => {
                         <!-- Dropdown -->
                         <div
                             v-if="showDropdown"
-                            class="absolute right-0 top-11 z-50 w-80 rounded-lg border bg-white shadow-lg"
+                            class="absolute right-0 top-11 z-50 w-[min(20rem,calc(100vw-2rem))] rounded-lg border bg-white shadow-lg"
                         >
                             <div class="flex items-center justify-between border-b px-4 py-3">
                                 <span class="text-sm font-semibold text-gray-800">Notifikasi</span>
@@ -460,7 +400,7 @@ onUnmounted(() => {
             </Notivue>
 
             <!-- Page content -->
-            <main class="flex-1 overflow-auto p-6">
+            <main class="flex-1 overflow-auto p-4 sm:p-6 print:overflow-visible print:p-0">
                 <slot />
             </main>
         </div>

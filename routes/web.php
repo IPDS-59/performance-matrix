@@ -3,6 +3,7 @@
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\EmployeeController;
 use App\Http\Controllers\EmployeeReportController;
+use App\Http\Controllers\GuideController;
 use App\Http\Controllers\KipActivityController;
 use App\Http\Controllers\KipIntegrationController;
 use App\Http\Controllers\NotificationController;
@@ -77,6 +78,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
     // Notifications
     Route::get('/notifications', [NotificationController::class, 'index'])->name('notifications.index');
     Route::get('/notifikasi', [NotificationController::class, 'page'])->name('notifications.page');
+
+    // In-app handbook (Buku Pedoman)
+    Route::get('/buku-pedoman', GuideController::class)->name('guide');
     Route::patch('/notifications/{id}/read', [NotificationController::class, 'markRead'])->name('notifications.read');
     Route::patch('/notifications/read-all', [NotificationController::class, 'markAllRead'])->name('notifications.read-all');
     Route::delete('/notifications/{id}', [NotificationController::class, 'destroy'])->name('notifications.destroy');
@@ -93,11 +97,15 @@ Route::middleware(['auth', 'verified'])->group(function () {
     // Weekly activity scrapper / recap
     Route::get('/rekap-mingguan', [WeeklyActivityController::class, 'index'])->name('weekly.index');
     Route::post('/rekap-mingguan/claim', [WeeklyActivityController::class, 'storeClaim'])->name('weekly.claim');
+    Route::post('/rekap-mingguan/claim-bulk', [WeeklyActivityController::class, 'storeClaimsBulk'])->name('weekly.claim-bulk');
 
     // Team recaps (weekly / monthly / quarterly FRA)
     Route::get('/rekap-tim', [TeamRecapController::class, 'weekly'])->name('team-recap.weekly');
     Route::get('/rekap-bulanan', [TeamRecapController::class, 'monthly'])->name('team-recap.monthly');
     Route::get('/rekap-triwulanan', [TeamRecapController::class, 'quarterly'])->name('team-recap.quarterly');
+    Route::post('/rekap-tim/lock', [TeamRecapController::class, 'toggleLock'])->name('team-recap.lock');
+    Route::get('/rekap-semua-tim', [TeamRecapController::class, 'overview'])->name('team-recap.overview');
+    Route::get('/rekap-tim/export', [TeamRecapController::class, 'export'])->name('team-recap.export');
     Route::post('/rekap-tim/weekly-note', [TeamRecapController::class, 'storeWeeklyNote'])->name('team-recap.weekly-note.store');
     Route::post('/rekap-tim/evidence', [TeamRecapController::class, 'storeEvidence'])->name('team-recap.evidence.store');
     Route::delete('/rekap-tim/evidence/{evidence}', [TeamRecapController::class, 'destroyEvidence'])->name('team-recap.evidence.destroy');

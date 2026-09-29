@@ -2,6 +2,7 @@
 
 use App\Models\ActivityClaim;
 use App\Models\Employee;
+use App\Models\KipActivity;
 use App\Models\PerformancePlan;
 use App\Models\Project;
 use App\Models\RecapOverride;
@@ -543,4 +544,55 @@ it('weekly override in a different month does not leak into this month inherited
 
     expect($row['inherited_obstacle'])->toBeNull();
     expect($row['inherited_solution'])->toBeNull();
+});
+
+// ── Claim-level Projek (team-scoped RK spanning projects) ────────────────────
+
+it('segments a team-scoped RK by each claim\'s Projek with separate paraphrases', function () {
+    $team = Team::factory()->create();
+    $projectA = Project::factory()->create(['team_id' => $team->id]);
+    $projectB = Project::factory()->create(['team_id' => $team->id]);
+    $plan = PerformancePlan::factory()->create(['project_id' => null, 'team_id' => $team->id]);
+    $common = ['week_start' => '2026-06-01', 'period_year' => 2026, 'period_month' => 6, 'period_quarter' => 2];
+
+    recapClaim($plan, array_merge($common, ['project_id' => $projectA->id, 'target' => 4, 'realization' => 2]));
+    recapClaim($plan, array_merge($common, ['project_id' => $projectB->id, 'target' => 1, 'realization' => 1]));
+
+    RecapOverride::factory()->create([
+        'team_id' => $team->id, 'performance_plan_id' => $plan->id, 'project_id' => $projectA->id,
+        'period_type' => 'month', 'period_year' => 2026, 'period_month' => 6, 'period_quarter' => null,
+        'week_start' => null, 'obstacle' => 'kendala projek A',
+    ]);
+
+    $segments = collect($this->aggregator->monthly($team, 2026, 6))->keyBy('project_id');
+
+    expect($segments)->toHaveCount(2);
+    expect($segments[$projectA->id]['rows'][0]['achievement'])->toBe(50.0);
+    expect($segments[$projectA->id]['rows'][0]['pj_obstacle'])->toBe('kendala projek A');
+    expect($segments[$projectA->id]['rows'][0]['row_key'])->toBe("{$plan->id}:{$projectA->id}");
+    expect($segments[$projectB->id]['rows'][0]['pj_obstacle'])->toBeNull();
+});
+
+// ── Member completeness (who has not filled in yet) ──────────────────────────
+
+it('reports each member\'s saved vs total activities for the week', function () {
+    $team = Team::factory()->create();
+    $done = Employee::factory()->create(['name' => 'A Lengkap', 'display_name' => 'A Lengkap']);
+    $half = Employee::factory()->create(['name' => 'B Sebagian', 'display_name' => 'B Sebagian']);
+    $idle = Employee::factory()->create(['name' => 'C Kosong', 'display_name' => 'C Kosong']);
+    foreach ([$done, $half, $idle] as $e) {
+        $team->members()->attach($e->id, ['role' => 'member', 'is_primary' => true]);
+    }
+    $plan = PerformancePlan::factory()->create(['project_id' => null, 'team_id' => $team->id]);
+
+    KipActivity::factory()->create(['employee_id' => $done->id, 'activity_date_start' => '2026-06-02']);
+    KipActivity::factory()->count(2)->create(['employee_id' => $half->id, 'activity_date_start' => '2026-06-03']);
+    recapClaim($plan, ['employee_id' => $done->id, 'week_start' => '2026-06-01']);
+    recapClaim($plan, ['employee_id' => $half->id, 'week_start' => '2026-06-01']);
+
+    $rows = collect($this->aggregator->memberCompleteness($team, '2026-06-01'))->keyBy('name');
+
+    expect($rows['A Lengkap'])->toMatchArray(['total' => 1, 'saved' => 1, 'status' => 'complete']);
+    expect($rows['B Sebagian'])->toMatchArray(['total' => 2, 'saved' => 1, 'status' => 'partial']);
+    expect($rows['C Kosong'])->toMatchArray(['total' => 0, 'saved' => 0, 'status' => 'no_activity']);
 });

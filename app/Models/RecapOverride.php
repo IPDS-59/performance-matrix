@@ -13,11 +13,13 @@ class RecapOverride extends Model
     protected $fillable = [
         'team_id',
         'performance_plan_id',
+        'project_id',
         'period_type',
         'period_year',
         'period_quarter',
         'period_month',
         'week_start',
+        'uraian',
         'obstacle',
         'solution',
         'follow_up_plan',

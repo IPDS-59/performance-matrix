@@ -1,6 +1,6 @@
 import { ref } from 'vue';
 import { router } from '@inertiajs/vue3';
-import type { RecapSegment, RecapRow, TeamOption, TeamRecapEvidence, WeeklyTeamNote } from '@/types';
+import type { RecapSegment, RecapRow, TeamOption, TeamRecapEvidence, WeeklyTeamNote, RecapLockState, MemberCompleteness } from '@/types';
 import { useDateFormat } from '@/composables/useDateFormat';
 
 export interface TeamWeeklyRecapProps {
@@ -13,8 +13,11 @@ export interface TeamWeeklyRecapProps {
     prevWeek: string;
     nextWeek: string;
     canManage: boolean;
+    canLock: boolean;
+    lock: RecapLockState | null;
     currentEmployeeId: number | null;
     weeklyNote: WeeklyTeamNote | null;
+    members: MemberCompleteness[];
 }
 
 type ParaForm = {
@@ -83,31 +86,32 @@ export function useTeamWeeklyRecap(props: TeamWeeklyRecapProps) {
 
     // ── Expand state ───────────────────────────────────────────────────────
 
-    const expandedRows = ref<Record<number, boolean>>({});
+    const expandedRows = ref<Record<string, boolean>>({});
 
-    function toggleExpand(planId: number) {
-        expandedRows.value[planId] = !expandedRows.value[planId];
+    function toggleExpand(key: string) {
+        expandedRows.value[key] = !expandedRows.value[key];
     }
 
     // ── Per-row paraphrase permission ──────────────────────────────────────
 
     function rowCanParaphrase(row: RecapRow): boolean {
+        if (props.lock) return false;
         return props.canManage || (props.currentEmployeeId !== null && row.pic_employee_id === props.currentEmployeeId);
     }
 
     // ── Paraphrase forms (per planId) — Kendala / Solusi / RTL ────────────
 
-    const paraForms = ref<Record<number, ParaForm>>({});
+    const paraForms = ref<Record<string, ParaForm>>({});
 
     function getParaForm(row: RecapRow): ParaForm {
-        if (!paraForms.value[row.performance_plan_id]) {
-            paraForms.value[row.performance_plan_id] = {
+        if (!paraForms.value[row.row_key]) {
+            paraForms.value[row.row_key] = {
                 solution: row.pj_solution ?? '',
                 follow_up_plan: row.pj_follow_up_plan ?? '',
                 saving: false,
             };
         }
-        return paraForms.value[row.performance_plan_id];
+        return paraForms.value[row.row_key];
     }
 
     function saveParaphrase(row: RecapRow) {
@@ -116,6 +120,7 @@ export function useTeamWeeklyRecap(props: TeamWeeklyRecapProps) {
         router.post(route('team-recap.override.store'), {
             team_id: props.selectedTeamId,
             performance_plan_id: row.performance_plan_id,
+            project_id: row.project_id,
             period_type: 'week',
             period_year: new Date(props.weekStart + 'T00:00:00').getFullYear(),
             week_start: props.weekStart,

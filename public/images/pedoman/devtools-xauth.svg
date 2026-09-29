@@ -1,0 +1,80 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 620" width="1024" height="620" font-family="-apple-system, Segoe UI, Roboto, sans-serif">
+  <!-- Mock of Chrome DevTools > Network > Headers on kipapp.bps.go.id. The token is fake. -->
+  <rect width="1024" height="620" fill="#f3f4f6"/>
+
+  <!-- Browser page strip (kipApp) -->
+  <rect x="0" y="0" width="1024" height="44" fill="#ffffff"/>
+  <rect x="12" y="10" width="620" height="24" rx="12" fill="#f1f3f4"/>
+  <text x="28" y="27" font-size="13" fill="#3c4043">kipapp.bps.go.id/#/home</text>
+  <rect x="0" y="44" width="1024" height="86" fill="#15803d"/>
+  <text x="24" y="95" font-size="22" font-weight="700" fill="#ffffff">KiPApp</text>
+  <text x="120" y="95" font-size="14" fill="#dcfce7">Sudah login sebagai admin</text>
+
+  <!-- DevTools frame -->
+  <rect x="0" y="130" width="1024" height="490" fill="#ffffff" stroke="#d1d5db"/>
+  <!-- Panel tabs -->
+  <rect x="0" y="130" width="1024" height="32" fill="#f8f9fa" stroke="#e5e7eb"/>
+  <text x="16" y="151" font-size="13" fill="#5f6368">Elements</text>
+  <text x="96" y="151" font-size="13" fill="#5f6368">Console</text>
+  <text x="170" y="151" font-size="13" fill="#5f6368">Sources</text>
+  <rect x="236" y="130" width="74" height="32" fill="#ffffff"/>
+  <rect x="236" y="159" width="74" height="3" fill="#1a73e8"/>
+  <text x="248" y="151" font-size="13" font-weight="600" fill="#1a73e8">Network</text>
+  <text x="326" y="151" font-size="13" fill="#5f6368">Application</text>
+
+  <!-- Filter row -->
+  <rect x="0" y="162" width="1024" height="34" fill="#ffffff" stroke="#e5e7eb"/>
+  <rect x="12" y="169" width="180" height="20" rx="3" fill="#ffffff" stroke="#9aa0a6"/>
+  <text x="20" y="183" font-size="12" fill="#202124">v1</text>
+  <rect x="206" y="169" width="36" height="20" rx="10" fill="#e8f0fe"/>
+  <text x="214" y="183" font-size="12" fill="#1a73e8">All</text>
+  <rect x="248" y="169" width="70" height="20" rx="10" fill="#1a73e8"/>
+  <text x="256" y="183" font-size="12" fill="#ffffff">Fetch/XHR</text>
+
+  <!-- Request list -->
+  <rect x="0" y="196" width="330" height="424" fill="#ffffff" stroke="#e5e7eb"/>
+  <rect x="0" y="196" width="330" height="24" fill="#f8f9fa"/>
+  <text x="12" y="212" font-size="12" font-weight="600" fill="#5f6368">Name</text>
+  <text x="12" y="240" font-size="13" fill="#202124">status</text>
+  <rect x="0" y="250" width="330" height="26" fill="#d2e3fc"/>
+  <text x="12" y="268" font-size="13" font-weight="600" fill="#174ea6">user</text>
+  <text x="12" y="296" font-size="13" fill="#202124">switch?niplama=…</text>
+  <text x="12" y="322" font-size="13" fill="#202124">notifikasi?niplama=…</text>
+  <text x="12" y="348" font-size="13" fill="#202124">rkpegawai?niplama=…</text>
+  <text x="12" y="374" font-size="13" fill="#202124">belumkirim?niplama=…</text>
+
+  <!-- Detail pane -->
+  <rect x="330" y="196" width="694" height="24" fill="#f8f9fa" stroke="#e5e7eb"/>
+  <rect x="340" y="196" width="66" height="24" fill="#ffffff"/>
+  <rect x="340" y="217" width="66" height="3" fill="#1a73e8"/>
+  <text x="350" y="212" font-size="12" font-weight="600" fill="#1a73e8">Headers</text>
+  <text x="420" y="212" font-size="12" fill="#5f6368">Payload</text>
+  <text x="484" y="212" font-size="12" fill="#5f6368">Preview</text>
+  <text x="548" y="212" font-size="12" fill="#5f6368">Response</text>
+
+  <text x="346" y="248" font-size="13" font-weight="600" fill="#202124">▼ General</text>
+  <text x="362" y="270" font-size="12" fill="#5f6368">Request URL:</text>
+  <text x="460" y="270" font-size="12" fill="#202124">https://kipapp.bps.go.id/api/v1/user</text>
+  <text x="362" y="290" font-size="12" fill="#5f6368">Status Code:</text>
+  <text x="460" y="290" font-size="12" fill="#188038">200 OK</text>
+
+  <text x="346" y="324" font-size="13" font-weight="600" fill="#202124">▼ Request Headers</text>
+  <text x="362" y="346" font-size="12" fill="#5f6368">accept:</text>
+  <text x="460" y="346" font-size="12" fill="#202124">application/json, text/plain, */*</text>
+  <text x="362" y="366" font-size="12" fill="#5f6368">referer:</text>
+  <text x="460" y="366" font-size="12" fill="#202124">https://kipapp.bps.go.id/</text>
+  <!-- Highlighted x-auth row -->
+  <rect x="352" y="378" width="660" height="46" rx="4" fill="#fef3c7" stroke="#f59e0b"/>
+  <text x="362" y="397" font-size="12" font-weight="700" fill="#92400e">x-auth:</text>
+  <text x="460" y="397" font-size="12" font-family="ui-monospace, Menlo, monospace" fill="#202124">Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJuaXAiOiIzNDAwMDAwMDAi</text>
+  <text x="460" y="415" font-size="12" font-family="ui-monospace, Menlo, monospace" fill="#202124">LCJleHAiOjE3OTAwMDAwMDB9.contoh-token-bukan-asli</text>
+  <text x="362" y="446" font-size="12" fill="#5f6368">user-agent:</text>
+  <text x="460" y="446" font-size="12" fill="#202124">Mozilla/5.0 (Macintosh; …) Chrome/…</text>
+
+  <!-- Context menu hint -->
+  <rect x="700" y="430" width="180" height="86" rx="6" fill="#ffffff" stroke="#d1d5db"/>
+  <text x="716" y="454" font-size="12" fill="#202124">Copy name</text>
+  <rect x="706" y="464" width="168" height="22" rx="3" fill="#1a73e8"/>
+  <text x="716" y="480" font-size="12" fill="#ffffff">Copy value</text>
+  <text x="716" y="506" font-size="12" fill="#202124">Copy request headers</text>
+</svg>
