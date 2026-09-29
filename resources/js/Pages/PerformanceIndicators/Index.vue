@@ -93,7 +93,10 @@ function executeDelete() {
                         <TableCell colspan="5" class="text-center text-gray-400 py-8">Belum ada data.</TableCell>
                     </TableRow>
                     <TableRow v-for="indicator in indicators" :key="indicator.id">
-                        <TableCell>{{ indicator.name }}</TableCell>
+                        <TableCell class="whitespace-normal">
+                            <p class="leading-snug">{{ indicator.name }}</p>
+                            <p v-if="indicator.sasaran" class="mt-0.5 text-xs leading-snug text-gray-500">Sasaran: {{ indicator.sasaran }}</p>
+                        </TableCell>
                         <TableCell>{{ indicator.team?.name ?? '—' }}</TableCell>
                         <TableCell>{{ indicator.year }}</TableCell>
                         <TableCell>

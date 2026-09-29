@@ -4,7 +4,6 @@ use App\Actions\Kinetik\SyncKipStructureAction;
 use App\Kinetik\Auth\ConfigBearerAuthenticator;
 use App\Kinetik\Sources\ApiKipStructureSource;
 use App\Models\Employee;
-use App\Models\PerformanceIndicator;
 use App\Models\Project;
 use App\Models\Team;
 use App\Models\User;
@@ -136,20 +135,6 @@ it('creates login accounts with derived emails and default password', function (
         ->and($user->hasRole('staff'))->toBeTrue();
 });
 
-it('syncs IKU from the project rkketua and links the project', function () {
-    fakeStructure();
-
-    $summary = runStructureSync();
-
-    $iku = PerformanceIndicator::where('kip_external_id', '294257')->first();
-    expect($iku)->not->toBeNull()
-        ->and($iku->name)->toBe('Pengelolaan SDM yang baik')
-        ->and($summary['indicators'])->toBe(1);
-
-    $project = Project::where('kip_external_id', '427670')->first();
-    expect($project->performance_indicator_id)->toBe($iku->id);
-});
-
 it('skips member rows without a niplama', function () {
     Http::fake([
         'kipapp.bps.go.id/api/v1/proyek*' => Http::response([[
@@ -214,54 +199,6 @@ it('is idempotent across repeated runs', function () {
     // 3 anggota mirrored, no duplicate employees across runs.
     expect($project->members()->count())->toBe(3)
         ->and(Employee::where('nip_lama', '340013832')->count())->toBe(1);
-});
-
-it('deduplicates IKU by (team_id, name) when multiple projects share the same rencanakinerjaketua', function () {
-    // Two projects, same team, same IKU name but DIFFERENT rkketuaids.
-    Http::fake([
-        'kipapp.bps.go.id/api/v1/proyek*' => Http::response([
-            [
-                'timkerjaid' => '106436',
-                'namatim' => 'UMUM',
-                'niplamaketua' => '340013832',
-                'namaketua' => 'Imron',
-                'rkketuaid' => '294257',
-                'rencanakinerjaketua' => 'Pengelolaan Manajemen Risiko yang baik',
-                'proyekid' => '427670',
-                'namaproyek' => 'Proyek A',
-                'anggota' => [['anggotaid' => 'a1', 'niplama' => '340013832', 'nama' => 'Imron']],
-            ],
-            [
-                'timkerjaid' => '106436',
-                'namatim' => 'UMUM',
-                'niplamaketua' => '340013832',
-                'namaketua' => 'Imron',
-                'rkketuaid' => '294999', // different rkketuaid, same name
-                'rencanakinerjaketua' => 'Pengelolaan Manajemen Risiko yang baik',
-                'proyekid' => '427671',
-                'namaproyek' => 'Proyek B',
-                'anggota' => [['anggotaid' => 'a2', 'niplama' => '340053881', 'nama' => 'Asmawati']],
-            ],
-        ], 200),
-        'kipapp.bps.go.id/api/v1/timkerja/anggota*' => Http::response([], 200),
-    ]);
-
-    $summary = runStructureSync();
-
-    $team = Team::where('kip_external_id', '106436')->first();
-    // Both projects share the same IKU name → exactly 1 indicator for this team.
-    expect(PerformanceIndicator::where('team_id', $team->id)->count())->toBe(1)
-        ->and($summary['indicators'])->toBe(1);
-
-    $iku = PerformanceIndicator::where('team_id', $team->id)->first();
-    // kip_external_id is set to the first rkketuaid seen.
-    expect($iku->kip_external_id)->toBe('294257');
-
-    // Both projects link to the same indicator.
-    $projectA = Project::where('kip_external_id', '427670')->first();
-    $projectB = Project::where('kip_external_id', '427671')->first();
-    expect($projectA->performance_indicator_id)->toBe($iku->id)
-        ->and($projectB->performance_indicator_id)->toBe($iku->id);
 });
 
 // ---------------------------------------------------------------------------

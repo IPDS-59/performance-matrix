@@ -17,6 +17,7 @@ class PerformanceIndicator extends Model
         'year',
         'code',
         'name',
+        'sasaran',
         'target',
         'target_unit',
         'description',

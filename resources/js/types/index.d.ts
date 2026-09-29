@@ -53,6 +53,8 @@ export interface PerformanceIndicator {
     year: number;
     code?: string | null;
     name: string;
+    /** Sasaran of the Kepala's Perjanjian Kinerja this IKU measures (synced from kipApp). */
+    sasaran?: string | null;
     target?: number | string | null;
     target_unit?: string | null;
     description?: string | null;

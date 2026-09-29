@@ -7,7 +7,6 @@ use App\Kinetik\Data\KipMemberData;
 use App\Kinetik\Data\KipProjectData;
 use App\Kinetik\OfficeGuard;
 use App\Models\Employee;
-use App\Models\PerformanceIndicator;
 use App\Models\Project;
 use App\Models\Team;
 use App\Models\User;
@@ -105,8 +104,7 @@ class SyncKipStructureAction
         }
 
         foreach ($projects as $projectData) {
-            $indicator = $this->upsertIndicator($team, $projectData);
-            $project = $this->upsertProject($team, $projectData, $leader?->id, $indicator?->id);
+            $project = $this->upsertProject($team, $projectData, $leader?->id, null);
             $this->counts['projects']++;
 
             $members = $this->onlyOurOffice($guard, $this->provisionEmployees($projectData->members));
@@ -164,6 +162,14 @@ class SyncKipStructureAction
         // RK whose leader RK owns exactly one Projek now belong to that Projek.
         $this->counts['plans_linked'] += (new LinkPlansToProjectsAction)->execute($team->id);
 
+        // IKU of each Projek from the Kepala's Perjanjian Kinerja. A kipApp
+        // hiccup here must not undo the rest of the team's sync.
+        try {
+            $this->counts['indicators'] += (new SyncPerformanceAgreementAction)->syncTeam($source, $team->fresh('leader'));
+        } catch (\Throwable $e) {
+            report($e);
+        }
+
         return $this->counts;
     }
 
@@ -208,40 +214,6 @@ class SyncKipStructureAction
         $project->save();
 
         return $project;
-    }
-
-    /**
-     * IKU = the team leader's RK for the project (rkketuaid / rencanakinerjaketua).
-     */
-    private function upsertIndicator(Team $team, KipProjectData $data): ?PerformanceIndicator
-    {
-        if ($data->ikuExternalId === null || $data->ikuName === null) {
-            return null;
-        }
-
-        // Dedup by (team_id, name): reuse any existing indicator with the same name
-        // in this team, regardless of kip_external_id (many projects share the same
-        // rencanakinerjaketua text but carry different rkketuaids).
-        $indicator = PerformanceIndicator::where('team_id', $team->id)
-            ->where('name', $data->ikuName)
-            ->first()
-            ?? PerformanceIndicator::where('kip_external_id', $data->ikuExternalId)->first();
-
-        $isNew = $indicator === null;
-        if ($isNew) {
-            $indicator = new PerformanceIndicator(['year' => (int) config('kinetik.kip.tahun')]);
-            $indicator->kip_external_id = $data->ikuExternalId;
-        }
-
-        $indicator->team_id = $team->id;
-        $indicator->name = $data->ikuName;
-        $indicator->save();
-
-        if ($isNew) {
-            $this->counts['indicators']++;
-        }
-
-        return $indicator;
     }
 
     /**

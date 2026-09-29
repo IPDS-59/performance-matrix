@@ -8,6 +8,7 @@ use App\Kinetik\Data\KipPositionData;
 use App\Kinetik\Data\KipProjectData;
 use App\Kinetik\Data\KipRatingData;
 use App\Kinetik\Data\KipRkData;
+use App\Kinetik\Data\KipSkpTree;
 use App\Kinetik\Data\KipTeamData;
 use Illuminate\Support\Collection;
 
@@ -65,4 +66,10 @@ interface KipStructureSource
      * @return list<KipRatingData>
      */
     public function fetchPeriodicRatings(string $pegawaiId): array;
+
+    /**
+     * The employee's yearly SKP for the configured period with its RK and each
+     * RK's IKI (v1/skp jenis=1, v1/skp/rk, v1/skp/iki). Null when there is none.
+     */
+    public function fetchSkpTree(string $pegawaiId): ?KipSkpTree;
 }

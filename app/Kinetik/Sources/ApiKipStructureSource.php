@@ -7,9 +7,10 @@ use App\Kinetik\Contracts\KipStructureSource;
 use App\Kinetik\Data\KipMemberData;
 use App\Kinetik\Data\KipOfficeData;
 use App\Kinetik\Data\KipPositionData;
-use App\Kinetik\Data\KipRatingData;
 use App\Kinetik\Data\KipProjectData;
+use App\Kinetik\Data\KipRatingData;
 use App\Kinetik\Data\KipRkData;
+use App\Kinetik\Data\KipSkpTree;
 use App\Kinetik\Data\KipTeamData;
 use App\Kinetik\Exceptions\KipApiException;
 use Illuminate\Http\Client\PendingRequest;
@@ -141,6 +142,38 @@ class ApiKipStructureSource implements KipStructureSource
             ->filter()
             ->values()
             ->all();
+    }
+
+    public function fetchSkpTree(string $pegawaiId): ?KipSkpTree
+    {
+        $response = $this->client()->get('v1/skp', [
+            'periodeid' => config('kinetik.kip.periode_id'),
+            'pegawaiid' => $pegawaiId,
+            'jenis' => 1,
+        ]);
+
+        if (! $response->successful()) {
+            throw KipApiException::fromResponse($response, 'fetchSkpTree');
+        }
+
+        // A jabatan change mid-year leaves several yearly SKPs: take the latest.
+        $skp = collect($response->json() ?: [])->filter(fn ($row) => is_array($row) && filled($row['id'] ?? null))->sortByDesc('id')->first();
+        if ($skp === null) {
+            return null;
+        }
+
+        $rks = collect($this->client()->get('v1/skp/rk', ['skpid' => $skp['id']])->json() ?: [])
+            ->filter(fn ($row) => is_array($row) && filled($row['rkid'] ?? null))
+            ->map(fn (array $row) => KipRkData::fromApiRow($row))
+            ->values();
+
+        // skp/iki ignores rkid: one call returns every IKI of the SKP.
+        $ikiByRk = collect($this->client()->get('v1/skp/iki', ['skpid' => $skp['id']])->json() ?: [])
+            ->filter(fn ($row) => is_array($row) && filled($row['rkid'] ?? null))
+            ->groupBy(fn (array $row) => (string) $row['rkid'])
+            ->map(fn (Collection $rows) => $rows->values()->all());
+
+        return new KipSkpTree((string) $skp['id'], filled($skp['atasanid'] ?? null) ? (string) $skp['atasanid'] : null, $rks, $ikiByRk);
     }
 
     public function fetchEmployeePlans(string $nipLama): Collection

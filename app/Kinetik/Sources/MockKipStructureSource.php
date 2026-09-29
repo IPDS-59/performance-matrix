@@ -6,9 +6,10 @@ use App\Kinetik\Contracts\KipStructureSource;
 use App\Kinetik\Data\KipMemberData;
 use App\Kinetik\Data\KipOfficeData;
 use App\Kinetik\Data\KipPositionData;
-use App\Kinetik\Data\KipRatingData;
 use App\Kinetik\Data\KipProjectData;
+use App\Kinetik\Data\KipRatingData;
 use App\Kinetik\Data\KipRkData;
+use App\Kinetik\Data\KipSkpTree;
 use App\Kinetik\Data\KipTeamData;
 use Illuminate\Support\Collection;
 
@@ -67,6 +68,20 @@ class MockKipStructureSource implements KipStructureSource
             new KipRatingData("{$pegawaiId}-q1", '2026-01-01', '2026-03-31', 'Statistisi Ahli Pertama', 'Baik', 100.0, 'Dinilai'),
             new KipRatingData("{$pegawaiId}-q2", '2026-04-01', '2026-06-30', 'Statistisi Ahli Pertama', 'Sangat Baik', 110.0, 'Dinilai'),
         ];
+    }
+
+    public function fetchSkpTree(string $pegawaiId): ?KipSkpTree
+    {
+        // Mock kepala (pegawaiid "kepala") holds the PK; everyone else is a ketua under it.
+        if ($pegawaiId === 'kepala') {
+            return new KipSkpTree('skp-kepala', null, collect([
+                KipRkData::fromApiRow(['rkid' => 'pk1', 'rencanakinerja' => 'Terwujudnya Penyediaan Data Statistik', 'iscopypk' => 1]),
+            ]), collect(['pk1' => [['ikiid' => 'iku1', 'rkid' => 'pk1', 'iki' => 'Persentase Publikasi Statistik yang Berkualitas: 100%']]]));
+        }
+
+        return new KipSkpTree("skp-{$pegawaiId}", 'kepala', collect([
+            KipRkData::fromApiRow(['rkid' => "{$pegawaiId}-k1", 'rencanakinerja' => 'RK Ketua Contoh', 'rencanakinerjaatasan' => 'Terwujudnya Penyediaan Data Statistik']),
+        ]), collect());
     }
 
     public function fetchTeamMembers(string $timkerjaId): Collection
