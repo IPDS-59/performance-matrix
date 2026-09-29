@@ -1,0 +1,44 @@
+{
+  "detector": {
+    "ignoreRules": [],
+    "ignoreFiles": [],
+    "ignoreValues": [
+      {
+        "rule": "gray-on-color",
+        "value": "*",
+        "files": [
+          "resources/js/Components/Kinetik/RecapToolbar.vue"
+        ],
+        "createdAt": "2026-09-28T06:33:32.439Z",
+        "reason": "agent: count chip is gray-600 on neutral gray-100 (about 6.9:1), not gray on a hue"
+      },
+      {
+        "rule": "gray-on-color",
+        "value": "*",
+        "files": [
+          "resources/js/Components/Kinetik/RecapLockBar.vue"
+        ],
+        "createdAt": "2026-09-28T06:39:17.875Z",
+        "reason": "agent: gray and hued classes sit in opposite branches of a ternary; gray is only used on white or gray-100"
+      },
+      {
+        "rule": "gray-on-color",
+        "value": "*",
+        "files": [
+          "resources/js/Pages/Kinetik/MonthlyRecap.vue"
+        ],
+        "createdAt": "2026-09-28T06:39:17.920Z",
+        "reason": "agent: gray and hued classes sit in opposite branches of a ternary; gray is only used on white or gray-100"
+      },
+      {
+        "rule": "gray-on-color",
+        "value": "*",
+        "files": [
+          "resources/js/Pages/Kinetik/QuarterlyRecap.vue"
+        ],
+        "createdAt": "2026-09-28T06:39:17.989Z",
+        "reason": "agent: gray and hued classes sit in opposite branches of a ternary; gray is only used on white or gray-100"
+      }
+    ]
+  }
+}

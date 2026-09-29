@@ -127,12 +127,24 @@ foreach ([
     ['view:cache',    []],
     ['optimize',      []],
 ] as [\$cmd, \$args]) {
-    \$buf  = new \Symfony\Component\Console\Output\BufferedOutput();
-    \$code = \$kernel->call(\$cmd, \$args, \$buf);
+    // Shared hosting often forbids symlink(); keep an existing storage link.
+    if (\$cmd === 'storage:link' && file_exists(__DIR__ . '/storage')) {
+        \$results[] = ['cmd' => 'php artisan storage:link', 'ok' => true, 'out' => 'public/storage already exists, skipped.'];
+        continue;
+    }
+    \$buf = new \Symfony\Component\Console\Output\BufferedOutput();
+    // One failing command must not stop the rest (or return a bare 500).
+    try {
+        \$code = \$kernel->call(\$cmd, \$args, \$buf);
+        \$out = \$buf->fetch();
+    } catch (\Throwable \$e) {
+        \$code = 1;
+        \$out = \$buf->fetch() . get_class(\$e) . ': ' . \$e->getMessage();
+    }
     \$results[] = [
         'cmd' => 'php artisan ' . \$cmd,
         'ok'  => \$code === 0,
-        'out' => htmlspecialchars(\$buf->fetch()),
+        'out' => htmlspecialchars(\$out),
     ];
 }
 
@@ -310,6 +322,7 @@ if [ "$ZIP" = true ]; then
         ".git/*"
         ".github/*"
         ".codegraph/*"
+        ".impeccable/*"
         ".beads/*"
         ".dolt/*"
         ".claude/*"
@@ -351,6 +364,9 @@ if [ "$ZIP" = true ]; then
         "storage/pail/*"
         # Seeder production data files (gitignored but may exist on disk)
         "database/seeders/data/*.prod.json"
+        # Local dev database (prod uses PostgreSQL)
+        "database/*.sqlite"
+        "database/*.sqlite-*"
         # Local-only config / session files
         ".mcp.json"
         ".playwright-mcp/*"
