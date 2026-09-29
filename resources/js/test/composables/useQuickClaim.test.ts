@@ -34,3 +34,25 @@ describe('useQuickClaim', () => {
             .toEqual({ 1: { obstacle: 'Wajib' }, 0: { target: 'Angka' } });
     });
 });
+
+import { suggestProject } from '@/composables/useQuickClaim';
+
+describe('suggestProject', () => {
+    const projects = [
+        { id: 1, name: 'Metodologi dan Pengolahan Survei Statistik Kependudukan dan Ketenagakerjaan' },
+        { id: 2, name: 'Metodologi dan Pengolahan Survei Statistik Kesejahteraan Rakyat' },
+        { id: 3, name: 'Pengelolaan Jaringan dan Internet' },
+        { id: 4, name: 'Pembangunan dan Pengembangan Inovasi' },
+    ];
+
+    it('finds the project named in the RK text', () => {
+        expect(suggestProject('Terlaksananya Dukungan Metodologi dan Pengolahan Survei terkait Statistik Kependudukan dan Ketenagakerjaan yang Berkualitas', projects)?.id).toBe(1);
+        expect(suggestProject('Terlaksananya Dukungan Metodologi dan Pengolahan Survei terkait Statistik Kesejahteraan Rakyat yang Berkualitas', projects)?.id).toBe(2);
+        expect(suggestProject('Terlaksananya Pengelolaan Jaringan dan Internet yang Handal dan sesuai SLA', projects)?.id).toBe(3);
+    });
+
+    it('stays empty when no project clearly matches', () => {
+        expect(suggestProject('Tersedianya Inovasi yang Bermanfaat', projects)).toBeNull();
+        expect(suggestProject('Terselenggaranya Zona Integritas WBK', projects)).toBeNull();
+    });
+});

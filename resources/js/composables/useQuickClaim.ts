@@ -44,3 +44,38 @@ export function splitBulkErrors(errors: Record<string, string>): Record<number, 
     }
     return out;
 }
+
+// Words that describe any result, not which project it belongs to.
+const GENERIC_WORDS = new Set([
+    'terlaksananya', 'tersedianya', 'terselenggaranya', 'meningkatnya', 'terwujudnya', 'tercapainya', 'terlaksana',
+    'yang', 'dan', 'dalam', 'rangka', 'untuk', 'dengan', 'pada', 'serta', 'atau', 'terkait', 'kegiatan', 'sesuai',
+    'berkualitas', 'handal', 'bermanfaat', 'tepat', 'waktu', 'baik', 'dukungan', 'penyelenggaraan', 'pelaksanaan',
+]);
+
+function words(text: string): string[] {
+    return (text.toLowerCase().match(/[a-z0-9]+/g) ?? []).filter(w => w.length > 2 && !GENERIC_WORDS.has(w));
+}
+
+/**
+ * kipApp links an RK to a team, not to a project, but the RK text names the
+ * project ("Terlaksananya Pengelolaan Jaringan dan Internet ..." belongs to
+ * "Pengelolaan Jaringan dan Internet"). Returns the project whose name words
+ * appear in the RK text, only when one project clearly wins; the member's own
+ * projects win a tie.
+ */
+export function suggestProject<P extends { id: number; name: string; is_member?: boolean }>(rkText: string, projects: P[]): P | null {
+    const rk = new Set(words(rkText));
+    const scored = projects
+        .map(project => {
+            const name = words(project.name);
+            const score = name.length ? name.filter(w => rk.has(w)).length / name.length : 0;
+            return { project, score: score + (project.is_member ? 0.001 : 0) };
+        })
+        .filter(s => s.score >= 0.6)
+        .sort((a, b) => b.score - a.score);
+
+    if (!scored.length) return null;
+    if (scored.length > 1 && Math.abs(scored[0].score - scored[1].score) < 0.001) return null;
+
+    return scored[0].project;
+}

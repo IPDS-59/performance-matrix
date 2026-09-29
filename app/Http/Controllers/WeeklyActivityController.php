@@ -82,6 +82,7 @@ class WeeklyActivityController extends Controller
 
         $plans = collect();
         $projects = collect();
+        $recentProjects = collect();
 
         if ($employee) {
             $teamIds = $employee->teams()->pluck('teams.id');
@@ -114,6 +115,14 @@ class WeeklyActivityController extends Controller
                 ])
                 ->sortByDesc('is_member')
                 ->values();
+
+            // The Projek the member picked last time for each RK: kipApp does
+            // not link an RK to a Projek, so this is the best guess next time.
+            $recentProjects = ActivityClaim::query()
+                ->where('employee_id', $employee->id)
+                ->whereNotNull('project_id')
+                ->orderBy('updated_at')
+                ->pluck('project_id', 'performance_plan_id');
         }
 
         $prevWeek = Carbon::parse($weekStart)->subWeek()->toDateString();
@@ -129,6 +138,7 @@ class WeeklyActivityController extends Controller
                 'display_name' => $employee->display_name,
             ] : null,
             'activities' => $activities,
+            'recentProjects' => $recentProjects,
             'recap' => $recap,
             'plans' => $plans,
             'projects' => $projects,

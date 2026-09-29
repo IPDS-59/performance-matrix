@@ -12,7 +12,7 @@ import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@
 import { ChevronLeft, ChevronRight, ExternalLink, Lock, Zap } from 'lucide-vue-next';
 import InputError from '@/Components/InputError.vue';
 import { useDateFormat } from '@/composables/useDateFormat';
-import { NO_PROJECT, isReadyToSave, quickFill, splitBulkErrors, toClaimPayload } from '@/composables/useQuickClaim';
+import { NO_PROJECT, isReadyToSave, quickFill, splitBulkErrors, suggestProject, toClaimPayload } from '@/composables/useQuickClaim';
 
 const { formatDate, formatWeekRange } = useDateFormat();
 
@@ -24,6 +24,8 @@ const props = defineProps<{
     recap: ActivityClaim[];
     plans: PlanOption[];
     projects: ProjectOption[];
+    /** performance_plan_id → the Projek of the member's latest claim on it. */
+    recentProjects: Record<number, number>;
     weekStart: string;
     weekEnd: string;
     prevWeek: string;
@@ -65,9 +67,21 @@ function projectOptions(planId: number | null): ProjectOption[] {
     return props.projects.filter(p => p.team_id === plan.team_id);
 }
 
-// Pre-select the Projek when the member belongs to exactly one in the RK's team.
+// kipApp links an RK to a team, not a Projek. Pre-select, in order: the Projek
+// the member chose last time for this RK, the Projek named in the RK text, or
+// the member's only Projek in the team. The member can still change it.
 function defaultProjectId(planId: number | null): string {
-    const own = projectOptions(planId).filter(p => p.is_member);
+    const options = projectOptions(planId);
+    if (!options.length) return NO_PROJECT;
+
+    const recent = planId ? props.recentProjects[planId] : undefined;
+    if (recent && options.some(p => p.id === recent)) return String(recent);
+
+    const plan = props.plans.find(p => p.id === planId);
+    const named = plan ? suggestProject(plan.description, options) : null;
+    if (named) return String(named.id);
+
+    const own = options.filter(p => p.is_member);
     return own.length === 1 ? String(own[0].id) : NO_PROJECT;
 }
 

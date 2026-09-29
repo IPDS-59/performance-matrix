@@ -552,3 +552,13 @@ it('matches an activity RK by name when kipApp gives the member their own RK id'
             ->where('activities', fn ($rows) => collect($rows)->firstWhere('id', $byName->id)['matched_plan_id'] === $plan->id
                 && collect($rows)->firstWhere('id', $unknown->id)['matched_plan_id'] === null));
 });
+
+it('remembers the Projek the member chose last time for each RK', function () {
+    [$user, $employee, $team, $plan] = claimant();
+    [$old, $new] = Project::factory()->count(2)->create(['team_id' => $team->id]);
+    ActivityClaim::factory()->saved()->create(['employee_id' => $employee->id, 'performance_plan_id' => $plan->id, 'project_id' => $old->id, 'updated_at' => now()->subDay()]);
+    ActivityClaim::factory()->saved()->create(['employee_id' => $employee->id, 'performance_plan_id' => $plan->id, 'project_id' => $new->id, 'updated_at' => now()]);
+
+    $this->actingAs($user)->get(route('weekly.index'))
+        ->assertInertia(fn ($page) => $page->where("recentProjects.{$plan->id}", $new->id));
+});
