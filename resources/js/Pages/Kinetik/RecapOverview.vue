@@ -104,7 +104,7 @@ const officeAverage = computed(() => {
 });
 const lockedCount = computed(() => props.teams.filter(t => t.locked).length);
 const isWeek = computed(() => props.periodType === 'week');
-const columnCount = computed(() => (isWeek.value ? 10 : 9));
+const columnCount = computed(() => (isWeek.value ? 9 : 8));
 
 // Expanded team rows (project breakdown with each project's PIC).
 const expanded = ref<Set<number>>(new Set());
@@ -208,19 +208,18 @@ function toggle(teamId: number) {
         </div>
 
         <!-- Per-team table -->
-        <div class="overflow-hidden rounded-lg border bg-white">
+        <div class="overflow-x-auto rounded-lg border bg-white">
             <Table class="text-sm">
                 <TableHeader>
                     <TableRow class="bg-gray-50 text-xs uppercase tracking-wide text-gray-500">
-                        <TableHead class="min-w-[14rem]">Tim</TableHead>
-                        <TableHead class="min-w-[10rem]">PJ</TableHead>
+                        <TableHead class="min-w-[12rem]">Tim</TableHead>
+                        <TableHead class="min-w-[9rem]">PJ</TableHead>
                         <TableHead class="text-right">Baris RK</TableHead>
                         <TableHead class="min-w-[9rem]">Capaian</TableHead>
                         <TableHead class="text-right">Dikonfirmasi</TableHead>
                         <TableHead v-if="isWeek" class="text-right">Anggota lengkap</TableHead>
                         <TableHead>Status</TableHead>
-                        <TableHead>Kunci</TableHead>
-                        <TableHead class="min-w-[16rem]">Catatan Pimpinan</TableHead>
+                        <TableHead class="min-w-[14rem]">Catatan Pimpinan</TableHead>
                         <TableHead class="w-10"><span class="sr-only">Buka</span></TableHead>
                     </TableRow>
                 </TableHeader>
@@ -267,12 +266,10 @@ function toggle(teamId: number) {
                             <span :class="['inline-flex whitespace-nowrap rounded-full px-2 py-0.5 text-xs font-medium', REVIEW_STATUS_META[reviewStatus(team.avg_achievement)].chip]">
                                 {{ REVIEW_STATUS_META[reviewStatus(team.avg_achievement)].label }}
                             </span>
-                        </TableCell>
-                        <TableCell>
-                            <span v-if="team.locked" class="inline-flex items-center gap-1 rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-800">
-                                <Lock class="h-3 w-3" aria-hidden="true" /> Dikunci
+                            <span v-if="team.locked" class="mt-1 flex items-center gap-1 whitespace-nowrap text-xs font-medium text-amber-700">
+                                <Lock class="h-3 w-3" aria-hidden="true" /> Dikunci PJ
                             </span>
-                            <span v-else class="inline-flex items-center gap-1 rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-600">
+                            <span v-else class="mt-1 flex items-center gap-1 whitespace-nowrap text-xs text-gray-500">
                                 <LockOpen class="h-3 w-3" aria-hidden="true" /> Terbuka
                             </span>
                         </TableCell>
