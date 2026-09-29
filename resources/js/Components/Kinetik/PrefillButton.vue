@@ -30,7 +30,7 @@ function prefill() {
         size="sm"
         variant="outline"
         :disabled="running"
-        :title="`Salin Permasalahan, Solusi dan RTL dari rekap ${source} ke kolom yang masih kosong. Teks yang sudah ada tidak diubah.`"
+        :title="`Salin Uraian, Permasalahan, Solusi dan RTL dari rekap ${source} ke kolom yang masih kosong. Teks yang sudah ada tidak diubah.`"
         @click="prefill"
     >
         <CopyPlus class="mr-1.5 h-4 w-4" />

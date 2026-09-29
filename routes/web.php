@@ -112,6 +112,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::delete('/rekap-tim/evidence/{evidence}', [TeamRecapController::class, 'destroyEvidence'])->name('team-recap.evidence.destroy');
     Route::post('/rekap-tim/override', [TeamRecapController::class, 'storeOverride'])->name('team-recap.override.store');
     Route::post('/rekap-tim/prefill', [TeamRecapController::class, 'prefill'])->name('team-recap.prefill');
+    Route::post('/rekap-tim/merge', [TeamRecapController::class, 'mergeRows'])->name('team-recap.merge');
+    Route::post('/rekap-tim/split', [TeamRecapController::class, 'splitRows'])->name('team-recap.split');
     Route::post('/rekap-tim/override/confirm', [TeamRecapController::class, 'confirmOverride'])->name('team-recap.override.confirm');
     Route::post('/rekap-tim/override/confirm-bulk', [TeamRecapController::class, 'confirmBulk'])->name('team-recap.override.confirm-bulk');
 

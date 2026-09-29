@@ -260,6 +260,8 @@ export interface ProjectOption {
 export interface RecapRow {
     /** "planId:projectId" — one RK within one Projek. */
     row_key: string;
+    /** Row key of the merge group's lead; null when not merged. */
+    merge_key: string | null;
     performance_plan_id: number;
     project_id: number | null;
     rk_code?: string | null;

@@ -230,6 +230,8 @@ export const GUIDE_FLOWS: GuideFlow[] = [
                     'Rekap dikelompokkan per Projek, lalu per Rencana Kinerja. Angka Target, Realisasi dan Capaian dijumlah dari klaim anggota.',
                     'Tombol "Perlu perhatian" menyaring baris dengan capaian di bawah 100%, ada kendala, atau belum dikonfirmasi.',
                     'Buka panah di ujung baris untuk melihat uraian dan kendala anggota, lalu isi Solusi dan RTL hasil rapat tim.',
+                    'Isi Uraian (PJ) bila uraian anggota perlu diringkas. Jika kosong, Excel memakai uraian kegiatan anggota.',
+                    'Untuk menulis satu uraian bagi beberapa RK dalam satu projek, centang baris-barisnya lalu klik "Gabungkan". Angka setiap RK tetap terpisah. Klik "Pisahkan" untuk membatalkan.',
                 ],
             },
             {
@@ -255,7 +257,7 @@ export const GUIDE_FLOWS: GuideFlow[] = [
                 where: 'Menu Rekap Tim → Bulanan / Triwulanan (FRA)',
                 route: 'team-recap.monthly',
                 body: [
-                    'Klik "Isi dari mingguan" (bulanan) atau "Isi dari bulanan" (triwulanan) untuk mengisi Permasalahan, Solusi dan RTL semua baris sekaligus. Hanya kolom yang masih kosong yang diisi.',
+                    'Klik "Isi dari mingguan" (bulanan) atau "Isi dari bulanan" (triwulanan) untuk mengisi Uraian, Permasalahan, Solusi dan RTL semua baris sekaligus. Hanya kolom yang masih kosong yang diisi.',
                     'Parafrase mingguan satu baris juga dapat ditarik dengan "Tarik dari mingguan" di panel baris itu.',
                     'Konfirmasi setiap baris. "Konfirmasi semua capaian 100%" mengonfirmasi semua baris yang sudah 100% sekaligus.',
                     'Di triwulanan (FRA), isi juga link bukti tindak lanjut, PIC dan batas waktu.',

@@ -227,11 +227,10 @@ class RecapAggregator
             ->map(function (Collection $projectClaims) use ($overrides, $withFollowUp, $inherited) {
                 $project = $this->projectOf($projectClaims->first());
 
-                $rows = $projectClaims
+                $rows = $this->groupMerged($projectClaims
                     ->groupBy('performance_plan_id')
                     ->map(fn (Collection $rk) => $this->aggregateRk($rk, $project?->id, $overrides, $withFollowUp, $inherited))
-                    ->values()
-                    ->all();
+                    ->values());
 
                 $teamName = $projectClaims->first()->performancePlan?->team?->name;
 
@@ -241,6 +240,32 @@ class RecapAggregator
                     'rows' => $rows,
                 ];
             })
+            ->values()
+            ->all();
+    }
+
+    /**
+     * Put merged rows next to each other, lead row first, at the position of
+     * the group's first row.
+     *
+     * @param  Collection<int, array<string, mixed>>  $rows
+     * @return array<int, array<string, mixed>>
+     */
+    private function groupMerged(Collection $rows): array
+    {
+        $first = [];
+        foreach ($rows as $i => $row) {
+            $first[$row['merge_key'] ?? $row['row_key']] ??= $i;
+        }
+
+        return $rows
+            ->map(fn (array $row, int $i) => [$row, $i])
+            ->sortBy([
+                fn (array $a, array $b) => $first[$a[0]['merge_key'] ?? $a[0]['row_key']] <=> $first[$b[0]['merge_key'] ?? $b[0]['row_key']],
+                fn (array $a, array $b) => ($a[0]['row_key'] !== ($a[0]['merge_key'] ?? $a[0]['row_key'])) <=> ($b[0]['row_key'] !== ($b[0]['merge_key'] ?? $b[0]['row_key'])),
+                fn (array $a, array $b) => $a[1] <=> $b[1],
+            ])
+            ->map(fn (array $pair) => $pair[0])
             ->values()
             ->all();
     }
@@ -283,6 +308,8 @@ class RecapAggregator
         // Paraphrases saved before claims carried a Projek have no project_id.
         $legacyKey = self::rowKey($first->performance_plan_id, null);
         $override = $overrides->get($key) ?? $overrides->get($legacyKey);
+        // A merged row shows the text of its group's lead row.
+        $text = $override?->merge_key ? ($overrides->get($override->merge_key) ?? $override) : $override;
         $inheritedRow = $inherited->get($key) ?? $inherited->get($legacyKey);
 
         $contributors = $claims
@@ -296,6 +323,7 @@ class RecapAggregator
             'row_key' => $key,
             'performance_plan_id' => $first->performance_plan_id,
             'project_id' => $projectId,
+            'merge_key' => $override?->merge_key,
             'uraian_aggregated' => $uraianAgg,
             'uraian_items' => $uraianItems,
             'pic_employee_id' => $plan?->pic_employee_id,
@@ -307,30 +335,30 @@ class RecapAggregator
             // Unit must match the summed claim values (members enter target/realisasi
             // in the claim's own unit, e.g. "Kegiatan"), not the plan's IKI unit.
             'target_unit' => $first->target_unit ?? $plan?->target_unit,
-            'obstacle' => $override?->obstacle ?? $obstacleAgg,
-            'solution' => $override?->solution ?? $solutionAgg,
-            'follow_up_plan' => $override?->follow_up_plan ?? $followUpAgg,
+            'obstacle' => $text?->obstacle ?? $obstacleAgg,
+            'solution' => $text?->solution ?? $solutionAgg,
+            'follow_up_plan' => $text?->follow_up_plan ?? $followUpAgg,
             'obstacle_aggregated' => $obstacleAgg,
             'solution_aggregated' => $solutionAgg,
             'follow_up_aggregated' => $followUpAgg,
             'is_overridden' => $override !== null,
-            'pj_obstacle' => $override?->obstacle,
-            'pj_solution' => $override?->solution,
-            'pj_follow_up_plan' => $override?->follow_up_plan,
+            'pj_obstacle' => $text?->obstacle,
+            'pj_solution' => $text?->solution,
+            'pj_follow_up_plan' => $text?->follow_up_plan,
             'inherited_obstacle' => $inheritedRow['obstacle'] ?? null,
             'inherited_solution' => $inheritedRow['solution'] ?? null,
             'inherited_follow_up_plan' => $inheritedRow['follow_up_plan'] ?? null,
-            'pj_uraian' => $override?->uraian,
+            'pj_uraian' => $text?->uraian,
             'is_confirmed' => $override?->confirmed_at !== null,
             'confirmed_by' => $override?->confirmedBy?->display_name ?? $override?->confirmedBy?->name,
             'contributors' => $contributors,
         ];
 
         if ($withFollowUp) {
-            $row['follow_up_evidence_url'] = $override?->follow_up_evidence_url;
-            $row['follow_up_pic'] = $override?->followUpPic?->display_name ?? $override?->followUpPic?->name;
-            $row['follow_up_pic_employee_id'] = $override?->follow_up_pic_employee_id;
-            $row['follow_up_deadline'] = $override?->follow_up_deadline?->toDateString();
+            $row['follow_up_evidence_url'] = $text?->follow_up_evidence_url;
+            $row['follow_up_pic'] = $text?->followUpPic?->display_name ?? $text?->followUpPic?->name;
+            $row['follow_up_pic_employee_id'] = $text?->follow_up_pic_employee_id;
+            $row['follow_up_deadline'] = $text?->follow_up_deadline?->toDateString();
         }
 
         return $row;

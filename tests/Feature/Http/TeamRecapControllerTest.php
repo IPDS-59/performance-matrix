@@ -1182,3 +1182,77 @@ it('blocks pre-fill on a locked month and for non-PJ members', function () {
     RecapLock::create(['team_id' => $team->id, 'period_type' => 'month', 'period_year' => 2026, 'period_month' => 6]);
     $this->actingAs($user)->post(route('team-recap.prefill'), $params)->assertSessionHas('error');
 });
+
+// ── Gabungkan / Pisahkan ─────────────────────────────────────────────────────
+
+function claimFor(Employee $employee, PerformancePlan $plan, Project $project, float $achievement): void
+{
+    ActivityClaim::factory()->saved()->create([
+        'employee_id' => $employee->id, 'performance_plan_id' => $plan->id, 'project_id' => $project->id,
+        'target' => 1, 'realization' => $achievement / 100, 'achievement' => $achievement,
+        'period_year' => 2026, 'period_month' => 6, 'period_quarter' => 2, 'week_start' => '2026-06-01',
+    ]);
+}
+
+it('merges rows of one project into one text and splits them again', function () {
+    [$user, $pj, $team] = pjOfTeam();
+    $project = Project::factory()->create(['team_id' => $team->id, 'year' => 2026]);
+    [$a, $b, $c] = PerformancePlan::factory()->count(3)->create(['project_id' => $project->id, 'team_id' => $team->id]);
+    claimFor($pj, $a, $project, 50);
+    claimFor($pj, $b, $project, 90);
+    claimFor($pj, $c, $project, 70);
+    // Legacy paraphrase of B without a Projek: moves to the Projek on merge.
+    RecapOverride::create([
+        'team_id' => $team->id, 'performance_plan_id' => $b->id, 'project_id' => null,
+        'period_type' => 'month', 'period_year' => 2026, 'period_month' => 6, 'solution' => 'Solusi B',
+    ]);
+    $period = ['team_id' => $team->id, 'period_type' => 'month', 'period_year' => 2026, 'period_month' => 6];
+
+    $this->actingAs($user)
+        ->post(route('team-recap.merge'), [...$period, 'project_id' => $project->id, 'performance_plan_ids' => [$c->id, $a->id]])
+        ->assertSessionHas('success');
+
+    $key = $c->id.':'.$project->id;
+    expect(RecapOverride::where('merge_key', $key)->count())->toBe(2);
+
+    $this->actingAs($user)->post(route('team-recap.override.store'), [
+        ...$period, 'performance_plan_id' => $c->id, 'project_id' => $project->id, 'uraian' => 'Uraian gabungan',
+    ]);
+
+    $rows = collect(app(\App\Services\Kinetik\RecapAggregator::class)->monthly($team, 2026, 6)[0]['rows']);
+    $lead = $rows->firstWhere('performance_plan_id', $c->id);
+    $member = $rows->firstWhere('performance_plan_id', $a->id);
+    expect($member['pj_uraian'])->toBe('Uraian gabungan')
+        ->and($member['merge_key'])->toBe($key)
+        ->and($member['achievement'])->toEqual(50)
+        ->and($rows->search(fn ($r) => $r === $member))->toBe($rows->search(fn ($r) => $r === $lead) + 1)
+        ->and($rows->firstWhere('performance_plan_id', $b->id)['pj_solution'])->toBe('Solusi B');
+
+    $this->actingAs($user)->post(route('team-recap.split'), [...$period, 'merge_key' => $key])->assertSessionHas('success');
+    expect(RecapOverride::whereNotNull('merge_key')->count())->toBe(0);
+});
+
+it('lets only the PJ merge, and not on a locked period', function () {
+    [$user, , $team] = pjOfTeam();
+    [$a, $b] = PerformancePlan::factory()->count(2)->create(['project_id' => null, 'team_id' => $team->id]);
+    $params = ['team_id' => $team->id, 'period_type' => 'month', 'period_year' => 2026, 'period_month' => 6, 'performance_plan_ids' => [$a->id, $b->id]];
+
+    $member = User::factory()->create();
+    Employee::factory()->create(['user_id' => $member->id, 'team_id' => $team->id]);
+    $this->actingAs($member)->post(route('team-recap.merge'), $params)->assertForbidden();
+
+    RecapLock::create(['team_id' => $team->id, 'period_type' => 'month', 'period_year' => 2026, 'period_month' => 6]);
+    $this->actingAs($user)->post(route('team-recap.merge'), $params)->assertSessionHas('error');
+    expect(RecapOverride::count())->toBe(0);
+});
+
+it('keeps fields the form did not send when saving a paraphrase', function () {
+    [$user, , $team] = pjOfTeam();
+    $plan = PerformancePlan::factory()->create(['project_id' => null, 'team_id' => $team->id]);
+    $period = ['team_id' => $team->id, 'performance_plan_id' => $plan->id, 'period_type' => 'month', 'period_year' => 2026, 'period_month' => 6];
+
+    $this->actingAs($user)->post(route('team-recap.override.store'), [...$period, 'obstacle' => 'Hujan']);
+    $this->actingAs($user)->post(route('team-recap.override.store'), [...$period, 'solution' => 'Tambah petugas']);
+
+    expect(RecapOverride::sole())->obstacle->toBe('Hujan')->solution->toBe('Tambah petugas');
+});

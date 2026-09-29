@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Actions\Kinetik\MergeRecapRowsAction;
 use App\Actions\Kinetik\PrefillRecapAction;
 use App\Models\Employee;
 use App\Models\LeadershipNote;
@@ -522,13 +523,12 @@ class TeamRecapController extends Controller
                 'week_start' => $validated['week_start'] ?? null,
             ],
             [
-                'uraian' => $validated['uraian'] ?? null,
-                'obstacle' => $validated['obstacle'] ?? null,
-                'solution' => $validated['solution'] ?? null,
-                'follow_up_plan' => $validated['follow_up_plan'] ?? null,
-                'follow_up_evidence_url' => $validated['follow_up_evidence_url'] ?? null,
-                'follow_up_pic_employee_id' => $validated['follow_up_pic_employee_id'] ?? null,
-                'follow_up_deadline' => $validated['follow_up_deadline'] ?? null,
+                // Only the fields the form sent: the weekly form has no
+                // Permasalahan, and must not clear the one saved elsewhere.
+                ...collect(['uraian', 'obstacle', 'solution', 'follow_up_plan', 'follow_up_evidence_url', 'follow_up_pic_employee_id', 'follow_up_deadline'])
+                    ->filter(fn (string $field) => $request->exists($field))
+                    ->mapWithKeys(fn (string $field) => [$field => $validated[$field] ?? null])
+                    ->all(),
                 'created_by' => $employee->id,
             ],
         );
@@ -573,6 +573,74 @@ class TeamRecapController extends Controller
         return back()->with('success', $filled
             ? "{$filled} baris diisi dari rekap {$source}. Teks yang sudah ada tidak diubah."
             : "Tidak ada teks {$source} baru untuk diisi.");
+    }
+
+    // ── Gabungkan / Pisahkan rows ────────────────────────────────────────────
+
+    /**
+     * Merge two or more RK rows of one Projek into one recap row. PJ only.
+     */
+    public function mergeRows(Request $request, MergeRecapRowsAction $merge): RedirectResponse
+    {
+        [$employee, $period] = $this->rowGroupRequest($request, [
+            'project_id' => ['nullable', 'integer', 'exists:projects,id'],
+            'performance_plan_ids' => ['required', 'array', 'min:2'],
+            'performance_plan_ids.*' => ['integer', 'distinct', 'exists:performance_plans,id'],
+        ]);
+
+        $merge->merge($period, $request->integer('project_id') ?: null, array_map('intval', $request->input('performance_plan_ids')), $employee);
+
+        return back()->with('success', 'Baris digabungkan. Isi uraian dan parafrase pada baris pertama grup.');
+    }
+
+    /**
+     * Undo a merge; every row shows its own text again. PJ only.
+     */
+    public function splitRows(Request $request, MergeRecapRowsAction $merge): RedirectResponse
+    {
+        [, $period] = $this->rowGroupRequest($request, [
+            'merge_key' => ['required', 'string', 'max:64'],
+        ]);
+
+        $merge->split($period, (string) $request->input('merge_key'));
+
+        return back()->with('success', 'Baris dipisahkan.');
+    }
+
+    /**
+     * Shared validation for merge and split: the period, PJ of the team, unlocked.
+     *
+     * @param  array<string, mixed>  $rules
+     * @return array{0: Employee, 1: array<string, mixed>}
+     */
+    private function rowGroupRequest(Request $request, array $rules): array
+    {
+        $employee = $request->user()->employee;
+        abort_if($employee === null, 403, 'Akun tidak terhubung ke data pegawai.');
+
+        $validated = $request->validate([
+            'team_id' => ['required', 'integer', 'exists:teams,id'],
+            'period_type' => ['required', 'in:week,month,quarter'],
+            'period_year' => ['required', 'integer', 'between:2000,2100'],
+            'week_start' => ['nullable', 'date', 'required_if:period_type,week'],
+            'period_month' => ['nullable', 'integer', 'between:1,12', 'required_if:period_type,month'],
+            'period_quarter' => ['nullable', 'integer', 'between:1,4', 'required_if:period_type,quarter'],
+            ...$rules,
+        ]);
+
+        $this->authorizePj($employee, (int) $validated['team_id']);
+        $this->ensureUnlockedFor($validated);
+
+        $type = $validated['period_type'];
+
+        return [$employee, [
+            'team_id' => (int) $validated['team_id'],
+            'period_type' => $type,
+            'period_year' => (int) $validated['period_year'],
+            'week_start' => $type === 'week' ? Carbon::parse($validated['week_start'])->toDateString() : null,
+            'period_month' => $type === 'month' ? (int) $validated['period_month'] : null,
+            'period_quarter' => $type === 'quarter' ? (int) $validated['period_quarter'] : null,
+        ]];
     }
 
     // ── Bulk confirm (achievement ≥ 100%) ────────────────────────────────────

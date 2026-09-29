@@ -14,6 +14,7 @@ class RecapOverride extends Model
         'team_id',
         'performance_plan_id',
         'project_id',
+        'merge_key',
         'period_type',
         'period_year',
         'period_quarter',

@@ -2,6 +2,7 @@ import { ref } from 'vue';
 import { router } from '@inertiajs/vue3';
 import type { RecapSegment, RecapRow, TeamOption, TeamRecapEvidence, WeeklyTeamNote, RecapLockState, MemberCompleteness } from '@/types';
 import { useDateFormat } from '@/composables/useDateFormat';
+import { groupAdjacent, textKey, textTarget, useRecapMerge } from '@/composables/useRecapMerge';
 
 export interface TeamWeeklyRecapProps {
     teams: TeamOption[];
@@ -21,6 +22,7 @@ export interface TeamWeeklyRecapProps {
 }
 
 type ParaForm = {
+    uraian: string;
     solution: string;
     follow_up_plan: string;
     saving: boolean;
@@ -77,11 +79,11 @@ export function useTeamWeeklyRecap(props: TeamWeeklyRecapProps) {
         const base = attentionOnly.value ? seg.rows.filter(needsAttention) : seg.rows;
         const key = String(seg.project_id ?? 'none');
         const dir = sortDir(key);
-        return [...base].sort((a, b) =>
+        return groupAdjacent([...base].sort((a, b) =>
             dir === 'asc'
                 ? (a.achievement ?? 0) - (b.achievement ?? 0)
                 : (b.achievement ?? 0) - (a.achievement ?? 0),
-        );
+        ));
     }
 
     // ── Expand state ───────────────────────────────────────────────────────
@@ -101,17 +103,19 @@ export function useTeamWeeklyRecap(props: TeamWeeklyRecapProps) {
 
     // ── Paraphrase forms (per planId) — Kendala / Solusi / RTL ────────────
 
+    // Keyed by the text row, so every row of a merged group edits one form.
     const paraForms = ref<Record<string, ParaForm>>({});
 
     function getParaForm(row: RecapRow): ParaForm {
-        if (!paraForms.value[row.row_key]) {
-            paraForms.value[row.row_key] = {
+        if (!paraForms.value[textKey(row)]) {
+            paraForms.value[textKey(row)] = {
+                uraian: row.pj_uraian ?? '',
                 solution: row.pj_solution ?? '',
                 follow_up_plan: row.pj_follow_up_plan ?? '',
                 saving: false,
             };
         }
-        return paraForms.value[row.row_key];
+        return paraForms.value[textKey(row)];
     }
 
     function saveParaphrase(row: RecapRow) {
@@ -119,11 +123,11 @@ export function useTeamWeeklyRecap(props: TeamWeeklyRecapProps) {
         f.saving = true;
         router.post(route('team-recap.override.store'), {
             team_id: props.selectedTeamId,
-            performance_plan_id: row.performance_plan_id,
-            project_id: row.project_id,
+            ...textTarget(row),
             period_type: 'week',
             period_year: new Date(props.weekStart + 'T00:00:00').getFullYear(),
             week_start: props.weekStart,
+            uraian: f.uraian,
             solution: f.solution,
             follow_up_plan: f.follow_up_plan,
         }, {
@@ -132,6 +136,13 @@ export function useTeamWeeklyRecap(props: TeamWeeklyRecapProps) {
             onFinish: () => { f.saving = false; },
         });
     }
+
+    // ── Gabungkan / Pisahkan ───────────────────────────────────────────────
+
+    const rowMerge = useRecapMerge(
+        () => ({ team_id: props.selectedTeamId, period_type: 'week', period_year: Number(props.weekStart.slice(0, 4)), week_start: props.weekStart }),
+        () => { paraForms.value = {}; },
+    );
 
     // ── Single weekly PJ note (uraian + kendala + solusi + RTL) ───────────
 
@@ -250,6 +261,7 @@ export function useTeamWeeklyRecap(props: TeamWeeklyRecapProps) {
         rowCanParaphrase,
         getParaForm,
         saveParaphrase,
+        rowMerge,
         weeklyNoteForm,
         prefillFromMembers,
         saveWeeklyNote,

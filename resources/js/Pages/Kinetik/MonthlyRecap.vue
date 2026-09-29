@@ -3,6 +3,8 @@ import AppLayout from '@/Layouts/AppLayout.vue';
 import RecapLockBar from '@/Components/Kinetik/RecapLockBar.vue';
 import RecapToolbar from '@/Components/Kinetik/RecapToolbar.vue';
 import PrefillButton from '@/Components/Kinetik/PrefillButton.vue';
+import RecapMergeCell from '@/Components/Kinetik/RecapMergeCell.vue';
+import { groupAdjacent, groupSize, isGroupLead, textKey, textTarget, useRecapMerge } from '@/composables/useRecapMerge';
 import MeetingChecklist from '@/Components/Kinetik/MeetingChecklist.vue';
 import { periodChecklist } from '@/composables/useMeetingChecklist';
 import { Head, router } from '@inertiajs/vue3';
@@ -94,12 +96,19 @@ function filteredRows(seg: RecapSegment): RecapRow[] {
     const base = attentionOnly.value ? seg.rows.filter(needsAttention) : seg.rows;
     const key = String(seg.project_id ?? 'none');
     const dir = sortDir(key);
-    return [...base].sort((a, b) =>
+    return groupAdjacent([...base].sort((a, b) =>
         dir === 'asc'
             ? (a.achievement ?? 0) - (b.achievement ?? 0)
             : (b.achievement ?? 0) - (a.achievement ?? 0),
-    );
+    ));
 }
+
+// ── Gabungkan / Pisahkan ───────────────────────────────────────────────────
+
+const rowMerge = useRecapMerge(
+    () => ({ team_id: props.selectedTeamId, period_type: 'month', period_year: props.year, period_month: props.month }),
+    () => { paraForms.value = {}; },
+);
 
 // ── Bulk confirm ───────────────────────────────────────────────────────────
 
@@ -141,8 +150,7 @@ function toggleExpand(key: string) {
 function toggleConfirm(row: RecapRow) {
     router.post(route('team-recap.override.confirm'), {
         team_id: props.selectedTeamId,
-        performance_plan_id: row.performance_plan_id,
-        project_id: row.project_id,
+        ...textTarget(row),
         period_type: 'month',
         period_year: props.year,
         period_month: props.month,
@@ -160,11 +168,12 @@ function rowCanParaphrase(row: RecapRow): boolean {
 // ── Paraphrase forms (per planId) ──────────────────────────────────────────
 
 type SeedSource = 'pj' | 'inherited' | 'agg' | 'none';
-type ParaForm = { obstacle: string; solution: string; follow_up_plan: string; saving: boolean; seedSource: SeedSource };
+type ParaForm = { obstacle: string; solution: string; follow_up_plan: string; uraian: string;
+    saving: boolean; seedSource: SeedSource };
 const paraForms = ref<Record<string, ParaForm>>({});
 
 function getParaForm(row: RecapRow): ParaForm {
-    if (!paraForms.value[row.row_key]) {
+    if (!paraForms.value[textKey(row)]) {
         const hasPj = row.pj_obstacle !== null && row.pj_obstacle !== '';
         const hasInherited = !!row.inherited_obstacle;
 
@@ -195,7 +204,8 @@ function getParaForm(row: RecapRow): ParaForm {
             followUpInit = '';
         }
 
-        paraForms.value[row.row_key] = {
+        paraForms.value[textKey(row)] = {
+            uraian: row.pj_uraian ?? '',
             obstacle: obstacleInit,
             solution: solutionInit,
             follow_up_plan: followUpInit,
@@ -204,7 +214,7 @@ function getParaForm(row: RecapRow): ParaForm {
         };
     }
 
-    return paraForms.value[row.row_key];
+    return paraForms.value[textKey(row)];
 }
 
 function pullFromInherited(row: RecapRow) {
@@ -224,6 +234,7 @@ function saveParaphrase(row: RecapRow) {
         period_type: 'month',
         period_year: props.year,
         period_month: props.month,
+        uraian: f.uraian,
         obstacle: f.obstacle,
         solution: f.solution,
         follow_up_plan: f.follow_up_plan,
@@ -294,6 +305,15 @@ function saveParaphrase(row: RecapRow) {
                 <div v-for="seg in segments" :key="seg.project_id ?? 'none'" class="overflow-hidden rounded-md border bg-white">
                     <div class="flex items-center justify-between gap-3 border-b bg-gray-50 px-4 py-3">
                         <h3 class="min-w-0 text-sm font-semibold text-gray-800">{{ seg.project_name }}</h3>
+                        <Button
+                            v-if="canManage && rowMerge.selectedCount(seg) >= 2"
+                            size="sm"
+                            class="ml-auto h-7 px-2.5 text-xs"
+                            :disabled="rowMerge.busy.value"
+                            @click="rowMerge.merge(seg, filteredRows(seg))"
+                        >
+                            Gabungkan {{ rowMerge.selectedCount(seg) }} baris
+                        </Button>
                         <span v-if="attentionCount(seg) > 0" class="inline-flex shrink-0 items-center whitespace-nowrap rounded-full bg-orange-100 px-2 py-0.5 text-xs font-medium text-orange-700">
                             {{ attentionCount(seg) }} perlu perhatian
                         </span>
@@ -318,11 +338,22 @@ function saveParaphrase(row: RecapRow) {
                         </TableHeader>
                         <TableBody class="divide-y divide-gray-100">
                             <template v-for="row in filteredRows(seg)" :key="row.row_key">
-                                <TableRow class="hover:bg-gray-50">
+                                <TableRow :class="['hover:bg-gray-50', groupSize(seg, row) > 1 ? 'border-l-2 border-l-primary/60' : '']">
                                     <TableCell class="min-w-[13rem] whitespace-normal align-top sm:min-w-[18rem]">
-                                        <p class="font-medium leading-snug text-gray-800">{{ row.rk_description }}</p>
-                                        <p v-if="row.rk_code" class="text-xs text-gray-500">{{ row.rk_code }}</p>
-                                        <p v-if="row.is_overridden" class="mt-0.5 text-xs italic text-blue-500">Telah diparafrase</p>
+                                        <RecapMergeCell
+                                            :row="row"
+                                            :size="groupSize(seg, row)"
+                                            :lead="isGroupLead(row)"
+                                            :selectable="canManage"
+                                            :selected="rowMerge.isSelected(seg, row)"
+                                            :busy="rowMerge.busy.value"
+                                            @toggle="rowMerge.toggle(seg, row)"
+                                            @split="rowMerge.split(row)"
+                                        >
+                                            <p class="font-medium leading-snug text-gray-800">{{ row.rk_description }}</p>
+                                            <p v-if="row.rk_code" class="text-xs text-gray-500">{{ row.rk_code }}</p>
+                                            <p v-if="row.is_overridden" class="mt-0.5 text-xs italic text-blue-500">Telah diparafrase</p>
+                                        </RecapMergeCell>
                                     </TableCell>
                                     <TableCell class="hidden min-w-[10rem] max-w-[16rem] whitespace-normal align-top md:table-cell text-xs leading-snug text-gray-600">{{ row.contributors.join(', ') || '—' }}</TableCell>
                                     <TableCell class="text-right align-top tabular-nums text-gray-700">{{ row.target }} {{ row.target_unit ?? '' }}</TableCell>
@@ -374,6 +405,10 @@ function saveParaphrase(row: RecapRow) {
 
                                             <!-- Paraphrase inputs (PJ or this row's PIC) -->
                                             <template v-if="rowCanParaphrase(row)">
+                                                <div>
+                                                    <Label class="text-xs">Uraian (PJ)</Label>
+                                                    <Textarea v-model="getParaForm(row).uraian" :rows="3" class="mt-1 text-sm" placeholder="Kosongkan untuk memakai uraian kegiatan anggota di Excel" />
+                                                </div>
                                                 <div class="grid grid-cols-1 gap-3 sm:grid-cols-3">
                                                     <div>
                                                         <Label class="text-xs">Kendala (PJ)</Label>
@@ -410,6 +445,10 @@ function saveParaphrase(row: RecapRow) {
 
                                             <!-- Read-only paraphrase (no paraphrase permission) -->
                                             <template v-else>
+                                                <div v-if="row.pj_uraian">
+                                                    <p class="mb-1 text-xs font-medium text-gray-500">Uraian (PJ)</p>
+                                                    <p class="whitespace-pre-line text-sm text-gray-700">{{ row.pj_uraian }}</p>
+                                                </div>
                                                 <div class="grid grid-cols-1 gap-3 sm:grid-cols-3">
                                                     <div>
                                                         <p class="mb-1 text-xs font-medium text-gray-500">Kendala (PJ)</p>

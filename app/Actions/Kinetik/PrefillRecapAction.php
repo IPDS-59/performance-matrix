@@ -18,8 +18,7 @@ use Illuminate\Support\Collection;
  */
 class PrefillRecapAction
 {
-    // ponytail: uraian is left out until the recap pages can edit a row's uraian (row merge, step 3).
-    private const FIELDS = ['obstacle', 'solution', 'follow_up_plan'];
+    private const FIELDS = ['uraian', 'obstacle', 'solution', 'follow_up_plan'];
 
     /**
      * @return int number of rows that received text

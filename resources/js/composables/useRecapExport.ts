@@ -52,21 +52,35 @@ export function buildRecapSheet(data: RecapExport): RecapSheet {
 
         segments.forEach((seg) => {
             const projectStart = rows.length;
-            seg.rows.forEach((row) => {
+            seg.rows.forEach((row, i) => {
+                // Merged rows ("Gabungkan") sit next to each other: the text cells
+                // of the group are written once and merged down, like the old sheets.
+                const group = row.merge_key ? seg.rows.filter((r) => r.merge_key === row.merge_key) : [row];
+                const inGroupAfterFirst = row.merge_key !== null && row.merge_key !== undefined && seg.rows[i - 1]?.merge_key === row.merge_key;
+                const text = (value: Cell): Cell => (inGroupAfterFirst ? null : value);
+                const uraian = group.length > 1
+                    ? (row.pj_uraian || group.map((r) => r.uraian_aggregated).filter(Boolean).join('\n') || null)
+                    : uraianOf(row);
                 const line: Cell[] = [
                     null, null, null,
                     row.rk_description,
-                    uraianOf(row),
+                    text(uraian),
                     row.target,
                     row.realization,
                     row.achievement,
-                    row.obstacle,
-                    row.solution,
-                    row.follow_up_plan,
+                    text(row.obstacle),
+                    text(row.solution),
+                    text(row.follow_up_plan),
                 ];
                 if (type === 'week') line.push(null, null, null);
                 if (type === 'quarter') line.push(row.follow_up_evidence_url ?? null, row.follow_up_pic ?? null, row.follow_up_deadline ?? null);
                 rows.push(line);
+                const isLastOfGroup = group.length > 1 && seg.rows[i + 1]?.merge_key !== row.merge_key;
+                if (isLastOfGroup) {
+                    const end = rows.length - 1;
+                    const start = end - group.length + 1;
+                    [4, 8, 9, 10].forEach((col) => mergeDown(col, start, end));
+                }
             });
             rows[projectStart][2] = seg.project_name;
             mergeDown(2, projectStart, rows.length - 1);
