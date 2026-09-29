@@ -14,6 +14,7 @@ const props = defineProps<{
     stats: KipIntegrationStats;
     structureRun: KipSyncRun | null;
     activityRun: KipSyncRun | null;
+    careerRun: KipSyncRun | null;
 }>();
 
 const kipSync = useKipSyncStore();
@@ -52,11 +53,13 @@ function saveToken() {
 
 const structurePct = computed(() => pct(props.structureRun));
 const activityPct = computed(() => pct(props.activityRun));
+const careerPct = computed(() => pct(props.careerRun));
 
 // Resume any in-progress run when the page (re)loads.
 onMounted(() => {
     if (props.structureRun?.status === 'running') kipSync.startStructureSync();
     if (props.activityRun?.status === 'running') kipSync.startActivitySync();
+    if (props.careerRun?.status === 'running') kipSync.startCareerSync();
 });
 </script>
 
@@ -236,6 +239,51 @@ onMounted(() => {
                         <div class="rounded-md bg-gray-50 p-3">
                             <dt class="text-xs text-gray-400">Total pegawai</dt>
                             <dd class="mt-1 text-lg font-semibold text-gray-900">{{ stats.employees_total }}</dd>
+                        </div>
+                    </dl>
+                </div>
+
+                <!-- Angka Kredit sync -->
+                <div class="rounded-lg border bg-white p-6">
+                    <div class="flex items-start justify-between gap-4">
+                        <div>
+                            <h2 class="mb-1 text-base font-semibold text-gray-900">Sinkronisasi Angka Kredit</h2>
+                            <p class="text-sm text-gray-500">Tarik golongan, jabatan dan predikat SKP semua tahun untuk halaman Angka Kredit. Berjalan otomatis setiap Senin pagi.</p>
+                        </div>
+                        <Button variant="outline" :disabled="kipSync.careerSyncing" @click="kipSync.startCareerSync()">
+                            <RefreshCw :class="['mr-1 h-4 w-4', kipSync.careerSyncing ? 'animate-spin' : '']" />
+                            {{ kipSync.careerSyncing ? 'Menyinkronkan…' : 'Sinkronkan' }}
+                        </Button>
+                    </div>
+
+                    <div v-if="kipSync.careerSyncing || careerRun?.status === 'running'" class="mt-4">
+                        <div class="mb-1 flex items-center justify-between text-xs text-gray-500">
+                            <span>Menyinkronkan pegawai… {{ careerRun?.processed ?? 0 }} / {{ careerRun?.total ?? 0 }}</span>
+                            <span class="font-medium text-gray-700">{{ careerPct }}%</span>
+                        </div>
+                        <div class="h-2 w-full overflow-hidden rounded-full bg-gray-100">
+                            <div class="h-full rounded-full bg-blue-600 transition-all duration-300" :style="{ width: careerPct + '%' }" />
+                        </div>
+                    </div>
+
+                    <div v-else-if="careerRun?.status === 'failed'" class="mt-4 flex items-start gap-2 rounded-md border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-700">
+                        <AlertTriangle class="mt-0.5 h-3.5 w-3.5 shrink-0" />
+                        Sinkronisasi gagal: {{ careerRun.message }}
+                    </div>
+
+                    <div v-else-if="careerRun?.status === 'completed'" class="mt-4 flex items-start gap-2 text-xs text-green-700">
+                        <CheckCircle2 class="mt-0.5 h-3.5 w-3.5 shrink-0" />
+                        <span>Selesai: {{ careerRun.summary.employees ?? 0 }} pegawai, {{ careerRun.summary.ratings ?? 0 }} SKP<template v-if="careerRun.summary.failed">, {{ careerRun.summary.failed }} pegawai gagal</template>.</span>
+                    </div>
+
+                    <dl class="mt-5 grid grid-cols-2 gap-4 text-sm">
+                        <div class="rounded-md bg-gray-50 p-3">
+                            <dt class="text-xs text-gray-400">Pegawai dengan golongan</dt>
+                            <dd class="mt-1 text-lg font-semibold text-gray-900">{{ stats.careers_synced }} <span class="text-sm font-normal text-gray-400">/ {{ stats.employees_with_nip }}</span></dd>
+                        </div>
+                        <div class="rounded-md bg-gray-50 p-3">
+                            <dt class="text-xs text-gray-400">SKP periodik tersinkron</dt>
+                            <dd class="mt-1 text-lg font-semibold text-gray-900">{{ stats.ratings_synced }}</dd>
                         </div>
                     </dl>
                 </div>

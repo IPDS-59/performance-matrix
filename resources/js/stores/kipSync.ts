@@ -10,15 +10,18 @@ import type { KipSyncRun } from '@/types';
  * state lives in the Inertia page props, updated after every step; this store
  * only owns the loop/progress flags.
  */
+type RunKey = 'structureRun' | 'activityRun' | 'careerRun';
+
 export const useKipSyncStore = defineStore('kipSync', () => {
     const structureSyncing = ref(false);
     const activitySyncing = ref(false);
+    const careerSyncing = ref(false);
 
-    function runProp(key: 'structureRun' | 'activityRun'): KipSyncRun | null {
+    function runProp(key: RunKey): KipSyncRun | null {
         return (usePage().props[key] as KipSyncRun | null) ?? null;
     }
 
-    function loop(routeName: string, propKey: 'structureRun' | 'activityRun', flag: typeof structureSyncing) {
+    function loop(routeName: string, propKey: RunKey, flag: typeof structureSyncing) {
         router.post(
             route(routeName),
             {},
@@ -51,5 +54,11 @@ export const useKipSyncStore = defineStore('kipSync', () => {
         loop('kip-integration.sync', 'activityRun', activitySyncing);
     }
 
-    return { structureSyncing, activitySyncing, startStructureSync, startActivitySync };
+    function startCareerSync() {
+        if (careerSyncing.value) return;
+        careerSyncing.value = true;
+        loop('kip-integration.sync-careers', 'careerRun', careerSyncing);
+    }
+
+    return { structureSyncing, activitySyncing, careerSyncing, startStructureSync, startActivitySync, startCareerSync };
 });

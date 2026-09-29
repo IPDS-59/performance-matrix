@@ -190,3 +190,36 @@ it('blocks structure sync when no token is configured', function () {
         ->assertRedirect()
         ->assertSessionHas('error');
 });
+
+it('syncs Angka Kredit data in chunks until the run completes', function () {
+    config(['kinetik.kip.source' => 'mock', 'kinetik.kip.token' => 'test', 'kinetik.kip.career_chunk' => 1]);
+    \App\Models\Employee::factory()->count(2)->create(['is_active' => true, 'nip_lama' => fn () => (string) fake()->unique()->numerify('34#######')]);
+    $admin = adminUser();
+
+    $this->actingAs($admin)->post(route('kip-integration.sync-careers'))->assertRedirect();
+    $run = KipSyncRun::where('type', 'careers')->latest('id')->first();
+    expect($run->status)->toBe('running')->and($run->processed)->toBe(1);
+
+    $this->actingAs($admin)->post(route('kip-integration.sync-careers'))->assertRedirect();
+    $run->refresh();
+    expect($run->status)->toBe('completed')
+        ->and($run->summary['employees'])->toBe(2)
+        ->and(\App\Models\EmployeeCareer::whereNotNull('synced_at')->count())->toBe(2);
+
+    $this->actingAs($admin)->get(route('kip-integration.index'))
+        ->assertInertia(fn ($page) => $page->where('careerRun.status', 'completed')->where('stats.careers_synced', 2));
+});
+
+it('stops the Angka Kredit sync when every employee in a chunk fails', function () {
+    config(['kinetik.kip.source' => 'api', 'kinetik.kip.token' => 'expired']);
+    Http::fake(['*' => Http::response(['message' => 'Unauthorized'], 401)]);
+    \App\Models\Employee::factory()->create(['is_active' => true, 'nip_lama' => '340000009']);
+
+    $this->actingAs(adminUser())->post(route('kip-integration.sync-careers'))->assertSessionHas('error');
+
+    expect(KipSyncRun::where('type', 'careers')->latest('id')->first()->status)->toBe('failed');
+});
+
+it('keeps Angka Kredit sync admin-only', function () {
+    $this->actingAs(staffUser())->post(route('kip-integration.sync-careers'))->assertForbidden();
+});

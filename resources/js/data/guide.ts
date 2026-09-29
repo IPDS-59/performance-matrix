@@ -373,11 +373,13 @@ export const GUIDE_FLOWS: GuideFlow[] = [
                 shot: SHOTS.adminIntegrasi,
             },
             {
-                title: 'Sinkronkan struktur, lalu kegiatan',
+                title: 'Sinkronkan struktur, kegiatan, lalu Angka Kredit',
                 body: [
                     'Tekan Sinkronkan pada Sinkronisasi Struktur lebih dulu. Langkah ini menarik tim, projek, anggota dan RK, termasuk ID pegawai kipApp.',
                     'Setelah selesai, tekan Sinkronkan pada Sinkronisasi Kegiatan. Kegiatan semua bulan dalam periode ikut ditarik, termasuk yang sudah dikirim.',
                     'Keduanya juga berjalan otomatis setiap pagi dengan urutan yang sama.',
+                    'Sinkronisasi Angka Kredit menarik golongan, jabatan dan predikat SKP semua tahun untuk halaman Angka Kredit. Jalankan sesudah Sinkronisasi Struktur. Proses ini memanggil kipApp sekitar tiga kali per pegawai, jadi perlu beberapa menit. Biarkan halaman tetap terbuka sampai selesai.',
+                    'Sinkronisasi Angka Kredit juga berjalan otomatis setiap Senin pagi.',
                 ],
                 tip: 'Sinkronisasi hanya menambah dan memperbarui data. Klaim, parafrase, konfirmasi, kunci dan bukti rapat tidak pernah dihapus. Satu pengecualian: anggota projek disamakan dengan daftar di kipApp.',
             },
@@ -396,7 +398,7 @@ export const GUIDE_FLOWS: GuideFlow[] = [
                 where: 'Menu Rekap Tim → Angka Kredit Tim',
                 route: 'credit.team',
                 body: [
-                    'Golongan dan predikat SKP ditarik dari kipApp setiap Senin pagi. Tanpa PAK, AK dihitung dari SKP sejak golongan atau jenjang saat ini.',
+                    'Golongan dan predikat SKP ditarik dari kipApp setiap Senin pagi, atau saat admin menekan Sinkronkan pada Sinkronisasi Angka Kredit di halaman Integrasi kipApp. Tanpa PAK, AK dihitung dari SKP sejak golongan atau jenjang saat ini.',
                     'Jika pegawai punya PAK terakhir, klik ikon pensil di barisnya, isi AK kumulatif dan tanggal berlakunya. AK sesudah tanggal itu ditambahkan dari predikat kipApp.',
                     'Kosongkan kedua kolom untuk kembali ke estimasi.',
                 ],

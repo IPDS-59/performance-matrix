@@ -434,6 +434,9 @@ export interface KipIntegrationStats {
     last_fetched_at: string | null;
     teams_synced: number;
     projects_synced: number;
+    /** Employees with golongan from kipApp (Angka Kredit). */
+    careers_synced: number;
+    ratings_synced: number;
 }
 
 export interface KipActivityRow {

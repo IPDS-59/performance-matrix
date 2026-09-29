@@ -129,6 +129,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::post('/integrasi-kipapp/token', [KipIntegrationController::class, 'storeToken'])->name('kip-integration.token');
         Route::post('/integrasi-kipapp/sync', [KipIntegrationController::class, 'syncAll'])->name('kip-integration.sync');
         Route::post('/integrasi-kipapp/sync-structure', [KipIntegrationController::class, 'syncStructure'])->name('kip-integration.sync-structure');
+        Route::post('/integrasi-kipapp/sync-careers', [KipIntegrationController::class, 'syncCareers'])->name('kip-integration.sync-careers');
     });
 
     // Profile

@@ -3,13 +3,16 @@
 namespace App\Http\Controllers;
 
 use App\Actions\Kinetik\SyncKipActivitiesAction;
+use App\Actions\Kinetik\SyncKipCareersAction;
 use App\Actions\Kinetik\SyncKipStructureAction;
 use App\Kinetik\Contracts\KipActivitySource;
 use App\Kinetik\Contracts\KipStructureSource;
 use App\Kinetik\KipTokenInfo;
 use App\Models\Employee;
+use App\Models\EmployeeCareer;
 use App\Models\KipActivity;
 use App\Models\KipCredential;
+use App\Models\KipPerformanceRating;
 use App\Models\KipSyncRun;
 use App\Models\Project;
 use App\Models\Team;
@@ -43,12 +46,17 @@ class KipIntegrationController extends Controller
                 'last_fetched_at' => ($at = KipActivity::max('fetched_at')) ? Carbon::parse($at)->toIso8601String() : null,
                 'teams_synced' => Team::whereNotNull('kip_external_id')->count(),
                 'projects_synced' => Project::whereNotNull('kip_external_id')->count(),
+                'careers_synced' => EmployeeCareer::whereNotNull('synced_at')->count(),
+                'ratings_synced' => KipPerformanceRating::count(),
             ],
             'structureRun' => $this->runPayload(
                 KipSyncRun::active('structure') ?? KipSyncRun::where('type', 'structure')->latest('id')->first()
             ),
             'activityRun' => $this->runPayload(
                 KipSyncRun::active('activities') ?? KipSyncRun::where('type', 'activities')->latest('id')->first()
+            ),
+            'careerRun' => $this->runPayload(
+                KipSyncRun::active('careers') ?? KipSyncRun::where('type', 'careers')->latest('id')->first()
             ),
         ]);
     }
@@ -203,6 +211,79 @@ class KipIntegrationController extends Controller
         }
 
         return back();
+    }
+
+    /**
+     * One chunk of the Angka Kredit sync (golongan + SKP predikat): a few
+     * employees per request, about three kipApp calls each. A failing employee
+     * is skipped; a chunk where every employee fails stops the run, because
+     * that is almost always an expired token.
+     */
+    public function syncCareers(Request $request, SyncKipCareersAction $action): RedirectResponse
+    {
+        if (KipCredential::current() === null && empty(config('kinetik.kip.token'))) {
+            return back()->with('error', 'Belum ada token kipApp. Simpan token terlebih dahulu.');
+        }
+
+        $run = KipSyncRun::active('careers') ?? $this->startRun($request, 'careers', ['employees' => 0, 'ratings' => 0, 'failed' => 0]);
+
+        if ($run->status !== 'running' || empty($run->pending)) {
+            return back();
+        }
+
+        $pending = $run->pending;
+        $batch = array_splice($pending, 0, max(1, (int) config('kinetik.kip.career_chunk', 3)));
+        $summary = $run->summary ?? [];
+        $error = null;
+        $failedInBatch = 0;
+
+        foreach (Employee::whereIn('id', $batch)->get() as $employee) {
+            try {
+                $summary['ratings'] = ($summary['ratings'] ?? 0) + $action->syncEmployee($employee);
+                $summary['employees'] = ($summary['employees'] ?? 0) + 1;
+            } catch (Throwable $e) {
+                $failedInBatch++;
+                $summary['failed'] = ($summary['failed'] ?? 0) + 1;
+                $error = $e->getMessage();
+            }
+        }
+
+        if ($failedInBatch === count($batch)) {
+            $run->update(['status' => 'failed', 'message' => $error, 'summary' => $summary, 'finished_at' => now()]);
+
+            return back()->with('error', 'Sinkronisasi Angka Kredit gagal: '.$error);
+        }
+
+        $run->update([
+            'pending' => $pending,
+            'processed' => $run->processed + count($batch),
+            'summary' => $summary,
+            'status' => empty($pending) ? 'completed' : 'running',
+            'finished_at' => empty($pending) ? now() : null,
+        ]);
+
+        return back();
+    }
+
+    /**
+     * A new chunked run over every active employee with a NIP Lama.
+     *
+     * @param  array<string, int>  $summary
+     */
+    private function startRun(Request $request, string $type, array $summary): KipSyncRun
+    {
+        $employeeIds = Employee::where('is_active', true)->whereNotNull('nip_lama')->orderBy('id')->pluck('id')->all();
+
+        return KipSyncRun::create([
+            'type' => $type,
+            'status' => empty($employeeIds) ? 'completed' : 'running',
+            'total' => count($employeeIds),
+            'processed' => 0,
+            'pending' => $employeeIds,
+            'summary' => $summary,
+            'user_id' => $request->user()->id,
+            'finished_at' => empty($employeeIds) ? now() : null,
+        ]);
     }
 
     /**
