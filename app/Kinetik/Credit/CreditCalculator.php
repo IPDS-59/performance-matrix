@@ -2,6 +2,7 @@
 
 namespace App\Kinetik\Credit;
 
+use App\Kinetik\Data\KipPositionData;
 use App\Models\Employee;
 use App\Models\EmployeeCareer;
 use App\Models\KipPerformanceRating;
@@ -85,6 +86,7 @@ class CreditCalculator
             'eligible_from' => $eligibleFrom?->toDateString(),
             'ak_base' => $career->ak_base,
             'ak_base_date' => $career->ak_base_date?->toDateString(),
+            'ak_base_source' => $career->ak_base_source,
             'status' => $this->status($step['target'], $earned, $gap, $quarterAtBaik, $eligibleFrom, $today),
             'quarters' => $this->quarters($months),
         ];
@@ -100,7 +102,8 @@ class CreditCalculator
     private function nextStep(EmployeeCareer $career, FunctionalLevel $level): array
     {
         $ranks = $level->golongan();
-        $index = array_search($career->golongan, $ranks, true);
+        // kipApp may pad golongan ("IV/a "); rows synced before the fix still carry it.
+        $index = array_search(KipPositionData::golongan($career->golongan), $ranks, true);
 
         if ($index !== false && $index < count($ranks) - 1) {
             return ['kind' => 'pangkat', 'next' => $ranks[$index + 1], 'target' => $level->pangkatTarget(), 'from' => $career->golongan_since];
@@ -111,7 +114,7 @@ class CreditCalculator
             return ['kind' => null, 'next' => null, 'target' => null, 'from' => $career->golongan_since];
         }
 
-        $entry = array_search($career->level_start_golongan, $ranks, true);
+        $entry = array_search(KipPositionData::golongan($career->level_start_golongan), $ranks, true);
         $share = (count($ranks) - ($entry === false ? 0 : $entry)) / count($ranks);
 
         return ['kind' => 'jenjang', 'next' => $next->value, 'target' => round($level->jenjangTarget() * $share, 3), 'from' => $career->level_since];
@@ -119,11 +122,11 @@ class CreditCalculator
 
     /**
      * One entry per covered month up to today. A final rating wins over an
-     * unfinished one for the same month. Without a predikat yet, the month is
-     * an estimate at Baik.
+     * unfinished one for the same month. A month without a predikat (not rated
+     * yet, or rated without one) is an estimate at Baik.
      *
      * @param  Collection<int, KipPerformanceRating>  $ratings
-     * @return Collection<string, array{month: string, ak: float, predikat: string|null, final: bool}>
+     * @return Collection<string, array{month: string, ak: float, predikat: string|null, final: bool, level: string|null, coefficient: float, share: float}>
      */
     private function months(Collection $ratings, CarbonImmutable $today): Collection
     {
@@ -133,14 +136,18 @@ class CreditCalculator
             $share = FunctionalLevel::predikatShare($rating->predikat);
             $final = $share !== null && $rating->status === 'Dinilai';
             $level = FunctionalLevel::fromJabatan($rating->jabatan);
-            $monthAk = $level ? $level->yearlyCoefficient() / 12 * ($share ?? 1.0) : 0.0;
+            $coefficient = $level?->yearlyCoefficient() ?? 0.0;
+            $monthAk = $coefficient / 12 * ($share ?? 1.0);
 
             $cursor = CarbonImmutable::parse($rating->period_start)->startOfMonth();
             $end = CarbonImmutable::parse($rating->period_end);
             while ($cursor <= $end && $cursor <= $today) {
                 $key = $cursor->format('Y-m');
                 if (! $months->has($key) || (! $months[$key]['final'] && $final)) {
-                    $months[$key] = ['month' => $key, 'ak' => $monthAk, 'predikat' => $rating->predikat, 'final' => $final];
+                    $months[$key] = [
+                        'month' => $key, 'ak' => $monthAk, 'predikat' => $rating->predikat, 'final' => $final,
+                        'level' => $level?->value, 'coefficient' => $coefficient, 'share' => $share ?? 1.0,
+                    ];
                 }
                 $cursor = $cursor->addMonth();
             }
@@ -151,7 +158,7 @@ class CreditCalculator
 
     /**
      * @param  Collection<string, array{month: string, ak: float, predikat: string|null, final: bool}>  $months
-     * @return list<array{label: string, ak: float, predikat: string|null, final: bool}>
+     * @return list<array{label: string, ak: float, predikat: string|null, final: bool, formula: string}>
      */
     private function quarters(Collection $months): array
     {
@@ -162,10 +169,34 @@ class CreditCalculator
                 'ak' => round($group->sum('ak'), 3),
                 'predikat' => $group->pluck('predikat')->filter()->unique()->implode(' / ') ?: null,
                 'final' => $group->every(fn (array $m) => $m['final']),
+                'formula' => $this->formula($group),
             ])
             ->reverse()
             ->values()
             ->all();
+    }
+
+    /**
+     * How a quarter's AK was computed, e.g. "Ahli Muda: 3 bln × 25 ÷ 12 × 150%".
+     *
+     * @param  Collection<int, array{level: string|null, coefficient: float, share: float, final: bool}>  $months
+     */
+    private function formula(Collection $months): string
+    {
+        return $months
+            ->groupBy(fn (array $m) => ($m['level'] ?? '-').'|'.$m['share'].'|'.(int) $m['final'])
+            ->map(function (Collection $same) {
+                $m = $same->first();
+                if ($m['level'] === null) {
+                    return $same->count().' bln bukan JF (0)';
+                }
+
+                $pct = rtrim(rtrim(number_format($m['share'] * 100, 2, ',', ''), '0'), ',');
+                $estimate = $m['final'] ? '' : ' (estimasi)';
+
+                return "{$m['level']}: {$same->count()} bln × ".rtrim(rtrim(number_format($m['coefficient'], 2, ',', ''), '0'), ',')." ÷ 12 × {$pct}%{$estimate}";
+            })
+            ->implode(' + ');
     }
 
     private function status(?float $target, float $earned, ?float $gap, float $quarterAtBaik, ?CarbonImmutable $eligibleFrom, CarbonImmutable $today): string

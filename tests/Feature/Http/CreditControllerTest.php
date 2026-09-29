@@ -68,3 +68,21 @@ it('lets only the admin set the AK from the last PAK', function () {
 
     $this->actingAs(adminUser())->put(route('credit.base', $e), ['ak_base' => 40])->assertSessionHasErrors('ak_base_date');
 });
+
+it('lets employees enter their own PAK value, marked as not checked', function () {
+    $user = staffUser();
+    $e = Employee::factory()->create(['user_id' => $user->id]);
+    careerFor($e);
+    $other = Employee::factory()->create();
+
+    $this->actingAs($user)->put(route('credit.base', $e), ['ak_base' => 30, 'ak_base_date' => '2025-12-31'])->assertSessionHasNoErrors();
+    expect($e->career()->first()->ak_base_source)->toBe('pegawai');
+
+    $this->actingAs($user)->put(route('credit.base', $other), ['ak_base' => 30, 'ak_base_date' => '2025-12-31'])->assertForbidden();
+
+    $this->actingAs(adminUser())->put(route('credit.base', $e), ['ak_base' => 32, 'ak_base_date' => '2025-12-31']);
+    expect($e->career()->first()->ak_base_source)->toBe('admin');
+
+    $this->actingAs($user)->put(route('credit.base', $e), ['ak_base' => null, 'ak_base_date' => null]);
+    expect($e->career()->first())->ak_base->toBeNull()->ak_base_source->toBeNull();
+});

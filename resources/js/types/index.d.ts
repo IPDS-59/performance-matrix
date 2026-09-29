@@ -478,8 +478,10 @@ export interface CreditQuarter {
     label: string;
     ak: number;
     predikat: string | null;
-    /** false = SKP not rated yet; counted as Baik. */
+    /** false = at least one month has no predikat yet; counted as Baik. */
     final: boolean;
+    /** How the AK was computed, e.g. "Ahli Muda: 3 bln × 25 ÷ 12 × 150%". */
+    formula: string;
 }
 
 /** Angka Kredit progress of one employee (CreditCalculator). Fields after `status` are absent for no_data / non_jf. */
@@ -506,5 +508,7 @@ export interface CreditSummary {
     eligible_from?: string | null;
     ak_base?: number | null;
     ak_base_date?: string | null;
+    /** pegawai = entered by the employee, not checked; admin = checked against the PAK. */
+    ak_base_source?: 'pegawai' | 'admin' | null;
     quarters?: CreditQuarter[];
 }

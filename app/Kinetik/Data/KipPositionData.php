@@ -25,8 +25,18 @@ readonly class KipPositionData
             pegawaiId: (string) ($row['id'] ?? ''),
             tmt: filled($row['tmt'] ?? null) ? (string) $row['tmt'] : null,
             jabatan: filled($row['nama_jabatan'] ?? null) ? (string) $row['nama_jabatan'] : null,
-            golongan: filled($row['golongan'] ?? null) ? (string) $row['golongan'] : null,
+            golongan: self::golongan($row['golongan'] ?? null),
             pangkat: filled($row['pangkat'] ?? null) ? (string) $row['pangkat'] : null,
         );
+    }
+
+    /**
+     * kipApp sometimes pads golongan ("IV/a "); keep the plain form "IV/a".
+     */
+    public static function golongan(mixed $value): ?string
+    {
+        $clean = preg_replace('/\s+/', '', (string) $value);
+
+        return $clean === '' ? null : $clean;
     }
 }

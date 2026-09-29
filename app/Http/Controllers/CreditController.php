@@ -65,24 +65,29 @@ class CreditController extends Controller
     }
 
     /**
-     * Admin: the official AK from the last PAK. Clearing both fields returns
-     * to the estimate from kipApp ratings.
+     * The AK from the last PAK (or the 2022 integration PAK). The employee can
+     * enter their own; the admin checks it against the document. Clearing
+     * both fields returns to the estimate from kipApp ratings.
      */
     public function updateBase(Request $request, Employee $employee): RedirectResponse
     {
-        abort_unless($request->user()->hasRole('admin'), 403);
+        $isAdmin = $request->user()->hasRole('admin');
+        abort_unless($isAdmin || $employee->user_id === $request->user()->id, 403);
 
         $validated = $request->validate([
             'ak_base' => ['nullable', 'numeric', 'min:0', 'max:9999', 'required_with:ak_base_date'],
             'ak_base_date' => ['nullable', 'date', 'required_with:ak_base', 'before_or_equal:today'],
         ]);
 
+        $cleared = ! isset($validated['ak_base']);
+
         EmployeeCareer::updateOrCreate(['employee_id' => $employee->id], [
             'ak_base' => $validated['ak_base'] ?? null,
             'ak_base_date' => $validated['ak_base_date'] ?? null,
+            'ak_base_source' => $cleared ? null : ($isAdmin ? 'admin' : 'pegawai'),
         ]);
 
-        return back()->with('success', 'Angka Kredit awal disimpan.');
+        return back()->with('success', $cleared ? 'AK dari PAK dihapus. Angka kembali ke estimasi.' : 'AK dari PAK disimpan.');
     }
 
     /**

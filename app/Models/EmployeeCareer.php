@@ -17,6 +17,7 @@ class EmployeeCareer extends Model
         'level_start_golongan',
         'ak_base',
         'ak_base_date',
+        'ak_base_source',
         'synced_at',
     ];
 

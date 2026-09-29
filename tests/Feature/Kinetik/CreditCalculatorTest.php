@@ -103,3 +103,41 @@ it('syncs golongan history and ratings from kipApp without touching the PAK valu
     app(SyncKipCareersAction::class)->execute();
     expect(KipPerformanceRating::where('employee_id', $e->id)->count())->toBe(4);
 });
+
+it('takes the real month of old monthly SKPs that carry the whole year', function () {
+    $monthly = \App\Kinetik\Data\KipRatingData::fromApiRow([
+        'id' => 1, 'tahun' => 2024, 'jenisperiodepenilaian' => 1, 'namaperiodepenilaian' => 10,
+        'periodeawal' => '2024-01-01', 'periodeakhir' => '2024-12-31', 'predikat' => 'Sangat Baik', 'statusskp' => 'Dinilai',
+    ]);
+    $quarterly = \App\Kinetik\Data\KipRatingData::fromApiRow([
+        'id' => 2, 'tahun' => 2026, 'jenisperiodepenilaian' => 2, 'namaperiodepenilaian' => 2,
+        'periodeawal' => '2026-04-01', 'periodeakhir' => '2026-06-30',
+    ]);
+
+    expect([$monthly->periodStart, $monthly->periodEnd])->toBe(['2024-10-01', '2024-10-31'])
+        ->and([$quarterly->periodStart, $quarterly->periodEnd])->toBe(['2026-04-01', '2026-06-30'])
+        ->and(\App\Kinetik\Data\KipPositionData::golongan('IV/a '))->toBe('IV/a');
+});
+
+it('reads a padded golongan and shows how each quarter was computed', function () {
+    // Ahli Madya IV/a (kipApp sends "IV/a "): next step is IV/b with 150 AK, not Ahli Utama.
+    $e = Employee::factory()->create();
+    EmployeeCareer::create([
+        'employee_id' => $e->id, 'jabatan' => 'Pranata Komputer Ahli Madya', 'golongan' => 'IV/a ',
+        'golongan_since' => '2025-02-01', 'level_since' => '2024-10-01', 'level_start_golongan' => 'III/d',
+    ]);
+    rating($e, 'a', '2025-04-01', '2025-04-30', 'Baik', 'Dinilai', 'Pranata Komputer Ahli Madya');
+    rating($e, 'b', '2025-05-01', '2025-05-31', null, 'Dinilai', 'Pranata Komputer Ahli Madya');
+    rating($e, 'c', '2025-06-01', '2025-06-30', 'Sangat Baik', 'Dinilai', 'Pranata Komputer Ahli Madya');
+
+    $result = app(CreditCalculator::class)->forEmployee($e->fresh(), CarbonImmutable::parse('2025-07-15'));
+
+    // Apr 3,125 + May 3,125 (no predikat: estimate at Baik) + Jun 4,6875.
+    expect($result['kind'])->toBe('pangkat')
+        ->and($result['next_label'])->toBe('IV/b')
+        ->and($result['target'])->toEqual(150)
+        ->and($result['earned'])->toEqual(10.938)
+        ->and($result['estimated'])->toEqual(3.125)
+        ->and($result['quarters'][0]['final'])->toBeFalse()
+        ->and($result['quarters'][0]['formula'])->toBe('Ahli Madya: 1 bln × 37,5 ÷ 12 × 100% + Ahli Madya: 1 bln × 37,5 ÷ 12 × 100% (estimasi) + Ahli Madya: 1 bln × 37,5 ÷ 12 × 150%');
+});
