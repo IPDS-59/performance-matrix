@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Actions\Kinetik\PrefillRecapAction;
 use App\Models\Employee;
 use App\Models\LeadershipNote;
 use App\Models\PerformancePlan;
@@ -533,6 +534,45 @@ class TeamRecapController extends Controller
         );
 
         return back()->with('success', 'Rekap berhasil diparafrase.');
+    }
+
+    // ── Pre-fill from lower periods ──────────────────────────────────────────
+
+    /**
+     * Fill the empty text of a monthly recap from its weeks, or of a quarterly
+     * recap from its months. PJ only; blocked while the period is locked.
+     */
+    public function prefill(Request $request, PrefillRecapAction $prefill): RedirectResponse
+    {
+        $employee = $request->user()->employee;
+        abort_if($employee === null, 403, 'Akun tidak terhubung ke data pegawai.');
+
+        $validated = $request->validate([
+            'team_id' => ['required', 'integer', 'exists:teams,id'],
+            'period_type' => ['required', 'in:month,quarter'],
+            'period_year' => ['required', 'integer', 'between:2000,2100'],
+            'period_month' => ['nullable', 'integer', 'between:1,12', 'required_if:period_type,month'],
+            'period_quarter' => ['nullable', 'integer', 'between:1,4', 'required_if:period_type,quarter'],
+        ]);
+
+        $this->authorizePj($employee, (int) $validated['team_id']);
+        $this->ensureUnlockedFor($validated);
+
+        $type = $validated['period_type'];
+        $filled = $prefill->execute(
+            Team::findOrFail($validated['team_id']),
+            $employee,
+            $type,
+            (int) $validated['period_year'],
+            $type === 'month' ? (int) $validated['period_month'] : null,
+            $type === 'quarter' ? (int) $validated['period_quarter'] : null,
+        );
+
+        $source = $type === 'month' ? 'mingguan' : 'bulanan';
+
+        return back()->with('success', $filled
+            ? "{$filled} baris diisi dari rekap {$source}. Teks yang sudah ada tidak diubah."
+            : "Tidak ada teks {$source} baru untuk diisi.");
     }
 
     // ── Bulk confirm (achievement ≥ 100%) ────────────────────────────────────

@@ -2,6 +2,7 @@
 import AppLayout from '@/Layouts/AppLayout.vue';
 import RecapLockBar from '@/Components/Kinetik/RecapLockBar.vue';
 import RecapToolbar from '@/Components/Kinetik/RecapToolbar.vue';
+import PrefillButton from '@/Components/Kinetik/PrefillButton.vue';
 import MeetingChecklist from '@/Components/Kinetik/MeetingChecklist.vue';
 import { periodChecklist } from '@/composables/useMeetingChecklist';
 import { Head, router } from '@inertiajs/vue3';
@@ -259,6 +260,12 @@ function saveParaphrase(row: RecapRow) {
                 @export="download({ period_type: 'month', year, month }, `Rapat Bulanan ${monthLabel}.xlsx`)"
             >
                 <template #actions>
+                    <PrefillButton
+                        v-if="canManage && selectedTeamId"
+                        source="mingguan"
+                        :payload="{ team_id: selectedTeamId, period_type: 'month', period_year: year, period_month: month }"
+                        @done="paraForms = {}"
+                    />
                     <Button
                         v-if="canManage"
                         size="sm"

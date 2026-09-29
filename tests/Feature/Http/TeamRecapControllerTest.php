@@ -1122,3 +1122,63 @@ it('rejects a note on a project of another team', function () {
         ->post(route('team-recap.leadership-note'), ['team_id' => $team->id, 'project_id' => $other->id, 'period_type' => 'month', 'period_year' => 2026, 'period_month' => 6, 'body' => 'x'])
         ->assertStatus(422);
 });
+
+// ── Pre-fill from lower periods ──────────────────────────────────────────────
+
+function weekOverride(Team $team, PerformancePlan $plan, string $week, array $text): RecapOverride
+{
+    return RecapOverride::create([
+        'team_id' => $team->id, 'performance_plan_id' => $plan->id, 'project_id' => null,
+        'period_type' => 'week', 'period_year' => 2026, 'week_start' => $week, ...$text,
+    ]);
+}
+
+it('fills the empty monthly text from the weeks and keeps what the PJ wrote', function () {
+    [$user, , $team] = pjOfTeam();
+    $plan = PerformancePlan::factory()->create(['project_id' => null, 'team_id' => $team->id]);
+    weekOverride($team, $plan, '2026-06-01', ['obstacle' => 'Hujan', 'follow_up_plan' => 'Minggu 1']);
+    weekOverride($team, $plan, '2026-06-08', ['solution' => 'Tambah petugas', 'follow_up_plan' => 'Minggu 2']);
+    weekOverride($team, $plan, '2026-07-06', ['follow_up_plan' => 'Bulan lain']);
+    RecapOverride::create([
+        'team_id' => $team->id, 'performance_plan_id' => $plan->id, 'period_type' => 'month',
+        'period_year' => 2026, 'period_month' => 6, 'obstacle' => 'Tulisan PJ',
+    ]);
+
+    $this->actingAs($user)
+        ->post(route('team-recap.prefill'), ['team_id' => $team->id, 'period_type' => 'month', 'period_year' => 2026, 'period_month' => 6])
+        ->assertSessionHas('success');
+
+    $month = RecapOverride::where('period_type', 'month')->sole();
+    expect($month->follow_up_plan)->toBe("Minggu 1\nMinggu 2")
+        ->and($month->obstacle)->toBe('Tulisan PJ')
+        ->and($month->solution)->toBe('Tambah petugas');
+});
+
+it('fills the quarter from the months first, then from the weeks', function () {
+    [$user, , $team] = pjOfTeam();
+    $plan = PerformancePlan::factory()->create(['project_id' => null, 'team_id' => $team->id]);
+    RecapOverride::create([
+        'team_id' => $team->id, 'performance_plan_id' => $plan->id, 'period_type' => 'month',
+        'period_year' => 2026, 'period_month' => 4, 'obstacle' => 'Ringkasan April',
+    ]);
+    weekOverride($team, $plan, '2026-05-04', ['obstacle' => 'Minggu Mei', 'follow_up_plan' => 'Rapat evaluasi']);
+
+    $this->actingAs($user)
+        ->post(route('team-recap.prefill'), ['team_id' => $team->id, 'period_type' => 'quarter', 'period_year' => 2026, 'period_quarter' => 2]);
+
+    $quarter = RecapOverride::where('period_type', 'quarter')->sole();
+    expect($quarter->obstacle)->toBe('Ringkasan April')
+        ->and($quarter->follow_up_plan)->toBe('Rapat evaluasi');
+});
+
+it('blocks pre-fill on a locked month and for non-PJ members', function () {
+    [$user, , $team] = pjOfTeam();
+    $params = ['team_id' => $team->id, 'period_type' => 'month', 'period_year' => 2026, 'period_month' => 6];
+
+    $member = User::factory()->create();
+    Employee::factory()->create(['user_id' => $member->id, 'team_id' => $team->id]);
+    $this->actingAs($member)->post(route('team-recap.prefill'), $params)->assertForbidden();
+
+    RecapLock::create(['team_id' => $team->id, 'period_type' => 'month', 'period_year' => 2026, 'period_month' => 6]);
+    $this->actingAs($user)->post(route('team-recap.prefill'), $params)->assertSessionHas('error');
+});

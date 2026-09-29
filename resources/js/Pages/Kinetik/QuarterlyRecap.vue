@@ -2,6 +2,7 @@
 import AppLayout from '@/Layouts/AppLayout.vue';
 import RecapLockBar from '@/Components/Kinetik/RecapLockBar.vue';
 import RecapToolbar from '@/Components/Kinetik/RecapToolbar.vue';
+import PrefillButton from '@/Components/Kinetik/PrefillButton.vue';
 import MeetingChecklist from '@/Components/Kinetik/MeetingChecklist.vue';
 import { periodChecklist } from '@/composables/useMeetingChecklist';
 import { Head, router } from '@inertiajs/vue3';
@@ -278,6 +279,12 @@ function saveParaphrase(row: RecapRow) {
                 @export="download({ period_type: 'quarter', year, quarter }, `FRA ${quarterLabel}.xlsx`)"
             >
                 <template #actions>
+                    <PrefillButton
+                        v-if="canManage && selectedTeamId"
+                        source="bulanan"
+                        :payload="{ team_id: selectedTeamId, period_type: 'quarter', period_year: year, period_quarter: quarter }"
+                        @done="fraForms = {}"
+                    />
                     <Button
                         v-if="canManage"
                         size="sm"

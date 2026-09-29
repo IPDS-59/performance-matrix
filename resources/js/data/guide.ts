@@ -255,7 +255,8 @@ export const GUIDE_FLOWS: GuideFlow[] = [
                 where: 'Menu Rekap Tim → Bulanan / Triwulanan (FRA)',
                 route: 'team-recap.monthly',
                 body: [
-                    'Parafrase mingguan dapat ditarik ke bulanan dengan "Tarik dari mingguan".',
+                    'Klik "Isi dari mingguan" (bulanan) atau "Isi dari bulanan" (triwulanan) untuk mengisi Permasalahan, Solusi dan RTL semua baris sekaligus. Hanya kolom yang masih kosong yang diisi.',
+                    'Parafrase mingguan satu baris juga dapat ditarik dengan "Tarik dari mingguan" di panel baris itu.',
                     'Konfirmasi setiap baris. "Konfirmasi semua capaian 100%" mengonfirmasi semua baris yang sudah 100% sekaligus.',
                     'Di triwulanan (FRA), isi juga link bukti tindak lanjut, PIC dan batas waktu.',
                     'Kunci rekap sebelum rapat, sama seperti mingguan.',
