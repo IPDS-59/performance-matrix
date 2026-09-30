@@ -45,9 +45,13 @@ class WeeklyActivityController extends Controller
         $weekEnd = $anchor->copy()->endOfWeek(Carbon::SUNDAY)->toDateString();
 
         $rawActivities = $employee
-            ? KipActivity::with('claim')
+            ? KipActivity::with(['claims' => fn ($q) => $q->whereDate('week_start', $weekStart)])
                 ->where('employee_id', $employee->id)
-                ->whereBetween('activity_date_start', [$weekStart, $weekEnd])
+                // Every activity that runs during the week, not only those that
+                // start in it: a monthly task shows (and is claimed) every week.
+                ->whereDate('activity_date_start', '<=', $weekEnd)
+                ->where(fn ($q) => $q->whereDate('activity_date_start', '>=', $weekStart)
+                    ->orWhereDate('activity_date_end', '>=', $weekStart))
                 ->orderBy('activity_date_start')
                 ->get()
             : collect();
@@ -57,19 +61,32 @@ class WeeklyActivityController extends Controller
         $matchedPlan = $this->matchPlans($rawActivities, $employee?->teams()->pluck('teams.id') ?? collect());
 
         // Team of each matched RK, to tell the member up front when the PJ locked the period.
-        $planIds = $matchedPlan->values()->merge($rawActivities->pluck('claim.performance_plan_id'))->filter()->unique();
+        $planIds = $matchedPlan->values()->merge($rawActivities->flatMap(fn (KipActivity $a) => $a->claims->pluck('performance_plan_id')))->filter()->unique();
         $teamByPlanId = PerformancePlan::with('project:id,team_id')
             ->whereIn('id', $planIds)
             ->get()
             ->mapWithKeys(fn (PerformancePlan $plan) => [$plan->id => $plan->project?->team_id ?? $plan->team_id]);
 
-        $activities = $rawActivities->map(function (KipActivity $a) use ($matchedPlan, $teamByPlanId) {
-            $planId = $a->claim?->performance_plan_id ?? $matchedPlan->get($a->id);
+        $activities = $rawActivities->map(function (KipActivity $a) use ($matchedPlan, $teamByPlanId, $weekStart, $weekEnd) {
+            $claim = $a->claims->first();
+            $planId = $claim?->performance_plan_id ?? $matchedPlan->get($a->id);
             $teamId = $planId ? $teamByPlanId->get($planId) : null;
 
-            return array_merge($a->toArray(), [
+            $start = Carbon::parse($a->activity_date_start);
+            $end = $a->activity_date_end ? Carbon::parse($a->activity_date_end)->max($start) : $start;
+
+            $weekDateStart = $start->max(Carbon::parse($weekStart));
+
+            return array_merge(collect($a->toArray())->except('claims')->all(), [
+                // This week's claim and status; other weeks have their own.
+                'claim' => $claim,
+                'is_claimed' => $claim?->status === 'saved',
+                'spans_weeks' => ! $start->copy()->startOfWeek(Carbon::MONDAY)->equalTo($end->copy()->startOfWeek(Carbon::MONDAY)),
+                // The part of the activity inside this week, the default claim dates.
+                'week_date_start' => $weekDateStart->toDateString(),
+                'week_date_end' => $end->min(Carbon::parse($weekEnd))->toDateString(),
                 'matched_plan_id' => $matchedPlan->get($a->id),
-                'locked' => $teamId !== null && RecapLock::coversDate($teamId, Carbon::parse($a->activity_date_start)),
+                'locked' => $teamId !== null && RecapLock::coversDate($teamId, $weekDateStart),
             ]);
         });
 

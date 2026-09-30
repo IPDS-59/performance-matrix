@@ -35,9 +35,9 @@ class SaveActivityClaimAction
 
         $dateStart = Carbon::parse($data['activity_date_start']);
 
-        $this->ensureUnlocked($plan, $dateStart, $data['kip_activity_id'] ?? null);
-
         $weekStart = $dateStart->copy()->startOfWeek(Carbon::MONDAY)->toDateString();
+
+        $this->ensureUnlocked($plan, $dateStart, $data['kip_activity_id'] ?? null, $weekStart);
         $periodYear = (int) $dateStart->year;
         $periodMonth = (int) $dateStart->month;
         $periodQuarter = (int) intdiv($periodMonth - 1, 3) + 1;
@@ -84,13 +84,16 @@ class SaveActivityClaimAction
 
         if ($kipActivityId !== null) {
             /** @var ActivityClaim $claim */
-            $claim = ActivityClaim::updateOrCreate(
-                ['kip_activity_id' => $kipActivityId],
-                $payload,
-            );
+            // One claim per activity and week: a multi-week activity is claimed
+            // again each week it covers.
+            // whereDate: week_start is stored with a time part on some drivers.
+            $claim = ActivityClaim::where('kip_activity_id', $kipActivityId)->whereDate('week_start', $weekStart)->first()
+                ?? new ActivityClaim(['kip_activity_id' => $kipActivityId]);
+            $claim->fill($payload)->save();
 
+            // "Diklaim" once any week of the activity is saved.
             KipActivity::where('id', $kipActivityId)->update([
-                'is_claimed' => $status === 'saved',
+                'is_claimed' => ActivityClaim::where('kip_activity_id', $kipActivityId)->where('status', 'saved')->exists(),
             ]);
         } else {
             $claim = ActivityClaim::create($payload);
@@ -105,12 +108,12 @@ class SaveActivityClaimAction
      *
      * @throws ValidationException
      */
-    private function ensureUnlocked(PerformancePlan $plan, Carbon $date, mixed $kipActivityId): void
+    private function ensureUnlocked(PerformancePlan $plan, Carbon $date, mixed $kipActivityId, string $weekStart): void
     {
         $teamId = $plan->project?->team_id ?? $plan->team_id;
 
         $existingDate = $kipActivityId !== null
-            ? ActivityClaim::where('kip_activity_id', $kipActivityId)->value('activity_date_start')
+            ? ActivityClaim::where('kip_activity_id', $kipActivityId)->whereDate('week_start', $weekStart)->value('activity_date_start')
             : null;
 
         $dates = array_filter([$date, $existingDate ? Carbon::parse($existingDate) : null]);

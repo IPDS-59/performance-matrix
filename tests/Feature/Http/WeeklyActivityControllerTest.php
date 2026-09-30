@@ -80,11 +80,13 @@ it('excludes activities outside the selected week', function () {
     KipActivity::factory()->create([
         'employee_id' => $employee->id,
         'activity_date_start' => $thisWeekStart,
+        'activity_date_end' => $thisWeekStart,
     ]);
 
     KipActivity::factory()->create([
         'employee_id' => $employee->id,
         'activity_date_start' => $lastWeekDate,
+        'activity_date_end' => $lastWeekDate,
     ]);
 
     $this->actingAs($user)
@@ -571,4 +573,35 @@ it('offers only the Projek under the RK leader RK when kipApp has several', func
 
     $this->actingAs($user)->get(route('weekly.index'))
         ->assertInertia(fn ($page) => $page->where('plans', fn ($plans) => collect(collect($plans)->firstWhere('id', $plan->id)['project_candidates'])->sort()->values()->all() === collect([$a->id, $b->id])->sort()->values()->all()));
+});
+
+it('shows a multi-week activity every week it covers and claims it once per week', function () {
+    [$user, $employee, , $plan] = claimant();
+    $activity = KipActivity::factory()->create([
+        'employee_id' => $employee->id, 'activity_date_start' => '2026-07-01', 'activity_date_end' => '2026-09-30',
+    ]);
+    KipActivity::factory()->create(['employee_id' => $employee->id, 'activity_date_start' => '2026-07-06', 'activity_date_end' => null]);
+
+    $this->actingAs($user)->get(route('weekly.index', ['week' => '2026-08-10']))
+        ->assertInertia(fn ($page) => $page
+            ->has('activities', 1)
+            ->where('activities.0.id', $activity->id)
+            ->where('activities.0.spans_weeks', true)
+            ->where('activities.0.week_date_start', '2026-08-10')
+            ->where('activities.0.week_date_end', '2026-08-16')
+            ->where('activities.0.is_claimed', false));
+
+    $claim = fn (string $from, string $to, int $done) => $this->actingAs($user)->post(route('weekly.claim'), [
+        'kip_activity_id' => $activity->id, 'performance_plan_id' => $plan->id, 'target' => 1, 'realization' => $done,
+        'obstacle' => '-', 'activity_date_start' => $from, 'activity_date_end' => $to,
+    ]);
+    $claim('2026-08-10', '2026-08-16', 1);
+    $claim('2026-08-17', '2026-08-23', 0);
+    $claim('2026-08-10', '2026-08-16', 1); // editing the same week does not add a claim
+
+    expect(ActivityClaim::where('kip_activity_id', $activity->id)->pluck('week_start')->map(fn ($d) => substr((string) $d, 0, 10))->sort()->values()->all())
+        ->toBe(['2026-08-10', '2026-08-17']);
+
+    $this->actingAs($user)->get(route('weekly.index', ['week' => '2026-08-24']))
+        ->assertInertia(fn ($page) => $page->where('activities.0.is_claimed', false)->where('activities.0.claim', null));
 });

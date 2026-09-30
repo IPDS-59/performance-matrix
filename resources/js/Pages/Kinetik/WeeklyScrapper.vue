@@ -102,8 +102,8 @@ function makeClaimForm(activity: KipActivity) {
         obstacle: c?.obstacle ?? '',
         solution: c?.solution ?? '',
         follow_up_plan: c?.follow_up_plan ?? '',
-        activity_date_start: c?.activity_date_start ?? activity.activity_date_start,
-        activity_date_end: c?.activity_date_end ?? activity.activity_date_end ?? '',
+        activity_date_start: c?.activity_date_start ?? activity.week_date_start ?? activity.activity_date_start,
+        activity_date_end: c?.activity_date_end ?? activity.week_date_end ?? activity.activity_date_end ?? '',
         start_time: c?.start_time ?? activity.time_start ?? '',
         end_time: c?.end_time ?? activity.time_end ?? '',
         evidence_url: c?.evidence_url ?? activity.evidence_url ?? '',
@@ -336,6 +336,7 @@ function achievementColor(val: number | string | null | undefined): string {
                                         {{ formatDate(activity.activity_date_start) }}
                                         <template v-if="activity.activity_date_end && activity.activity_date_end !== activity.activity_date_start">
                                             — {{ formatDate(activity.activity_date_end) }}
+                                            <span v-if="activity.spans_weeks" class="ml-1 rounded-full bg-blue-50 px-2 py-0.5 text-xs font-medium text-blue-700" title="Kegiatan ini berlangsung lebih dari satu minggu. Klaim progresnya setiap minggu.">Klaim tiap minggu</span>
                                         </template>
                                         <template v-if="activity.time_start">
                                             &nbsp;·&nbsp;{{ activity.time_start }}

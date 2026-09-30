@@ -209,6 +209,11 @@ export interface KipActivity {
     evidence_url?: string | null;
     rk_name?: string | null;
     is_claimed: boolean;
+    /** Runs past this week: claimed once per week it covers. */
+    spans_weeks?: boolean;
+    /** The part of the activity inside the viewed week (default claim dates). */
+    week_date_start?: string;
+    week_date_end?: string;
     matched_plan_id?: number | null;
     /** True when the PJ locked the recap period this activity falls in. */
     locked?: boolean;

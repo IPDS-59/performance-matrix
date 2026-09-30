@@ -205,6 +205,7 @@ export const GUIDE_FLOWS: GuideFlow[] = [
                     'Rencana Kinerja terisi otomatis dari kipApp.',
                     'Pilih Projek tempat kegiatan ini dikerjakan. kipApp tidak menyimpan projek sebuah RK, jadi Kinetik mengisinya lebih dulu: projek yang Anda pilih terakhir untuk RK yang sama, projek yang namanya tertulis di RK, atau satu-satunya projek Anda di tim itu. Periksa lalu ubah jika perlu.',
                     'Isi Target, Realisasi dan Satuan. Capaian dihitung otomatis.',
+                    'Kegiatan yang berlangsung lebih dari seminggu, misalnya kegiatan bulanan atau triwulanan, bertanda "Klaim tiap minggu". Kegiatan itu muncul di setiap minggu yang dilaluinya. Klaim target dan realisasi minggu itu saja, lalu ulangi di minggu berikutnya.',
                     'Isi Kendala. Tulis "-" jika tidak ada kendala. Solusi dan Rencana Tindak Lanjut diisi PJ saat rapat tim.',
                     'Jam Mulai dan Jam Selesai boleh dikosongkan.',
                 ],

@@ -5,7 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Database\Eloquent\Relations\HasOne;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class KipActivity extends Model
 {
@@ -52,8 +52,11 @@ class KipActivity extends Model
         return $this->belongsTo(Employee::class);
     }
 
-    public function claim(): HasOne
+    /**
+     * One claim per week the activity covers (a monthly task is claimed weekly).
+     */
+    public function claims(): HasMany
     {
-        return $this->hasOne(ActivityClaim::class);
+        return $this->hasMany(ActivityClaim::class);
     }
 }
