@@ -289,6 +289,8 @@ export const GUIDE_FLOWS: GuideFlow[] = [
                     'Buka panah di ujung baris untuk melihat uraian dan kendala anggota, lalu isi Solusi dan RTL hasil rapat tim.',
                     'Isi Uraian (PJ) bila uraian anggota perlu diringkas. Jika kosong, Excel memakai uraian kegiatan anggota.',
                     'Untuk menulis satu uraian bagi beberapa RK dalam satu projek, centang baris-barisnya lalu klik "Gabungkan". Angka setiap RK tetap terpisah. Klik "Pisahkan" untuk membatalkan.',
+                    'Di bawah nama projek tertulis RK Ketua tempat projek itu berada. Di setiap baris RK tampil klaim anggota: nama, uraian kipApp, realisasi dan target.',
+                    'Jika angka anggota keliru, klik ikon pensil di baris anggota itu dan koreksi target atau realisasinya. Baris itu bertanda "Angka dikoreksi". Jika anggota menyimpan ulang klaimnya, angka anggota berlaku lagi.',
                 ],
             },
             {
@@ -314,6 +316,9 @@ export const GUIDE_FLOWS: GuideFlow[] = [
                 where: 'Menu Rekap Tim → Bulanan / Triwulanan (FRA)',
                 route: 'team-recap.monthly',
                 body: [
+                    'Bagian atas halaman bulanan menampilkan rekap setiap minggu (triwulanan: setiap bulan). Buka satu minggu untuk membacanya.',
+                    'Isi Ringkasan Bulanan (atau Triwulanan): satu ringkasan per projek untuk rapat. Tombol "Isi dari … minggu" menyusun draf dari rekap mingguan. Rapikan lalu klik Simpan.',
+                    'Bagian Rincian per RK tetap dipakai untuk konfirmasi, Excel dan FRA.',
                     'Klik "Isi dari mingguan" (bulanan) atau "Isi dari bulanan" (triwulanan) untuk mengisi Uraian, Permasalahan, Solusi dan RTL semua baris sekaligus. Hanya kolom yang masih kosong yang diisi.',
                     'Parafrase mingguan satu baris juga dapat ditarik dengan "Tarik dari mingguan" di panel baris itu.',
                     'Konfirmasi setiap baris. "Konfirmasi semua capaian 100%" mengonfirmasi semua baris yang sudah 100% sekaligus.',

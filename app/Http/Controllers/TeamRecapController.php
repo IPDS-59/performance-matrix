@@ -11,6 +11,7 @@ use App\Models\PerformancePlan;
 use App\Models\Project;
 use App\Models\RecapLock;
 use App\Models\RecapOverride;
+use App\Models\RecapSummary;
 use App\Models\Team;
 use App\Models\TeamRecapEvidence;
 use App\Models\WeeklyTeamNote;
@@ -104,6 +105,8 @@ class TeamRecapController extends Controller
             'teams' => $this->teamOptions($teams),
             'selectedTeamId' => $team?->id,
             'segments' => $segments,
+            'sections' => $team ? $this->weekSections($team, $year, $month) : [],
+            'summaries' => $team ? $this->summaries($team, 'month', $year, month: $month) : (object) [],
             'year' => $year,
             'month' => $month,
             ...$this->lockProps($employee, $team, 'month', $year, month: $month),
@@ -137,6 +140,8 @@ class TeamRecapController extends Controller
             'teams' => $this->teamOptions($teams),
             'selectedTeamId' => $team?->id,
             'segments' => $segments,
+            'sections' => $team ? $this->monthSections($team, $year, $quarter) : [],
+            'summaries' => $team ? $this->summaries($team, 'quarter', $year, quarter: $quarter) : (object) [],
             'year' => $year,
             'quarter' => $quarter,
             'pics' => $team ? $this->teamMemberOptions($team) : [],
@@ -771,6 +776,106 @@ class TeamRecapController extends Controller
         ]);
 
         return back()->with('success', $validated['confirmed'] ? 'RK dikonfirmasi.' : 'Konfirmasi dibatalkan.');
+    }
+
+    // ── Ringkasan per Projek (monthly / quarterly) ───────────────────────────
+
+    /**
+     * The PJ's narrative for one Projek in a month or quarter. Allowed until
+     * the period is locked. An empty body removes it.
+     */
+    public function storeSummary(Request $request): RedirectResponse
+    {
+        $employee = $request->user()->employee;
+        abort_if($employee === null, 403, 'Akun tidak terhubung ke data pegawai.');
+
+        $validated = $request->validate([
+            'team_id' => ['required', 'integer', 'exists:teams,id'],
+            'project_id' => ['nullable', 'integer', 'exists:projects,id'],
+            'period_type' => ['required', 'in:month,quarter'],
+            'period_year' => ['required', 'integer', 'between:2000,2100'],
+            'period_month' => ['nullable', 'integer', 'between:1,12', 'required_if:period_type,month'],
+            'period_quarter' => ['nullable', 'integer', 'between:1,4', 'required_if:period_type,quarter'],
+            'body' => ['nullable', 'string', 'max:10000'],
+        ]);
+
+        $this->authorizePj($employee, (int) $validated['team_id']);
+        $this->ensureUnlockedFor($validated);
+
+        $type = $validated['period_type'];
+        $key = [
+            'team_id' => (int) $validated['team_id'],
+            'project_id' => $validated['project_id'] ?? null,
+            'period_type' => $type,
+            'period_year' => (int) $validated['period_year'],
+            'period_month' => $type === 'month' ? (int) $validated['period_month'] : null,
+            'period_quarter' => $type === 'quarter' ? (int) $validated['period_quarter'] : null,
+        ];
+        $body = trim($validated['body'] ?? '');
+
+        if ($body === '') {
+            RecapSummary::where($key)->delete();
+        } else {
+            RecapSummary::updateOrCreate($key, ['body' => $body, 'created_by' => $employee->id]);
+        }
+
+        return back()->with('success', 'Ringkasan projek disimpan.');
+    }
+
+    /**
+     * Summaries of a period keyed by Projek id ("none" = RK without a Projek).
+     *
+     * @return array<string, string>
+     */
+    private function summaries(Team $team, string $type, int $year, ?int $month = null, ?int $quarter = null): array
+    {
+        return RecapSummary::forPeriod($team->id, $type, $year, $month, $quarter)
+            ->get()
+            ->mapWithKeys(fn (RecapSummary $s) => [(string) ($s->project_id ?? 'none') => $s->body])
+            ->all();
+    }
+
+    /**
+     * Read-only weekly recaps of a month: weeks that start in the month, as the
+     * monthly pre-fill uses.
+     *
+     * @return list<array{label: string, start: string, end: string, segments: array<int, array<string, mixed>>}>
+     */
+    private function weekSections(Team $team, int $year, int $month): array
+    {
+        $sections = [];
+        $monday = Carbon::create($year, $month, 1)->startOfWeek(Carbon::MONDAY);
+        if ($monday->month !== $month) {
+            $monday->addWeek();
+        }
+
+        for ($n = 1; $monday->month === $month; $n++, $monday->addWeek()) {
+            $sections[] = [
+                'label' => "Minggu {$n}",
+                'start' => $monday->toDateString(),
+                'end' => $monday->copy()->endOfWeek(Carbon::SUNDAY)->toDateString(),
+                'segments' => $this->aggregator->weekly($team, $monday->toDateString()),
+            ];
+        }
+
+        return $sections;
+    }
+
+    /**
+     * Read-only monthly recaps of a quarter.
+     *
+     * @return list<array{label: string, start: string, end: string, segments: array<int, array<string, mixed>>}>
+     */
+    private function monthSections(Team $team, int $year, int $quarter): array
+    {
+        return collect(range(($quarter - 1) * 3 + 1, $quarter * 3))
+            ->map(fn (int $month) => [
+                'label' => Carbon::create($year, $month, 1)->locale('id')->translatedFormat('F Y'),
+                'start' => Carbon::create($year, $month, 1)->toDateString(),
+                'end' => Carbon::create($year, $month, 1)->endOfMonth()->toDateString(),
+                'segments' => $this->aggregator->monthly($team, $year, $month),
+            ])
+            ->all();
     }
 
     // ── Helpers ──────────────────────────────────────────────────────────────

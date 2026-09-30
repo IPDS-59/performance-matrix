@@ -538,3 +538,11 @@ export interface CreditSummary {
     ak_base_source?: 'pegawai' | 'admin' | null;
     quarters?: CreditQuarter[];
 }
+
+/** One week of a month, or one month of a quarter, shown read-only on the recap. */
+export interface RecapSection {
+    label: string;
+    start: string;
+    end: string;
+    segments: RecapSegment[];
+}

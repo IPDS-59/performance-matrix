@@ -7,6 +7,7 @@ use App\Models\PerformancePlan;
 use App\Models\Project;
 use App\Models\RecapLock;
 use App\Models\RecapOverride;
+use App\Models\RecapSummary;
 use App\Models\Team;
 use App\Models\TeamRecapEvidence;
 use App\Models\User;
@@ -1293,4 +1294,47 @@ it('blocks PJ corrections for non-PJ users and locked periods', function () {
 
     RecapLock::create(['team_id' => $team->id, 'period_type' => 'month', 'period_year' => 2026, 'period_month' => 6]);
     $this->actingAs($user)->post(route('team-recap.claim-adjust', $claim), ['target' => 1, 'realization' => 1])->assertSessionHas('error');
+});
+
+// ── Weekly sections and Ringkasan per Projek ────────────────────────────────
+
+it('shows the weeks of a month and saves one summary per Projek', function () {
+    [$user, $pj, $team] = pjOfTeam();
+    $project = Project::factory()->create(['team_id' => $team->id, 'year' => 2026]);
+    $plan = PerformancePlan::factory()->create(['project_id' => $project->id, 'team_id' => $team->id]);
+    ActivityClaim::factory()->saved()->create([
+        'employee_id' => $pj->id, 'performance_plan_id' => $plan->id, 'project_id' => $project->id,
+        'period_year' => 2026, 'period_month' => 6, 'period_quarter' => 2, 'week_start' => '2026-06-08', 'activity_date_start' => '2026-06-09',
+    ]);
+    $period = ['team_id' => $team->id, 'period_type' => 'month', 'period_year' => 2026, 'period_month' => 6];
+
+    $this->actingAs($user)->post(route('team-recap.summary'), [...$period, 'project_id' => $project->id, 'body' => 'Sakernas berjalan lancar'])->assertSessionHas('success');
+    $this->actingAs($user)->post(route('team-recap.summary'), [...$period, 'project_id' => $project->id, 'body' => 'Sakernas selesai'])->assertSessionHas('success');
+    expect(RecapSummary::count())->toBe(1);
+
+    // June 2026: weeks starting 1, 8, 15, 22, 29 June.
+    $this->actingAs($user)->get(route('team-recap.monthly', ['team' => $team->id, 'year' => 2026, 'month' => 6]))
+        ->assertInertia(fn ($page) => $page
+            ->has('sections', 5)
+            ->where('sections.0.start', '2026-06-01')
+            ->where('sections.1.segments.0.project_id', $project->id)
+            ->where("summaries.{$project->id}", 'Sakernas selesai'));
+
+    $this->actingAs($user)->post(route('team-recap.summary'), [...$period, 'project_id' => $project->id, 'body' => '']);
+    expect(RecapSummary::count())->toBe(0);
+});
+
+it('shows the months of a quarter and keeps summaries PJ-only and unlocked', function () {
+    [$user, , $team] = pjOfTeam();
+    $period = ['team_id' => $team->id, 'period_type' => 'quarter', 'period_year' => 2026, 'period_quarter' => 2, 'body' => 'x'];
+
+    $this->actingAs($user)->get(route('team-recap.quarterly', ['team' => $team->id, 'year' => 2026, 'quarter' => 2]))
+        ->assertInertia(fn ($page) => $page->has('sections', 3)->where('sections.0.start', '2026-04-01'));
+
+    $member = User::factory()->create();
+    Employee::factory()->create(['user_id' => $member->id]);
+    $this->actingAs($member)->post(route('team-recap.summary'), $period)->assertForbidden();
+
+    RecapLock::create(['team_id' => $team->id, 'period_type' => 'quarter', 'period_year' => 2026, 'period_quarter' => 2]);
+    $this->actingAs($user)->post(route('team-recap.summary'), $period)->assertSessionHas('error');
 });

@@ -5,12 +5,14 @@ import RecapToolbar from '@/Components/Kinetik/RecapToolbar.vue';
 import PrefillButton from '@/Components/Kinetik/PrefillButton.vue';
 import RecapMergeCell from '@/Components/Kinetik/RecapMergeCell.vue';
 import RecapMemberLines from '@/Components/Kinetik/RecapMemberLines.vue';
+import RecapPeriodSections from '@/Components/Kinetik/RecapPeriodSections.vue';
+import ProjectSummaries from '@/Components/Kinetik/ProjectSummaries.vue';
 import { groupAdjacent, groupSize, isGroupLead, textKey, textTarget, useRecapMerge } from '@/composables/useRecapMerge';
 import MeetingChecklist from '@/Components/Kinetik/MeetingChecklist.vue';
 import { periodChecklist } from '@/composables/useMeetingChecklist';
 import { Head, router } from '@inertiajs/vue3';
 import { computed, ref } from 'vue';
-import type { RecapSegment, RecapRow, TeamOption, RecapLockState } from '@/types';
+import type { RecapSection, RecapSegment, RecapRow, TeamOption, RecapLockState } from '@/types';
 import { Button } from '@/Components/ui/button';
 import { Input } from '@/Components/ui/input';
 import { Label } from '@/Components/ui/label';
@@ -31,6 +33,8 @@ const props = defineProps<{
     canManage: boolean;
     canLock: boolean;
     lock: RecapLockState | null;
+    sections: RecapSection[];
+    summaries: Record<string, string>;
     currentEmployeeId: number | null;
 }>();
 
@@ -315,6 +319,20 @@ function saveParaphrase(row: RecapRow) {
             <MeetingChecklist v-if="selectedTeamId" :steps="checklist" />
 
             <RecapLockBar :team-id="selectedTeamId" :lock="lock" :can-lock="canLock" :period="{ period_type: 'quarter', period_year: year, period_quarter: quarter }" />
+
+            <template v-if="selectedTeamId">
+                <RecapPeriodSections :title="`Rekap Bulanan — ${quarterLabel}`" :sections="sections" />
+                <ProjectSummaries
+                    :title="`Ringkasan Triwulanan — ${quarterLabel}`"
+                    source-label="3 bulan"
+                    :segments="segments"
+                    :sections="sections"
+                    :summaries="summaries"
+                    :can-manage="canManage"
+                    :payload="{ team_id: selectedTeamId, period_type: 'quarter', period_year: year, period_quarter: quarter }"
+                />
+                <h2 class="mb-2 mt-2 text-sm font-semibold text-gray-700">Rincian per RK <span class="font-normal text-gray-500">(untuk konfirmasi, Excel dan FRA)</span></h2>
+            </template>
 
             <!-- Segments by project -->
             <div v-if="!segments.length" class="rounded-md border border-dashed border-gray-200 bg-gray-50 py-10 text-center text-sm text-gray-400">
