@@ -60,6 +60,8 @@ class SaveActivityClaimAction
             'target' => $target,
             'realization' => $realization,
             'achievement' => $achievement,
+            // The member's own numbers again, no longer the PJ's correction.
+            'adjusted_by' => null,
             'target_unit' => $data['target_unit'] ?? null,
             'obstacle' => $data['obstacle'] ?? null,
             'solution' => $data['solution'] ?? null,

@@ -5,6 +5,7 @@ import RecapToolbar from '@/Components/Kinetik/RecapToolbar.vue';
 import MeetingChecklist from '@/Components/Kinetik/MeetingChecklist.vue';
 import MemberCompletenessCard from '@/Components/Kinetik/MemberCompletenessCard.vue';
 import RecapMergeCell from '@/Components/Kinetik/RecapMergeCell.vue';
+import RecapMemberLines from '@/Components/Kinetik/RecapMemberLines.vue';
 import { groupSize, isGroupLead } from '@/composables/useRecapMerge';
 import { weeklyChecklist } from '@/composables/useMeetingChecklist';
 import { computed } from 'vue';
@@ -97,7 +98,10 @@ const { exporting, download } = useRecapExport();
             <div v-else class="mb-8 space-y-6">
                 <div v-for="seg in segments" :key="seg.project_id ?? 'none'" class="overflow-hidden rounded-md border bg-white">
                     <div class="flex items-center justify-between gap-3 border-b bg-gray-50 px-4 py-3">
-                        <h3 class="min-w-0 text-sm font-semibold text-gray-800">{{ seg.project_name }}</h3>
+                        <div class="min-w-0">
+                            <h3 class="text-sm font-semibold text-gray-800">{{ seg.project_name }}</h3>
+                            <p v-if="seg.leader_rk" class="mt-0.5 text-xs leading-snug text-primary">RK Ketua: {{ seg.leader_rk }}</p>
+                        </div>
                         <Button
                             v-if="canManage && rowMerge.selectedCount(seg) >= 2"
                             size="sm"
@@ -144,6 +148,7 @@ const { exporting, download } = useRecapExport();
                                         >
                                             <p class="font-medium leading-snug text-gray-800">{{ row.rk_description }}</p>
                                             <p v-if="row.rk_code" class="text-xs text-gray-500">{{ row.rk_code }}</p>
+                                            <RecapMemberLines :claims="row.claims ?? []" :can-adjust="canManage" />
                                         </RecapMergeCell>
                                     </TableCell>
                                     <TableCell class="hidden min-w-[10rem] max-w-[16rem] whitespace-normal align-top md:table-cell text-xs leading-snug text-gray-600">{{ row.contributors.join(', ') || '—' }}</TableCell>

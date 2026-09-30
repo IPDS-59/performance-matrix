@@ -149,7 +149,7 @@ class RecapAggregator
                 $w->where('team_id', $team->id)
                     ->orWhereHas('project', fn (Builder $p) => $p->where('team_id', $team->id));
             }))
-            ->with(['performancePlan.project', 'performancePlan.team', 'project', 'employee', 'kipActivity']);
+            ->with(['performancePlan.project', 'performancePlan.team', 'project', 'employee', 'kipActivity', 'adjustedBy']);
     }
 
     /**
@@ -237,6 +237,8 @@ class RecapAggregator
                 return [
                     'project_id' => $project?->id,
                     'project_name' => $project?->name ?? $teamName ?? '—',
+                    // The ketua tim's RK the Projek hangs under (kipApp proyek.rencanakinerjaketua).
+                    'leader_rk' => $project?->leader_rk,
                     'rows' => $rows,
                 ];
             })
@@ -300,6 +302,21 @@ class RecapAggregator
             ->values()
             ->all();
 
+        // Each member claim behind the row, for the member lines and PJ corrections.
+        $claimLines = $claims
+            ->map(fn (ActivityClaim $c) => [
+                'claim_id' => $c->id,
+                'name' => $c->employee?->display_name ?? $c->employee?->name ?? 'Anggota',
+                'uraian' => trim((string) ($c->kipActivity?->description ?? '')) ?: null,
+                'target' => $c->target !== null ? (float) $c->target : null,
+                'realization' => $c->realization !== null ? (float) $c->realization : null,
+                'target_unit' => $c->target_unit,
+                'achievement' => $c->achievement !== null ? (float) $c->achievement : null,
+                'adjusted_by' => $c->adjustedBy?->display_name ?? $c->adjustedBy?->name,
+            ])
+            ->values()
+            ->all();
+
         $obstacleAgg = $this->joinText($claims->pluck('obstacle'));
         $solutionAgg = $this->joinText($claims->pluck('solution'));
         $followUpAgg = $this->joinText($claims->pluck('follow_up_plan'));
@@ -326,6 +343,7 @@ class RecapAggregator
             'merge_key' => $override?->merge_key,
             'uraian_aggregated' => $uraianAgg,
             'uraian_items' => $uraianItems,
+            'claims' => $claimLines,
             'pic_employee_id' => $plan?->pic_employee_id,
             'rk_code' => $plan?->code,
             'rk_description' => $plan?->description ?? '—',

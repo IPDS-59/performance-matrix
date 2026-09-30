@@ -10,6 +10,7 @@ use App\Models\RecapOverride;
 use App\Models\Team;
 use App\Models\TeamRecapEvidence;
 use App\Models\User;
+use App\Services\Kinetik\RecapAggregator;
 
 /**
  * Create a staff user with an employee attached to a fresh team.
@@ -1219,7 +1220,7 @@ it('merges rows of one project into one text and splits them again', function ()
         ...$period, 'performance_plan_id' => $c->id, 'project_id' => $project->id, 'uraian' => 'Uraian gabungan',
     ]);
 
-    $rows = collect(app(\App\Services\Kinetik\RecapAggregator::class)->monthly($team, 2026, 6)[0]['rows']);
+    $rows = collect(app(RecapAggregator::class)->monthly($team, 2026, 6)[0]['rows']);
     $lead = $rows->firstWhere('performance_plan_id', $c->id);
     $member = $rows->firstWhere('performance_plan_id', $a->id);
     expect($member['pj_uraian'])->toBe('Uraian gabungan')
@@ -1255,4 +1256,41 @@ it('keeps fields the form did not send when saving a paraphrase', function () {
     $this->actingAs($user)->post(route('team-recap.override.store'), [...$period, 'solution' => 'Tambah petugas']);
 
     expect(RecapOverride::sole())->obstacle->toBe('Hujan')->solution->toBe('Tambah petugas');
+});
+
+// ── Member lines and PJ corrections ─────────────────────────────────────────
+
+it('lists member claims per row with the RK Ketua, and lets the PJ correct numbers', function () {
+    [$user, $pj, $team] = pjOfTeam();
+    $project = Project::factory()->create(['team_id' => $team->id, 'year' => 2026, 'leader_rk' => 'RK Ketua Metodologi']);
+    $plan = PerformancePlan::factory()->create(['project_id' => $project->id, 'team_id' => $team->id]);
+    $member = Employee::factory()->create(['display_name' => 'Sukma']);
+    $claim = ActivityClaim::factory()->saved()->create([
+        'employee_id' => $member->id, 'performance_plan_id' => $plan->id, 'project_id' => $project->id,
+        'target' => 4, 'realization' => 2, 'achievement' => 50, 'target_unit' => 'Dokumen',
+        'period_year' => 2026, 'period_month' => 6, 'period_quarter' => 2, 'week_start' => '2026-06-01', 'activity_date_start' => '2026-06-02',
+    ]);
+
+    $this->actingAs($user)->post(route('team-recap.claim-adjust', $claim), ['target' => 4, 'realization' => 3])->assertSessionHas('success');
+    expect($claim->fresh())->achievement->toEqual(75)->adjusted_by->toBe($pj->id);
+
+    $this->actingAs($user)->get(route('team-recap.weekly', ['team' => $team->id, 'week' => '2026-06-01']))
+        ->assertInertia(fn ($page) => $page
+            ->where('segments.0.leader_rk', 'RK Ketua Metodologi')
+            ->where('segments.0.rows.0.claims.0.name', 'Sukma')
+            ->where('segments.0.rows.0.claims.0.realization', 3)
+            ->where('segments.0.rows.0.claims.0.adjusted_by', $pj->display_name ?? $pj->name));
+});
+
+it('blocks PJ corrections for non-PJ users and locked periods', function () {
+    [$user, , $team] = pjOfTeam();
+    $plan = PerformancePlan::factory()->create(['project_id' => null, 'team_id' => $team->id]);
+    $claim = ActivityClaim::factory()->saved()->create(['performance_plan_id' => $plan->id, 'activity_date_start' => '2026-06-02', 'week_start' => '2026-06-01', 'period_year' => 2026, 'period_month' => 6]);
+
+    $member = User::factory()->create();
+    Employee::factory()->create(['user_id' => $member->id]);
+    $this->actingAs($member)->post(route('team-recap.claim-adjust', $claim), ['target' => 1, 'realization' => 1])->assertForbidden();
+
+    RecapLock::create(['team_id' => $team->id, 'period_type' => 'month', 'period_year' => 2026, 'period_month' => 6]);
+    $this->actingAs($user)->post(route('team-recap.claim-adjust', $claim), ['target' => 1, 'realization' => 1])->assertSessionHas('error');
 });

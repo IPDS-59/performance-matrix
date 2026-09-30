@@ -4,6 +4,7 @@ import RecapLockBar from '@/Components/Kinetik/RecapLockBar.vue';
 import RecapToolbar from '@/Components/Kinetik/RecapToolbar.vue';
 import PrefillButton from '@/Components/Kinetik/PrefillButton.vue';
 import RecapMergeCell from '@/Components/Kinetik/RecapMergeCell.vue';
+import RecapMemberLines from '@/Components/Kinetik/RecapMemberLines.vue';
 import { groupAdjacent, groupSize, isGroupLead, textKey, textTarget, useRecapMerge } from '@/composables/useRecapMerge';
 import MeetingChecklist from '@/Components/Kinetik/MeetingChecklist.vue';
 import { periodChecklist } from '@/composables/useMeetingChecklist';
@@ -323,7 +324,10 @@ function saveParaphrase(row: RecapRow) {
             <div v-else id="rekap-baris" class="scroll-mt-4 space-y-6">
                 <div v-for="seg in segments" :key="seg.project_id ?? 'none'" class="overflow-hidden rounded-md border bg-white">
                     <div class="flex items-center justify-between gap-3 border-b bg-gray-50 px-4 py-3">
-                        <h3 class="min-w-0 text-sm font-semibold text-gray-800">{{ seg.project_name }}</h3>
+                        <div class="min-w-0">
+                            <h3 class="text-sm font-semibold text-gray-800">{{ seg.project_name }}</h3>
+                            <p v-if="seg.leader_rk" class="mt-0.5 text-xs leading-snug text-primary">RK Ketua: {{ seg.leader_rk }}</p>
+                        </div>
                         <Button
                             v-if="canManage && rowMerge.selectedCount(seg) >= 2"
                             size="sm"
@@ -372,6 +376,7 @@ function saveParaphrase(row: RecapRow) {
                                             <p class="font-medium leading-snug text-gray-800">{{ row.rk_description }}</p>
                                             <p v-if="row.rk_code" class="text-xs text-gray-500">{{ row.rk_code }}</p>
                                             <p v-if="row.is_overridden" class="mt-0.5 text-xs italic text-blue-500">Telah diparafrase</p>
+                                            <RecapMemberLines :claims="row.claims ?? []" :can-adjust="canManage" />
                                         </RecapMergeCell>
                                     </TableCell>
                                     <TableCell class="hidden min-w-[10rem] max-w-[16rem] whitespace-normal align-top md:table-cell text-xs leading-snug text-gray-600">{{ row.contributors.join(', ') || '—' }}</TableCell>

@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Actions\Kinetik\MergeRecapRowsAction;
 use App\Actions\Kinetik\PrefillRecapAction;
+use App\Models\ActivityClaim;
 use App\Models\Employee;
 use App\Models\LeadershipNote;
 use App\Models\PerformancePlan;
@@ -573,6 +574,44 @@ class TeamRecapController extends Controller
         return back()->with('success', $filled
             ? "{$filled} baris diisi dari rekap {$source}. Teks yang sudah ada tidak diubah."
             : "Tidak ada teks {$source} baru untuk diisi.");
+    }
+
+    // ── PJ corrects a member's numbers ───────────────────────────────────────
+
+    /**
+     * The PJ corrects a member's target or realisasi on the team recap. The
+     * claim remembers who changed it, and the member's next save resets that.
+     */
+    public function adjustClaim(Request $request, ActivityClaim $claim): RedirectResponse
+    {
+        $employee = $request->user()->employee;
+        abort_if($employee === null, 403, 'Akun tidak terhubung ke data pegawai.');
+
+        $claim->loadMissing('performancePlan.project');
+        $teamId = $claim->project?->team_id ?? $claim->performancePlan?->project?->team_id ?? $claim->performancePlan?->team_id;
+        abort_if($teamId === null, 404);
+        $this->authorizePj($employee, (int) $teamId);
+
+        if (RecapLock::coversDate((int) $teamId, Carbon::parse($claim->activity_date_start))) {
+            return back()->with('error', self::LOCKED_MESSAGE);
+        }
+
+        $validated = $request->validate([
+            'target' => ['nullable', 'numeric', 'min:0'],
+            'realization' => ['nullable', 'numeric', 'min:0'],
+        ]);
+
+        $target = isset($validated['target']) ? (float) $validated['target'] : null;
+        $realization = isset($validated['realization']) ? (float) $validated['realization'] : null;
+
+        $claim->update([
+            'target' => $target,
+            'realization' => $realization,
+            'achievement' => $target && $realization !== null ? round($realization / $target * 100, 2) : null,
+            'adjusted_by' => $employee->id,
+        ]);
+
+        return back()->with('success', 'Angka anggota diperbarui.');
     }
 
     // ── Gabungkan / Pisahkan rows ────────────────────────────────────────────

@@ -19,6 +19,7 @@ class ActivityClaim extends Model
         'target',
         'realization',
         'achievement',
+        'adjusted_by',
         'target_unit',
         'obstacle',
         'solution',
@@ -55,6 +56,12 @@ class ActivityClaim extends Model
     public function kipActivity(): BelongsTo
     {
         return $this->belongsTo(KipActivity::class);
+    }
+
+    /** The PJ who last corrected the numbers on the team recap. */
+    public function adjustedBy(): BelongsTo
+    {
+        return $this->belongsTo(Employee::class, 'adjusted_by');
     }
 
     public function employee(): BelongsTo

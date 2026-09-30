@@ -266,10 +266,25 @@ export interface ProjectOption {
 
 // ── Kinetik / Team recaps (Phase 4) ──────────────────────────────────────────
 
+/** One member claim behind a recap row. */
+export interface RecapClaimLine {
+    claim_id: number;
+    name: string;
+    uraian: string | null;
+    target: number | null;
+    realization: number | null;
+    target_unit: string | null;
+    achievement: number | null;
+    /** PJ who corrected the numbers, if any. */
+    adjusted_by: string | null;
+}
+
 export interface RecapRow {
     /** "planId:projectId" — one RK within one Projek. */
     row_key: string;
     /** Row key of the merge group's lead; null when not merged. */
+    /** Member claims behind this row. */
+    claims?: RecapClaimLine[];
     merge_key: string | null;
     performance_plan_id: number;
     project_id: number | null;
@@ -313,6 +328,8 @@ export interface RecapRow {
 export interface RecapSegment {
     project_id: number | null;
     project_name: string;
+    /** The ketua tim's RK this Projek hangs under. */
+    leader_rk?: string | null;
     rows: RecapRow[];
 }
 
