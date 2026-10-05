@@ -7,6 +7,7 @@ import { Button } from '@/Components/ui/button';
 import { Textarea } from '@/Components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/Components/ui/select';
 import { ChevronLeft, ChevronRight, ExternalLink, Target } from 'lucide-vue-next';
+import PlanItemsPanel from '@/Components/Kinetik/PlanItemsPanel.vue';
 import { useDateFormat } from '@/composables/useDateFormat';
 
 const props = defineProps<WeeklyPlanProps>();
@@ -100,6 +101,18 @@ function saveFocus(member: WeeklyPlanMember) {
                             <p v-else-if="m.focus" class="whitespace-pre-line rounded border border-primary/20 bg-primary/5 px-3 py-2 text-sm text-gray-800">{{ m.focus }}</p>
                             <p v-else class="text-sm text-gray-400">Belum ada fokus dari PJ.</p>
                         </div>
+
+                        <PlanItemsPanel
+                            :team-id="selectedTeamId!"
+                            :employee-id="m.employee_id"
+                            :member-name="m.name"
+                            :plans="m.plans"
+                            :rk-options="rkOptions"
+                            :project-options="projectOptions"
+                            :week-start="weekStart"
+                            :week-end="weekEnd"
+                            :can-edit="canManage || m.employee_id === currentEmployeeId"
+                        />
 
                         <!-- RK with no kegiatan yet -->
                         <div>

@@ -53,6 +53,7 @@ it('shows each member the RK without kegiatan, unfinished kegiatan and the PJ fo
                 'unsent_count' => 1,
                 'activity_count' => 1,
                 'rk_count' => 2,
+                'plans' => [],
             ]));
 });
 

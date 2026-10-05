@@ -2,10 +2,13 @@
 
 namespace App\Http\Controllers;
 
+use App\Actions\Kinetik\LinkPlansToProjectsAction;
 use App\Http\Controllers\Concerns\ResolvesTeams;
 use App\Models\Employee;
 use App\Models\EmployeeRk;
 use App\Models\KipActivity;
+use App\Models\PerformancePlan;
+use App\Models\PlanItem;
 use App\Models\Team;
 use App\Models\WeeklyFocus;
 use App\Notifications\KinetikNotification;
@@ -45,6 +48,8 @@ class WeeklyPlanController extends Controller
             'canManage' => $team !== null && $employee !== null && $this->isPj($employee, $team->id),
             'currentEmployeeId' => $employee?->id,
             'members' => $team ? $this->members($team, $monday) : [],
+            'rkOptions' => $team ? $this->rkOptions($team) : [],
+            'projectOptions' => $team ? $team->projects()->orderBy('name')->get(['id', 'name'])->all() : [],
         ]);
     }
 
@@ -110,6 +115,13 @@ class WeeklyPlanController extends Controller
         $quarterStart = $monday->copy()->firstOfQuarter()->toDateString();
         $quarterEnd = $monday->copy()->lastOfQuarter()->toDateString();
 
+        $planItems = PlanItem::where('team_id', $team->id)
+            ->duringWeek($monday->toDateString(), $monday->copy()->endOfWeek(Carbon::SUNDAY)->toDateString())
+            ->with('performancePlan:id,description')
+            ->orderBy('date_start')
+            ->get()
+            ->groupBy('employee_id');
+
         $focus = WeeklyFocus::where('team_id', $team->id)
             ->whereDate('week_start', $monday->toDateString())
             ->pluck('body', 'employee_id');
@@ -126,7 +138,7 @@ class WeeklyPlanController extends Controller
             ->get(['id', 'employee_id', 'description', 'activity_date_start', 'activity_date_end', 'progress', 'rk_external_id', 'rk_name', 'sent_at', 'evidence_url'])
             ->groupBy('employee_id');
 
-        return $members->map(function (Employee $member) use ($focus, $rks, $activities) {
+        return $members->map(function (Employee $member) use ($focus, $rks, $activities, $planItems) {
             $memberRks = $rks->get($member->id, collect());
             $memberActivities = $activities->get($member->id, collect());
 
@@ -139,6 +151,19 @@ class WeeklyPlanController extends Controller
                 'employee_id' => $member->id,
                 'name' => $member->display_name ?? $member->name,
                 'focus' => $focus->get($member->id),
+                'plans' => $planItems->get($member->id, collect())->map(fn (PlanItem $p) => [
+                    'id' => $p->id,
+                    'description' => $p->description,
+                    'performance_plan_id' => $p->performance_plan_id,
+                    'rk_name' => $p->performancePlan?->description,
+                    'project_id' => $p->project_id,
+                    'date_start' => Carbon::parse($p->date_start)->toDateString(),
+                    'date_end' => Carbon::parse($p->date_end)->toDateString(),
+                    'target' => $p->target !== null ? (float) $p->target : null,
+                    'target_unit' => $p->target_unit,
+                    'status' => $p->status,
+                    'source' => $p->source,
+                ])->values()->all(),
                 'rks_without_activity' => $memberRks
                     ->reject(fn (EmployeeRk $rk) => $memberActivities->contains(fn (KipActivity $a) => self::sameRk($rk, $a)))
                     ->map(fn (EmployeeRk $rk) => ['id' => $rk->id, 'name' => $rk->name])
@@ -162,6 +187,30 @@ class WeeklyPlanController extends Controller
                 'rk_count' => $memberRks->count(),
             ];
         })->all();
+    }
+
+    /**
+     * The team's RK a plan can point to, with the Projek rule of claims.
+     *
+     * @return list<array<string, mixed>>
+     */
+    private function rkOptions(Team $team): array
+    {
+        $links = app(LinkPlansToProjectsAction::class);
+        $plans = PerformancePlan::with('project')
+            ->where(fn ($q) => $q->where('team_id', $team->id)->orWhereHas('project', fn ($p) => $p->where('team_id', $team->id)))
+            ->orderBy('description')
+            ->get();
+        $candidates = $links->candidates($plans);
+
+        return $plans->map(fn (PerformancePlan $plan) => [
+            'id' => $plan->id,
+            'description' => $plan->description,
+            'project_id' => $plan->project_id,
+            'project_candidates' => $candidates->get($plan->id, []),
+            'project_optional' => $links->projectOptional($plan),
+            'target_unit' => $plan->target_unit,
+        ])->values()->all();
     }
 
     /** kipApp RK ids are per employee; the text is the fallback. */

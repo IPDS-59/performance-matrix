@@ -566,6 +566,31 @@ export interface WeeklyPlanMember {
     unsent_count: number;
     activity_count: number;
     rk_count: number;
+    /** Plan items that overlap the week (cancelled ones are left out). */
+    plans: PlanItemRow[];
+}
+
+export interface PlanItemRow {
+    id: number;
+    description: string;
+    performance_plan_id: number;
+    rk_name: string | null;
+    project_id: number | null;
+    date_start: string;
+    date_end: string;
+    target: number | null;
+    target_unit: string | null;
+    status: 'planned' | 'pushed' | 'in_progress' | 'done' | 'cancelled';
+    source: 'member' | 'pj' | 'rtl';
+}
+
+export interface PlanRkOption {
+    id: number;
+    description: string;
+    project_id: number | null;
+    project_candidates: number[];
+    project_optional: boolean;
+    target_unit: string | null;
 }
 
 export interface WeeklyPlanProps {
@@ -579,4 +604,6 @@ export interface WeeklyPlanProps {
     canManage: boolean;
     currentEmployeeId: number | null;
     members: WeeklyPlanMember[];
+    rkOptions: PlanRkOption[];
+    projectOptions: Array<{ id: number; name: string }>;
 }

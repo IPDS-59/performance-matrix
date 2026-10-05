@@ -196,6 +196,16 @@ export const GUIDE_FLOWS: GuideFlow[] = [
                 ],
             },
             {
+                title: 'Buat rencana kerja minggu ini',
+                where: 'Menu Kegiatan → Rencana Minggu Ini',
+                route: 'weekly-plan.index',
+                body: [
+                    'Pada kartu Anda, klik "Tambah rencana". Pilih RK, tulis apa yang akan dikerjakan, lalu isi tanggal mulai dan selesai.',
+                    'Pilih Projek bila RK itu belum punya projek. Target dan satuan boleh dikosongkan.',
+                    'Isi rencana paling lambat Senin pukul 09.00. Anda dapat mengubah atau membatalkan rencana selama belum dikirim ke kipApp.',
+                ],
+            },
+            {
                 title: 'Isi kegiatan harian di kipApp',
                 body: [
                     'Catat setiap kegiatan harian di kipApp seperti biasa, lengkap dengan uraian dan link bukti dukung.',
@@ -284,6 +294,15 @@ export const GUIDE_FLOWS: GuideFlow[] = [
                 body: [
                     'Isi fokus setiap anggota sebelum Senin, lalu klik Simpan di kartu anggota itu. Kosongkan teksnya untuk menghapus fokus.',
                     'Kartu juga menunjukkan RK anggota yang belum punya kegiatan di triwulan ini dan kegiatan yang belum selesai. Pakai daftar itu untuk memilih fokus.',
+                ],
+            },
+            {
+                title: 'Buat rencana untuk anggota',
+                where: 'Menu Kegiatan → Rencana Minggu Ini',
+                route: 'weekly-plan.index',
+                body: [
+                    'Pada kartu anggota, klik "Tambah rencana" untuk menugaskan pekerjaan. Anggota menerima notifikasi, dan rencana itu tampak berlabel "Dari PJ".',
+                    'Anda dapat mengubah atau membatalkan rencana siapa pun di tim selama belum dikirim ke kipApp. Tidak ada langkah persetujuan.',
                 ],
             },
             {

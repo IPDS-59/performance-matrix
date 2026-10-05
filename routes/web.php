@@ -12,6 +12,7 @@ use App\Http\Controllers\PerformanceApprovalController;
 use App\Http\Controllers\PerformanceController;
 use App\Http\Controllers\PerformanceIndicatorController;
 use App\Http\Controllers\PerformancePlanController;
+use App\Http\Controllers\PlanItemController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\ProjectController;
 use App\Http\Controllers\ProjectDetailController;
@@ -99,6 +100,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
     // Weekly activity scrapper / recap
     Route::get('/rencana-minggu', [WeeklyPlanController::class, 'index'])->name('weekly-plan.index');
     Route::post('/rencana-minggu/fokus', [WeeklyPlanController::class, 'storeFocus'])->name('weekly-plan.focus');
+    Route::post('/rencana-minggu/item', [PlanItemController::class, 'store'])->name('plan-items.store');
+    Route::patch('/rencana-minggu/item/{planItem}', [PlanItemController::class, 'update'])->name('plan-items.update');
+    Route::delete('/rencana-minggu/item/{planItem}', [PlanItemController::class, 'destroy'])->name('plan-items.destroy');
     Route::get('/rekap-mingguan', [WeeklyActivityController::class, 'index'])->name('weekly.index');
     Route::post('/rekap-mingguan/claim', [WeeklyActivityController::class, 'storeClaim'])->name('weekly.claim');
     Route::post('/rekap-mingguan/claim-bulk', [WeeklyActivityController::class, 'storeClaimsBulk'])->name('weekly.claim-bulk');
