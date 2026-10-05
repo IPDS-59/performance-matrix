@@ -144,16 +144,22 @@ const numberField = 'h-8 rounded-md border border-gray-200 bg-white px-1.5 text-
                                 <span class="min-w-0 text-gray-700">{{ line.uraian ?? 'Tanpa uraian' }}</span>
                                 <span v-if="line.adjusted_by" class="shrink-0 text-[11px] text-amber-700" :title="`Angka dikoreksi ${line.adjusted_by}`">dikoreksi</span>
                             </div>
-                            <div v-if="canManage && numbers[line.claim_id]" class="grid grid-cols-[3.5rem_3.5rem_5.5rem_4.5rem] items-center gap-1.5">
-                                <input v-model="numbers[line.claim_id].target" type="number" min="0" step="any" :class="numberField" :aria-label="`Target ${line.name}`" />
-                                <input v-model="numbers[line.claim_id].realization" type="number" min="0" step="any" :class="numberField" :aria-label="`Realisasi ${line.name}`" />
-                                <input v-model="numbers[line.claim_id].target_unit" type="text" :class="numberField" :aria-label="`Satuan ${line.name}`" />
-                                <span :class="['text-right text-sm font-semibold tabular-nums', color(achievement(numbers[line.claim_id]))]">{{ pct(achievement(numbers[line.claim_id])) }}</span>
-                            </div>
-                            <div v-else class="grid grid-cols-[3.5rem_3.5rem_5.5rem_4.5rem] items-center gap-1.5 text-center text-sm tabular-nums text-gray-700">
-                                <span>{{ line.target ?? '—' }}</span><span>{{ line.realization ?? '—' }}</span>
-                                <span class="truncate text-gray-500">{{ line.target_unit ?? '' }}</span>
-                                <span :class="['text-right font-semibold', color(line.achievement)]">{{ pct(line.achievement) }}</span>
+                            <div>
+                                <!-- The column titles sit in the table header on wide screens only. -->
+                                <div class="mb-0.5 grid grid-cols-[3.5rem_3.5rem_5.5rem_4.5rem] gap-1.5 text-center text-[11px] text-gray-500 md:hidden" aria-hidden="true">
+                                    <span>Target</span><span>Realisasi</span><span>Satuan</span><span class="text-right">Capaian</span>
+                                </div>
+                                <div v-if="canManage && numbers[line.claim_id]" class="grid grid-cols-[3.5rem_3.5rem_5.5rem_4.5rem] items-center gap-1.5">
+                                    <input v-model="numbers[line.claim_id].target" type="number" min="0" step="any" :class="numberField" :aria-label="`Target ${line.name}`" />
+                                    <input v-model="numbers[line.claim_id].realization" type="number" min="0" step="any" :class="numberField" :aria-label="`Realisasi ${line.name}`" />
+                                    <input v-model="numbers[line.claim_id].target_unit" type="text" :class="numberField" :aria-label="`Satuan ${line.name}`" />
+                                    <span :class="['text-right text-sm font-semibold tabular-nums', color(achievement(numbers[line.claim_id]))]">{{ pct(achievement(numbers[line.claim_id])) }}</span>
+                                </div>
+                                <div v-else class="grid grid-cols-[3.5rem_3.5rem_5.5rem_4.5rem] items-center gap-1.5 text-center text-sm tabular-nums text-gray-700">
+                                    <span>{{ line.target ?? '—' }}</span><span>{{ line.realization ?? '—' }}</span>
+                                    <span class="truncate text-gray-500">{{ line.target_unit ?? '' }}</span>
+                                    <span :class="['text-right font-semibold', color(line.achievement)]">{{ pct(line.achievement) }}</span>
+                                </div>
                             </div>
                         </li>
                     </ul>
