@@ -199,7 +199,7 @@ export const GUIDE_FLOWS: GuideFlow[] = [
                 title: 'Isi kegiatan harian di kipApp',
                 body: [
                     'Catat setiap kegiatan harian di kipApp seperti biasa, lengkap dengan uraian dan link bukti dukung.',
-                    'Kegiatan baru muncul di Kinetik setelah admin menjalankan Sinkronisasi Kegiatan.',
+                    'Kinetik menarik kegiatan kipApp setiap pagi pukul 05.00 WITA. Kegiatan yang Anda isi sesudahnya muncul besok pagi, atau lebih cepat bila admin menjalankan Sinkronisasi Kegiatan.',
                 ],
             },
             {
@@ -465,9 +465,9 @@ export const GUIDE_FLOWS: GuideFlow[] = [
                     'Jalankan berurutan: 1. Struktur, 2. Kegiatan, 3. Angka Kredit. Selama satu sinkronisasi berjalan, tombol lain tidak aktif.',
                     'Tekan Sinkronkan pada Sinkronisasi Struktur lebih dulu. Langkah ini menarik tim, projek, anggota dan RK, termasuk ID pegawai kipApp.',
                     'Setelah selesai, tekan Sinkronkan pada Sinkronisasi Kegiatan. Kegiatan semua bulan dalam periode ikut ditarik, termasuk yang sudah dikirim.',
-                    'Jadwal otomatis setiap pagi hanya berjalan bila server menjalankan cron Laravel (php artisan schedule:run tiap menit). Tanpa cron, jalankan sinkronisasi secara manual minimal sekali sehari.',
+                    'Keduanya juga berjalan otomatis setiap pagi: Struktur pukul 04.30 WITA dan Kegiatan pukul 05.00 WITA. Jadwal ini memakai Task Scheduler di panel hosting, yang menjalankan php artisan schedule:run setiap 5 menit.',
                     'Sinkronisasi Angka Kredit menarik golongan, jabatan dan predikat SKP semua tahun untuk halaman Angka Kredit. Jalankan sesudah Sinkronisasi Struktur. Proses ini memanggil kipApp sekitar tiga kali per pegawai, jadi perlu beberapa menit. Biarkan halaman tetap terbuka sampai selesai.',
-                    'Dengan cron aktif, Sinkronisasi Angka Kredit juga berjalan setiap Senin pagi.',
+                    'Sinkronisasi Angka Kredit juga berjalan otomatis setiap Senin pukul 05.30 WITA.',
                     'Token kipApp berlaku sekitar 24 jam. Kinetik mengirim notifikasi ke admin tiga jam sebelum token kedaluwarsa dan sekali lagi saat sudah kedaluwarsa. Simpan token baru di halaman Integrasi kipApp.',
                 ],
                 tip: 'Sinkronisasi hanya menambah dan memperbarui data. Klaim, parafrase, konfirmasi, kunci dan bukti rapat tidak pernah dihapus. Satu pengecualian: anggota projek disamakan dengan daftar di kipApp.',
