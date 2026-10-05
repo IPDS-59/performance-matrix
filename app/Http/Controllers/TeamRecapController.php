@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Actions\Kinetik\MergeRecapRowsAction;
 use App\Actions\Kinetik\PrefillRecapAction;
+use App\Http\Controllers\Concerns\ResolvesTeams;
 use App\Models\ActivityClaim;
 use App\Models\Employee;
 use App\Models\LeadershipNote;
@@ -28,6 +29,8 @@ use Inertia\Response;
 
 class TeamRecapController extends Controller
 {
+    use ResolvesTeams;
+
     private const LOCKED_MESSAGE = 'Rekap periode ini sudah dikunci PJ. Buka kunci terlebih dahulu untuk mengubah.';
 
     public function __construct(private readonly RecapAggregator $aggregator) {}
@@ -980,59 +983,6 @@ class TeamRecapController extends Controller
     // ── Helpers ──────────────────────────────────────────────────────────────
 
     /**
-     * @return Collection<int, Team>
-     */
-    private function teamsFor(Request $request): Collection
-    {
-        // The head reads every team's recap in the office-wide meeting, as the
-        // old Rapat Mingguan / Rapat Bulanan sheets did. Read-only for them.
-        if ($request->user()->hasAnyRole(['admin', 'head'])) {
-            return Team::orderBy('name')->get();
-        }
-
-        $employee = $request->user()->employee;
-
-        if ($employee === null) {
-            return collect();
-        }
-
-        return $employee->teams()->orderBy('teams.name')->get();
-    }
-
-    /**
-     * Resolve the active team from the request. When no ?team param is present,
-     * prefers a team the employee leads; falls back to alphabetical first.
-     *
-     * @param  Collection<int, Team>  $teams
-     */
-    private function selectedTeam(Request $request, Collection $teams, ?Employee $employee = null): ?Team
-    {
-        $requested = $request->query('team');
-
-        if ($requested !== null) {
-            return $teams->firstWhere('id', (int) $requested) ?? $teams->first();
-        }
-
-        if ($employee !== null) {
-            $led = $teams->first(fn (Team $t) => $this->isPj($employee, $t->id));
-            if ($led !== null) {
-                return $led;
-            }
-        }
-
-        return $teams->first();
-    }
-
-    /**
-     * @param  Collection<int, Team>  $teams
-     * @return array<int, array{id: int, name: string}>
-     */
-    private function teamOptions(Collection $teams): array
-    {
-        return $teams->map(fn (Team $t) => ['id' => $t->id, 'name' => $t->name])->all();
-    }
-
-    /**
      * @return array<int, array{id: int, name: string}>
      */
     private function teamMemberOptions(Team $team): array
@@ -1042,19 +992,6 @@ class TeamRecapController extends Controller
             ->get()
             ->map(fn (Employee $e) => ['id' => $e->id, 'name' => $e->display_name ?? $e->name])
             ->all();
-    }
-
-    /**
-     * PJ = team leader (teams.leader_id) or a member with the 'leader' pivot role.
-     * Per the RFC, only the PJ may upload meeting evidence and paraphrase recaps.
-     */
-    private function isPj(Employee $employee, int $teamId): bool
-    {
-        return Team::where('id', $teamId)->where('leader_id', $employee->id)->exists()
-            || $employee->teams()
-                ->where('teams.id', $teamId)
-                ->wherePivot('role', 'leader')
-                ->exists();
     }
 
     /**

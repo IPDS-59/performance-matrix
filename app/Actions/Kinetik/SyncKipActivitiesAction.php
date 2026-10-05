@@ -3,7 +3,9 @@
 namespace App\Actions\Kinetik;
 
 use App\Kinetik\Contracts\KipActivitySource;
+use App\Kinetik\Data\KipRkData;
 use App\Models\Employee;
+use App\Models\EmployeeRk;
 use App\Models\KipActivity;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Log;
@@ -72,7 +74,9 @@ class SyncKipActivitiesAction
             // calls; a failure here must not stop the activity sync.
             if ($employee->kip_pegawai_id) {
                 try {
-                    $this->links->rememberLeaderRks($source->fetchYearlyRks((string) $employee->kip_pegawai_id));
+                    $rks = $source->fetchYearlyRks((string) $employee->kip_pegawai_id);
+                    $this->links->rememberLeaderRks($rks);
+                    $this->rememberEmployeeRks($employee, $rks);
                 } catch (Throwable $e) {
                     Log::warning('Leader RK sync failed', ['employee_id' => $employee->id, 'error' => $e->getMessage()]);
                 }
@@ -82,5 +86,32 @@ class SyncKipActivitiesAction
         $this->links->execute();
 
         return $count;
+    }
+
+    /**
+     * Keep the member's own RK list (for "RK belum ada kegiatan" on the plan
+     * board): the RK kipApp returned replace the stored ones of that year.
+     *
+     * @param  Collection<int, KipRkData>  $rks
+     */
+    private function rememberEmployeeRks(Employee $employee, Collection $rks): void
+    {
+        $rks->groupBy(fn (KipRkData $rk) => (int) ($rk->raw['tahun'] ?? now()->year))
+            ->each(function (Collection $yearRks, int $year) use ($employee) {
+                foreach ($yearRks as $rk) {
+                    EmployeeRk::updateOrCreate(
+                        ['employee_id' => $employee->id, 'kip_rk_id' => $rk->externalId],
+                        [
+                            'name' => $rk->name,
+                            'leader_rk' => trim((string) ($rk->raw['rencanakinerjaatasan'] ?? '')) ?: null,
+                            'team_kip_id' => $rk->teamExternalId,
+                            'year' => $year,
+                        ],
+                    );
+                }
+                EmployeeRk::where('employee_id', $employee->id)->where('year', $year)
+                    ->whereNotIn('kip_rk_id', $yearRks->map(fn (KipRkData $rk) => $rk->externalId))
+                    ->delete();
+            });
     }
 }

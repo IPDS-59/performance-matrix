@@ -22,6 +22,7 @@ use App\Http\Controllers\TeamController;
 use App\Http\Controllers\TeamMemberController;
 use App\Http\Controllers\TeamRecapController;
 use App\Http\Controllers\WeeklyActivityController;
+use App\Http\Controllers\WeeklyPlanController;
 use App\Http\Controllers\WorkItemController;
 use App\Http\Controllers\WorkItemDetailController;
 use Illuminate\Support\Facades\Route;
@@ -96,6 +97,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/kegiatan-kipapp', [KipActivityController::class, 'index'])->name('kip-activities.index');
 
     // Weekly activity scrapper / recap
+    Route::get('/rencana-minggu', [WeeklyPlanController::class, 'index'])->name('weekly-plan.index');
+    Route::post('/rencana-minggu/fokus', [WeeklyPlanController::class, 'storeFocus'])->name('weekly-plan.focus');
     Route::get('/rekap-mingguan', [WeeklyActivityController::class, 'index'])->name('weekly.index');
     Route::post('/rekap-mingguan/claim', [WeeklyActivityController::class, 'storeClaim'])->name('weekly.claim');
     Route::post('/rekap-mingguan/claim-bulk', [WeeklyActivityController::class, 'storeClaimsBulk'])->name('weekly.claim-bulk');

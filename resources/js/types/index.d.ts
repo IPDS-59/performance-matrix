@@ -552,3 +552,31 @@ export interface RecapSection {
     end: string;
     segments: RecapSegment[];
 }
+
+/** One member card on "Rencana Minggu Ini". */
+export interface WeeklyPlanMember {
+    employee_id: number;
+    name: string;
+    /** The PJ's focus for this member this week. */
+    focus: string | null;
+    /** The member's RK of this team with no kegiatan yet this quarter. */
+    rks_without_activity: Array<{ id: number; name: string }>;
+    /** This quarter's kegiatan still under 100% (newest first, up to 10). */
+    unfinished: Array<{ id: number; description: string; date_start: string; progress: number; rk_name: string | null; evidence_url: string | null }>;
+    unsent_count: number;
+    activity_count: number;
+    rk_count: number;
+}
+
+export interface WeeklyPlanProps {
+    teams: TeamOption[];
+    selectedTeamId: number | null;
+    weekStart: string;
+    weekEnd: string;
+    prevWeek: string;
+    nextWeek: string;
+    quarter: number;
+    canManage: boolean;
+    currentEmployeeId: number | null;
+    members: WeeklyPlanMember[];
+}

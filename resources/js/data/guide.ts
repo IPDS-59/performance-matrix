@@ -187,6 +187,15 @@ export const GUIDE_FLOWS: GuideFlow[] = [
         replaces: 'Sheet "Kegiatan Mingguan Anggota"',
         steps: [
             {
+                title: 'Lihat Rencana Minggu Ini setiap Senin',
+                where: 'Menu Kegiatan → Rencana Minggu Ini',
+                route: 'weekly-plan.index',
+                body: [
+                    'Kartu Anda tampil paling atas. Isinya fokus dari PJ untuk minggu ini, RK yang belum punya kegiatan di triwulan ini, dan kegiatan yang progresnya belum 100%.',
+                    'Mulai minggu dari daftar itu: kerjakan fokus PJ, lalu lanjutkan kegiatan yang belum selesai.',
+                ],
+            },
+            {
                 title: 'Isi kegiatan harian di kipApp',
                 body: [
                     'Catat setiap kegiatan harian di kipApp seperti biasa, lengkap dengan uraian dan link bukti dukung.',
@@ -267,6 +276,15 @@ export const GUIDE_FLOWS: GuideFlow[] = [
                 where: 'Menu Kegiatan → Rekap Mingguan',
                 route: 'weekly.index',
                 body: ['Sama seperti anggota. Sebagai PJ, Anda juga dapat mengisi Solusi dan Rencana Tindak Lanjut di sini.'],
+            },
+            {
+                title: 'Isi fokus minggu ini untuk setiap anggota',
+                where: 'Menu Kegiatan → Rencana Minggu Ini',
+                route: 'weekly-plan.index',
+                body: [
+                    'Isi fokus setiap anggota sebelum Senin, lalu klik Simpan di kartu anggota itu. Kosongkan teksnya untuk menghapus fokus.',
+                    'Kartu juga menunjukkan RK anggota yang belum punya kegiatan di triwulan ini dan kegiatan yang belum selesai. Pakai daftar itu untuk memilih fokus.',
+                ],
             },
             {
                 title: 'Buka Rekap Tim mingguan dan cek "Siap rapat"',
