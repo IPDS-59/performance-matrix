@@ -84,8 +84,15 @@ function defaultProjectId(planId: number | null): string {
     const named = plan ? suggestProject(plan.description, options) : null;
     if (named) return String(named.id);
 
-    const own = options.filter(p => p.is_member);
-    return own.length === 1 ? String(own[0].id) : NO_PROJECT;
+    // No guess beyond this: kipApp often lists most of the team as members of
+    // one broad Projek, so "the member's only Projek" picked the wrong one.
+    return NO_PROJECT;
+}
+
+// The member must pick a Projek unless the RK has none in kipApp.
+function projectRequired(planId: number | null): boolean {
+    const plan = props.plans.find(p => p.id === planId);
+    return !!plan && !plan.project_id && !plan.project_optional && projectOptions(planId).length > 0;
 }
 
 function makeClaimForm(activity: KipActivity) {
@@ -191,13 +198,16 @@ const claimedCount = computed(() => props.activities.filter(a => a.is_claimed).l
 // Activities the member still has to claim (a PJ lock freezes the rest).
 const pendingActivities = computed(() => props.activities.filter(a => !a.is_claimed && !a.locked));
 const readyActivities = computed(() =>
-    pendingActivities.value.filter(a => claimForms.value[a.id] && isReadyToSave(claimForms.value[a.id])),
+    pendingActivities.value.filter(a => claimForms.value[a.id] && isReadyToSave(claimForms.value[a.id], projectRequired(claimForms.value[a.id].performance_plan_id))),
 );
 const lockedCount = computed(() => props.activities.filter(a => a.locked).length);
 
 function quickFillOne(activityId: number) {
     const form = claimForms.value[activityId];
-    if (form) quickFill(form);
+    if (!form) return;
+    const activity = props.activities.find(a => a.id === activityId);
+    const plan = props.plans.find(p => p.id === form.performance_plan_id);
+    quickFill(form, { progress: activity?.progress, unit: plan?.target_unit });
 }
 
 function quickFillAll() {
@@ -299,7 +309,7 @@ function achievementColor(val: number | string | null | undefined): string {
                         </p>
                     </div>
                     <div v-if="pendingActivities.length" class="flex w-full flex-wrap gap-2 sm:w-auto">
-                        <Button type="button" variant="outline" size="sm" class="flex-1 sm:flex-none" title="Isi kolom kosong: target 1, realisasi 1, satuan Kegiatan, kendala -" @click="quickFillAll">
+                        <Button type="button" variant="outline" size="sm" class="flex-1 sm:flex-none" title="Isi kolom kosong: target 1 kegiatan, realisasi dari progres kipApp, satuan dari IKI RK (atau Kegiatan), kendala -" @click="quickFillAll">
                             <Zap class="mr-1.5 h-4 w-4" />
                             Isi cepat semua
                         </Button>
@@ -422,13 +432,13 @@ function achievementColor(val: number | string | null | undefined): string {
                                     <div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
                                         <!-- Projek: kipApp RKs are team-wide, so the member picks the project -->
                                         <div v-if="projectOptions(claimForms[activity.id].performance_plan_id).length" class="sm:col-span-2">
-                                            <Label :for="`project-${activity.id}`">Projek</Label>
+                                            <Label :for="`project-${activity.id}`">Projek <span v-if="projectRequired(claimForms[activity.id].performance_plan_id)" class="text-red-600" aria-hidden="true">*</span></Label>
                                             <Select v-model="claimForms[activity.id].project_id">
                                                 <SelectTrigger :id="`project-${activity.id}`" class="mt-1 w-full">
                                                     <SelectValue placeholder="Pilih projek" />
                                                 </SelectTrigger>
                                                 <SelectContent>
-                                                    <SelectItem :value="NO_PROJECT">— Tanpa projek —</SelectItem>
+                                                    <SelectItem v-if="!projectRequired(claimForms[activity.id].performance_plan_id)" :value="NO_PROJECT">— Tanpa projek —</SelectItem>
                                                     <SelectItem
                                                         v-for="project in projectOptions(claimForms[activity.id].performance_plan_id)"
                                                         :key="project.id"
@@ -457,15 +467,15 @@ function achievementColor(val: number | string | null | undefined): string {
                                     <legend class="mb-2 text-xs font-semibold uppercase tracking-wide text-gray-500">Capaian</legend>
                                     <div class="grid grid-cols-2 gap-3 lg:grid-cols-4">
                                         <div>
-                                            <Label :for="`target-${activity.id}`">Target</Label>
+                                            <Label :for="`target-${activity.id}`">Target <span class="text-red-600" aria-hidden="true">*</span></Label>
                                             <Input :id="`target-${activity.id}`" type="number" step="any" min="0" inputmode="decimal" v-model="claimForms[activity.id].target" class="mt-1 tabular-nums" />
                                         </div>
                                         <div>
-                                            <Label :for="`realization-${activity.id}`">Realisasi</Label>
+                                            <Label :for="`realization-${activity.id}`">Realisasi <span class="text-red-600" aria-hidden="true">*</span></Label>
                                             <Input :id="`realization-${activity.id}`" type="number" step="any" min="0" inputmode="decimal" v-model="claimForms[activity.id].realization" class="mt-1 tabular-nums" />
                                         </div>
                                         <div>
-                                            <Label :for="`unit-${activity.id}`">Satuan</Label>
+                                            <Label :for="`unit-${activity.id}`">Satuan <span class="text-red-600" aria-hidden="true">*</span></Label>
                                             <Input :id="`unit-${activity.id}`" v-model="claimForms[activity.id].target_unit" class="mt-1" placeholder="Kegiatan" />
                                         </div>
                                         <div>
@@ -507,7 +517,7 @@ function achievementColor(val: number | string | null | undefined): string {
                                 </fieldset>
 
                                 <div class="flex flex-col-reverse gap-2 border-t pt-4 sm:flex-row sm:items-center sm:justify-end">
-                                    <Button type="button" variant="ghost" size="sm" class="w-full sm:mr-auto sm:w-auto" title="Isi kolom kosong: target 1, realisasi 1, satuan Kegiatan, kendala -" @click="quickFillOne(activity.id)">
+                                    <Button type="button" variant="ghost" size="sm" class="w-full sm:mr-auto sm:w-auto" title="Isi kolom kosong: target 1 kegiatan, realisasi dari progres kipApp, satuan dari IKI RK (atau Kegiatan), kendala -" @click="quickFillOne(activity.id)">
                                         <Zap class="mr-1.5 h-4 w-4" />
                                         Isi cepat
                                     </Button>

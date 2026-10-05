@@ -16,6 +16,9 @@ use Illuminate\Support\Collection;
  */
 class LinkPlansToProjectsAction
 {
+    /** @var array<int, array{any: bool, byLeader: Collection<string, Collection<int, int>>}> */
+    private array $teamProjects = [];
+
     /**
      * Set project_id on RK that have no Projek yet and whose leader RK owns
      * exactly one Projek. Never changes a Projek that is already set.
@@ -94,6 +97,34 @@ class LinkPlansToProjectsAction
                 $plan->id => $byLeader->get(self::key($plan->team_id, $plan->leader_rk), collect())->values()->all(),
             ])
             ->filter(fn (array $ids) => count($ids) > 1);
+    }
+
+    /**
+     * May a claim on this RK have no Projek? Only when the RK is not tied to a
+     * Projek, and either its team has no Projek at all or kipApp shows its
+     * leader RK owns none (e.g. a Zona Integritas RK). Otherwise the member
+     * must pick one.
+     */
+    public function projectOptional(PerformancePlan $plan): bool
+    {
+        if ($plan->project_id !== null || $plan->team_id === null) {
+            return $plan->project_id === null;
+        }
+        // Cached per team: the claim form asks this for every RK of the member's teams.
+        $this->teamProjects[$plan->team_id] ??= [
+            'any' => Project::where('team_id', $plan->team_id)->exists(),
+            'byLeader' => $this->projectsByLeaderRk($plan->team_id),
+        ];
+        $team = $this->teamProjects[$plan->team_id];
+
+        if (! $team['any']) {
+            return true;
+        }
+        if (blank($plan->leader_rk)) {
+            return false;
+        }
+
+        return $team['byLeader']->get(self::key($plan->team_id, $plan->leader_rk), collect())->isEmpty();
     }
 
     /**

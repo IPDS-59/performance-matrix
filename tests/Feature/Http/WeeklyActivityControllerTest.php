@@ -134,6 +134,7 @@ it('lists a saved claim in the recap for its week (week_start stored as datetime
     // Persist through the action so week_start is written as a 'date' cast
     // (stored 'Y-m-d H:i:s'); the recap query must still match it via whereDate.
     $this->actingAs($user)->post(route('weekly.claim'), [
+        'target' => 1, 'realization' => 1, 'target_unit' => 'Kegiatan',
         'kip_activity_id' => $activity->id,
         'performance_plan_id' => $plan->id,
         'obstacle' => '-',
@@ -171,7 +172,7 @@ it('saves an activity claim with computed achievement', function () {
             'kip_activity_id' => $activity->id,
             'performance_plan_id' => $plan->id,
             'target' => '10',
-            'realization' => '8',
+            'realization' => '8', 'target_unit' => 'Kegiatan',
             'obstacle' => 'Kendala teknis',
             'activity_date_start' => '2026-06-02',
             'status' => 'saved',
@@ -207,6 +208,7 @@ it('returns 403 when claiming an RK from a team the employee is not in', functio
 
     $this->actingAs($user)
         ->post(route('weekly.claim'), [
+            'target' => 1, 'realization' => 1, 'target_unit' => 'Kegiatan',
             'kip_activity_id' => $activity->id,
             'performance_plan_id' => $plan->id,
             'obstacle' => 'Kendala teknis',
@@ -228,6 +230,7 @@ it('validates required performance_plan_id on claim store', function () {
 
     $this->actingAs($user)
         ->post(route('weekly.claim'), [
+            'target' => 1, 'realization' => 1, 'target_unit' => 'Kegiatan',
             'activity_date_start' => '2026-06-02',
         ])
         ->assertSessionHasErrors(['performance_plan_id']);
@@ -241,6 +244,7 @@ it('returns 403 when storing a claim without employee record', function () {
 
     $this->actingAs($user)
         ->post(route('weekly.claim'), [
+            'target' => 1, 'realization' => 1, 'target_unit' => 'Kegiatan',
             'performance_plan_id' => $plan->id,
             'activity_date_start' => '2026-06-02',
             'status' => 'saved',
@@ -266,7 +270,7 @@ it('allows re-saving an existing claim (updateOrCreate)', function () {
         'kip_activity_id' => $activity->id,
         'performance_plan_id' => $plan->id,
         'target' => '10',
-        'realization' => '5',
+        'realization' => '5', 'target_unit' => 'Kegiatan',
         'obstacle' => 'Kendala teknis',
         'activity_date_start' => '2026-06-02',
         'status' => 'saved',
@@ -320,6 +324,7 @@ it('requires obstacle (kendala) on claim', function () {
 
     $this->actingAs($user)
         ->post(route('weekly.claim'), [
+            'target' => 1, 'realization' => 1, 'target_unit' => 'Kegiatan',
             'performance_plan_id' => $plan->id,
             'activity_date_start' => '2026-06-02',
         ])
@@ -335,6 +340,7 @@ it('strips solution and rtl for a non-PJ member', function () {
     $activity = KipActivity::factory()->create(['employee_id' => $employee->id, 'activity_date_start' => '2026-06-02']);
 
     $this->actingAs($user)->post(route('weekly.claim'), [
+        'target' => 1, 'realization' => 1, 'target_unit' => 'Kegiatan',
         'kip_activity_id' => $activity->id,
         'performance_plan_id' => $plan->id,
         'obstacle' => 'Kendala',
@@ -362,6 +368,7 @@ it('keeps solution and rtl for a PJ', function () {
         ->assertInertia(fn ($page) => $page->where('isPj', true));
 
     $this->actingAs($user)->post(route('weekly.claim'), [
+        'target' => 1, 'realization' => 1, 'target_unit' => 'Kegiatan',
         'kip_activity_id' => $activity->id,
         'performance_plan_id' => $plan->id,
         'obstacle' => 'Kendala',
@@ -387,6 +394,7 @@ it('allows claiming a team-scoped RK with no project (kipApp style)', function (
     $activity = KipActivity::factory()->create(['employee_id' => $employee->id, 'activity_date_start' => '2026-06-02']);
 
     $this->actingAs($user)->post(route('weekly.claim'), [
+        'target' => 1, 'realization' => 1, 'target_unit' => 'Kegiatan',
         'kip_activity_id' => $activity->id,
         'performance_plan_id' => $plan->id,
         'obstacle' => 'Kendala',
@@ -412,6 +420,7 @@ it('stores the chosen Projek on a claim against a team-scoped RK', function () {
     $plan = PerformancePlan::factory()->create(['project_id' => null, 'team_id' => $team->id]);
 
     $this->actingAs($user)->post(route('weekly.claim'), [
+        'target' => 1, 'realization' => 1, 'target_unit' => 'Kegiatan',
         'performance_plan_id' => $plan->id,
         'project_id' => $project->id,
         'obstacle' => '-',
@@ -430,6 +439,7 @@ it('rejects a Projek from another team', function () {
     $plan = PerformancePlan::factory()->create(['project_id' => null, 'team_id' => $team->id]);
 
     $this->actingAs($user)->post(route('weekly.claim'), [
+        'target' => 1, 'realization' => 1, 'target_unit' => 'Kegiatan',
         'performance_plan_id' => $plan->id,
         'project_id' => $foreign->id,
         'obstacle' => '-',
@@ -466,6 +476,7 @@ it('rejects a claim in a period the PJ locked', function () {
     RecapLock::create(['team_id' => $team->id, 'period_type' => 'month', 'period_year' => 2026, 'period_month' => 6]);
 
     $this->actingAs($user)->post(route('weekly.claim'), [
+        'target' => 1, 'realization' => 1, 'target_unit' => 'Kegiatan',
         'performance_plan_id' => $plan->id,
         'obstacle' => '-',
         'activity_date_start' => '2026-06-02',
@@ -496,8 +507,8 @@ it('saves several claims in one request', function () {
     $b = KipActivity::factory()->create(['employee_id' => $employee->id, 'activity_date_start' => '2026-06-03']);
 
     $this->actingAs($user)->post(route('weekly.claim-bulk'), ['claims' => [
-        ['kip_activity_id' => $a->id, 'performance_plan_id' => $plan->id, 'target' => 1, 'realization' => 1, 'obstacle' => '-', 'activity_date_start' => '2026-06-02'],
-        ['kip_activity_id' => $b->id, 'performance_plan_id' => $plan->id, 'target' => 1, 'realization' => 1, 'obstacle' => '-', 'activity_date_start' => '2026-06-03'],
+        ['kip_activity_id' => $a->id, 'performance_plan_id' => $plan->id, 'target' => 1, 'realization' => 1, 'target_unit' => 'Kegiatan', 'obstacle' => '-', 'activity_date_start' => '2026-06-02'],
+        ['kip_activity_id' => $b->id, 'performance_plan_id' => $plan->id, 'target' => 1, 'realization' => 1, 'target_unit' => 'Kegiatan', 'obstacle' => '-', 'activity_date_start' => '2026-06-03'],
     ]])->assertSessionHas('success');
 
     expect(ActivityClaim::where('status', 'saved')->count())->toBe(2);
@@ -509,8 +520,8 @@ it('rolls back the whole batch when one claim is in a locked period', function (
     RecapLock::create(['team_id' => $team->id, 'period_type' => 'week', 'period_year' => 2026, 'week_start' => '2026-06-08']);
 
     $this->actingAs($user)->post(route('weekly.claim-bulk'), ['claims' => [
-        ['performance_plan_id' => $plan->id, 'obstacle' => '-', 'activity_date_start' => '2026-06-02'],
-        ['performance_plan_id' => $plan->id, 'obstacle' => '-', 'activity_date_start' => '2026-06-09'],
+        ['performance_plan_id' => $plan->id, 'target' => 1, 'realization' => 1, 'target_unit' => 'Kegiatan', 'obstacle' => '-', 'activity_date_start' => '2026-06-02'],
+        ['performance_plan_id' => $plan->id, 'target' => 1, 'realization' => 1, 'target_unit' => 'Kegiatan', 'obstacle' => '-', 'activity_date_start' => '2026-06-09'],
     ]])->assertSessionHas('error');
 
     expect(ActivityClaim::count())->toBe(0);
@@ -592,7 +603,7 @@ it('shows a multi-week activity every week it covers and claims it once per week
             ->where('activities.0.is_claimed', false));
 
     $claim = fn (string $from, string $to, int $done) => $this->actingAs($user)->post(route('weekly.claim'), [
-        'kip_activity_id' => $activity->id, 'performance_plan_id' => $plan->id, 'target' => 1, 'realization' => $done,
+        'kip_activity_id' => $activity->id, 'performance_plan_id' => $plan->id, 'target' => 1, 'realization' => $done, 'target_unit' => 'Kegiatan',
         'obstacle' => '-', 'activity_date_start' => $from, 'activity_date_end' => $to,
     ]);
     $claim('2026-08-10', '2026-08-16', 1);
@@ -604,4 +615,18 @@ it('shows a multi-week activity every week it covers and claims it once per week
 
     $this->actingAs($user)->get(route('weekly.index', ['week' => '2026-08-24']))
         ->assertInertia(fn ($page) => $page->where('activities.0.is_claimed', false)->where('activities.0.claim', null));
+});
+
+it('requires a Projek unless kipApp shows the RK Ketua has none', function () {
+    [$user, $employee, $team, $plan] = claimant();
+    Project::factory()->create(['team_id' => $team->id, 'leader_rk' => 'RK Ketua TIK']);
+    $activity = KipActivity::factory()->create(['employee_id' => $employee->id, 'activity_date_start' => '2026-06-02', 'activity_date_end' => '2026-06-02']);
+    $payload = ['kip_activity_id' => $activity->id, 'performance_plan_id' => $plan->id, 'target' => 1, 'realization' => 1, 'target_unit' => 'Kegiatan', 'obstacle' => '-', 'activity_date_start' => '2026-06-02'];
+
+    // Leader RK unknown: the member must pick.
+    $this->actingAs($user)->post(route('weekly.claim'), $payload)->assertSessionHasErrors('project_id');
+
+    // Leader RK known and it owns no Projek (e.g. Zona Integritas): "Tanpa projek" is fine.
+    $plan->update(['leader_rk' => 'RK Ketua Zona Integritas']);
+    $this->actingAs($user)->post(route('weekly.claim'), $payload)->assertSessionHasNoErrors();
 });

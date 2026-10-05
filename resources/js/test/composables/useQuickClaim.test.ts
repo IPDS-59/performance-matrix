@@ -18,10 +18,21 @@ describe('useQuickClaim', () => {
         expect(f.obstacle).toBe('Server down');
     });
 
-    it('needs an RK and a Kendala before saving', () => {
+    it('needs RK, target, realisasi, satuan, Kendala and a required Projek before saving', () => {
+        const ready = { obstacle: '-', target: '1', realization: '1', target_unit: 'Kegiatan' };
         expect(isReadyToSave(form())).toBe(false);
-        expect(isReadyToSave(form({ obstacle: '-' }))).toBe(true);
-        expect(isReadyToSave(form({ obstacle: '-', performance_plan_id: null }))).toBe(false);
+        expect(isReadyToSave(form(ready))).toBe(true);
+        expect(isReadyToSave(form({ ...ready, performance_plan_id: null }))).toBe(false);
+        expect(isReadyToSave(form({ ...ready, target: '0' }))).toBe(false);
+        expect(isReadyToSave(form({ ...ready, target_unit: ' ' }))).toBe(false);
+        expect(isReadyToSave(form(ready), true)).toBe(false);
+        expect(isReadyToSave(form({ ...ready, project_id: '7' }), true)).toBe(true);
+    });
+
+    it('takes realisasi from the kipApp progres and the unit from the RK', () => {
+        const f = form();
+        quickFill(f, { progress: 50, unit: 'Dokumen' });
+        expect(f).toMatchObject({ target: '1', realization: '0.5', target_unit: 'Dokumen' });
     });
 
     it('turns the no-project sentinel into null', () => {

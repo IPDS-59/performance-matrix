@@ -47,11 +47,8 @@ class WeeklyActivityController extends Controller
         $rawActivities = $employee
             ? KipActivity::with(['claims' => fn ($q) => $q->whereDate('week_start', $weekStart)])
                 ->where('employee_id', $employee->id)
-                // Every activity that runs during the week, not only those that
-                // start in it: a monthly task shows (and is claimed) every week.
-                ->whereDate('activity_date_start', '<=', $weekEnd)
-                ->where(fn ($q) => $q->whereDate('activity_date_start', '>=', $weekStart)
-                    ->orWhereDate('activity_date_end', '>=', $weekStart))
+                // A monthly task shows (and is claimed) every week it covers.
+                ->duringWeek($weekStart, $weekEnd)
                 ->orderBy('activity_date_start')
                 ->get()
             : collect();
@@ -112,7 +109,8 @@ class WeeklyActivityController extends Controller
                 })
                 ->get();
             // Projek under the RK's leader RK, when that leader RK has several.
-            $candidates = app(LinkPlansToProjectsAction::class)->candidates($planModels);
+            $links = app(LinkPlansToProjectsAction::class);
+            $candidates = $links->candidates($planModels);
 
             $plans = $planModels
                 ->map(fn (PerformancePlan $plan) => [
@@ -123,6 +121,9 @@ class WeeklyActivityController extends Controller
                     'team_id' => $plan->project?->team_id ?? $plan->team_id,
                     'team_name' => $plan->project?->team?->name ?? $plan->team?->name ?? '—',
                     'project_candidates' => $candidates->get($plan->id, []),
+                    // "Tanpa projek" is offered only when the RK really has none.
+                    'project_optional' => $links->projectOptional($plan),
+                    'target_unit' => $plan->target_unit,
                 ]);
 
             // Projek choices for team-scoped RKs; the member's own projects first.
@@ -223,9 +224,9 @@ class WeeklyActivityController extends Controller
             'performance_plan_id' => ['required', 'integer', 'exists:performance_plans,id'],
             'project_id' => ['nullable', 'integer', 'exists:projects,id'],
             'work_item_id' => ['nullable', 'integer', 'exists:work_items,id'],
-            'target' => ['nullable', 'numeric', 'min:0'],
-            'realization' => ['nullable', 'numeric', 'min:0'],
-            'target_unit' => ['nullable', 'string', 'max:100'],
+            'target' => ['required', 'numeric', 'gt:0'],
+            'realization' => ['required', 'numeric', 'min:0'],
+            'target_unit' => ['required', 'string', 'max:100'],
             'obstacle' => ['required', 'string'],
             'solution' => ['nullable', 'string'],
             'follow_up_plan' => ['nullable', 'string'],

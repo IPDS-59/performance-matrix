@@ -209,6 +209,8 @@ export interface KipActivity {
     evidence_url?: string | null;
     rk_name?: string | null;
     is_claimed: boolean;
+    /** kipApp progres, 0–100. */
+    progress?: number | null;
     /** Runs past this week: claimed once per week it covers. */
     spans_weeks?: boolean;
     /** The part of the activity inside the viewed week (default claim dates). */
@@ -255,6 +257,10 @@ export interface PlanOption {
     team_name: string;
     /** Projek under this RK's leader RK in kipApp, when there are several; empty = any Projek of the team. */
     project_candidates: number[];
+    /** "Tanpa projek" allowed: the RK's leader RK has no Projek in kipApp. */
+    project_optional: boolean;
+    /** Unit of the RK's IKI target, e.g. "Dokumen". */
+    target_unit?: string | null;
 }
 
 export interface ProjectOption {

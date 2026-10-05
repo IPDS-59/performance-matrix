@@ -49,9 +49,10 @@ class RecapAggregator
         $ids = $members->pluck('id');
         $weekEnd = Carbon::parse($weekStart)->endOfWeek(Carbon::SUNDAY)->toDateString();
 
+        // Same rule as the member's weekly page, so a multi-week activity
+        // claimed this week also counts as an activity of this week.
         $totals = KipActivity::whereIn('employee_id', $ids)
-            ->whereDate('activity_date_start', '>=', $weekStart)
-            ->whereDate('activity_date_start', '<=', $weekEnd)
+            ->duringWeek($weekStart, $weekEnd)
             ->selectRaw('employee_id, COUNT(*) as n')
             ->groupBy('employee_id')
             ->pluck('n', 'employee_id');

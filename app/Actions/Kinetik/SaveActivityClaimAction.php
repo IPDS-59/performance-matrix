@@ -140,6 +140,10 @@ class SaveActivityClaimAction
         }
 
         if ($projectId === null || $projectId === '') {
+            if (! app(LinkPlansToProjectsAction::class)->projectOptional($plan)) {
+                throw ValidationException::withMessages(['project_id' => 'Pilih Projek kegiatan ini.']);
+            }
+
             return null;
         }
 

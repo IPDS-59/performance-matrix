@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -50,6 +51,17 @@ class KipActivity extends Model
     public function employee(): BelongsTo
     {
         return $this->belongsTo(Employee::class);
+    }
+
+    /**
+     * Activities that run during the week: they start in it, or started earlier
+     * and end in or after it. A monthly task counts in every week it covers.
+     */
+    public function scopeDuringWeek(Builder $query, string $weekStart, string $weekEnd): Builder
+    {
+        return $query->whereDate('activity_date_start', '<=', $weekEnd)
+            ->where(fn (Builder $q) => $q->whereDate('activity_date_start', '>=', $weekStart)
+                ->orWhereDate('activity_date_end', '>=', $weekStart));
     }
 
     /**

@@ -15,17 +15,30 @@ export interface QuickClaimFields {
     obstacle: string;
 }
 
-/** Fill only the empty fields with the common case: 1 of 1 activity, no obstacle. */
-export function quickFill<T extends QuickClaimFields>(form: T): void {
+/**
+ * Fill only the empty fields. kipApp has no numeric target or realisasi for a
+ * kegiatan, only its progres (0–100%), so a kegiatan counts as 1: realisasi is
+ * its progres, the unit is the RK's IKI unit when known, else "Kegiatan".
+ */
+export function quickFill<T extends QuickClaimFields>(form: T, from: { progress?: number | null; unit?: string | null } = {}): void {
+    const progress = from.progress ?? 100;
     if (form.target === '') form.target = '1';
-    if (form.realization === '') form.realization = '1';
-    if (form.target_unit === '') form.target_unit = 'Kegiatan';
+    if (form.realization === '') form.realization = String(Math.round(Math.min(Math.max(progress, 0), 100)) / 100);
+    if (form.target_unit === '') form.target_unit = from.unit?.trim() || 'Kegiatan';
     if (form.obstacle.trim() === '') form.obstacle = '-';
 }
 
-/** A claim can be saved once it has an RK and a Kendala. */
-export function isReadyToSave(form: QuickClaimFields): boolean {
-    return form.performance_plan_id !== null && form.obstacle.trim() !== '';
+/**
+ * A claim can be saved once it has an RK, target (> 0), realisasi, satuan, a
+ * Kendala, and a Projek unless the RK has none.
+ */
+export function isReadyToSave(form: QuickClaimFields, projectRequired = false): boolean {
+    return form.performance_plan_id !== null
+        && Number(form.target) > 0
+        && form.realization.trim() !== ''
+        && form.target_unit.trim() !== ''
+        && form.obstacle.trim() !== ''
+        && (!projectRequired || form.project_id !== NO_PROJECT);
 }
 
 /** Server payload: the "no project" sentinel becomes null. */
