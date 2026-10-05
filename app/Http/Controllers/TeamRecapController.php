@@ -76,6 +76,16 @@ class TeamRecapController extends Controller
             'currentEmployeeId' => $employee?->id,
             'weeklyNote' => $weeklyNote,
             'members' => $team ? $this->aggregator->memberCompleteness($team, $weekStart) : [],
+            // "Laporan Tersimpan": the four weeks before, read-only.
+            'previousWeeks' => $team ? collect(range(1, 4))
+                ->map(fn (int $n) => [$n, Carbon::parse($weekStart)->subWeeks($n)])
+                ->map(fn (array $week) => [
+                    'label' => $week[0] === 1 ? 'Minggu lalu' : "{$week[0]} minggu lalu",
+                    'start' => $week[1]->toDateString(),
+                    'end' => $week[1]->copy()->endOfWeek(Carbon::SUNDAY)->toDateString(),
+                    'segments' => $this->aggregator->weekly($team, $week[1]->toDateString()),
+                ])
+                ->all() : [],
         ]);
     }
 
@@ -606,17 +616,106 @@ class TeamRecapController extends Controller
             'realization' => ['nullable', 'numeric', 'min:0'],
         ]);
 
-        $target = isset($validated['target']) ? (float) $validated['target'] : null;
-        $realization = isset($validated['realization']) ? (float) $validated['realization'] : null;
+        $this->applyClaimNumbers($claim, $employee, $validated);
+
+        return back()->with('success', 'Angka anggota diperbarui.');
+    }
+
+    /**
+     * Save one Projek card of the weekly team recap: the PJ text of its rows
+     * and the PJ's corrections to member numbers, in one request. Only the
+     * rows and claims the PJ changed are sent.
+     */
+    public function saveWeeklyProject(Request $request): RedirectResponse
+    {
+        $employee = $request->user()->employee;
+        abort_if($employee === null, 403, 'Akun tidak terhubung ke data pegawai.');
+
+        $validated = $request->validate([
+            'team_id' => ['required', 'integer', 'exists:teams,id'],
+            'week_start' => ['required', 'date'],
+            'rows' => ['array'],
+            'rows.*.performance_plan_id' => ['required', 'integer', 'exists:performance_plans,id'],
+            'rows.*.project_id' => ['nullable', 'integer', 'exists:projects,id'],
+            'rows.*.uraian' => ['nullable', 'string'],
+            'rows.*.obstacle' => ['nullable', 'string'],
+            'rows.*.solution' => ['nullable', 'string'],
+            'rows.*.follow_up_plan' => ['nullable', 'string'],
+            'claims' => ['array'],
+            'claims.*.id' => ['required', 'integer', 'exists:activity_claims,id'],
+            'claims.*.target' => ['nullable', 'numeric', 'min:0'],
+            'claims.*.realization' => ['nullable', 'numeric', 'min:0'],
+            'claims.*.target_unit' => ['nullable', 'string', 'max:50'],
+        ]);
+
+        $teamId = (int) $validated['team_id'];
+        $weekStart = Carbon::parse($validated['week_start'])->toDateString();
+        $year = Carbon::parse($weekStart)->year;
+        $this->ensureUnlocked($teamId, 'week', $year, weekStart: $weekStart);
+
+        $claims = ActivityClaim::with('performancePlan.project', 'project')
+            ->whereIn('id', collect($validated['claims'] ?? [])->pluck('id'))
+            ->get()
+            ->keyBy('id');
+        if ($claims->isNotEmpty()) {
+            $this->authorizePj($employee, $teamId);
+        }
+        foreach ($claims as $claim) {
+            $claimTeam = $claim->project?->team_id ?? $claim->performancePlan?->project?->team_id ?? $claim->performancePlan?->team_id;
+            abort_unless((int) $claimTeam === $teamId, 403, 'Klaim ini bukan milik tim yang dipilih.');
+            // A locked month or quarter also freezes the numbers inside it.
+            if (RecapLock::coversDate($teamId, Carbon::parse($claim->activity_date_start))) {
+                return back()->with('error', self::LOCKED_MESSAGE);
+            }
+        }
+
+        DB::transaction(function () use ($validated, $employee, $teamId, $year, $weekStart, $claims) {
+            foreach ($validated['rows'] ?? [] as $row) {
+                $this->authorizeParaphrase($employee, $teamId, PerformancePlan::findOrFail($row['performance_plan_id']));
+                RecapOverride::updateOrCreate(
+                    [
+                        'team_id' => $teamId,
+                        'performance_plan_id' => $row['performance_plan_id'],
+                        'project_id' => $row['project_id'] ?? null,
+                        'period_type' => 'week',
+                        'period_year' => $year,
+                        'period_month' => null,
+                        'period_quarter' => null,
+                        'week_start' => $weekStart,
+                    ],
+                    [
+                        'uraian' => $row['uraian'] ?? null,
+                        'obstacle' => $row['obstacle'] ?? null,
+                        'solution' => $row['solution'] ?? null,
+                        'follow_up_plan' => $row['follow_up_plan'] ?? null,
+                        'created_by' => $employee->id,
+                    ],
+                );
+            }
+
+            foreach ($validated['claims'] ?? [] as $input) {
+                $this->applyClaimNumbers($claims[$input['id']], $employee, $input);
+            }
+        });
+
+        return back()->with('success', 'Rekap projek disimpan.');
+    }
+
+    /**
+     * @param  array{target?: mixed, realization?: mixed, target_unit?: mixed}  $input
+     */
+    private function applyClaimNumbers(ActivityClaim $claim, Employee $employee, array $input): void
+    {
+        $target = isset($input['target']) ? (float) $input['target'] : null;
+        $realization = isset($input['realization']) ? (float) $input['realization'] : null;
 
         $claim->update([
             'target' => $target,
             'realization' => $realization,
             'achievement' => $target && $realization !== null ? round($realization / $target * 100, 2) : null,
+            ...(array_key_exists('target_unit', $input) ? ['target_unit' => $input['target_unit']] : []),
             'adjusted_by' => $employee->id,
         ]);
-
-        return back()->with('success', 'Angka anggota diperbarui.');
     }
 
     // ── Gabungkan / Pisahkan rows ────────────────────────────────────────────

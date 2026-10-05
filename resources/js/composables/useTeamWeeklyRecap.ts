@@ -1,8 +1,8 @@
 import { ref } from 'vue';
 import { router } from '@inertiajs/vue3';
-import type { RecapSegment, RecapRow, TeamOption, TeamRecapEvidence, WeeklyTeamNote, RecapLockState, MemberCompleteness } from '@/types';
+import type { RecapSection, RecapSegment, RecapRow, TeamOption, TeamRecapEvidence, WeeklyTeamNote, RecapLockState, MemberCompleteness } from '@/types';
 import { useDateFormat } from '@/composables/useDateFormat';
-import { groupAdjacent, textKey, textTarget, useRecapMerge } from '@/composables/useRecapMerge';
+import { groupAdjacent, useRecapMerge } from '@/composables/useRecapMerge';
 
 export interface TeamWeeklyRecapProps {
     teams: TeamOption[];
@@ -19,14 +19,13 @@ export interface TeamWeeklyRecapProps {
     currentEmployeeId: number | null;
     weeklyNote: WeeklyTeamNote | null;
     members: MemberCompleteness[];
+    previousWeeks: RecapSection[];
 }
 
-type ParaForm = {
-    uraian: string;
-    solution: string;
-    follow_up_plan: string;
-    saving: boolean;
-};
+/** Members write "-" (or "—", "N/A") when there is no obstacle. */
+export function hasObstacle(text: string | null | undefined): boolean {
+    return !['', '-', '—', 'n/a'].includes((text ?? '').trim().toLowerCase());
+}
 
 export function useTeamWeeklyRecap(props: TeamWeeklyRecapProps) {
     const { formatWeekRange } = useDateFormat();
@@ -39,15 +38,6 @@ export function useTeamWeeklyRecap(props: TeamWeeklyRecapProps) {
             week: props.weekStart,
             ...params,
         }, { preserveState: false });
-    }
-
-    // ── Achievement color ──────────────────────────────────────────────────
-
-    function achievementColor(val: number | null): string {
-        const n = Number(val ?? 0);
-        if (n >= 80) return 'text-green-600 font-semibold';
-        if (n >= 50) return 'text-yellow-600 font-semibold';
-        return 'text-red-600 font-semibold';
     }
 
     // ── Per-segment sort ───────────────────────────────────────────────────
@@ -67,8 +57,7 @@ export function useTeamWeeklyRecap(props: TeamWeeklyRecapProps) {
     const attentionOnly = ref(false);
 
     function needsAttention(row: RecapRow): boolean {
-        const hasObstacle = !!row.obstacle_aggregated && row.obstacle_aggregated !== '—' && row.obstacle_aggregated !== 'N/A';
-        return (row.achievement ?? 0) < 100 || hasObstacle;
+        return (row.achievement ?? 0) < 100 || hasObstacle(row.obstacle_aggregated);
     }
 
     function attentionCount(seg: RecapSegment): number {
@@ -86,14 +75,6 @@ export function useTeamWeeklyRecap(props: TeamWeeklyRecapProps) {
         ));
     }
 
-    // ── Expand state ───────────────────────────────────────────────────────
-
-    const expandedRows = ref<Record<string, boolean>>({});
-
-    function toggleExpand(key: string) {
-        expandedRows.value[key] = !expandedRows.value[key];
-    }
-
     // ── Per-row paraphrase permission ──────────────────────────────────────
 
     function rowCanParaphrase(row: RecapRow): boolean {
@@ -101,47 +82,11 @@ export function useTeamWeeklyRecap(props: TeamWeeklyRecapProps) {
         return props.canManage || (props.currentEmployeeId !== null && row.pic_employee_id === props.currentEmployeeId);
     }
 
-    // ── Paraphrase forms (per planId) — Kendala / Solusi / RTL ────────────
-
-    // Keyed by the text row, so every row of a merged group edits one form.
-    const paraForms = ref<Record<string, ParaForm>>({});
-
-    function getParaForm(row: RecapRow): ParaForm {
-        if (!paraForms.value[textKey(row)]) {
-            paraForms.value[textKey(row)] = {
-                uraian: row.pj_uraian ?? '',
-                solution: row.pj_solution ?? '',
-                follow_up_plan: row.pj_follow_up_plan ?? '',
-                saving: false,
-            };
-        }
-        return paraForms.value[textKey(row)];
-    }
-
-    function saveParaphrase(row: RecapRow) {
-        const f = getParaForm(row);
-        f.saving = true;
-        router.post(route('team-recap.override.store'), {
-            team_id: props.selectedTeamId,
-            ...textTarget(row),
-            period_type: 'week',
-            period_year: new Date(props.weekStart + 'T00:00:00').getFullYear(),
-            week_start: props.weekStart,
-            uraian: f.uraian,
-            solution: f.solution,
-            follow_up_plan: f.follow_up_plan,
-        }, {
-            preserveScroll: true,
-            preserveState: true,
-            onFinish: () => { f.saving = false; },
-        });
-    }
-
     // ── Gabungkan / Pisahkan ───────────────────────────────────────────────
 
     const rowMerge = useRecapMerge(
         () => ({ team_id: props.selectedTeamId, period_type: 'week', period_year: Number(props.weekStart.slice(0, 4)), week_start: props.weekStart }),
-        () => { paraForms.value = {}; },
+        () => {},
     );
 
     // ── Single weekly PJ note (uraian + kendala + solusi + RTL) ───────────
@@ -244,17 +189,12 @@ export function useTeamWeeklyRecap(props: TeamWeeklyRecapProps) {
     return {
         formatWeekRange,
         navigate,
-        achievementColor,
         sortDir,
         toggleSort,
         attentionOnly,
         attentionCount,
         filteredRows,
-        expandedRows,
-        toggleExpand,
         rowCanParaphrase,
-        getParaForm,
-        saveParaphrase,
         rowMerge,
         weeklyNoteForm,
         prefillFromMembers,

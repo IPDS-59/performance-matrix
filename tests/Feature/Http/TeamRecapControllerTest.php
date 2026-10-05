@@ -1296,6 +1296,41 @@ it('blocks PJ corrections for non-PJ users and locked periods', function () {
     $this->actingAs($user)->post(route('team-recap.claim-adjust', $claim), ['target' => 1, 'realization' => 1])->assertSessionHas('error');
 });
 
+it('saves a Projek card of the weekly recap in one request', function () {
+    [$user, $pj, $team] = pjOfTeam();
+    $project = Project::factory()->create(['team_id' => $team->id, 'year' => 2026]);
+    $plan = PerformancePlan::factory()->create(['project_id' => $project->id, 'team_id' => $team->id]);
+    $claim = ActivityClaim::factory()->saved()->create([
+        'performance_plan_id' => $plan->id, 'project_id' => $project->id,
+        'target' => 4, 'realization' => 2, 'achievement' => 50, 'target_unit' => 'Dokumen',
+        'period_year' => 2026, 'period_month' => 6, 'period_quarter' => 2, 'week_start' => '2026-06-08', 'activity_date_start' => '2026-06-09',
+    ]);
+    $payload = [
+        'team_id' => $team->id, 'week_start' => '2026-06-08',
+        'rows' => [['performance_plan_id' => $plan->id, 'project_id' => $project->id, 'uraian' => 'Rapat ISO', 'obstacle' => 'Hujan', 'solution' => null, 'follow_up_plan' => 'Jadwal ulang']],
+        'claims' => [['id' => $claim->id, 'target' => 4, 'realization' => 4, 'target_unit' => 'Laporan']],
+    ];
+
+    $this->actingAs($user)->post(route('team-recap.weekly-project'), $payload)->assertSessionHas('success');
+
+    expect(RecapOverride::sole())->uraian->toBe('Rapat ISO')->obstacle->toBe('Hujan')->follow_up_plan->toBe('Jadwal ulang')
+        ->and($claim->fresh())->achievement->toEqual(100)->target_unit->toBe('Laporan')->adjusted_by->toBe($pj->id);
+
+    // The weekly page lists the weeks before it under Laporan Tersimpan.
+    $this->actingAs($user)->get(route('team-recap.weekly', ['team' => $team->id, 'week' => '2026-06-15']))
+        ->assertInertia(fn ($page) => $page
+            ->has('previousWeeks', 4)
+            ->where('previousWeeks.0.start', '2026-06-08')
+            ->where('previousWeeks.0.segments.0.rows.0.pj_uraian', 'Rapat ISO'));
+
+    RecapLock::create(['team_id' => $team->id, 'period_type' => 'month', 'period_year' => 2026, 'period_month' => 6]);
+    $this->actingAs($user)->post(route('team-recap.weekly-project'), $payload)->assertSessionHas('error');
+
+    $member = User::factory()->create();
+    Employee::factory()->create(['user_id' => $member->id]);
+    $this->actingAs($member)->post(route('team-recap.weekly-project'), [...$payload, 'rows' => []])->assertForbidden();
+});
+
 // ── Weekly sections and Ringkasan per Projek ────────────────────────────────
 
 it('shows the weeks of a month and saves one summary per Projek', function () {

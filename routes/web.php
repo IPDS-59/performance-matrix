@@ -115,6 +115,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('/rekap-tim/prefill', [TeamRecapController::class, 'prefill'])->name('team-recap.prefill');
     Route::post('/rekap-tim/merge', [TeamRecapController::class, 'mergeRows'])->name('team-recap.merge');
     Route::post('/rekap-tim/split', [TeamRecapController::class, 'splitRows'])->name('team-recap.split');
+    Route::post('/rekap-tim/projek', [TeamRecapController::class, 'saveWeeklyProject'])->name('team-recap.weekly-project');
     Route::post('/rekap-tim/klaim/{claim}/angka', [TeamRecapController::class, 'adjustClaim'])->name('team-recap.claim-adjust');
     Route::post('/rekap-tim/ringkasan', [TeamRecapController::class, 'storeSummary'])->name('team-recap.summary');
     Route::post('/rekap-tim/override/confirm', [TeamRecapController::class, 'confirmOverride'])->name('team-recap.override.confirm');

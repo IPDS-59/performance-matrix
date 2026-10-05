@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { hasObstacle } from '@/composables/useTeamWeeklyRecap';
 import AppLayout from '@/Layouts/AppLayout.vue';
 import RecapLockBar from '@/Components/Kinetik/RecapLockBar.vue';
 import RecapToolbar from '@/Components/Kinetik/RecapToolbar.vue';
@@ -89,8 +90,7 @@ function toggleSort(segKey: string) {
 const attentionOnly = ref(false);
 
 function needsAttention(row: RecapRow): boolean {
-    const hasObstacle = !!row.obstacle_aggregated && row.obstacle_aggregated !== '—' && row.obstacle_aggregated !== 'N/A';
-    return (row.achievement ?? 0) < 100 || hasObstacle || !row.is_confirmed;
+    return (row.achievement ?? 0) < 100 || hasObstacle(row.obstacle_aggregated) || !row.is_confirmed;
 }
 
 function attentionCount(seg: RecapSegment): number {

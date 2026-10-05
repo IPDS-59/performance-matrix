@@ -4,9 +4,8 @@ import RecapLockBar from '@/Components/Kinetik/RecapLockBar.vue';
 import RecapToolbar from '@/Components/Kinetik/RecapToolbar.vue';
 import MeetingChecklist from '@/Components/Kinetik/MeetingChecklist.vue';
 import MemberCompletenessCard from '@/Components/Kinetik/MemberCompletenessCard.vue';
-import RecapMergeCell from '@/Components/Kinetik/RecapMergeCell.vue';
-import RecapMemberLines from '@/Components/Kinetik/RecapMemberLines.vue';
-import { groupSize, isGroupLead } from '@/composables/useRecapMerge';
+import WeeklyProjectCard from '@/Components/Kinetik/WeeklyProjectCard.vue';
+import RecapPeriodSections from '@/Components/Kinetik/RecapPeriodSections.vue';
 import { weeklyChecklist } from '@/composables/useMeetingChecklist';
 import { computed } from 'vue';
 import { Head } from '@inertiajs/vue3';
@@ -14,9 +13,8 @@ import { Button } from '@/Components/ui/button';
 import { Input } from '@/Components/ui/input';
 import { Label } from '@/Components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/Components/ui/select';
-import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/Components/ui/table';
 import { Textarea } from '@/Components/ui/textarea';
-import { ChevronDown, ChevronUp, ExternalLink, Trash2, ChevronsUpDown } from 'lucide-vue-next';
+import { ExternalLink, Trash2 } from 'lucide-vue-next';
 import { useRecapExport } from '@/composables/useRecapExport';
 import InputError from '@/Components/InputError.vue';
 import { useTeamWeeklyRecap, type TeamWeeklyRecapProps } from '@/composables/useTeamWeeklyRecap';
@@ -26,17 +24,12 @@ const props = defineProps<TeamWeeklyRecapProps>();
 const {
     formatWeekRange,
     navigate,
-    achievementColor,
     sortDir,
     toggleSort,
     attentionOnly,
     attentionCount,
     filteredRows,
-    expandedRows,
-    toggleExpand,
     rowCanParaphrase,
-    getParaForm,
-    saveParaphrase,
     rowMerge,
     weeklyNoteForm,
     prefillFromMembers,
@@ -96,145 +89,19 @@ const { exporting, download } = useRecapExport();
             </div>
 
             <div v-else class="mb-8 space-y-6">
-                <div v-for="seg in segments" :key="seg.project_id ?? 'none'" class="overflow-hidden rounded-md border bg-white">
-                    <div class="flex items-center justify-between gap-3 border-b bg-gray-50 px-4 py-3">
-                        <div class="min-w-0">
-                            <h3 class="text-sm font-semibold text-gray-800">{{ seg.project_name }}</h3>
-                            <p v-if="seg.leader_rk" class="mt-0.5 text-xs leading-snug text-primary">RK Ketua: {{ seg.leader_rk }}</p>
-                        </div>
-                        <Button
-                            v-if="canManage && rowMerge.selectedCount(seg) >= 2"
-                            size="sm"
-                            class="ml-auto h-7 px-2.5 text-xs"
-                            :disabled="rowMerge.busy.value"
-                            @click="rowMerge.merge(seg, filteredRows(seg))"
-                        >
-                            Gabungkan {{ rowMerge.selectedCount(seg) }} baris
-                        </Button>
-                        <span v-if="attentionCount(seg) > 0" class="inline-flex shrink-0 items-center whitespace-nowrap rounded-full bg-orange-100 px-2 py-0.5 text-xs font-medium text-orange-700">
-                            {{ attentionCount(seg) }} perlu perhatian
-                        </span>
-                    </div>
-
-                    <Table class="w-full text-sm">
-                        <TableHeader>
-                            <TableRow class="border-b bg-gray-50 text-xs font-medium uppercase tracking-wide text-gray-500">
-                                <TableHead class="min-w-[13rem] text-left sm:min-w-[18rem]">Rencana Kinerja</TableHead>
-                                <TableHead class="hidden text-left text-xs md:table-cell">Kontributor</TableHead>
-                                <TableHead class="text-right">Target</TableHead>
-                                <TableHead class="text-right">Realisasi</TableHead>
-                                <TableHead class="cursor-pointer select-none text-right" @click="toggleSort(String(seg.project_id ?? 'none'))">
-                                    <span class="inline-flex items-center gap-1">
-                                        Capaian
-                                        <ChevronsUpDown class="h-3 w-3" :class="{ 'rotate-180': sortDir(String(seg.project_id ?? 'none')) === 'desc' }" />
-                                    </span>
-                                </TableHead>
-                                <TableHead class="w-8" />
-                            </TableRow>
-                        </TableHeader>
-                        <TableBody class="divide-y divide-gray-100">
-                            <template v-for="row in filteredRows(seg)" :key="row.row_key">
-                                <TableRow :class="['hover:bg-gray-50', groupSize(seg, row) > 1 ? 'border-l-2 border-l-primary/60' : '']">
-                                    <TableCell class="min-w-[13rem] whitespace-normal align-top sm:min-w-[18rem]">
-                                        <RecapMergeCell
-                                            :row="row"
-                                            :size="groupSize(seg, row)"
-                                            :lead="isGroupLead(row)"
-                                            :selectable="canManage"
-                                            :selected="rowMerge.isSelected(seg, row)"
-                                            :busy="rowMerge.busy.value"
-                                            @toggle="rowMerge.toggle(seg, row)"
-                                            @split="rowMerge.split(row)"
-                                        >
-                                            <p class="font-medium leading-snug text-gray-800">{{ row.rk_description }}</p>
-                                            <p v-if="row.rk_code" class="text-xs text-gray-500">{{ row.rk_code }}</p>
-                                            <RecapMemberLines :claims="row.claims ?? []" :can-adjust="canManage" />
-                                        </RecapMergeCell>
-                                    </TableCell>
-                                    <TableCell class="hidden min-w-[10rem] max-w-[16rem] whitespace-normal align-top md:table-cell text-xs leading-snug text-gray-600">{{ row.contributors.join(', ') || '—' }}</TableCell>
-                                    <TableCell class="text-right align-top tabular-nums text-gray-700">{{ row.target }} {{ row.target_unit ?? '' }}</TableCell>
-                                    <TableCell class="text-right align-top tabular-nums text-gray-700">{{ row.realization }}</TableCell>
-                                    <TableCell class="text-right align-top tabular-nums">
-                                        <span v-if="row.achievement != null" :class="achievementColor(row.achievement)">{{ row.achievement.toFixed(2) }}%</span>
-                                        <span v-else class="text-gray-400">—</span>
-                                    </TableCell>
-                                    <TableCell class="text-center align-top">
-                                        <button
-                                            type="button"
-                                            class="flex h-6 w-6 items-center justify-center rounded hover:bg-gray-100"
-                                            :title="expandedRows[row.row_key] ? 'Tutup detail' : 'Lihat detail anggota'"
-                                            @click="toggleExpand(row.row_key)"
-                                        >
-                                            <ChevronDown v-if="!expandedRows[row.row_key]" class="h-4 w-4 text-gray-500" />
-                                            <ChevronUp v-else class="h-4 w-4 text-gray-500" />
-                                        </button>
-                                    </TableCell>
-                                </TableRow>
-
-                                <!-- Expand panel -->
-                                <TableRow v-if="expandedRows[row.row_key]" :key="`${row.row_key}-panel`" class="bg-gray-50">
-                                    <TableCell colspan="7" class="whitespace-normal px-4 py-4 sm:px-6">
-                                        <div class="space-y-4">
-                                            <!-- Member uraian (read-only reference) -->
-                                            <div>
-                                                <p class="mb-1 text-xs font-medium text-gray-500">Uraian Kegiatan Anggota</p>
-                                                <p v-if="row.uraian_aggregated" class="whitespace-pre-line rounded bg-white px-3 py-2 text-sm text-gray-700 ring-1 ring-gray-200">{{ row.uraian_aggregated }}</p>
-                                                <p v-else class="rounded bg-white px-3 py-2 text-sm text-gray-400 ring-1 ring-gray-200">—</p>
-                                            </div>
-
-                                            <!-- Member kendala (read-only) -->
-                                            <div>
-                                                <p class="mb-1 text-xs font-medium text-gray-500">Kendala (anggota)</p>
-                                                <p class="rounded bg-white px-3 py-2 text-sm text-gray-700 ring-1 ring-gray-200">{{ row.obstacle_aggregated || '—' }}</p>
-                                            </div>
-
-                                            <!-- PJ per-plan fields: Uraian / Solusi / RTL -->
-                                            <template v-if="rowCanParaphrase(row)">
-                                                <div>
-                                                    <Label class="text-xs">Uraian (PJ)</Label>
-                                                    <Textarea v-model="getParaForm(row).uraian" :rows="3" class="mt-1 text-sm" placeholder="Kosongkan untuk memakai uraian kegiatan anggota di Excel" />
-                                                </div>
-                                                <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                                                    <div>
-                                                        <Label class="text-xs">Solusi (PJ)</Label>
-                                                        <Textarea v-model="getParaForm(row).solution" :rows="2" class="mt-1 text-sm" />
-                                                    </div>
-                                                    <div>
-                                                        <Label class="text-xs">RTL (PJ)</Label>
-                                                        <Textarea v-model="getParaForm(row).follow_up_plan" :rows="2" class="mt-1 text-sm" />
-                                                    </div>
-                                                </div>
-                                                <div class="flex justify-end">
-                                                    <Button size="sm" :disabled="getParaForm(row).saving" @click="saveParaphrase(row)">
-                                                        Simpan
-                                                    </Button>
-                                                </div>
-                                            </template>
-
-                                            <!-- Read-only for non-PJ -->
-                                            <template v-else-if="row.pj_uraian || row.pj_solution || row.pj_follow_up_plan">
-                                                <div v-if="row.pj_uraian">
-                                                    <p class="mb-1 text-xs font-medium text-gray-500">Uraian (PJ)</p>
-                                                    <p class="whitespace-pre-line text-sm text-gray-700">{{ row.pj_uraian }}</p>
-                                                </div>
-                                                <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                                                    <div>
-                                                        <p class="mb-1 text-xs font-medium text-gray-500">Solusi (PJ)</p>
-                                                        <p class="text-sm text-gray-700">{{ row.pj_solution || '—' }}</p>
-                                                    </div>
-                                                    <div>
-                                                        <p class="mb-1 text-xs font-medium text-gray-500">RTL (PJ)</p>
-                                                        <p class="text-sm text-gray-700">{{ row.pj_follow_up_plan || '—' }}</p>
-                                                    </div>
-                                                </div>
-                                            </template>
-                                        </div>
-                                    </TableCell>
-                                </TableRow>
-                            </template>
-                        </TableBody>
-                    </Table>
-                </div>
+                <WeeklyProjectCard
+                    v-for="seg in segments"
+                    :key="seg.project_id ?? 'none'"
+                    :seg="seg"
+                    :rows="filteredRows(seg)"
+                    :can-manage="canManage && !lock"
+                    :can-paraphrase="rowCanParaphrase"
+                    :attention="attentionCount(seg)"
+                    :sort-dir="sortDir(String(seg.project_id ?? 'none'))"
+                    :merge="rowMerge"
+                    :payload="{ team_id: selectedTeamId, week_start: weekStart }"
+                    @sort="toggleSort(String(seg.project_id ?? 'none'))"
+                />
             </div>
 
             <!-- Single PJ weekly summary form -->
@@ -375,6 +242,8 @@ const { exporting, download } = useRecapExport();
                     </li>
                 </ul>
             </div>
+
+            <RecapPeriodSections v-if="previousWeeks.length" class="mt-8" title="Laporan Tersimpan — minggu sebelumnya" :sections="previousWeeks" />
         </template>
     </AppLayout>
 </template>
