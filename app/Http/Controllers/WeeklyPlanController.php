@@ -8,9 +8,11 @@ use App\Models\EmployeeRk;
 use App\Models\KipActivity;
 use App\Models\Team;
 use App\Models\WeeklyFocus;
+use App\Notifications\KinetikNotification;
 use Carbon\Carbon;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Str;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -75,10 +77,24 @@ class WeeklyPlanController extends Controller
 
         if ($body === '') {
             $existing?->delete();
-        } elseif ($existing) {
+
+            return back()->with('success', 'Fokus minggu ini dihapus.');
+        }
+
+        $changed = $existing?->body !== $body;
+        if ($existing) {
             $existing->update(['body' => $body, 'created_by' => $employee->id]);
         } else {
             WeeklyFocus::create([...$key, 'week_start' => $weekStart, 'body' => $body, 'created_by' => $employee->id]);
+        }
+
+        $member = Employee::find($key['employee_id']);
+        if ($changed && $member?->user && $member->user_id !== $request->user()->id) {
+            $member->user->notify(new KinetikNotification(
+                'weekly_focus',
+                ($employee->display_name ?? $employee->name).' mengisi fokus Anda untuk minggu '.Carbon::parse($weekStart)->locale('id')->translatedFormat('j M').': '.Str::limit($body, 140),
+                route('weekly-plan.index', ['team' => $team->id, 'week' => $weekStart]),
+            ));
         }
 
         return back()->with('success', 'Fokus minggu ini disimpan.');

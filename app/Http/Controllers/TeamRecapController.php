@@ -16,6 +16,7 @@ use App\Models\RecapSummary;
 use App\Models\Team;
 use App\Models\TeamRecapEvidence;
 use App\Models\WeeklyTeamNote;
+use App\Notifications\KinetikNotification;
 use App\Services\Kinetik\RecapAggregator;
 use Carbon\Carbon;
 use Illuminate\Http\Exceptions\HttpResponseException;
@@ -24,6 +25,7 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -273,9 +275,38 @@ class TeamRecapController extends Controller
             return back()->with('success', 'Catatan pimpinan dihapus.');
         }
 
-        LeadershipNote::updateOrCreate($key, ['body' => $body, 'author_id' => $request->user()->id]);
+        $note = LeadershipNote::updateOrCreate($key, ['body' => $body, 'author_id' => $request->user()->id]);
+
+        if ($note->wasRecentlyCreated || $note->wasChanged('body')) {
+            $this->notifyPjOfNote(Team::findOrFail($validated['team_id']), $note, $request->user()->id);
+        }
 
         return back()->with('success', 'Catatan pimpinan disimpan.');
+    }
+
+    /**
+     * The team's PJ read the head's note on Review Bersama for the same period.
+     */
+    private function notifyPjOfNote(Team $team, LeadershipNote $note, int $authorUserId): void
+    {
+        $leaders = Employee::whereKey($team->leader_id)
+            ->orWhereHas('teams', fn ($q) => $q->where('teams.id', $team->id)->where('employee_team.role', 'leader'))
+            ->with('user')
+            ->get();
+        $where = $note->project_id ? Project::find($note->project_id)?->name.' ('.$team->name.')' : $team->name;
+        $url = route('team-recap.overview', array_filter([
+            'period_type' => $note->period_type,
+            'year' => $note->period_year,
+            'month' => $note->period_month,
+            'quarter' => $note->period_quarter,
+            'week' => $note->week_start ? Carbon::parse($note->week_start)->toDateString() : null,
+        ]));
+
+        foreach ($leaders as $leader) {
+            if ($leader->user && $leader->user->id !== $authorUserId) {
+                $leader->user->notify(new KinetikNotification('leadership_note', 'Catatan pimpinan untuk '.$where.': '.Str::limit($note->body, 140), $url));
+            }
+        }
     }
 
     /**
@@ -719,6 +750,17 @@ class TeamRecapController extends Controller
             ...(array_key_exists('target_unit', $input) ? ['target_unit' => $input['target_unit']] : []),
             'adjusted_by' => $employee->id,
         ]);
+
+        // Tell the member, unless the PJ corrected their own claim or nothing changed.
+        $owner = $claim->employee?->user;
+        if ($owner && $owner->id !== $employee->user_id && $claim->wasChanged(['target', 'realization', 'target_unit'])) {
+            $number = fn (?float $v) => $v === null ? '—' : rtrim(rtrim(number_format($v, 2, ',', '.'), '0'), ',');
+            $owner->notify(new KinetikNotification(
+                'claim_adjusted',
+                ($employee->display_name ?? $employee->name).' mengoreksi angka kegiatan "'.Str::limit((string) ($claim->kipActivity?->description ?? 'Tanpa uraian'), 80).'": realisasi '.$number($realization).' dari target '.$number($target).' '.($claim->target_unit ?? '').'.',
+                route('weekly.index', ['week' => Carbon::parse($claim->week_start)->toDateString()]),
+            ));
+        }
     }
 
     // ── Gabungkan / Pisahkan rows ────────────────────────────────────────────
