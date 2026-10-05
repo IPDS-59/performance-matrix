@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\KipActivity;
+use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -15,6 +16,18 @@ class KipActivityController extends Controller
         $search = trim((string) $request->query('q', ''));
         $status = $request->query('status', 'all'); // all | claimed | unclaimed
 
+        // Period filter: a week, month or quarter around an anchor date. An
+        // activity counts when it runs during the period.
+        $period = in_array($request->query('period'), ['week', 'month', 'quarter'], true) ? $request->query('period') : 'all';
+        $anchor = rescue(fn () => Carbon::parse((string) $request->query('date', now()->toDateString())), now(), false);
+        [$from, $to] = match ($period) {
+            'week' => [$anchor->copy()->startOfWeek(Carbon::MONDAY), $anchor->copy()->endOfWeek(Carbon::SUNDAY)],
+            'month' => [$anchor->copy()->startOfMonth(), $anchor->copy()->endOfMonth()],
+            'quarter' => [$anchor->copy()->firstOfQuarter(), $anchor->copy()->lastOfQuarter()],
+            default => [null, null],
+        };
+        $inPeriod = fn (Builder $q) => $q->when($from, fn (Builder $q) => $q->duringWeek($from->toDateString(), $to->toDateString()));
+
         // Admins (kipApp managers) see every employee's activities; everyone else
         // is scoped to their own linked employee.
         $canViewAll = $request->user()->can('manage-kip-integration');
@@ -23,6 +36,7 @@ class KipActivityController extends Controller
         $activities = KipActivity::query()
             ->with('employee:id,name,display_name,nip_lama')
             ->when(! $canViewAll, fn (Builder $q) => $q->where('employee_id', $ownEmployeeId))
+            ->tap($inPeriod)
             ->when($search !== '', function (Builder $query) use ($search) {
                 $query->where(function (Builder $q) use ($search) {
                     $q->where('description', 'like', "%{$search}%")
@@ -51,13 +65,18 @@ class KipActivityController extends Controller
             ]);
 
         $scopeQuery = fn () => KipActivity::query()
-            ->when(! $canViewAll, fn (Builder $q) => $q->where('employee_id', $ownEmployeeId));
+            ->when(! $canViewAll, fn (Builder $q) => $q->where('employee_id', $ownEmployeeId))
+            ->tap($inPeriod);
 
         return Inertia::render('Kinetik/Activities', [
             'activities' => $activities,
             'filters' => [
                 'q' => $search,
                 'status' => $status,
+                'period' => $period,
+                'date' => $anchor->toDateString(),
+                'from' => $from?->toDateString(),
+                'to' => $to?->toDateString(),
             ],
             'stats' => [
                 'total' => $scopeQuery()->count(),

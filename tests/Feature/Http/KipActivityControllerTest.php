@@ -57,3 +57,19 @@ it('searches kegiatan by description', function () {
         ->get(route('kip-activities.index', ['q' => 'Press']))
         ->assertInertia(fn ($page) => $page->has('activities.data', 1));
 });
+
+it('filters activities by week, month or quarter, counting multi-week activities', function () {
+    $user = staffUser();
+    $employee = Employee::factory()->create(['user_id' => $user->id]);
+    $make = fn (string $from, string $to) => KipActivity::factory()->create(['employee_id' => $employee->id, 'activity_date_start' => $from, 'activity_date_end' => $to]);
+    $quarterly = $make('2026-07-01', '2026-09-30');
+    $august = $make('2026-08-12', '2026-08-12');
+    $june = $make('2026-06-15', '2026-06-15');
+
+    $ids = fn (array $query) => collect($this->actingAs($user)->get(route('kip-activities.index', $query))->viewData('page')['props']['activities']['data'])->pluck('id')->sort()->values()->all();
+
+    expect($ids(['period' => 'week', 'date' => '2026-08-12']))->toBe(collect([$quarterly->id, $august->id])->sort()->values()->all())
+        ->and($ids(['period' => 'month', 'date' => '2026-06-01']))->toBe([$june->id])
+        ->and($ids(['period' => 'quarter', 'date' => '2026-08-01']))->toBe(collect([$quarterly->id, $august->id])->sort()->values()->all())
+        ->and(count($ids([])))->toBe(3);
+});

@@ -157,23 +157,17 @@ export function useTeamWeeklyRecap(props: TeamWeeklyRecapProps) {
     function prefillFromMembers() {
         const allRows = props.segments.flatMap(seg => seg.rows);
 
-        // ── Uraian: group by contributor name ────────────────────────────────
-        const allItems = allRows.flatMap(row => row.uraian_items ?? []);
-        if (allItems.length) {
-            const byPerson = new Map<string, string[]>();
-            for (const item of allItems) {
-                if (!byPerson.has(item.name)) byPerson.set(item.name, []);
-                byPerson.get(item.name)!.push(item.uraian);
-            }
-            const lines: string[] = [];
-            let i = 1;
-            for (const [name, uraians] of byPerson) {
-                lines.push(`${i}. ${name}`);
-                for (const u of uraians) { lines.push(`   - ${u}`); }
-                i++;
-            }
-            weeklyNoteForm.value.uraian = lines.join('\n');
+        // ── Uraian: grouped per RK, each kegiatan with who did it ──────────
+        const lines: string[] = [];
+        let n = 1;
+        for (const row of allRows) {
+            const items = (row.claims ?? []).filter(c => c.uraian);
+            if (!items.length) continue;
+            lines.push(`${n}. ${row.rk_description}`);
+            for (const item of items) lines.push(`   - ${item.uraian} (${item.name})`);
+            n++;
         }
+        if (lines.length) weeklyNoteForm.value.uraian = lines.join('\n');
 
         // ── Kendala / Solusi / RTL: collect unique non-empty aggregated values ─
         function joinAgg(values: (string | null | undefined)[]): string {

@@ -247,3 +247,11 @@ it('stores the leader RK of each proyek and links RK under it during the structu
     expect($project->leader_rk)->toBe('Terlaksananya Dukungan Metodologi Kependudukan')
         ->and($plan->fresh()->project_id)->toBe($project->id);
 });
+
+it('refuses to start a sync while another one runs', function () {
+    config(['kinetik.kip.token' => 'admin-token']);
+    KipSyncRun::create(['type' => 'structure', 'status' => 'running', 'total' => 2, 'processed' => 1, 'pending' => ['x'], 'summary' => []]);
+
+    $this->actingAs(adminUser())->post(route('kip-integration.sync-careers'))->assertSessionHas('error', 'Tunggu Sinkronisasi Struktur selesai.');
+    expect(KipSyncRun::where('type', 'careers')->exists())->toBeFalse();
+});

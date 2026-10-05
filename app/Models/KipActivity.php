@@ -54,8 +54,9 @@ class KipActivity extends Model
     }
 
     /**
-     * Activities that run during the week: they start in it, or started earlier
-     * and end in or after it. A monthly task counts in every week it covers.
+     * Activities that run during a period (a week, month or quarter): they start
+     * in it, or started earlier and end in or after its first day. A monthly
+     * task counts in every week it covers.
      */
     public function scopeDuringWeek(Builder $query, string $weekStart, string $weekEnd): Builder
     {

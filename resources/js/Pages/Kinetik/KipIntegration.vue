@@ -55,6 +55,12 @@ const structurePct = computed(() => pct(props.structureRun));
 const activityPct = computed(() => pct(props.activityRun));
 const careerPct = computed(() => pct(props.careerRun));
 
+// One sync at a time: they share the kipApp token and the order matters
+// (Struktur, then Kegiatan, then Angka Kredit).
+const anySyncing = computed(() =>
+    kipSync.structureSyncing || kipSync.activitySyncing || kipSync.careerSyncing
+    || [props.structureRun, props.activityRun, props.careerRun].some(r => r?.status === 'running'));
+
 // Resume any in-progress run when the page (re)loads.
 onMounted(() => {
     if (props.structureRun?.status === 'running') kipSync.startStructureSync();
@@ -142,64 +148,17 @@ onMounted(() => {
 
             <!-- Right column: sync actions -->
             <div class="space-y-6 lg:col-span-2">
-                <!-- Centralized activity sync -->
-                <div class="rounded-lg border bg-white p-6">
-                    <div class="flex items-start justify-between gap-4">
-                        <div>
-                            <h2 class="mb-1 text-base font-semibold text-gray-900">Sinkronisasi Kegiatan</h2>
-                            <p class="text-sm text-gray-500">Tarik kegiatan harian kipApp untuk semua pegawai aktif yang memiliki NIP Lama.</p>
-                        </div>
-                        <Button variant="outline" :disabled="kipSync.activitySyncing" @click="kipSync.startActivitySync()">
-                            <RefreshCw :class="['mr-1 h-4 w-4', kipSync.activitySyncing ? 'animate-spin' : '']" />
-                            {{ kipSync.activitySyncing ? 'Menyinkronkan…' : 'Sinkronkan' }}
-                        </Button>
-                    </div>
-
-                    <!-- Progress -->
-                    <div v-if="kipSync.activitySyncing || activityRun?.status === 'running'" class="mt-4">
-                        <div class="mb-1 flex items-center justify-between text-xs text-gray-500">
-                            <span>Menyinkronkan pegawai… {{ activityRun?.processed ?? 0 }} / {{ activityRun?.total ?? 0 }}</span>
-                            <span class="font-medium text-gray-700">{{ activityPct }}%</span>
-                        </div>
-                        <div class="h-2 w-full overflow-hidden rounded-full bg-gray-100">
-                            <div class="h-full rounded-full bg-blue-600 transition-all duration-300" :style="{ width: activityPct + '%' }" />
-                        </div>
-                    </div>
-
-                    <div v-else-if="activityRun?.status === 'failed'" class="mt-4 flex items-start gap-2 rounded-md border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-700">
-                        <AlertTriangle class="mt-0.5 h-3.5 w-3.5 shrink-0" />
-                        Sinkronisasi gagal: {{ activityRun.message }}
-                    </div>
-
-                    <div v-else-if="activityRun?.status === 'completed'" class="mt-4 flex items-start gap-2 text-xs text-green-700">
-                        <CheckCircle2 class="mt-0.5 h-3.5 w-3.5 shrink-0" />
-                        <span>Selesai: {{ activityRun.summary.activities ?? 0 }} kegiatan diperbarui untuk {{ activityRun.total }} pegawai.</span>
-                    </div>
-
-                    <dl class="mt-5 grid grid-cols-3 gap-4 text-sm">
-                        <div class="rounded-md bg-gray-50 p-3">
-                            <dt class="text-xs text-gray-400">Pegawai (punya NIP)</dt>
-                            <dd class="mt-1 text-lg font-semibold text-gray-900">{{ stats.employees_with_nip }} <span class="text-sm font-normal text-gray-400">/ {{ stats.employees_total }}</span></dd>
-                        </div>
-                        <div class="rounded-md bg-gray-50 p-3">
-                            <dt class="text-xs text-gray-400">Kegiatan tersinkron</dt>
-                            <dd class="mt-1 text-lg font-semibold text-gray-900">{{ stats.activities_synced }}</dd>
-                        </div>
-                        <div class="rounded-md bg-gray-50 p-3">
-                            <dt class="text-xs text-gray-400">Terakhir ditarik</dt>
-                            <dd class="mt-1 text-sm font-medium text-gray-700">{{ formatDateTime(stats.last_fetched_at) }}</dd>
-                        </div>
-                    </dl>
-                </div>
-
+                <p v-if="anySyncing" class="rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800" role="status">
+                    Sinkronisasi sedang berjalan. Tombol lain aktif lagi setelah selesai. Biarkan halaman ini tetap terbuka.
+                </p>
                 <!-- Structure sync -->
                 <div class="rounded-lg border bg-white p-6">
                     <div class="flex items-start justify-between gap-4">
                         <div>
-                            <h2 class="mb-1 text-base font-semibold text-gray-900">Sinkronisasi Struktur</h2>
+                            <h2 class="mb-1 text-base font-semibold text-gray-900">1. Sinkronisasi Struktur</h2>
                             <p class="text-sm text-gray-500">Tarik Tim, Projek, dan keanggotaan dari kipApp. Pegawai dicocokkan via NIP Lama.</p>
                         </div>
-                        <Button variant="outline" :disabled="kipSync.structureSyncing" @click="kipSync.startStructureSync()">
+                        <Button variant="outline" :disabled="anySyncing" @click="kipSync.startStructureSync()">
                             <RefreshCw :class="['mr-1 h-4 w-4', kipSync.structureSyncing ? 'animate-spin' : '']" />
                             {{ kipSync.structureSyncing ? 'Menyinkronkan…' : 'Sinkronkan' }}
                         </Button>
@@ -243,14 +202,64 @@ onMounted(() => {
                     </dl>
                 </div>
 
+                <!-- Centralized activity sync -->
+                <div class="rounded-lg border bg-white p-6">
+                    <div class="flex items-start justify-between gap-4">
+                        <div>
+                            <h2 class="mb-1 text-base font-semibold text-gray-900">2. Sinkronisasi Kegiatan</h2>
+                            <p class="text-sm text-gray-500">Tarik kegiatan harian kipApp untuk semua pegawai aktif yang memiliki NIP Lama.</p>
+                        </div>
+                        <Button variant="outline" :disabled="anySyncing" @click="kipSync.startActivitySync()">
+                            <RefreshCw :class="['mr-1 h-4 w-4', kipSync.activitySyncing ? 'animate-spin' : '']" />
+                            {{ kipSync.activitySyncing ? 'Menyinkronkan…' : 'Sinkronkan' }}
+                        </Button>
+                    </div>
+
+                    <!-- Progress -->
+                    <div v-if="kipSync.activitySyncing || activityRun?.status === 'running'" class="mt-4">
+                        <div class="mb-1 flex items-center justify-between text-xs text-gray-500">
+                            <span>Menyinkronkan pegawai… {{ activityRun?.processed ?? 0 }} / {{ activityRun?.total ?? 0 }}</span>
+                            <span class="font-medium text-gray-700">{{ activityPct }}%</span>
+                        </div>
+                        <div class="h-2 w-full overflow-hidden rounded-full bg-gray-100">
+                            <div class="h-full rounded-full bg-blue-600 transition-all duration-300" :style="{ width: activityPct + '%' }" />
+                        </div>
+                    </div>
+
+                    <div v-else-if="activityRun?.status === 'failed'" class="mt-4 flex items-start gap-2 rounded-md border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-700">
+                        <AlertTriangle class="mt-0.5 h-3.5 w-3.5 shrink-0" />
+                        Sinkronisasi gagal: {{ activityRun.message }}
+                    </div>
+
+                    <div v-else-if="activityRun?.status === 'completed'" class="mt-4 flex items-start gap-2 text-xs text-green-700">
+                        <CheckCircle2 class="mt-0.5 h-3.5 w-3.5 shrink-0" />
+                        <span>Selesai: {{ activityRun.summary.activities ?? 0 }} kegiatan diperbarui untuk {{ activityRun.total }} pegawai.</span>
+                    </div>
+
+                    <dl class="mt-5 grid grid-cols-3 gap-4 text-sm">
+                        <div class="rounded-md bg-gray-50 p-3">
+                            <dt class="text-xs text-gray-400">Pegawai (punya NIP)</dt>
+                            <dd class="mt-1 text-lg font-semibold text-gray-900">{{ stats.employees_with_nip }} <span class="text-sm font-normal text-gray-400">/ {{ stats.employees_total }}</span></dd>
+                        </div>
+                        <div class="rounded-md bg-gray-50 p-3">
+                            <dt class="text-xs text-gray-400">Kegiatan tersinkron</dt>
+                            <dd class="mt-1 text-lg font-semibold text-gray-900">{{ stats.activities_synced }}</dd>
+                        </div>
+                        <div class="rounded-md bg-gray-50 p-3">
+                            <dt class="text-xs text-gray-400">Terakhir ditarik</dt>
+                            <dd class="mt-1 text-sm font-medium text-gray-700">{{ formatDateTime(stats.last_fetched_at) }}</dd>
+                        </div>
+                    </dl>
+                </div>
+
                 <!-- Angka Kredit sync -->
                 <div class="rounded-lg border bg-white p-6">
                     <div class="flex items-start justify-between gap-4">
                         <div>
-                            <h2 class="mb-1 text-base font-semibold text-gray-900">Sinkronisasi Angka Kredit</h2>
+                            <h2 class="mb-1 text-base font-semibold text-gray-900">3. Sinkronisasi Angka Kredit</h2>
                             <p class="text-sm text-gray-500">Tarik golongan, jabatan dan predikat SKP semua tahun untuk halaman Angka Kredit. Berjalan otomatis setiap Senin pagi.</p>
                         </div>
-                        <Button variant="outline" :disabled="kipSync.careerSyncing" @click="kipSync.startCareerSync()">
+                        <Button variant="outline" :disabled="anySyncing" @click="kipSync.startCareerSync()">
                             <RefreshCw :class="['mr-1 h-4 w-4', kipSync.careerSyncing ? 'animate-spin' : '']" />
                             {{ kipSync.careerSyncing ? 'Menyinkronkan…' : 'Sinkronkan' }}
                         </Button>

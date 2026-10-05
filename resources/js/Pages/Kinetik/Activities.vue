@@ -1,28 +1,70 @@
 <script setup lang="ts">
 import AppLayout from '@/Layouts/AppLayout.vue';
 import { Head, router } from '@inertiajs/vue3';
-import { ref, watch } from 'vue';
+import { computed, ref, watch } from 'vue';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/Components/ui/table';
-import { CheckCircle2, Circle, ExternalLink } from 'lucide-vue-next';
+import { CheckCircle2, ChevronLeft, ChevronRight, Circle, ExternalLink } from 'lucide-vue-next';
+import { useDateFormat } from '@/composables/useDateFormat';
 import type { KipActivityRow, Paginated } from '@/types';
 
 const props = defineProps<{
     activities: Paginated<KipActivityRow>;
-    filters: { q: string; status: 'all' | 'claimed' | 'unclaimed' };
+    filters: {
+        q: string;
+        status: 'all' | 'claimed' | 'unclaimed';
+        period: 'all' | 'week' | 'month' | 'quarter';
+        /** Anchor date of the period (YYYY-MM-DD). */
+        date: string;
+        from: string | null;
+        to: string | null;
+    };
     stats: { total: number; claimed: number };
     canViewAll: boolean;
 }>();
 
 const search = ref(props.filters.q);
 const status = ref(props.filters.status);
+const period = ref(props.filters.period);
+const anchor = ref(props.filters.date);
+
+const PERIODS = [
+    { value: 'all', label: 'Semua' },
+    { value: 'week', label: 'Minggu' },
+    { value: 'month', label: 'Bulan' },
+    { value: 'quarter', label: 'Triwulan' },
+] as const;
+const MONTHS = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
+const { formatWeekRange } = useDateFormat();
+
+const periodLabel = computed(() => {
+    const { from, to } = props.filters;
+    if (!from || !to) return '';
+    const d = new Date(`${from}T00:00:00`);
+    if (props.filters.period === 'week') return formatWeekRange(from, to);
+    if (props.filters.period === 'month') return `${MONTHS[d.getMonth()]} ${d.getFullYear()}`;
+    return `Triwulan ${Math.floor(d.getMonth() / 3) + 1} ${d.getFullYear()}`;
+});
+
+// Move the anchor one week, month or quarter.
+function shift(step: number) {
+    const d = new Date(`${anchor.value}T00:00:00`);
+    if (period.value === 'week') d.setDate(d.getDate() + 7 * step);
+    else d.setMonth(d.getMonth() + (period.value === 'quarter' ? 3 : 1) * step, 1);
+    anchor.value = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
 
 let debounce: ReturnType<typeof setTimeout> | undefined;
-watch([search, status], () => {
+watch([search, status, period, anchor], () => {
     clearTimeout(debounce);
     debounce = setTimeout(() => {
         router.get(
             route('kip-activities.index'),
-            { q: search.value || undefined, status: status.value === 'all' ? undefined : status.value },
+            {
+                q: search.value || undefined,
+                status: status.value === 'all' ? undefined : status.value,
+                period: period.value === 'all' ? undefined : period.value,
+                date: period.value === 'all' ? undefined : anchor.value,
+            },
             { preserveState: true, preserveScroll: true, replace: true },
         );
     }, 300);
@@ -39,9 +81,37 @@ function formatDate(iso: string | null): string {
     <AppLayout>
         <template #title>{{ canViewAll ? 'Kegiatan kipApp' : 'Kegiatan Saya' }}</template>
 
+        <div class="mb-3 flex flex-wrap items-center gap-2">
+            <div class="inline-flex rounded-md border bg-gray-50 p-0.5" role="tablist" aria-label="Periode">
+                <button
+                    v-for="p in PERIODS"
+                    :key="p.value"
+                    type="button"
+                    role="tab"
+                    :aria-selected="period === p.value"
+                    :class="[
+                        'rounded px-3 py-1.5 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary',
+                        period === p.value ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-600 hover:text-gray-900',
+                    ]"
+                    @click="period = p.value"
+                >
+                    {{ p.label }}
+                </button>
+            </div>
+            <div v-if="period !== 'all'" class="flex items-center rounded-md border bg-white">
+                <button type="button" class="flex h-9 w-9 items-center justify-center text-gray-600 hover:bg-gray-50" aria-label="Periode sebelumnya" @click="shift(-1)">
+                    <ChevronLeft class="h-4 w-4" />
+                </button>
+                <span class="min-w-[11rem] px-2 text-center text-sm font-semibold tabular-nums text-gray-800">{{ periodLabel }}</span>
+                <button type="button" class="flex h-9 w-9 items-center justify-center text-gray-600 hover:bg-gray-50" aria-label="Periode berikutnya" @click="shift(1)">
+                    <ChevronRight class="h-4 w-4" />
+                </button>
+            </div>
+        </div>
+
         <div class="mb-4 flex flex-wrap items-center justify-between gap-3">
             <div class="text-sm text-gray-500">
-                {{ stats.claimed }} dari {{ stats.total }} kegiatan sudah diklaim
+                {{ stats.claimed }} dari {{ stats.total }} kegiatan sudah diklaim<template v-if="periodLabel"> ({{ periodLabel }})</template>
             </div>
             <div class="flex items-center gap-2">
                 <select

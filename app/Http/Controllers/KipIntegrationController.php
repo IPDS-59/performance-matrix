@@ -97,6 +97,10 @@ class KipIntegrationController extends Controller
             return back()->with('error', 'Belum ada token kipApp. Simpan token terlebih dahulu.');
         }
 
+        if ($busy = $this->otherRunning('activities')) {
+            return back()->with('error', "Tunggu Sinkronisasi {$busy} selesai.");
+        }
+
         $run = KipSyncRun::active('activities');
 
         try {
@@ -163,6 +167,10 @@ class KipIntegrationController extends Controller
             return back()->with('error', 'Belum ada token kipApp. Simpan token terlebih dahulu.');
         }
 
+        if ($busy = $this->otherRunning('structure')) {
+            return back()->with('error', "Tunggu Sinkronisasi {$busy} selesai.");
+        }
+
         $run = KipSyncRun::active('structure');
 
         try {
@@ -225,6 +233,10 @@ class KipIntegrationController extends Controller
             return back()->with('error', 'Belum ada token kipApp. Simpan token terlebih dahulu.');
         }
 
+        if ($busy = $this->otherRunning('careers')) {
+            return back()->with('error', "Tunggu Sinkronisasi {$busy} selesai.");
+        }
+
         $run = KipSyncRun::active('careers') ?? $this->startRun($request, 'careers', ['employees' => 0, 'ratings' => 0, 'failed' => 0]);
 
         if ($run->status !== 'running' || empty($run->pending)) {
@@ -284,6 +296,23 @@ class KipIntegrationController extends Controller
             'user_id' => $request->user()->id,
             'finished_at' => empty($employeeIds) ? now() : null,
         ]);
+    }
+
+    /**
+     * Label of another sync that is still running, or null. Syncs run one at a
+     * time: they share the kipApp token and the order matters.
+     */
+    private function otherRunning(string $type): ?string
+    {
+        $labels = ['structure' => 'Struktur', 'activities' => 'Kegiatan', 'careers' => 'Angka Kredit'];
+
+        foreach ($labels as $other => $label) {
+            if ($other !== $type && KipSyncRun::active($other) !== null) {
+                return $label;
+            }
+        }
+
+        return null;
     }
 
     /**

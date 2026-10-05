@@ -204,7 +204,8 @@ export const GUIDE_FLOWS: GuideFlow[] = [
                 body: [
                     'Rencana Kinerja terisi otomatis dari kipApp.',
                     'Pilih Projek tempat kegiatan ini dikerjakan. kipApp tidak menyimpan projek sebuah RK, jadi Kinetik mengisinya lebih dulu: projek yang Anda pilih terakhir untuk RK yang sama, projek yang namanya tertulis di RK, atau satu-satunya projek Anda di tim itu. Periksa lalu ubah jika perlu.',
-                    'Isi Target, Realisasi dan Satuan. Capaian dihitung otomatis.',
+                    'Isi Target, Realisasi dan Satuan (wajib). Capaian dihitung otomatis. Projek juga wajib, kecuali RK Ketua Anda di kipApp tidak punya projek.',
+                    '"Isi cepat" mengisi kolom yang masih kosong: target 1, realisasi dari progres kegiatan di kipApp, satuan dari IKI RK (atau Kegiatan), kendala "-". Periksa lalu ubah jika perlu.',
                     'Kegiatan yang berlangsung lebih dari seminggu, misalnya kegiatan bulanan atau triwulanan, bertanda "Klaim tiap minggu". Kegiatan itu muncul di setiap minggu yang dilaluinya. Klaim target dan realisasi minggu itu saja, lalu ulangi di minggu berikutnya.',
                     'Isi Kendala. Tulis "-" jika tidak ada kendala. Solusi dan Rencana Tindak Lanjut diisi PJ saat rapat tim.',
                     'Jam Mulai dan Jam Selesai boleh dikosongkan.',
@@ -231,7 +232,7 @@ export const GUIDE_FLOWS: GuideFlow[] = [
                 where: 'Menu Kegiatan → Kegiatan Saya, dan menu Rekap Tim',
                 route: 'kip-activities.index',
                 body: [
-                    'Kegiatan Saya menampilkan semua kegiatan kipApp Anda dan status klaimnya.',
+                    'Kegiatan Saya menampilkan semua kegiatan kipApp Anda dan status klaimnya. Saring per Minggu, Bulan atau Triwulan, lalu pindah periode dengan ‹ dan ›.',
                     'Rekap Tim menampilkan rekap tim Anda. Anda dapat membaca, tetapi hanya PJ yang mengubah ringkasan.',
                 ],
             },
@@ -438,6 +439,7 @@ export const GUIDE_FLOWS: GuideFlow[] = [
             {
                 title: 'Sinkronkan struktur, kegiatan, lalu Angka Kredit',
                 body: [
+                    'Jalankan berurutan: 1. Struktur, 2. Kegiatan, 3. Angka Kredit. Selama satu sinkronisasi berjalan, tombol lain tidak aktif.',
                     'Tekan Sinkronkan pada Sinkronisasi Struktur lebih dulu. Langkah ini menarik tim, projek, anggota dan RK, termasuk ID pegawai kipApp.',
                     'Setelah selesai, tekan Sinkronkan pada Sinkronisasi Kegiatan. Kegiatan semua bulan dalam periode ikut ditarik, termasuk yang sudah dikirim.',
                     'Keduanya juga berjalan otomatis setiap pagi dengan urutan yang sama.',
