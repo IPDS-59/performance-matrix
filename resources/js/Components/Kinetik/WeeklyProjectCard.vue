@@ -122,7 +122,7 @@ const groupTotals = (rows: RecapRow[]) => totalsOf(rows.flatMap(r => r.claims ??
         <div class="divide-y divide-gray-100">
             <template v-for="group in groups" :key="group.key">
                 <!-- Merged group: one block, one parafrase for all the RK in it -->
-                <div v-if="groupSize(seg, group.rows[0]) > 1" class="border-l-4 border-l-amber-400 bg-amber-50/30 px-4 py-3" role="group" :aria-label="`Gabungan ${group.rows.length} RK`">
+                <div v-if="groupSize(seg, group.rows[0]) > 1" class="bg-amber-50/40 px-4 py-3 ring-1 ring-inset ring-amber-200" role="group" :aria-label="`Gabungan ${group.rows.length} RK`">
                     <div class="flex flex-wrap items-start justify-between gap-2">
                         <div class="min-w-0">
                             <p class="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wide text-amber-700"><Link2 class="h-3 w-3" aria-hidden="true" /> Gabungan {{ groupSize(seg, group.rows[0]) }} RK</p>
