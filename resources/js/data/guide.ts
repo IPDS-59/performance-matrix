@@ -332,7 +332,7 @@ export const GUIDE_FLOWS: GuideFlow[] = [
                     'Isi Permasalahan, Solusi dan RTL hasil rapat tim di bawah parafrase. Permasalahan dari anggota sudah terisi lebih dulu.',
                     'Jika angka anggota keliru, ubah target, realisasi atau satuan langsung di barisnya. Baris itu bertanda "dikoreksi". Jika anggota menyimpan ulang klaimnya, angka anggota berlaku lagi.',
                     'Klik "Simpan" di bawah setiap projek untuk menyimpan semua perubahan projek itu sekaligus.',
-                    'Untuk menulis satu uraian bagi beberapa RK dalam satu projek, centang baris-barisnya lalu klik "Gabungkan yang dipilih". Angka setiap RK tetap terpisah. Klik "Pisahkan" untuk membatalkan.',
+                    'Untuk menulis satu uraian bagi beberapa RK dalam satu projek, centang baris-barisnya lalu klik "Gabungkan yang dipilih". Baris itu menjadi satu blok "Gabungan" dengan satu parafrase, satu Permasalahan, Solusi dan RTL. Angka setiap anggota tetap terpisah dan totalnya ditampilkan. Klik "Batalkan penggabungan" untuk memisahkannya lagi.',
                     'Bagian "Laporan Tersimpan" di bawah halaman menampilkan rekap empat minggu sebelumnya.',
                 ],
             },
