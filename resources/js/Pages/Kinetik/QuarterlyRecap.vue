@@ -13,14 +13,14 @@ import MeetingChecklist from '@/Components/Kinetik/MeetingChecklist.vue';
 import { periodChecklist } from '@/composables/useMeetingChecklist';
 import { Head, router } from '@inertiajs/vue3';
 import { computed, ref } from 'vue';
-import type { RecapSection, RecapSegment, RecapRow, TeamOption, RecapLockState } from '@/types';
+import type { RecapSection, RecapSegment, RecapRow, RecapSummaryText, TeamOption, RecapLockState } from '@/types';
 import { Button } from '@/Components/ui/button';
 import { Input } from '@/Components/ui/input';
 import { Label } from '@/Components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/Components/ui/select';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/Components/ui/table';
 import { Textarea } from '@/Components/ui/textarea';
-import { ChevronDown, ChevronUp, Check, ChevronsUpDown, ExternalLink } from 'lucide-vue-next';
+import { ChevronDown, ChevronUp, Check, ChevronsUpDown, ExternalLink, ChevronRight } from 'lucide-vue-next';
 import { useRecapExport } from '@/composables/useRecapExport';
 import InputError from '@/Components/InputError.vue';
 
@@ -35,7 +35,7 @@ const props = defineProps<{
     canLock: boolean;
     lock: RecapLockState | null;
     sections: RecapSection[];
-    summaries: Record<string, string>;
+    summaries: Record<string, RecapSummaryText>;
     currentEmployeeId: number | null;
 }>();
 
@@ -331,15 +331,20 @@ function saveParaphrase(row: RecapRow) {
                     :can-manage="canManage"
                     :payload="{ team_id: selectedTeamId, period_type: 'quarter', period_year: year, period_quarter: quarter }"
                 />
-                <h2 class="mb-2 mt-2 text-sm font-semibold text-gray-700">Rincian per RK <span class="font-normal text-gray-500">(untuk konfirmasi, Excel dan FRA)</span></h2>
             </template>
 
+            <details v-if="selectedTeamId" id="rekap-baris" class="group mb-6 scroll-mt-4">
+                <summary class="flex cursor-pointer list-none items-center gap-2 rounded-md border bg-white px-4 py-3 text-sm font-semibold text-gray-700 hover:bg-gray-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary">
+                    <ChevronRight class="h-4 w-4 text-gray-400 transition-transform group-open:rotate-90" aria-hidden="true" />
+                    Rincian per RK <span class="font-normal text-gray-500">(untuk konfirmasi, Excel dan FRA)</span>
+                </summary>
+                <div class="mt-3">
             <!-- Segments by project -->
             <div v-if="!segments.length" class="rounded-md border border-dashed border-gray-200 bg-gray-50 py-10 text-center text-sm text-gray-400">
                 Belum ada rekap tersimpan untuk tim ini pada triwulan ini.
             </div>
 
-            <div v-else id="rekap-baris" class="scroll-mt-4 space-y-6">
+            <div v-else class="space-y-6">
                 <div v-for="seg in segments" :key="seg.project_id ?? 'none'" class="overflow-hidden rounded-md border bg-white">
                     <div class="flex items-center justify-between gap-3 border-b bg-gray-50 px-4 py-3">
                         <div class="min-w-0">
@@ -561,6 +566,8 @@ function saveParaphrase(row: RecapRow) {
                     </Table>
                 </div>
             </div>
+                </div>
+            </details>
         </template>
     </AppLayout>
 </template>

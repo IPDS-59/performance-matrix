@@ -339,6 +339,52 @@ export interface RecapSegment {
     rows: RecapRow[];
 }
 
+/** One member kegiatan inside a weekly output row. */
+export interface WeeklyRowLine {
+    claim_id: number;
+    name: string;
+    uraian: string | null;
+    rk_description: string;
+    target: number | null;
+    realization: number | null;
+    target_unit: string | null;
+    achievement: number | null;
+    adjusted_by: string | null;
+    pic_employee_id: number | null;
+    plan_id: number;
+}
+
+/** The PJ's output row of a week: one kegiatan, or several the PJ merged. */
+export interface WeeklyRow {
+    /** "c<claim id>" until the PJ saves or merges, then "r<row id>". */
+    key: string;
+    row_id: number | null;
+    claim_ids: number[];
+    claims: WeeklyRowLine[];
+    merged: boolean;
+    /** Part of "Laporan Tersimpan". */
+    saved: boolean;
+    pj_uraian: string | null;
+    obstacle: string | null;
+    solution: string | null;
+    follow_up_plan: string | null;
+}
+
+export interface WeeklySegment {
+    project_id: number | null;
+    project_name: string;
+    leader_rk: string | null;
+    rows: WeeklyRow[];
+}
+
+/** The PJ's narrative for one Projek of a month or quarter. */
+export interface RecapSummaryText {
+    body: string | null;
+    obstacle: string | null;
+    solution: string | null;
+    follow_up_plan: string | null;
+}
+
 export interface TeamRecapEvidence {
     id: number;
     team_id: number;

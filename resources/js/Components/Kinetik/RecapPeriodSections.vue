@@ -4,29 +4,37 @@ import { ChevronRight } from 'lucide-vue-next';
 import { useDateFormat } from '@/composables/useDateFormat';
 
 /** The weeks of a month (or months of a quarter) as read-only, folding sections. */
-defineProps<{ title: string; sections: RecapSection[] }>();
+defineProps<{ title: string; subtitle?: string; sections: RecapSection[] }>();
 
-const { formatWeekRange } = useDateFormat();
+const { formatDate } = useDateFormat();
 const rowCount = (section: RecapSection) => section.segments.reduce((n, s) => n + s.rows.length, 0);
 // Members write "-" when there is no obstacle.
 const said = (v: string | null | undefined) => (v && v.trim() !== '-' ? v : null);
 const pct = (v: number | null) => (v == null ? '—' : `${v.toFixed(0)}%`);
+
+/** "02–08 Jun 2026" inside one month, "30 Jun – 05 Jul 2026" across two. */
+function shortRange(start: string, end: string): string {
+    const a = new Date(`${start}T00:00:00`);
+    const b = new Date(`${end}T00:00:00`);
+    const day = (d: Date) => String(d.getDate()).padStart(2, '0');
+    const month = (d: Date) => new Intl.DateTimeFormat('id-ID', { month: 'short' }).format(d);
+    if (a.getMonth() === b.getMonth()) return `${day(a)}–${day(b)} ${month(b)} ${b.getFullYear()}`;
+    return `${day(a)} ${month(a)} – ${day(b)} ${month(b)} ${b.getFullYear()}`;
+}
 </script>
 
 <template>
     <section class="mb-6 overflow-hidden rounded-md border bg-white" :aria-label="title">
-        <div class="border-b bg-gray-50 px-4 py-3">
-            <h2 class="text-sm font-semibold text-gray-800">{{ title }}</h2>
-            <p class="text-xs text-gray-500">Hanya dibaca. Ubah isinya di halaman periode itu.</p>
+        <div class="border-b bg-gray-50 px-4 py-3.5">
+            <h2 class="text-sm font-bold text-gray-900">{{ title }}</h2>
+            <p class="text-xs text-gray-400">{{ subtitle ?? 'Dari rekap yang sudah disimpan PJ · Hanya dibaca' }}</p>
         </div>
         <details v-for="section in sections" :key="section.start" class="group border-b last:border-b-0">
-            <summary class="flex cursor-pointer list-none items-center gap-2 px-4 py-2.5 text-sm hover:bg-gray-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary">
-                <ChevronRight class="h-4 w-4 text-gray-400 transition-transform group-open:rotate-90" aria-hidden="true" />
-                <span class="font-medium text-gray-800">{{ section.label }}</span>
-                <span class="text-gray-500">{{ formatWeekRange(section.start, section.end) }}</span>
-                <span :class="['ml-auto text-xs', rowCount(section) ? 'text-green-700' : 'text-gray-400']">
-                    {{ rowCount(section) ? `${rowCount(section)} baris` : 'Belum ada rekap' }}
-                </span>
+            <summary class="flex cursor-pointer list-none items-center gap-2.5 px-4 py-2.5 text-sm hover:bg-gray-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary">
+                <ChevronRight class="h-3.5 w-3.5 text-gray-400 transition-transform group-open:rotate-90" aria-hidden="true" />
+                <span class="text-xs font-semibold text-gray-800">{{ section.label }} — {{ shortRange(section.start, section.end) }}</span>
+                <span v-if="rowCount(section)" class="ml-auto inline-flex items-center gap-1.5 text-[11px] text-green-700"><span class="h-1.5 w-1.5 rounded-full bg-green-600" aria-hidden="true" />{{ rowCount(section) }} baris output</span>
+                <span v-else class="ml-auto text-[11px] text-gray-400">Belum ada rekap</span>
             </summary>
             <div class="space-y-3 bg-gray-50/60 px-4 pb-4 pt-1">
                 <div v-for="seg in section.segments" :key="seg.project_id ?? 'none'">

@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Actions\Kinetik\MergeRecapRowsAction;
 use App\Actions\Kinetik\PrefillRecapAction;
+use App\Actions\Kinetik\SaveWeeklyRecapRowsAction;
 use App\Http\Controllers\Concerns\ResolvesTeams;
 use App\Models\ActivityClaim;
 use App\Models\Employee;
@@ -15,6 +16,7 @@ use App\Models\RecapOverride;
 use App\Models\RecapSummary;
 use App\Models\Team;
 use App\Models\TeamRecapEvidence;
+use App\Models\WeeklyRecapRow;
 use App\Models\WeeklyTeamNote;
 use App\Notifications\KinetikNotification;
 use App\Services\Kinetik\RecapAggregator;
@@ -52,7 +54,7 @@ class TeamRecapController extends Controller
         $weekStart = $anchor->copy()->startOfWeek(Carbon::MONDAY)->toDateString();
         $weekEnd = $anchor->copy()->endOfWeek(Carbon::SUNDAY)->toDateString();
 
-        $segments = $team ? $this->aggregator->weekly($team, $weekStart) : [];
+        $segments = $team ? $this->aggregator->weeklyRows($team, $weekStart) : [];
 
         $evidences = $team
             ? TeamRecapEvidence::where('team_id', $team->id)
@@ -61,12 +63,6 @@ class TeamRecapController extends Controller
                 ->latest()
                 ->get()
             : collect();
-
-        $weeklyNote = $team
-            ? WeeklyTeamNote::where('team_id', $team->id)
-                ->whereDate('week_start', $weekStart)
-                ->first()
-            : null;
 
         return Inertia::render('Kinetik/TeamWeeklyRecap', [
             'teams' => $this->teamOptions($teams),
@@ -79,7 +75,6 @@ class TeamRecapController extends Controller
             'nextWeek' => Carbon::parse($weekStart)->addWeek()->toDateString(),
             ...$this->lockProps($employee, $team, 'week', (int) Carbon::parse($weekStart)->year, weekStart: $weekStart),
             'currentEmployeeId' => $employee?->id,
-            'weeklyNote' => $weeklyNote,
             'members' => $team ? $this->aggregator->memberCompleteness($team, $weekStart) : [],
             // "Laporan Tersimpan": the four weeks before, read-only.
             'previousWeeks' => $team ? collect(range(1, 4))
@@ -656,11 +651,11 @@ class TeamRecapController extends Controller
     }
 
     /**
-     * Save one Projek card of the weekly team recap: the PJ text of its rows
-     * and the PJ's corrections to member numbers, in one request. Only the
-     * rows and claims the PJ changed are sent.
+     * Save one Projek card of the weekly recap: the PJ's rows (one per kegiatan,
+     * or merged) and the corrections to member numbers, in one request. Saving
+     * makes the rows part of "Laporan Tersimpan".
      */
-    public function saveWeeklyProject(Request $request): RedirectResponse
+    public function saveWeeklyProject(Request $request, SaveWeeklyRecapRowsAction $rows): RedirectResponse
     {
         $employee = $request->user()->employee;
         abort_if($employee === null, 403, 'Akun tidak terhubung ke data pegawai.');
@@ -669,8 +664,8 @@ class TeamRecapController extends Controller
             'team_id' => ['required', 'integer', 'exists:teams,id'],
             'week_start' => ['required', 'date'],
             'rows' => ['array'],
-            'rows.*.performance_plan_id' => ['required', 'integer', 'exists:performance_plans,id'],
-            'rows.*.project_id' => ['nullable', 'integer', 'exists:projects,id'],
+            'rows.*.claim_ids' => ['required', 'array', 'min:1'],
+            'rows.*.claim_ids.*' => ['integer', 'exists:activity_claims,id'],
             'rows.*.uraian' => ['nullable', 'string'],
             'rows.*.obstacle' => ['nullable', 'string'],
             'rows.*.solution' => ['nullable', 'string'],
@@ -684,55 +679,80 @@ class TeamRecapController extends Controller
 
         $teamId = (int) $validated['team_id'];
         $weekStart = Carbon::parse($validated['week_start'])->toDateString();
-        $year = Carbon::parse($weekStart)->year;
-        $this->ensureUnlocked($teamId, 'week', $year, weekStart: $weekStart);
+        $this->ensureUnlocked($teamId, 'week', Carbon::parse($weekStart)->year, weekStart: $weekStart);
 
-        $claims = ActivityClaim::with('performancePlan.project', 'project')
-            ->whereIn('id', collect($validated['claims'] ?? [])->pluck('id'))
-            ->get()
-            ->keyBy('id');
-        if ($claims->isNotEmpty()) {
-            $this->authorizePj($employee, $teamId);
-        }
+        $claimIds = collect($validated['rows'] ?? [])->pluck('claim_ids')->flatten()->merge(collect($validated['claims'] ?? [])->pluck('id'))->unique();
+        $claims = ActivityClaim::with('performancePlan.project', 'project')->whereIn('id', $claimIds)->get()->keyBy('id');
         foreach ($claims as $claim) {
             $claimTeam = $claim->project?->team_id ?? $claim->performancePlan?->project?->team_id ?? $claim->performancePlan?->team_id;
-            abort_unless((int) $claimTeam === $teamId, 403, 'Klaim ini bukan milik tim yang dipilih.');
+            abort_unless((int) $claimTeam === $teamId && Carbon::parse($claim->week_start)->toDateString() === $weekStart, 403, 'Klaim ini bukan milik tim dan minggu yang dipilih.');
             // A locked month or quarter also freezes the numbers inside it.
             if (RecapLock::coversDate($teamId, Carbon::parse($claim->activity_date_start))) {
                 return back()->with('error', self::LOCKED_MESSAGE);
             }
+            $this->authorizeParaphrase($employee, $teamId, $claim->performancePlan);
+        }
+        // Numbers are the PJ's. Without any claim to prove a PIC role, only the PJ may save.
+        if (! empty($validated['claims']) || $claims->isEmpty()) {
+            $this->authorizePj($employee, $teamId);
         }
 
-        DB::transaction(function () use ($validated, $employee, $teamId, $year, $weekStart, $claims) {
-            foreach ($validated['rows'] ?? [] as $row) {
-                $this->authorizeParaphrase($employee, $teamId, PerformancePlan::findOrFail($row['performance_plan_id']));
-                RecapOverride::updateOrCreate(
-                    [
-                        'team_id' => $teamId,
-                        'performance_plan_id' => $row['performance_plan_id'],
-                        'project_id' => $row['project_id'] ?? null,
-                        'period_type' => 'week',
-                        'period_year' => $year,
-                        'period_month' => null,
-                        'period_quarter' => null,
-                        'week_start' => $weekStart,
-                    ],
-                    [
-                        'uraian' => $row['uraian'] ?? null,
-                        'obstacle' => $row['obstacle'] ?? null,
-                        'solution' => $row['solution'] ?? null,
-                        'follow_up_plan' => $row['follow_up_plan'] ?? null,
-                        'created_by' => $employee->id,
-                    ],
-                );
-            }
+        DB::transaction(function () use ($validated, $rows, $employee, $teamId, $weekStart, $claims) {
+            $rows->save($teamId, $weekStart, collect($validated['rows'] ?? [])->map(fn (array $r) => [...$r, 'claim_ids' => array_map('intval', $r['claim_ids'])])->all(), $employee);
 
             foreach ($validated['claims'] ?? [] as $input) {
                 $this->applyClaimNumbers($claims[$input['id']], $employee, $input);
             }
         });
 
-        return back()->with('success', 'Rekap projek disimpan.');
+        return back()->with('success', 'Rekap projek disimpan ke Laporan Tersimpan.');
+    }
+
+    /** Merge the kegiatan the PJ ticked into one output row. */
+    public function mergeWeeklyRows(Request $request, SaveWeeklyRecapRowsAction $rows): RedirectResponse
+    {
+        [$employee, $teamId, $weekStart] = $this->weeklyRowRequest($request, [
+            'claim_ids' => ['required', 'array', 'min:2'],
+            'claim_ids.*' => ['integer', 'distinct', 'exists:activity_claims,id'],
+        ]);
+
+        $claims = ActivityClaim::with('performancePlan.project', 'project')->whereIn('id', $request->input('claim_ids'))->get();
+        abort_unless($claims->count() === count($request->input('claim_ids')), 422);
+        abort_unless($claims->every(fn (ActivityClaim $c) => Carbon::parse($c->week_start)->toDateString() === $weekStart), 422, 'Hanya kegiatan dari minggu yang sama yang dapat digabung.');
+        abort_unless($claims->map(fn (ActivityClaim $c) => $c->project_id ?? $c->performancePlan?->project_id)->unique()->count() === 1, 422, 'Hanya kegiatan dari projek yang sama yang dapat digabung.');
+
+        $rows->merge($teamId, $weekStart, array_map('intval', $request->input('claim_ids')), $employee);
+
+        return back()->with('success', 'Kegiatan digabungkan. Tulis satu parafrase untuk baris gabungan.');
+    }
+
+    /** Undo a merge: every kegiatan is a row of its own again. */
+    public function splitWeeklyRow(Request $request, SaveWeeklyRecapRowsAction $rows): RedirectResponse
+    {
+        [, $teamId] = $this->weeklyRowRequest($request, ['row_id' => ['required', 'integer', 'exists:weekly_recap_rows,id']]);
+
+        $row = WeeklyRecapRow::where('team_id', $teamId)->findOrFail($request->integer('row_id'));
+        $rows->split($row);
+
+        return back()->with('success', 'Penggabungan dibatalkan.');
+    }
+
+    /**
+     * @param  array<string, mixed>  $rules
+     * @return array{0: Employee, 1: int, 2: string}
+     */
+    private function weeklyRowRequest(Request $request, array $rules): array
+    {
+        $employee = $request->user()->employee;
+        abort_if($employee === null, 403, 'Akun tidak terhubung ke data pegawai.');
+
+        $validated = $request->validate(['team_id' => ['required', 'integer', 'exists:teams,id'], 'week_start' => ['required', 'date'], ...$rules]);
+        $teamId = (int) $validated['team_id'];
+        $weekStart = Carbon::parse($validated['week_start'])->toDateString();
+        $this->authorizePj($employee, $teamId);
+        $this->ensureUnlocked($teamId, 'week', Carbon::parse($weekStart)->year, weekStart: $weekStart);
+
+        return [$employee, $teamId, $weekStart];
     }
 
     /**
@@ -941,6 +961,9 @@ class TeamRecapController extends Controller
             'period_month' => ['nullable', 'integer', 'between:1,12', 'required_if:period_type,month'],
             'period_quarter' => ['nullable', 'integer', 'between:1,4', 'required_if:period_type,quarter'],
             'body' => ['nullable', 'string', 'max:10000'],
+            'obstacle' => ['nullable', 'string', 'max:10000'],
+            'solution' => ['nullable', 'string', 'max:10000'],
+            'follow_up_plan' => ['nullable', 'string', 'max:10000'],
         ]);
 
         $this->authorizePj($employee, (int) $validated['team_id']);
@@ -955,12 +978,13 @@ class TeamRecapController extends Controller
             'period_month' => $type === 'month' ? (int) $validated['period_month'] : null,
             'period_quarter' => $type === 'quarter' ? (int) $validated['period_quarter'] : null,
         ];
-        $body = trim($validated['body'] ?? '');
+        $text = collect(['body', 'obstacle', 'solution', 'follow_up_plan'])
+            ->mapWithKeys(fn (string $field) => [$field => trim($validated[$field] ?? '') ?: null]);
 
-        if ($body === '') {
+        if ($text->filter()->isEmpty()) {
             RecapSummary::where($key)->delete();
         } else {
-            RecapSummary::updateOrCreate($key, ['body' => $body, 'created_by' => $employee->id]);
+            RecapSummary::updateOrCreate($key, [...$text->all(), 'created_by' => $employee->id]);
         }
 
         return back()->with('success', 'Ringkasan projek disimpan.');
@@ -969,13 +993,13 @@ class TeamRecapController extends Controller
     /**
      * Summaries of a period keyed by Projek id ("none" = RK without a Projek).
      *
-     * @return array<string, string>
+     * @return array<string, array{body: ?string, obstacle: ?string, solution: ?string, follow_up_plan: ?string}>
      */
     private function summaries(Team $team, string $type, int $year, ?int $month = null, ?int $quarter = null): array
     {
         return RecapSummary::forPeriod($team->id, $type, $year, $month, $quarter)
             ->get()
-            ->mapWithKeys(fn (RecapSummary $s) => [(string) ($s->project_id ?? 'none') => $s->body])
+            ->mapWithKeys(fn (RecapSummary $s) => [(string) ($s->project_id ?? 'none') => $s->only(['body', 'obstacle', 'solution', 'follow_up_plan'])])
             ->all();
     }
 

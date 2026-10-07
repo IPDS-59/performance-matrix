@@ -8,7 +8,9 @@ const props = defineProps<{ steps: ChecklistStep[] }>();
 const doneCount = computed(() => props.steps.filter(s => s.done).length);
 
 function jump(target?: string) {
-    if (target) document.getElementById(target)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    const el = target ? document.getElementById(target) : null;
+    if (el instanceof HTMLDetailsElement) el.open = true;
+    el?.scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 </script>
 

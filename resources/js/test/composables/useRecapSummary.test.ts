@@ -14,10 +14,18 @@ const sections: RecapSection[] = [
 
 describe('useRecapSummary', () => {
     it('drafts one line per section that has the Projek', () => {
-        expect(draftProjectSummary(5, sections)).toBe('Minggu 1: Pelatihan innas\nMinggu 3: Entri data');
+        expect(draftProjectSummary(5, sections).body).toBe('Minggu 1: Pelatihan innas\nMinggu 3: Entri data');
     });
 
     it('lists every Projek of the period once', () => {
         expect(summaryProjects([], sections).map(p => p.name)).toEqual(['Sakernas', 'Jaringan']);
+    });
+
+    it('drafts Permasalahan, Solusi and RTL per week and skips a plain dash', () => {
+        const withText: RecapSection[] = [
+            { label: 'Minggu 1', start: '', end: '', segments: [{ project_id: 5, project_name: 'S', rows: [row({ obstacle: 'Token expire', solution: '-', follow_up_plan: 'Refresh manual' })] }] },
+            { label: 'Minggu 2', start: '', end: '', segments: [{ project_id: 5, project_name: 'S', rows: [row({ obstacle: '-' })] }] },
+        ];
+        expect(draftProjectSummary(5, withText)).toMatchObject({ obstacle: 'Minggu 1: Token expire', solution: '', follow_up_plan: 'Minggu 1: Refresh manual' });
     });
 });

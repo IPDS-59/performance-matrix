@@ -18,6 +18,9 @@ class RecapSummary extends Model
         'period_month',
         'period_quarter',
         'body',
+        'obstacle',
+        'solution',
+        'follow_up_plan',
         'created_by',
     ];
 

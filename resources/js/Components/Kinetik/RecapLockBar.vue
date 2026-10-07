@@ -10,6 +10,8 @@ const props = defineProps<{
     teamId: number | null;
     lock: RecapLockState | null;
     canLock: boolean;
+    /** Says what locking does, when the page is not obvious about it. */
+    hint?: string;
     period: { period_type: RecapPeriodType; period_year: number; period_month?: number; period_quarter?: number; week_start?: string };
 }>();
 
@@ -40,7 +42,7 @@ function toggle() {
             <template v-if="lock">
                 Rekap dikunci<template v-if="lock.locked_by"> oleh {{ lock.locked_by }}</template><template v-if="lock.locked_at"> pada {{ formatDate(lock.locked_at) }}</template>. Rekap tidak dapat diubah.
             </template>
-            <template v-else>Kunci rekap sebelum rapat agar isinya tidak berubah.</template>
+            <template v-else>{{ hint ?? 'Kunci rekap sebelum rapat agar isinya tidak berubah.' }}</template>
         </span>
         <Button v-if="canLock" size="sm" :variant="lock ? 'outline' : 'default'" :disabled="saving" @click="toggle">
             {{ lock ? 'Buka kunci' : 'Kunci rekap' }}

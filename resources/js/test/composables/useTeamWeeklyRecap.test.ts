@@ -10,3 +10,12 @@ describe('hasObstacle', () => {
         expect(hasObstacle('Bukti dukung kabkot belum lengkap')).toBe(true);
     });
 });
+
+describe('rowAchievement', () => {
+    it('adds the numbers of the merged kegiatan', async () => {
+        const { rowAchievement } = await import('@/composables/useTeamWeeklyRecap');
+        const line = (target: number | null, realization: number | null) => ({ target, realization });
+        expect(rowAchievement({ claims: [line(3, 3), line(2, 1)] } as never)).toBe(80);
+        expect(rowAchievement({ claims: [line(null, null)] } as never)).toBeNull();
+    });
+});

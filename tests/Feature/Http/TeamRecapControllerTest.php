@@ -2,6 +2,7 @@
 
 use App\Models\ActivityClaim;
 use App\Models\Employee;
+use App\Models\KipActivity;
 use App\Models\LeadershipNote;
 use App\Models\PerformancePlan;
 use App\Models\Project;
@@ -11,6 +12,7 @@ use App\Models\RecapSummary;
 use App\Models\Team;
 use App\Models\TeamRecapEvidence;
 use App\Models\User;
+use App\Models\WeeklyRecapRow;
 use App\Services\Kinetik\RecapAggregator;
 
 /**
@@ -1296,39 +1298,93 @@ it('blocks PJ corrections for non-PJ users and locked periods', function () {
     $this->actingAs($user)->post(route('team-recap.claim-adjust', $claim), ['target' => 1, 'realization' => 1])->assertSessionHas('error');
 });
 
-it('saves a Projek card of the weekly recap in one request', function () {
-    [$user, $pj, $team] = pjOfTeam();
-    $project = Project::factory()->create(['team_id' => $team->id, 'year' => 2026]);
-    $plan = PerformancePlan::factory()->create(['project_id' => $project->id, 'team_id' => $team->id]);
-    $claim = ActivityClaim::factory()->saved()->create([
-        'performance_plan_id' => $plan->id, 'project_id' => $project->id,
-        'target' => 4, 'realization' => 2, 'achievement' => 50, 'target_unit' => 'Dokumen',
+function weeklyClaim(Team $team, Employee $member, string $uraian, array $extra = []): ActivityClaim
+{
+    $project = Project::firstOrCreate(['team_id' => $team->id, 'name' => 'Projek Uji'], ['year' => 2026]);
+    $plan = PerformancePlan::firstOrCreate(['team_id' => $team->id, 'project_id' => $project->id, 'description' => $extra['rk'] ?? 'RK Uji']);
+    $activity = KipActivity::factory()->create(['employee_id' => $member->id, 'description' => $uraian]);
+
+    return ActivityClaim::factory()->saved()->create([
+        'employee_id' => $member->id, 'kip_activity_id' => $activity->id, 'performance_plan_id' => $plan->id, 'project_id' => $project->id,
+        'target' => 4, 'realization' => 2, 'achievement' => 50, 'target_unit' => 'Dokumen', 'obstacle' => $extra['obstacle'] ?? null,
         'period_year' => 2026, 'period_month' => 6, 'period_quarter' => 2, 'week_start' => '2026-06-08', 'activity_date_start' => '2026-06-09',
     ]);
+}
+
+it('shows one weekly row per kegiatan with the member text, and saves a Projek card into Laporan Tersimpan', function () {
+    [$user, $pj, $team] = pjOfTeam();
+    $one = weeklyClaim($team, $pj, 'Rapat ISO', ['obstacle' => 'Hujan', 'rk' => 'RK A']);
+    $two = weeklyClaim($team, $pj, 'Audit ISO', ['rk' => 'RK B']);
+    $url = route('team-recap.weekly', ['team' => $team->id, 'week' => '2026-06-08']);
+
+    $this->actingAs($user)->get($url)->assertInertia(fn ($page) => $page
+        ->has('segments.0.rows', 2)
+        ->where('segments.0.rows.0.claim_ids', [$one->id])
+        ->where('segments.0.rows.0.obstacle', 'Hujan')
+        ->where('segments.0.rows.0.saved', false)
+        ->where('segments.0.rows.1.claims.0.rk_description', 'RK B'));
+
     $payload = [
         'team_id' => $team->id, 'week_start' => '2026-06-08',
-        'rows' => [['performance_plan_id' => $plan->id, 'project_id' => $project->id, 'uraian' => 'Rapat ISO', 'obstacle' => 'Hujan', 'solution' => null, 'follow_up_plan' => 'Jadwal ulang']],
-        'claims' => [['id' => $claim->id, 'target' => 4, 'realization' => 4, 'target_unit' => 'Laporan']],
+        'rows' => [
+            ['claim_ids' => [$one->id], 'uraian' => 'Rapat ISO dilaksanakan', 'obstacle' => 'Hujan', 'solution' => 'Ruang cadangan', 'follow_up_plan' => null],
+            ['claim_ids' => [$two->id], 'uraian' => null, 'obstacle' => null, 'solution' => null, 'follow_up_plan' => null],
+        ],
+        'claims' => [['id' => $one->id, 'target' => 4, 'realization' => 4, 'target_unit' => 'Laporan']],
     ];
-
     $this->actingAs($user)->post(route('team-recap.weekly-project'), $payload)->assertSessionHas('success');
 
-    expect(RecapOverride::sole())->uraian->toBe('Rapat ISO')->obstacle->toBe('Hujan')->follow_up_plan->toBe('Jadwal ulang')
-        ->and($claim->fresh())->achievement->toEqual(100)->target_unit->toBe('Laporan')->adjusted_by->toBe($pj->id);
+    expect($one->fresh())->achievement->toEqual(100)->target_unit->toBe('Laporan')->adjusted_by->toBe($pj->id)
+        ->and(WeeklyRecapRow::count())->toBe(2)
+        ->and(WeeklyRecapRow::whereNotNull('saved_at')->count())->toBe(2);
 
-    // The weekly page lists the weeks before it under Laporan Tersimpan.
+    // The per-RK text that monthly, quarterly and the export read is derived from the rows.
+    expect(RecapOverride::where('performance_plan_id', $one->performance_plan_id)->sole())
+        ->uraian->toBe('Rapat ISO dilaksanakan')->solution->toBe('Ruang cadangan');
+
+    $this->actingAs($user)->get($url)->assertInertia(fn ($page) => $page
+        ->where('segments.0.rows.0.saved', true)
+        ->where('segments.0.rows.0.pj_uraian', 'Rapat ISO dilaksanakan'));
+
+    // The weeks before are listed under Laporan Tersimpan.
     $this->actingAs($user)->get(route('team-recap.weekly', ['team' => $team->id, 'week' => '2026-06-15']))
-        ->assertInertia(fn ($page) => $page
-            ->has('previousWeeks', 4)
-            ->where('previousWeeks.0.start', '2026-06-08')
-            ->where('previousWeeks.0.segments.0.rows.0.pj_uraian', 'Rapat ISO'));
+        ->assertInertia(fn ($page) => $page->has('previousWeeks', 4)->where('previousWeeks.0.start', '2026-06-08')->where('previousWeeks.0.segments.0.rows.0.pj_uraian', 'Rapat ISO dilaksanakan'));
 
     RecapLock::create(['team_id' => $team->id, 'period_type' => 'month', 'period_year' => 2026, 'period_month' => 6]);
     $this->actingAs($user)->post(route('team-recap.weekly-project'), $payload)->assertSessionHas('error');
 
     $member = User::factory()->create();
     Employee::factory()->create(['user_id' => $member->id]);
-    $this->actingAs($member)->post(route('team-recap.weekly-project'), [...$payload, 'rows' => []])->assertForbidden();
+    $this->actingAs($member)->post(route('team-recap.weekly-project'), [...$payload, 'rows' => [], 'claims' => []])->assertForbidden();
+});
+
+it('merges kegiatan into one row, keeps the text, and splits them again', function () {
+    [$user, $pj, $team] = pjOfTeam();
+    $one = weeklyClaim($team, $pj, 'Rapat ISO');
+    $two = weeklyClaim($team, $pj, 'Audit ISO');
+    $three = weeklyClaim($team, $pj, 'Review ISO');
+    $period = ['team_id' => $team->id, 'week_start' => '2026-06-08'];
+    $url = route('team-recap.weekly', ['team' => $team->id, 'week' => '2026-06-08']);
+
+    $this->actingAs($user)->post(route('team-recap.weekly-project'), [...$period, 'rows' => [['claim_ids' => [$one->id], 'uraian' => 'Teks pertama']]]);
+    $this->actingAs($user)->post(route('team-recap.weekly-rows.merge'), [...$period, 'claim_ids' => [$one->id, $two->id]])->assertSessionHas('success');
+
+    $this->actingAs($user)->get($url)->assertInertia(fn ($page) => $page
+        ->has('segments.0.rows', 2)
+        ->where('segments.0.rows.0.merged', true)
+        ->where('segments.0.rows.0.claim_ids', [$one->id, $two->id])
+        ->where('segments.0.rows.0.pj_uraian', 'Teks pertama')
+        ->where('segments.0.rows.1.claim_ids', [$three->id]));
+
+    $row = WeeklyRecapRow::sole();
+    $this->actingAs($user)->post(route('team-recap.weekly-rows.split'), [...$period, 'row_id' => $row->id])->assertSessionHas('success');
+    $this->actingAs($user)->get($url)->assertInertia(fn ($page) => $page->has('segments.0.rows', 3)->where('segments.0.rows.0.merged', false));
+
+    // A merge needs two kegiatan of one Projek, and a member cannot merge.
+    $this->actingAs($user)->post(route('team-recap.weekly-rows.merge'), [...$period, 'claim_ids' => [$one->id]])->assertSessionHasErrors('claim_ids');
+    $member = User::factory()->create();
+    Employee::factory()->create(['user_id' => $member->id]);
+    $this->actingAs($member)->post(route('team-recap.weekly-rows.merge'), [...$period, 'claim_ids' => [$one->id, $two->id]])->assertForbidden();
 });
 
 // ── Weekly sections and Ringkasan per Projek ────────────────────────────────
@@ -1353,7 +1409,7 @@ it('shows the weeks of a month and saves one summary per Projek', function () {
             ->has('sections', 5)
             ->where('sections.0.start', '2026-06-01')
             ->where('sections.1.segments.0.project_id', $project->id)
-            ->where("summaries.{$project->id}", 'Sakernas selesai'));
+            ->where("summaries.{$project->id}.body", 'Sakernas selesai'));
 
     $this->actingAs($user)->post(route('team-recap.summary'), [...$period, 'project_id' => $project->id, 'body' => '']);
     expect(RecapSummary::count())->toBe(0);

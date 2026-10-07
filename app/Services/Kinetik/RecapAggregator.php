@@ -7,6 +7,8 @@ use App\Models\KipActivity;
 use App\Models\Project;
 use App\Models\RecapOverride;
 use App\Models\Team;
+use App\Models\WeeklyRecapRow;
+use App\Models\WeeklyRecapRowClaim;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Collection;
@@ -34,6 +36,75 @@ class RecapAggregator
         $overrides = $this->overrides($team, 'week', $year, weekStart: $weekStart);
 
         return $this->segment($claims, $overrides, withFollowUp: false, inherited: collect());
+    }
+
+    /**
+     * The weekly recap as the PJ edits it: one output row per kegiatan, or one
+     * for several kegiatan the PJ merged. A row without a saved PJ text shows
+     * what the members wrote, so the PJ does not type it again.
+     *
+     * @return array<int, array<string, mixed>>
+     */
+    public function weeklyRows(Team $team, string $weekStart): array
+    {
+        $claims = $this->claimsQuery($team)
+            ->whereDate('week_start', $weekStart)
+            ->orderBy('activity_date_start')
+            ->orderBy('id')
+            ->get();
+
+        $rowOf = WeeklyRecapRowClaim::whereIn('activity_claim_id', $claims->pluck('id'))->pluck('weekly_recap_row_id', 'activity_claim_id');
+        $rows = WeeklyRecapRow::whereIn('id', $rowOf->unique()->values())->get()->keyBy('id');
+        $dash = fn (?string $v) => ($v === null || trim($v) === '-') ? null : $v;
+
+        return $claims
+            ->groupBy(fn (ActivityClaim $c) => $this->projectOf($c)?->id ?? 0)
+            ->map(function (Collection $projectClaims) use ($rowOf, $rows, $dash) {
+                $project = $this->projectOf($projectClaims->first());
+
+                $outputRows = $projectClaims
+                    ->groupBy(fn (ActivityClaim $c) => $rowOf->has($c->id) ? 'r'.$rowOf[$c->id] : 'c'.$c->id)
+                    ->map(function (Collection $group, string $key) use ($rows, $dash) {
+                        $row = str_starts_with($key, 'r') ? $rows->get((int) substr($key, 1)) : null;
+                        $lines = $group->map(fn (ActivityClaim $c) => [
+                            'claim_id' => $c->id,
+                            'name' => $c->employee?->display_name ?? $c->employee?->name ?? 'Anggota',
+                            'uraian' => trim((string) ($c->kipActivity?->description ?? '')) ?: null,
+                            'rk_description' => $c->performancePlan?->description ?? '—',
+                            'target' => $c->target !== null ? (float) $c->target : null,
+                            'realization' => $c->realization !== null ? (float) $c->realization : null,
+                            'target_unit' => $c->target_unit,
+                            'achievement' => $c->achievement !== null ? (float) $c->achievement : null,
+                            'adjusted_by' => $c->adjustedBy?->display_name ?? $c->adjustedBy?->name,
+                            'pic_employee_id' => $c->performancePlan?->pic_employee_id,
+                            'plan_id' => $c->performance_plan_id,
+                        ])->values()->all();
+
+                        return [
+                            'key' => $key,
+                            'row_id' => $row?->id,
+                            'claim_ids' => $group->pluck('id')->all(),
+                            'claims' => $lines,
+                            'merged' => $group->count() > 1,
+                            'saved' => $row?->saved_at !== null,
+                            'pj_uraian' => $row?->pj_uraian,
+                            'obstacle' => $row ? $row->obstacle : $this->joinText($group->pluck('obstacle')->map($dash)),
+                            'solution' => $row ? $row->solution : $this->joinText($group->pluck('solution')->map($dash)),
+                            'follow_up_plan' => $row ? $row->follow_up_plan : $this->joinText($group->pluck('follow_up_plan')->map($dash)),
+                        ];
+                    })
+                    ->values()
+                    ->all();
+
+                return [
+                    'project_id' => $project?->id,
+                    'project_name' => $project?->name ?? $projectClaims->first()->performancePlan?->team?->name ?? '—',
+                    'leader_rk' => $project?->leader_rk,
+                    'rows' => $outputRows,
+                ];
+            })
+            ->values()
+            ->all();
     }
 
     /**
