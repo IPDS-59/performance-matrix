@@ -38,6 +38,14 @@
         ],
         "createdAt": "2026-09-28T06:39:17.989Z",
         "reason": "agent: gray and hued classes sit in opposite branches of a ternary; gray is only used on white or gray-100"
+      },
+      {
+        "rule": "gray-on-color",
+        "value": "*",
+        "files": [
+          "resources/js/Components/Kinetik/WeeklyProjectCard.vue"
+        ],
+        "createdAt": "2026-10-05T01:46:16.564Z"
       }
     ]
   }
