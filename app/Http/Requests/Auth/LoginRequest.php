@@ -2,10 +2,15 @@
 
 namespace App\Http\Requests\Auth;
 
+use App\Actions\Kinetik\ConnectKipAccountAction;
+use App\Models\User;
+use App\Services\Kinetik\KipLoginException;
 use Illuminate\Auth\Events\Lockout;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
@@ -28,7 +33,7 @@ class LoginRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'email' => ['required', 'string', 'email'],
+            'email' => ['required', 'string'],
             'password' => ['required', 'string'],
         ];
     }
@@ -42,7 +47,7 @@ class LoginRequest extends FormRequest
     {
         $this->ensureIsNotRateLimited();
 
-        if (! Auth::attempt($this->only('email', 'password'), $this->boolean('remember'))) {
+        if (! $this->attempt()) {
             RateLimiter::hit($this->throttleKey());
 
             throw ValidationException::withMessages([
@@ -51,6 +56,48 @@ class LoginRequest extends FormRequest
         }
 
         RateLimiter::clear($this->throttleKey());
+    }
+
+    /**
+     * Staff with a BPS SSO username sign in with their SSO password. Until they
+     * connect it, the default password still works once (never sent to BPS, so
+     * it cannot lock their SSO account). Admins and accounts without an SSO
+     * username keep their local password.
+     */
+    private function attempt(): bool
+    {
+        $identifier = Str::lower(trim($this->string('email')));
+        $domain = (string) config('kinetik.kip.real_email_domain', 'bps.go.id');
+        $email = str_contains($identifier, '@') ? $identifier : $identifier.'@'.$domain;
+        $password = $this->string('password')->toString();
+        $user = User::where('email', $email)->first();
+
+        if (! $user || ! $user->usesKipSso()) {
+            return Auth::attempt(['email' => $email, 'password' => $password], $this->boolean('remember'));
+        }
+
+        if ($user->needsKipConnection() && ConnectKipAccountAction::defaultPasswordOpen() && Hash::check($password, $user->password)) {
+            Auth::login($user, $this->boolean('remember'));
+
+            return true;
+        }
+
+        try {
+            app(ConnectKipAccountAction::class)->handle($user, $password);
+        } catch (KipLoginException $e) {
+            if ($e->rejected) {
+                return false;
+            }
+            Log::warning('kipApp SSO login unavailable', ['reason' => $e->getMessage()]);
+
+            // SSO is down: accept the password only if an earlier SSO login already synced it.
+            return $user->memberKipCredential()->exists()
+                && Auth::attempt(['email' => $email, 'password' => $password], $this->boolean('remember'));
+        }
+
+        Auth::login($user, $this->boolean('remember'));
+
+        return true;
     }
 
     /**

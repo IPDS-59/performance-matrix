@@ -15,6 +15,7 @@ const props = defineProps<{
     structureRun: KipSyncRun | null;
     activityRun: KipSyncRun | null;
     careerRun: KipSyncRun | null;
+    unconnectedStaff: string[];
 }>();
 
 const kipSync = useKipSyncStore();
@@ -295,6 +296,17 @@ onMounted(() => {
                             <dd class="mt-1 text-lg font-semibold text-gray-900">{{ stats.ratings_synced }}</dd>
                         </div>
                     </dl>
+                </div>
+                <!-- Members who have not stored their SSO password -->
+                <div class="rounded-lg border bg-white p-6">
+                    <h2 class="mb-1 text-base font-semibold text-gray-900">4. Akun SSO belum terhubung</h2>
+                    <p v-if="!unconnectedStaff.length" class="text-sm text-green-700">Semua pegawai sudah menghubungkan akun SSO.</p>
+                    <template v-else>
+                        <p class="text-sm text-gray-500">{{ unconnectedStaff.length }} pegawai belum memasukkan kata sandi SSO. Mereka diminta saat login berikutnya.</p>
+                        <ul class="mt-3 columns-1 gap-6 text-sm text-gray-700 sm:columns-2 lg:columns-3">
+                            <li v-for="name in unconnectedStaff" :key="name" class="break-inside-avoid py-0.5">{{ name }}</li>
+                        </ul>
+                    </template>
                 </div>
             </div>
         </div>

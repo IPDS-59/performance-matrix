@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Middleware\CheckKipTokenExpiry;
+use App\Http\Middleware\EnsureKipConnected;
 use App\Http\Middleware\HandleInertiaRequests;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
@@ -20,6 +21,7 @@ return Application::configure(basePath: dirname(__DIR__))
             HandleInertiaRequests::class,
             AddLinkHeadersForPreloadedAssets::class,
             CheckKipTokenExpiry::class,
+            EnsureKipConnected::class,
         ]);
 
         //

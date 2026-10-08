@@ -14,8 +14,10 @@ use App\Models\KipActivity;
 use App\Models\KipCredential;
 use App\Models\KipPerformanceRating;
 use App\Models\KipSyncRun;
+use App\Models\MemberKipCredential;
 use App\Models\Project;
 use App\Models\Team;
+use App\Models\User;
 use Carbon\Carbon;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -49,6 +51,9 @@ class KipIntegrationController extends Controller
                 'careers_synced' => EmployeeCareer::whereNotNull('synced_at')->count(),
                 'ratings_synced' => KipPerformanceRating::count(),
             ],
+            'unconnectedStaff' => MemberKipCredential::keyIsConfigured()
+                ? User::unconnectedKipStaff()->pluck('name')->all()
+                : [],
             'structureRun' => $this->runPayload(
                 KipSyncRun::active('structure') ?? KipSyncRun::where('type', 'structure')->latest('id')->first()
             ),

@@ -14,6 +14,10 @@ return [
 
         'timeout' => (int) env('KIP_TIMEOUT', 15),
 
+        // Separate key (base64, 32 bytes) for stored member SSO passwords and tokens.
+        // Generate with: php -r "echo 'base64:'.base64_encode(random_bytes(32));"
+        'credential_key' => env('KIP_CREDENTIAL_KEY'),
+
         // Structure sync (Tim/Projek/Anggota) — enumerates all teams of a unit
         // kerja via /v1/monitoring/hirarki/daerah, then pulls each team's
         // projects + members.
@@ -36,6 +40,9 @@ return [
         'real_email_domain' => env('KIP_REAL_EMAIL_DOMAIN', 'bps.go.id'),
         'username_map_path' => env('KIP_USERNAME_MAP_PATH', database_path('data/kipapp-usernames.json')),
         'default_password' => env('KIP_DEFAULT_PASSWORD', 'password'),
+        // Last day (Y-m-d, WITA) staff can still first-login with the default password
+        // and connect their SSO password. Empty = no deadline.
+        'default_password_until' => env('KIP_DEFAULT_PASSWORD_UNTIL'),
 
         // Employees processed per chunk during the no-queue activity sync.
         'activity_chunk' => (int) env('KIP_ACTIVITY_CHUNK', 5),

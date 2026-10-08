@@ -65,6 +65,16 @@ if [ "$BUILD" = true ]; then
     success "Composer install complete."
 fi
 
+# ── KIP_CREDENTIAL_KEY must stay the same forever ────────────────────────────
+# It encrypts members' stored SSO passwords. A new key makes them unreadable.
+# Create it once if missing or empty; never overwrite an existing value.
+if [ -f ".env.production" ] && ! grep -Eq '^KIP_CREDENTIAL_KEY=.+' .env.production; then
+    sed -i.bak '/^KIP_CREDENTIAL_KEY=/d' .env.production && rm -f .env.production.bak
+    printf '\n# Encrypts members'"'"' stored SSO passwords and tokens. Do not change or lose it.\nKIP_CREDENTIAL_KEY=base64:%s\n' \
+        "$(openssl rand -base64 32)" >> .env.production
+    warn "KIP_CREDENTIAL_KEY was missing: created one in .env.production. Back up that file."
+fi
+
 # ── Load .env.production to resolve BASE_URL (after build, before zip) ───────
 # Loading here avoids prod DB vars leaking into the build step above.
 ENV_FILE=".env.production"
