@@ -23,6 +23,11 @@ class RecapLock extends Model
         'week_start' => 'date:Y-m-d',
     ];
 
+    public function team(): BelongsTo
+    {
+        return $this->belongsTo(Team::class);
+    }
+
     public function lockedBy(): BelongsTo
     {
         return $this->belongsTo(Employee::class, 'locked_by');

@@ -628,6 +628,112 @@ export interface PlanItemRow {
     target_unit: string | null;
     status: 'planned' | 'pushed' | 'in_progress' | 'done' | 'cancelled';
     source: 'member' | 'pj' | 'rtl';
+    /** Why the last push to kipApp failed; only while the plan is still unsent. */
+    push_error: string | null;
+    in_kipapp: boolean;
+    evaluation: PlanEvaluation;
+}
+
+/** Friday evaluation of a plan item: what the member's kipApp kegiatan show, or the PJ's correction. */
+export interface PlanEvaluation {
+    state: 'done' | 'in_progress' | 'not_started';
+    computed_state: 'done' | 'in_progress' | 'not_started';
+    progress: number | null;
+    activity_count: number;
+    overridden: boolean;
+    override_reason: string | null;
+}
+
+export interface FraQuarter {
+    allocation_value: number;
+    realization_value: number;
+    capaian_quarter: number | null;
+    capaian_year: number | null;
+}
+
+export interface FraQuarterInput {
+    allocation_x: number | null;
+    allocation_y: number | null;
+    realization_x: number | null;
+    realization_y: number | null;
+    obstacle: string | null;
+    solution: string | null;
+    follow_up: string | null;
+    pic: string | null;
+    deadline: string | null;
+    evidence_url: string | null;
+    previous_follow_up_url: string | null;
+}
+
+export interface FraIndicatorRow {
+    id: number;
+    sort_order: number;
+    tujuan: string | null;
+    sasaran_code: string;
+    sasaran_name: string | null;
+    code: string;
+    name: string;
+    kind: 'IKU' | 'Proksi';
+    period_type: string;
+    unit_type: 'percent' | 'value';
+    /** A value row that the sheet marks as "%". */
+    percent_label: boolean;
+    unit: string | null;
+    x_label: string | null;
+    y_label: string | null;
+    target_x: number | null;
+    target_y: number | null;
+    owner_team_id: number | null;
+    target_value: number;
+    quarters: Record<number, FraQuarter>;
+    values: Record<number, FraQuarterInput>;
+    normalized: number | null;
+    correction: number;
+    final: number | null;
+}
+
+export interface FraSummary {
+    quarter: number;
+    sakip_score: number | null;
+    sakip_predicate: string;
+    iku_capaian_quarter: number | null;
+    iku_capaian_year: number | null;
+    sasaran: Array<{ code: string; name: string | null; capaian_year: number | null }>;
+    nko: number | null;
+    pko_predicate: string | null;
+}
+
+export interface FraProps {
+    indicators: FraIndicatorRow[];
+    summary: FraSummary;
+    year: number;
+    quarter: number;
+    teams: Array<{ id: number; name: string }>;
+    isAdmin: boolean;
+    editableIds: number[];
+}
+
+export interface ComplianceWeek {
+    week_start: string;
+    members: number;
+    planners: number;
+    plans: number;
+    /** Outcome counts of plans; null while the week is still open. */
+    done: number | null;
+    in_progress: number | null;
+    not_started: number | null;
+}
+
+export interface ComplianceTeam {
+    team_id: number;
+    name: string;
+    weeks: ComplianceWeek[];
+    missing_this_week: string[];
+}
+
+export interface PlanComplianceProps {
+    weeks: string[];
+    teams: ComplianceTeam[];
 }
 
 export interface PlanRkOption {

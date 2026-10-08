@@ -2,17 +2,21 @@
 
 namespace App\Http\Controllers;
 
+use App\Actions\Kinetik\CompletePlanItemAction;
 use App\Actions\Kinetik\LinkPlansToProjectsAction;
+use App\Actions\Kinetik\PushPlanItemAction;
 use App\Http\Controllers\Concerns\ResolvesTeams;
 use App\Models\Employee;
 use App\Models\PerformancePlan;
 use App\Models\PlanItem;
 use App\Models\Team;
 use App\Notifications\KinetikNotification;
+use App\Services\Kinetik\PlanEvaluator;
 use Carbon\Carbon;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
+use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 
 /**
@@ -62,6 +66,63 @@ class PlanItemController extends Controller
         $this->notifyOwner($request, $actor, $planItem, 'diubah');
 
         return back()->with('success', 'Rencana diperbarui.');
+    }
+
+    /** Send the plan to kipApp now instead of waiting for its start date. */
+    public function push(Request $request, PlanItem $planItem, PushPlanItemAction $push): RedirectResponse
+    {
+        $this->authorizeFor($this->actor($request), Team::findOrFail($planItem->team_id), $planItem->employee_id);
+        abort_unless($planItem->status === 'planned', 422, 'Rencana ini sudah dikirim ke kipApp.');
+
+        return $push->execute($planItem->load(['employee.user', 'performancePlan']))
+            ? back()->with('success', 'Rencana dikirim ke kipApp.')
+            : back()->with('error', 'Belum terkirim: '.$planItem->fresh()->push_error);
+    }
+
+    /** The member (or PJ) marks the plan complete: progres 100 goes to kipApp. */
+    public function complete(Request $request, PlanItem $planItem, CompletePlanItemAction $complete): RedirectResponse
+    {
+        $this->authorizeFor($this->actor($request), Team::findOrFail($planItem->team_id), $planItem->employee_id);
+        abort_if($planItem->status === 'cancelled', 422, 'Rencana ini sudah dibatalkan.');
+
+        $data = $request->validate([
+            'capaian' => ['nullable', 'string', 'max:1000'],
+            'evidence_url' => ['nullable', 'url', 'max:2000'],
+        ]);
+
+        try {
+            $complete->execute($planItem->load(['employee.user', 'performancePlan']), $data['capaian'] ?? null, $data['evidence_url'] ?? null);
+        } catch (\RuntimeException $e) {
+            return back()->with('error', $e->getMessage());
+        }
+
+        return back()->with('success', 'Rencana ditandai selesai dan dikirim ke kipApp.');
+    }
+
+    /**
+     * Friday evaluation: the PJ corrects the result kipApp shows, with a
+     * reason. An empty status removes the correction.
+     */
+    public function evaluate(Request $request, PlanItem $planItem): RedirectResponse
+    {
+        $actor = $this->actor($request);
+        abort_unless($this->isPj($actor, $planItem->team_id), 403, 'Hanya PJ yang dapat mengoreksi hasil rencana.');
+
+        $data = $request->validate([
+            'status' => ['nullable', Rule::in(PlanEvaluator::STATES)],
+            'reason' => ['required_with:status', 'nullable', 'string', 'max:500'],
+        ]);
+
+        if (empty($data['status'])) {
+            $planItem->update(['override_status' => null, 'override_reason' => null, 'override_by' => null]);
+
+            return back()->with('success', 'Koreksi PJ dihapus.');
+        }
+
+        $planItem->update(['override_status' => $data['status'], 'override_reason' => trim($data['reason']), 'override_by' => $actor->id]);
+        $this->notifyOwner($request, $actor, $planItem, 'dikoreksi hasilnya');
+
+        return back()->with('success', 'Koreksi disimpan.');
     }
 
     /** Cancel instead of delete, so the Friday evaluation can still see it. */

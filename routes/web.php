@@ -4,14 +4,17 @@ use App\Http\Controllers\CreditController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\EmployeeController;
 use App\Http\Controllers\EmployeeReportController;
+use App\Http\Controllers\FraController;
 use App\Http\Controllers\GuideController;
 use App\Http\Controllers\KipActivityController;
 use App\Http\Controllers\KipIntegrationController;
+use App\Http\Controllers\MyActivitySyncController;
 use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\PerformanceApprovalController;
 use App\Http\Controllers\PerformanceController;
 use App\Http\Controllers\PerformanceIndicatorController;
 use App\Http\Controllers\PerformancePlanController;
+use App\Http\Controllers\PlanComplianceController;
 use App\Http\Controllers\PlanItemController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\ProjectController;
@@ -99,9 +102,16 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
     // Weekly activity scrapper / recap
     Route::get('/rencana-minggu', [WeeklyPlanController::class, 'index'])->name('weekly-plan.index');
+    Route::get('/fra', [FraController::class, 'index'])->name('fra.index');
+    Route::patch('/fra/{indicator}/triwulan/{quarter}', [FraController::class, 'updateValues'])->name('fra.values');
+    Route::patch('/fra/{indicator}/pemilik', [FraController::class, 'updateOwner'])->name('fra.owner');
+    Route::get('/kepatuhan-rencana', [PlanComplianceController::class, 'index'])->name('plan-compliance.index');
     Route::post('/rencana-minggu/fokus', [WeeklyPlanController::class, 'storeFocus'])->name('weekly-plan.focus');
     Route::post('/rencana-minggu/item', [PlanItemController::class, 'store'])->name('plan-items.store');
     Route::patch('/rencana-minggu/item/{planItem}', [PlanItemController::class, 'update'])->name('plan-items.update');
+    Route::post('/rencana-minggu/item/{planItem}/kirim', [PlanItemController::class, 'push'])->name('plan-items.push');
+    Route::post('/rencana-minggu/item/{planItem}/selesai', [PlanItemController::class, 'complete'])->name('plan-items.complete');
+    Route::patch('/rencana-minggu/item/{planItem}/evaluasi', [PlanItemController::class, 'evaluate'])->name('plan-items.evaluate');
     Route::delete('/rencana-minggu/item/{planItem}', [PlanItemController::class, 'destroy'])->name('plan-items.destroy');
     Route::get('/rekap-mingguan', [WeeklyActivityController::class, 'index'])->name('weekly.index');
     Route::post('/rekap-mingguan/claim', [WeeklyActivityController::class, 'storeClaim'])->name('weekly.claim');
@@ -129,6 +139,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('/rekap-tim/ringkasan', [TeamRecapController::class, 'storeSummary'])->name('team-recap.summary');
     Route::post('/rekap-tim/override/confirm', [TeamRecapController::class, 'confirmOverride'])->name('team-recap.override.confirm');
     Route::post('/rekap-tim/override/confirm-bulk', [TeamRecapController::class, 'confirmBulk'])->name('team-recap.override.confirm-bulk');
+
+    // A member syncs their own kegiatan from kipApp
+    Route::post('/sinkron-saya', MyActivitySyncController::class)->name('my-sync');
 
     // Angka Kredit (own, team, admin PAK value)
     Route::get('/angka-kredit', [CreditController::class, 'mine'])->name('credit.mine');

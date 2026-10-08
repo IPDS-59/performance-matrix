@@ -7,6 +7,7 @@ import { Button } from '@/Components/ui/button';
 import { Textarea } from '@/Components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/Components/ui/select';
 import { ChevronLeft, ChevronRight, ExternalLink, Target } from 'lucide-vue-next';
+import SyncMyActivitiesButton from '@/Components/Kinetik/SyncMyActivitiesButton.vue';
 import PlanItemsPanel from '@/Components/Kinetik/PlanItemsPanel.vue';
 import { useDateFormat } from '@/composables/useDateFormat';
 
@@ -63,6 +64,7 @@ function saveFocus(member: WeeklyPlanMember) {
                     <span class="min-w-[13rem] px-2 text-center text-sm font-semibold tabular-nums text-gray-800">{{ formatWeekRange(weekStart, weekEnd) }}</span>
                     <Button variant="ghost" size="icon" class="h-9 w-9" aria-label="Minggu berikutnya" @click="navigate({ week: nextWeek })"><ChevronRight class="h-4 w-4" /></Button>
                 </div>
+                <SyncMyActivitiesButton />
             </div>
 
             <p class="mb-4 text-sm text-gray-600">
@@ -112,6 +114,7 @@ function saveFocus(member: WeeklyPlanMember) {
                             :week-start="weekStart"
                             :week-end="weekEnd"
                             :can-edit="canManage || m.employee_id === currentEmployeeId"
+                            :can-evaluate="canManage"
                         />
 
                         <!-- RK with no kegiatan yet -->

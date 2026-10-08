@@ -2,7 +2,7 @@
 import { Link, router, usePage } from '@inertiajs/vue3';
 import { computed, onMounted, onUnmounted, ref, type Component } from 'vue';
 import { CalendarClock,
-    Award, BookOpen, CalendarCheck, CalendarDays, CalendarRange, ClipboardCheck, FileChartColumn, FileText, FolderKanban,
+    Award, BookOpen, CalendarCheck, CalendarDays, CalendarRange, ClipboardCheck, FileChartColumn, FileSpreadsheet, FileText, FolderKanban,
     House, LayoutGrid, LayoutList, ListChecks, ListTodo, LogOut, Menu, PanelLeftClose, PanelLeftOpen, Target, UserRound, Users, X, Zap,
 } from 'lucide-vue-next';
 import { useSidebarStore } from '@/stores/sidebar';
@@ -22,6 +22,7 @@ const isStaff = computed(() => user.value.role === 'staff');
 const canViewProjects = computed(() => (page.props.can as Record<string, boolean>)?.view_projects ?? false);
 const canViewIndicators = computed(() => (page.props.can as Record<string, boolean>)?.view_indicators ?? false);
 const canViewPlans = computed(() => (page.props.can as Record<string, boolean>)?.view_plans ?? false);
+const canViewPlanCompliance = computed(() => (page.props.can as Record<string, boolean>)?.view_plan_compliance ?? false);
 const canViewTeamCredits = computed(() => (page.props.can as Record<string, boolean>)?.view_team_credits ?? false);
 const hasEmployee = computed(() => !!(page.props.auth as { has_employee?: boolean })?.has_employee);
 
@@ -56,6 +57,8 @@ const navSections = computed<NavSection[]>(() => {
                 { label: 'Mingguan', href: route('team-recap.weekly'), active: is('team-recap.weekly'), icon: CalendarDays, show: hasEmployee.value || isHead.value || isAdmin.value },
                 { label: 'Bulanan', href: route('team-recap.monthly'), active: is('team-recap.monthly'), icon: CalendarRange, show: hasEmployee.value || isHead.value || isAdmin.value },
                 { label: 'Triwulanan (FRA)', href: route('team-recap.quarterly'), active: is('team-recap.quarterly'), icon: FileChartColumn, show: hasEmployee.value || isHead.value || isAdmin.value },
+                { label: 'Kertas Kerja FRA', href: route('fra.index'), active: is('fra.*'), icon: FileSpreadsheet, show: canViewPlanCompliance.value },
+                { label: 'Kepatuhan Rencana', href: route('plan-compliance.index'), active: is('plan-compliance.*'), icon: ClipboardCheck, show: canViewPlanCompliance.value },
                 { label: 'Angka Kredit Tim', href: route('credit.team'), active: is('credit.team'), icon: Award, show: canViewTeamCredits.value },
             ],
         },

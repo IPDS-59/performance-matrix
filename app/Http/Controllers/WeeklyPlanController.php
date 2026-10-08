@@ -12,6 +12,7 @@ use App\Models\PlanItem;
 use App\Models\Team;
 use App\Models\WeeklyFocus;
 use App\Notifications\KinetikNotification;
+use App\Services\Kinetik\PlanEvaluator;
 use Carbon\Carbon;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -117,10 +118,16 @@ class WeeklyPlanController extends Controller
 
         $planItems = PlanItem::where('team_id', $team->id)
             ->duringWeek($monday->toDateString(), $monday->copy()->endOfWeek(Carbon::SUNDAY)->toDateString())
-            ->with('performancePlan:id,description')
+            ->with('performancePlan:id,description,kip_external_id')
             ->orderBy('date_start')
             ->get()
             ->groupBy('employee_id');
+
+        $planActivities = $planItems->isEmpty() ? collect() : KipActivity::whereIn('employee_id', $planItems->keys())
+            ->duringWeek($planItems->flatten()->min('date_start'), $planItems->flatten()->max('date_end'))
+            ->get(['id', 'employee_id', 'activity_date_start', 'activity_date_end', 'progress', 'rk_external_id', 'rk_name'])
+            ->groupBy('employee_id');
+        $evaluator = app(PlanEvaluator::class);
 
         $focus = WeeklyFocus::where('team_id', $team->id)
             ->whereDate('week_start', $monday->toDateString())
@@ -138,7 +145,7 @@ class WeeklyPlanController extends Controller
             ->get(['id', 'employee_id', 'description', 'activity_date_start', 'activity_date_end', 'progress', 'rk_external_id', 'rk_name', 'sent_at', 'evidence_url'])
             ->groupBy('employee_id');
 
-        return $members->map(function (Employee $member) use ($focus, $rks, $activities, $planItems) {
+        return $members->map(function (Employee $member) use ($focus, $rks, $activities, $planItems, $planActivities, $evaluator) {
             $memberRks = $rks->get($member->id, collect());
             $memberActivities = $activities->get($member->id, collect());
 
@@ -163,6 +170,9 @@ class WeeklyPlanController extends Controller
                     'target_unit' => $p->target_unit,
                     'status' => $p->status,
                     'source' => $p->source,
+                    'push_error' => $p->status === 'planned' ? $p->push_error : null,
+                    'in_kipapp' => $p->kip_external_id !== null,
+                    'evaluation' => $evaluator->evaluate($p, $planActivities->get($member->id, collect())),
                 ])->values()->all(),
                 'rks_without_activity' => $memberRks
                     ->reject(fn (EmployeeRk $rk) => $memberActivities->contains(fn (KipActivity $a) => self::sameRk($rk, $a)))

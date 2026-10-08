@@ -173,6 +173,19 @@ export interface GuideFlow {
     steps: GuideStep[];
 }
 
+/** First step of every non-admin flow. */
+const SSO_LOGIN_STEP: GuideStep = {
+    title: 'Masuk dengan akun SSO BPS',
+    where: 'Halaman Masuk, lalu "Hubungkan akun SSO BPS" pada login pertama',
+    body: [
+        'Masuk ke Kinetik dengan username SSO BPS Anda (misalnya "nama" atau "nama@bps.go.id") dan kata sandi SSO yang sama dengan kipApp.',
+        'Login pertama: sebelum akun terhubung, Anda masih dapat masuk dengan kata sandi bawaan dari admin. Kinetik langsung meminta kata sandi SSO Anda satu kali. Setelah kata sandi benar, kata sandi bawaan tidak berlaku lagi.',
+        'Kata sandi SSO disimpan terenkripsi sesuai MoU dan tidak pernah ditampilkan kembali. Kinetik memakainya untuk mengambil data kipApp atas nama Anda.',
+        'Kata sandi bawaan hanya berlaku sampai batas waktu yang ditetapkan admin. Sesudah itu masuk wajib memakai kata sandi SSO.',
+    ],
+    tip: 'Jika Anda mengganti kata sandi SSO di BPS, masuk ke Kinetik dengan kata sandi yang baru. Kinetik memperbaruinya otomatis. Akun admin tetap memakai kata sandi Kinetik sendiri.',
+};
+
 export const GUIDE_OVERVIEW = [
     { who: 'Anggota', what: 'Mengisi kegiatan harian di kipApp, lalu mengklaim kegiatan mingguan di Kinetik.' },
     { who: 'PJ / Ketua Tim', what: 'Meninjau rekap tim, mengisi solusi dan rencana tindak lanjut, menambah bukti rapat, lalu mengunci rekap sebelum rapat.' },
@@ -186,6 +199,7 @@ export const GUIDE_FLOWS: GuideFlow[] = [
         summary: 'Setiap minggu Anda mengklaim kegiatan kipApp ke Rencana Kinerja (RK) dan Projek, lalu mengisi capaian dan kendala.',
         replaces: 'Sheet "Kegiatan Mingguan Anggota"',
         steps: [
+            SSO_LOGIN_STEP,
             {
                 title: 'Lihat Rencana Minggu Ini setiap Senin',
                 where: 'Menu Kegiatan → Rencana Minggu Ini',
@@ -206,10 +220,24 @@ export const GUIDE_FLOWS: GuideFlow[] = [
                 ],
             },
             {
+                title: 'Kirim rencana ke kipApp dan tandai selesai',
+                where: 'Menu Kegiatan → Rencana Minggu Ini',
+                route: 'weekly-plan.index',
+                body: [
+                    'Pada tanggal mulai rencana, Kinetik membuat kegiatan di kipApp atas nama Anda dengan progres 0. Anda tidak perlu membuka kipApp. Pengiriman berjalan otomatis setiap jam kerja mulai pukul 05.10 WITA.',
+                    'Ingin mengirim lebih awal? Tekan "Kirim ke kipApp" pada rencana itu.',
+                    'Jika belum terkirim, alasannya tampil merah di bawah rencana, misalnya "SKP triwulan 4 belum dibuat di kipApp". Kinetik mencoba lagi pada jam berikutnya sampai tanggal selesai rencana, dan memberi tahu Anda satu kali lewat lonceng.',
+                    'Selesai mengerjakan? Tekan "Tandai selesai", isi capaian dan link bukti bila ada, lalu simpan. Kinetik mengirim progres 100% ke kipApp atas nama Anda.',
+                    'Jika progres diubah langsung di kipApp, Kinetik mengikuti kipApp pada sinkronisasi berikutnya.',
+                ],
+                tip: 'Jika kata sandi SSO Anda ditolak BPS, Kinetik berhenti mengakses kipApp atas nama Anda dan meminta Anda memasukkannya lagi saat masuk. Kinetik tidak mencoba ulang dengan kata sandi yang sama.',
+            },
+            {
                 title: 'Isi kegiatan harian di kipApp',
                 body: [
                     'Catat setiap kegiatan harian di kipApp seperti biasa, lengkap dengan uraian dan link bukti dukung.',
-                    'Kinetik menarik kegiatan kipApp setiap pagi pukul 05.00 WITA. Kegiatan yang Anda isi sesudahnya muncul besok pagi, atau lebih cepat bila admin menjalankan Sinkronisasi Kegiatan.',
+                    'Kinetik menarik kegiatan kipApp setiap pagi pukul 05.00 WITA. Kegiatan yang Anda isi sesudahnya muncul besok pagi.',
+                    'Ingin melihatnya sekarang? Tekan "Sinkronkan data saya" di halaman Rekap Mingguan atau Rencana Minggu Ini. Tombol itu menarik kegiatan dan RK Anda sendiri dari kipApp, tidak perlu menunggu admin. Tunggu sampai selesai; tombol hanya dapat dipakai sekali per menit.',
                 ],
             },
             {
@@ -281,6 +309,7 @@ export const GUIDE_FLOWS: GuideFlow[] = [
         summary: 'Anda menyiapkan bahan rapat tim dan rapat dengan pimpinan dari klaim anggota, lalu mengunci rekap.',
         replaces: 'Sheet "Rapat Mingguan" dan "Rapat Bulanan"',
         steps: [
+            SSO_LOGIN_STEP,
             {
                 title: 'Klaim kegiatan Anda sendiri',
                 where: 'Menu Kegiatan → Rekap Mingguan',
@@ -372,6 +401,18 @@ export const GUIDE_FLOWS: GuideFlow[] = [
                 body: ['"Unduh Excel" menghasilkan satu sheet dengan format Rapat Mingguan / Rapat Bulanan / FRA untuk semua tim yang dapat Anda lihat.'],
             },
             {
+                title: 'Isi Kertas Kerja FRA untuk indikator tim Anda',
+                where: 'Menu Rekap Tim → Kertas Kerja FRA',
+                route: 'fra.index',
+                body: [
+                    'Kertas Kerja FRA memuat IKU dan proksi tingkat provinsi (sheet LK_Prov). Indikator yang timnya Anda pimpin tampil dengan ikon pensil.',
+                    'Pilih triwulan, tekan pensil, lalu isi Alokasi target dan Realisasi (kumulatif sampai triwulan itu). Untuk indikator persen, isi X dan Y; Kinetik menghitung nilainya.',
+                    'Isi juga Kendala, Solusi, Rencana tindak lanjut, PIC, Batas waktu dan link bukti. Kolom ini sama dengan kolom analisis di Kertas Kerja.',
+                    'Capaian terhadap target triwulan dan setahun dihitung otomatis dengan rumus Kertas Kerja (maksimal 120).',
+                ],
+                tip: 'Tidak ada pensil pada indikator tertentu? Minta admin menetapkan tim Anda sebagai pemilik indikator itu.',
+            },
+            {
                 title: 'Pantau Angka Kredit anggota',
                 where: 'Menu Rekap Tim → Angka Kredit Tim',
                 route: 'credit.team',
@@ -389,6 +430,7 @@ export const GUIDE_FLOWS: GuideFlow[] = [
         summary: 'Anda membaca rekap seluruh kantor per minggu, bulan atau triwulan dan menulis Catatan Pimpinan. Isi rekap tetap diubah oleh PJ.',
         replaces: 'Membaca sheet "Rapat Mingguan" dan "Rapat Bulanan"',
         steps: [
+            SSO_LOGIN_STEP,
             {
                 title: 'Buka Review Bersama',
                 where: 'Menu Rekap Tim → Review Bersama',
@@ -426,6 +468,16 @@ export const GUIDE_FLOWS: GuideFlow[] = [
             {
                 title: 'Unduh Excel semua tim',
                 body: ['"Unduh Excel semua tim" menghasilkan satu sheet untuk seluruh kantor, dengan format seperti spreadsheet rapat sebelumnya.'],
+            },
+            {
+                title: 'Baca Kertas Kerja FRA dan unduh Excel',
+                where: 'Menu Rekap Tim → Kertas Kerja FRA',
+                route: 'fra.index',
+                body: [
+                    'Halaman ini menampilkan IKU dan proksi per sasaran, dengan alokasi, realisasi dan capaian terhadap target triwulan dan setahun, serta tim pemilik tiap indikator.',
+                    'Kartu di atas menunjukkan Capaian IKU triwulan dan setahun, NKO rata-rata capaian PK, dan predikat PKO. Isi Nilai SAKIP agar koreksi predikat ikut dihitung.',
+                    '"Unduh Excel" menghasilkan lembar LK_Prov dengan urutan baris dan kolom Kertas Kerja. Pimpinan hanya membaca; pengisian dilakukan PJ tim pemilik.',
+                ],
             },
             {
                 title: 'Pantau Angka Kredit pegawai',
@@ -475,6 +527,18 @@ export const GUIDE_FLOWS: GuideFlow[] = [
                 shot: SHOTS.adminIntegrasi,
             },
             {
+                title: 'Pantau akun SSO pegawai',
+                where: 'Menu Data Master → Integrasi kipApp, kartu 4',
+                route: 'kip-integration.index',
+                body: [
+                    'Pegawai masuk dengan akun SSO BPS dan menghubungkannya pada login pertama. Kartu "Akun SSO belum terhubung" menampilkan nama pegawai yang belum melakukannya. Ingatkan mereka masuk ke Kinetik.',
+                    'Selama belum terhubung, pegawai masih bisa masuk dengan kata sandi bawaan sampai tanggal KIP_DEFAULT_PASSWORD_UNTIL di file .env. Sesudah tanggal itu kata sandi bawaan ditolak.',
+                    'Akun admin dan akun tanpa username SSO tetap memakai kata sandi Kinetik sendiri.',
+                    'Kata sandi SSO dan token pegawai dienkripsi dengan KIP_CREDENTIAL_KEY di file .env. Jangan mengubah atau menghapus kunci ini: semua kata sandi tersimpan menjadi tidak terbaca.',
+                ],
+                tip: 'Token admin tetap diperlukan untuk Sinkronisasi Struktur dan sebagai cadangan. Sinkronisasi kegiatan pribadi memakai token pegawai itu sendiri bila masih berlaku.',
+            },
+            {
                 title: 'Sinkronkan struktur, kegiatan, lalu Angka Kredit',
                 body: [
                     'Jalankan berurutan: 1. Struktur, 2. Kegiatan, 3. Angka Kredit. Selama satu sinkronisasi berjalan, tombol lain tidak aktif.',
@@ -498,6 +562,16 @@ export const GUIDE_FLOWS: GuideFlow[] = [
                 ],
             },
             {
+                title: 'Tetapkan tim pemilik indikator FRA',
+                where: 'Menu Rekap Tim → Kertas Kerja FRA',
+                route: 'fra.index',
+                body: [
+                    'Setiap IKU dan proksi di Kertas Kerja FRA perlu tim pemilik. PJ tim itu yang mengisi alokasi, realisasi dan analisis triwulan.',
+                    'Pada kolom Tim pemilik, pilih tim dari daftar (dapat dicari). Indikator tanpa pemilik hanya dapat diisi admin.',
+                    'Data awal berasal dari Kertas Kerja TW 2 2026. Jalankan seeder FraIndicatorSeeder satu kali setelah migrasi; menjalankannya lagi tidak menimpa angka yang sudah diisi.',
+                ],
+            },
+            {
                 title: 'Angka Kredit dari PAK',
                 where: 'Menu Rekap Tim → Angka Kredit Tim',
                 route: 'credit.team',
@@ -513,6 +587,18 @@ export const GUIDE_FLOWS: GuideFlow[] = [
 ];
 
 export const GUIDE_FAQ = [
+    {
+        q: 'Mengapa Kinetik meminta kata sandi SSO saya?',
+        a: 'Agar Kinetik dapat mengambil dan, nanti, mengirim kegiatan ke kipApp atas nama Anda tanpa Anda membuka kipApp. Kata sandi disimpan terenkripsi sesuai MoU, tidak pernah ditampilkan kembali, dan Kinetik berhenti mencoba bila kata sandi ditolak satu kali.',
+    },
+    {
+        q: 'Login ditolak padahal kata sandi SSO saya benar.',
+        a: 'Masuk dengan username SSO (misalnya "nama") atau "nama@bps.go.id", bukan email lain. Jika baru mengganti kata sandi SSO, pakai yang baru. Jika masih gagal, pastikan akun SSO Anda dapat membuka kipApp, lalu hubungi admin.',
+    },
+    {
+        q: 'Bagaimana memilih dari daftar yang panjang?',
+        a: 'Semua daftar pilihan di Kinetik memiliki kolom "Cari…". Ketik sebagian nama, lalu pilih dengan klik atau tombol panah dan Enter.',
+    },
     {
         q: 'Rencana Kinerja pada kegiatan saya kosong. Apa yang harus dilakukan?',
         a: 'Kinetik mencocokkan RK dari kipApp dengan RK tim Anda. Jika tidak ditemukan, formulir menampilkan pilihan "Pilih RK": pilih RK yang sesuai lalu simpan. Jika RK Anda tidak ada di daftar, minta admin menjalankan Sinkronisasi Struktur.',

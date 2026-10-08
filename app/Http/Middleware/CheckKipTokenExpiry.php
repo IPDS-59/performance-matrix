@@ -22,11 +22,11 @@ class CheckKipTokenExpiry
 
     public function terminate(Request $request, Response $response): void
     {
-        if ($request->user() === null || ! Cache::add('kip-token-check', true, now()->addMinutes(10))) {
-            return;
-        }
-
         try {
+            if ($request->user() === null || ! Cache::add('kip-token-check', true, now()->addMinutes(10))) {
+                return;
+            }
+
             app(AlertKipTokenExpiryAction::class)->execute();
         } catch (Throwable $e) {
             report($e);

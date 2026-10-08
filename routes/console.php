@@ -1,6 +1,9 @@
 <?php
 
 use App\Actions\Kinetik\AlertKipTokenExpiryAction;
+use App\Actions\Kinetik\CreatePlansFromRtlAction;
+use App\Actions\Kinetik\PushDuePlansAction;
+use App\Actions\Kinetik\RemindWeeklyPlansAction;
 use Illuminate\Foundation\Inspiring;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Schedule;
@@ -30,3 +33,21 @@ Schedule::command('kinetik:sync-careers')->weeklyOn(1, '05:30');
 Schedule::call(fn () => app(AlertKipTokenExpiryAction::class)->execute())
     ->name('kinetik:alert-kip-token')
     ->everyTenMinutes();
+
+// Monday 09:00 WITA: remind members without a plan for the week, and their PJ.
+Schedule::call(fn () => app(RemindWeeklyPlansAction::class)->execute())
+    ->name('kinetik:remind-plans')
+    ->weeklyOn(1, '09:00');
+
+// New quarter: the RTL of the locked quarterly recap become plan items.
+// Runs daily and creates each plan once, so a recap locked late is still picked up.
+Schedule::call(fn () => app(CreatePlansFromRtlAction::class)->execute())
+    ->name('kinetik:rtl-to-plans')
+    ->dailyAt('06:00');
+
+// Push plans whose start date has come to kipApp. Runs hourly in working hours,
+// so a failed push is retried until the plan's end date.
+Schedule::call(fn () => app(PushDuePlansAction::class)->execute())
+    ->name('kinetik:push-plans')
+    ->hourly()
+    ->between('05:10', '18:10');

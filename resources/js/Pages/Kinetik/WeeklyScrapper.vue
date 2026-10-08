@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import AppLayout from '@/Layouts/AppLayout.vue';
+import SyncMyActivitiesButton from '@/Components/Kinetik/SyncMyActivitiesButton.vue';
 import { Head, router, useForm } from '@inertiajs/vue3';
 import { computed, ref, watch } from 'vue';
 import type { KipActivity, ActivityClaim, PlanOption, ProjectOption } from '@/types';
@@ -271,7 +272,8 @@ function achievementColor(val: number | string | null | undefined): string {
 
         <template v-else>
             <!-- Week navigator -->
-            <div class="mb-6 flex items-center justify-between gap-4 rounded-md border bg-white px-4 py-3">
+            <div class="mb-6 flex items-center gap-4 rounded-md border bg-white px-4 py-3">
+                <div class="flex flex-1 items-center justify-between gap-4">
                 <button
                     type="button"
                     class="flex h-8 w-8 items-center justify-center rounded hover:bg-gray-100 transition-colors"
@@ -293,6 +295,8 @@ function achievementColor(val: number | string | null | undefined): string {
                 >
                     <ChevronRight class="h-4 w-4" />
                 </button>
+                </div>
+                <SyncMyActivitiesButton />
             </div>
 
             <!-- Week progress + batch actions -->

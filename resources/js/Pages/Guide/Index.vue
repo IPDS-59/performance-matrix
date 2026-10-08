@@ -14,7 +14,7 @@ const active = ref<GuideRole>(props.defaultRole);
 // The weekly cycle from kipApp to the meeting, in the order work happens.
 const CYCLE = [
     { who: 'Anggota', what: 'Input kegiatan harian di kipApp' },
-    { who: 'Kinetik', what: 'Tarik data kipApp setiap pagi' },
+    { who: 'Kinetik', what: 'Tarik data kipApp setiap pagi, atau saat Anda menekan Sinkronkan data saya' },
     { who: 'Anggota', what: 'Klaim kegiatan di Rekap Mingguan' },
     { who: 'PJ', what: 'Rapat tim, ringkasan, bukti, kunci' },
     { who: 'Pimpinan', what: 'Review Bersama dan Catatan Pimpinan' },
