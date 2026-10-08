@@ -2,6 +2,7 @@
 import AppLayout from '@/Layouts/AppLayout.vue';
 import { Head, router } from '@inertiajs/vue3';
 import { computed, ref, watch } from 'vue';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/Components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/Components/ui/table';
 import { CheckCircle2, ChevronLeft, ChevronRight, Circle, ExternalLink } from 'lucide-vue-next';
 import { useDateFormat } from '@/composables/useDateFormat';
@@ -114,14 +115,14 @@ function formatDate(iso: string | null): string {
                 {{ stats.claimed }} dari {{ stats.total }} kegiatan sudah diklaim<template v-if="periodLabel"> ({{ periodLabel }})</template>
             </div>
             <div class="flex items-center gap-2">
-                <select
-                    v-model="status"
-                    class="rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-1 focus:ring-ring"
-                >
-                    <option value="all">Semua status</option>
-                    <option value="claimed">Sudah diklaim</option>
-                    <option value="unclaimed">Belum diklaim</option>
-                </select>
+                <Select v-model="status">
+                    <SelectTrigger class="w-44" aria-label="Filter status"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                        <SelectItem value="all">Semua status</SelectItem>
+                        <SelectItem value="claimed">Sudah diklaim</SelectItem>
+                        <SelectItem value="unclaimed">Belum diklaim</SelectItem>
+                    </SelectContent>
+                </Select>
                 <input
                     v-model="search"
                     type="search"
