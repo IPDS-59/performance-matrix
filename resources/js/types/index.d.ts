@@ -767,6 +767,8 @@ export interface WeeklyPlanProps {
     quarter: number;
     canManage: boolean;
     currentEmployeeId: number | null;
+    /** The "Kirim ke atasan" buttons are shown only when the setting is on. */
+    canSendToAtasan: boolean;
     members: WeeklyPlanMember[];
     rkOptions: PlanRkOption[];
     projectOptions: Array<{ id: number; name: string }>;

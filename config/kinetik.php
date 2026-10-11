@@ -31,6 +31,9 @@ return [
         'periode_id' => (int) env('KIP_PERIODE_ID', 8),
 
         'tahun' => (int) env('KIP_TAHUN', (int) date('Y')),
+        // "Kirim ke atasan" and "Batalkan kirim" call kipApp endpoints that were decoded but never
+        // tested live. Keep it off until one test on a throwaway kegiatan has passed.
+        'send_to_atasan' => (bool) env('KIP_SEND_TO_ATASAN', false),
 
         // Login accounts for synced employees. kipApp does not expose employee
         // emails, so they are derived as firstname@<domain> (same pattern as

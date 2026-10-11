@@ -16,11 +16,19 @@ export interface PlanStage {
 }
 
 /**
- * Where a plan item stands, in the words of the kipApp flow. "Kirim ke kipApp"
+ * Where a plan item stands, in the words of the kipApp flow. With `sendEnabled` off, the
+ * "Kirim ke atasan" step shows no action: it is not tested against kipApp yet. "Kirim ke kipApp"
  * creates the kegiatan; "Kirim ke atasan" sends it for rating. Two different
  * steps, so two different labels.
  */
-export function planStage(plan: Pick<PlanItemRow, 'status' | 'in_kipapp' | 'sent'>): PlanStage {
+export function planStage(plan: Pick<PlanItemRow, 'status' | 'in_kipapp' | 'sent'>, sendEnabled = true): PlanStage {
+    const stage = stageOf(plan);
+    const sendStep = stage.action === 'send' || stage.action === 'unsend';
+
+    return sendEnabled || !sendStep ? stage : { ...stage, action: null, actionLabel: null };
+}
+
+function stageOf(plan: Pick<PlanItemRow, 'status' | 'in_kipapp' | 'sent'>): PlanStage {
     if (plan.sent) return { key: 'sent', label: 'Terkirim ke atasan', tone: 'done', action: 'unsend', actionLabel: 'Batalkan kirim', step: 4 };
     if (plan.status === 'done') return { key: 'done', label: 'Selesai, belum dikirim', tone: 'success', action: 'send', actionLabel: 'Kirim ke atasan', step: 3 };
     if (plan.status === 'in_progress') return { key: 'in_progress', label: 'Berjalan', tone: 'warning', action: 'complete', actionLabel: 'Tandai selesai', step: 2 };

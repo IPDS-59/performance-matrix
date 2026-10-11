@@ -19,11 +19,13 @@ const props = defineProps<{
     canEdit: boolean;
     /** The PJ may correct the Friday evaluation. */
     canEvaluate?: boolean;
+    /** Show "Kirim ke atasan" and "Batalkan kirim". */
+    canSend?: boolean;
 }>();
 const emit = defineEmits<{ edit: [plan: PlanItemRow] }>();
 
 const { formatDate } = useDateFormat();
-const stage = computed(() => planStage(props.plan));
+const stage = computed(() => planStage(props.plan, props.canSend ?? false));
 const open = computed(() => props.plan.status !== 'cancelled');
 
 const evalLabel: Record<PlanEvaluation['state'], string> = { done: 'Selesai', in_progress: 'Berjalan', not_started: 'Belum dikerjakan' };
