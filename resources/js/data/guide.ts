@@ -182,6 +182,7 @@ const SSO_LOGIN_STEP: GuideStep = {
         'Login pertama: sebelum akun terhubung, Anda masih dapat masuk dengan kata sandi bawaan dari admin. Kinetik langsung meminta kata sandi SSO Anda satu kali. Setelah kata sandi benar, kata sandi bawaan tidak berlaku lagi.',
         'Kata sandi SSO disimpan terenkripsi sesuai MoU dan tidak pernah ditampilkan kembali. Kinetik memakainya untuk mengambil data kipApp atas nama Anda.',
         'Kata sandi bawaan hanya berlaku sampai batas waktu yang ditetapkan admin. Sesudah itu masuk wajib memakai kata sandi SSO.',
+        'Jika akun SSO Anda memakai kode OTP, Kinetik meminta kode 6 digit dari aplikasi autentikator Anda tepat setelah kata sandi. Halaman kode hanya muncul untuk akun yang memakainya.',
     ],
     tip: 'Jika Anda mengganti kata sandi SSO di BPS, masuk ke Kinetik dengan kata sandi yang baru. Kinetik memperbaruinya otomatis. Akun admin tetap memakai kata sandi Kinetik sendiri.',
 };
@@ -206,6 +207,8 @@ export const GUIDE_FLOWS: GuideFlow[] = [
                 route: 'weekly-plan.index',
                 body: [
                     'Kartu Anda tampil paling atas. Isinya fokus dari PJ untuk minggu ini, RK yang belum punya kegiatan di triwulan ini, dan kegiatan yang progresnya belum 100%.',
+                    'Di bawah nama Anda ada lima langkah: RK Anggota, SKP triwulan, rencana minggu ini, ada di kipApp, dan terkirim ke atasan. Langkah merah menunjukkan apa yang menghambat, lengkap dengan cara memperbaikinya.',
+                    'Buka "Urutan perencanaan di kipApp" di bagian atas halaman untuk melihat urutan lengkap dari RK Anggota sampai kirim ke atasan.',
                     'Mulai minggu dari daftar itu: kerjakan fokus PJ, lalu lanjutkan kegiatan yang belum selesai.',
                 ],
             },
@@ -228,6 +231,7 @@ export const GUIDE_FLOWS: GuideFlow[] = [
                     'Ingin mengirim lebih awal? Tekan "Kirim ke kipApp" pada rencana itu.',
                     'Jika belum terkirim, alasannya tampil merah di bawah rencana, misalnya "SKP triwulan 4 belum dibuat di kipApp". Kinetik mencoba lagi pada jam berikutnya sampai tanggal selesai rencana, dan memberi tahu Anda satu kali lewat lonceng.',
                     'Selesai mengerjakan? Tekan "Tandai selesai", isi capaian dan link bukti bila ada, lalu simpan. Kinetik mengirim progres 100% ke kipApp atas nama Anda.',
+                    'Setelah selesai, tekan "Kirim ke atasan" agar atasan dapat menilai kegiatan itu di kipApp. Bila perlu mengubahnya lagi, tekan "Batalkan kirim" selama atasan belum menilai.',
                     'Jika progres diubah langsung di kipApp, Kinetik mengikuti kipApp pada sinkronisasi berikutnya.',
                 ],
                 tip: 'Jika kata sandi SSO Anda ditolak BPS, Kinetik berhenti mengakses kipApp atas nama Anda dan meminta Anda memasukkannya lagi saat masuk. Kinetik tidak mencoba ulang dengan kata sandi yang sama.',

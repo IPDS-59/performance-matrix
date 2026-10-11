@@ -36,7 +36,7 @@ class ReconcilePlanItemsAction
                     default => 'pushed',
                 };
 
-                $plan->update(['kip_activity_id' => $activity->id, 'status' => $status, 'kip_synced_at' => now()]);
+                $plan->update(['kip_activity_id' => $activity->id, 'status' => $status, 'kip_sent_at' => $activity->sent_at, 'kip_synced_at' => now()]);
                 $updated++;
             });
 

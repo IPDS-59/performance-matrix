@@ -77,6 +77,27 @@ class ApiKipWriter
     }
 
     /**
+     * "Kirim ke atasan": the kegiatan leaves "belum dikirim". Decoded from kipApp's
+     * own code, not yet verified against the live API (see spec-planning.md section 5).
+     *
+     * @param  list<string>  $ids  kegiatanperhariid values
+     */
+    public function sendActivities(array $ids): void
+    {
+        $this->send('post', 'v1/kegiatan/kirim', ['id' => array_values($ids)], 'kirim kegiatan');
+    }
+
+    /**
+     * "Batalkan kirim". Same status as sendActivities().
+     *
+     * @param  list<string>  $ids
+     */
+    public function cancelSend(array $ids): void
+    {
+        $this->send('post', 'v1/kegiatan/batal', ['id' => array_values($ids)], 'batal kirim kegiatan');
+    }
+
+    /**
      * @param  array<string, mixed>  $data
      * @return array<string, mixed>
      */

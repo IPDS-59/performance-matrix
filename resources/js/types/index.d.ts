@@ -614,6 +614,16 @@ export interface WeeklyPlanMember {
     rk_count: number;
     /** Plan items that overlap the week (cancelled ones are left out). */
     plans: PlanItemRow[];
+    /** Where the member stands in the kipApp planning chain. */
+    flow: PlanFlowStep[];
+}
+
+/** One step of the kipApp planning chain for a member. `unknown` means Kinetik cannot see it. */
+export interface PlanFlowStep {
+    key: 'rk' | 'skp' | 'plan' | 'kipapp' | 'sent';
+    label: string;
+    state: 'done' | 'todo' | 'blocked' | 'unknown';
+    hint: string;
 }
 
 export interface PlanItemRow {
@@ -631,6 +641,8 @@ export interface PlanItemRow {
     /** Why the last push to kipApp failed; only while the plan is still unsent. */
     push_error: string | null;
     in_kipapp: boolean;
+    /** Sent to the atasan in kipApp ("Kirim ke atasan"). */
+    sent: boolean;
     evaluation: PlanEvaluation;
 }
 

@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Actions\Kinetik\CompletePlanItemAction;
 use App\Actions\Kinetik\LinkPlansToProjectsAction;
 use App\Actions\Kinetik\PushPlanItemAction;
+use App\Actions\Kinetik\SendPlanItemAction;
 use App\Http\Controllers\Concerns\ResolvesTeams;
 use App\Models\Employee;
 use App\Models\PerformancePlan;
@@ -97,6 +98,32 @@ class PlanItemController extends Controller
         }
 
         return back()->with('success', 'Rencana ditandai selesai dan dikirim ke kipApp.');
+    }
+
+    /** "Kirim ke atasan": the kegiatan in kipApp is sent for the atasan to rate. */
+    public function send(Request $request, PlanItem $planItem, SendPlanItemAction $send): RedirectResponse
+    {
+        return $this->sendOrCancel($request, $planItem, fn () => $send->send($planItem), 'Kegiatan dikirim ke atasan.');
+    }
+
+    /** "Batalkan kirim": takes the kegiatan back so it can be changed. */
+    public function unsend(Request $request, PlanItem $planItem, SendPlanItemAction $send): RedirectResponse
+    {
+        return $this->sendOrCancel($request, $planItem, fn () => $send->cancel($planItem), 'Pengiriman dibatalkan. Kegiatan bisa diubah lagi.');
+    }
+
+    private function sendOrCancel(Request $request, PlanItem $planItem, \Closure $run, string $done): RedirectResponse
+    {
+        $this->authorizeFor($this->actor($request), Team::findOrFail($planItem->team_id), $planItem->employee_id);
+        $planItem->load('employee.user');
+
+        try {
+            $run();
+        } catch (\RuntimeException $e) {
+            return back()->with('error', $e->getMessage());
+        }
+
+        return back()->with('success', $done);
     }
 
     /**

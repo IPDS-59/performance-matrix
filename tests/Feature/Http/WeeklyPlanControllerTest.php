@@ -8,6 +8,7 @@ use App\Models\KipActivity;
 use App\Models\Team;
 use App\Models\User;
 use App\Models\WeeklyFocus;
+use Illuminate\Support\Arr;
 
 function planTeam(): array
 {
@@ -40,7 +41,8 @@ it('shows each member the RK without kegiatan, unfinished kegiatan and the PJ fo
             ->where('weekStart', '2026-10-05')
             ->where('quarter', 4)
             ->where('canManage', true)
-            ->where('members', fn ($members) => collect($members)->firstWhere('name', 'Andi') == [
+            ->where('members', fn ($members) => collect(collect($members)->firstWhere('name', 'Andi')['flow'])->pluck('state', 'key')->all() === ['rk' => 'done', 'skp' => 'done', 'plan' => 'todo', 'kipapp' => 'unknown', 'sent' => 'todo'])
+            ->where('members', fn ($members) => Arr::except(collect($members)->firstWhere('name', 'Andi'), 'flow') == [
                 'employee_id' => $member->id,
                 'name' => 'Andi',
                 'focus' => 'Selesaikan fitur',

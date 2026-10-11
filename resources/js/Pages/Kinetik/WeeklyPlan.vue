@@ -9,6 +9,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { ChevronLeft, ChevronRight, ExternalLink, Target } from 'lucide-vue-next';
 import SyncMyActivitiesButton from '@/Components/Kinetik/SyncMyActivitiesButton.vue';
 import PlanItemsPanel from '@/Components/Kinetik/PlanItemsPanel.vue';
+import PlanFlowStrip from '@/Components/Kinetik/PlanFlowStrip.vue';
+import PlanFlowGuide from '@/Components/Kinetik/PlanFlowGuide.vue';
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/Components/ui/accordion';
 import { useDateFormat } from '@/composables/useDateFormat';
 
 const props = defineProps<WeeklyPlanProps>();
@@ -67,31 +70,35 @@ function saveFocus(member: WeeklyPlanMember) {
                 <SyncMyActivitiesButton />
             </div>
 
-            <p class="mb-4 text-sm text-gray-600">
-                Untuk setiap anggota: fokus dari PJ minggu ini, RK yang belum punya kegiatan di Triwulan {{ roman[quarter - 1] }}, dan kegiatan yang progresnya belum 100%.
-                Data kegiatan dan RK berasal dari sinkronisasi kipApp terakhir.
+            <p class="mb-3 max-w-3xl text-sm leading-relaxed text-gray-600">
+                Rencana tiap anggota minggu ini, dan sampai mana rencana itu di kipApp. Data kegiatan dan RK Triwulan {{ roman[quarter - 1] }} berasal dari sinkronisasi kipApp terakhir.
             </p>
+
+            <PlanFlowGuide />
 
             <div v-if="!members.length" class="rounded-md border border-dashed bg-gray-50 py-10 text-center text-sm text-gray-500">Tim ini belum punya anggota.</div>
 
-            <div class="grid gap-4 lg:grid-cols-2">
+            <div class="grid gap-4 xl:grid-cols-2">
                 <section
                     v-for="m in members"
                     :key="m.employee_id"
                     :class="['flex flex-col rounded-md border bg-white', m.employee_id === currentEmployeeId ? 'border-primary/50 ring-1 ring-primary/20' : '']"
                     :aria-label="`Rencana ${m.name}`"
                 >
-                    <header class="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1 border-b px-4 py-3">
-                        <h2 class="text-sm font-semibold text-gray-800">{{ m.name }}<span v-if="m.employee_id === currentEmployeeId" class="ml-1.5 text-xs font-normal text-primary">(Anda)</span></h2>
-                        <p class="text-xs tabular-nums text-gray-500">
-                            {{ m.activity_count }} kegiatan triwulan ini<template v-if="m.unsent_count"> · <span class="text-orange-700">{{ m.unsent_count }} belum dikirim</span></template>
-                        </p>
+                    <header class="space-y-2 border-b px-4 py-3">
+                        <div class="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
+                            <h2 class="text-lg font-semibold text-gray-900">{{ m.name }}<span v-if="m.employee_id === currentEmployeeId" class="ml-1.5 text-sm font-normal text-primary">(Anda)</span></h2>
+                            <p class="text-xs tabular-nums text-gray-600">
+                                {{ m.activity_count }} kegiatan triwulan ini<template v-if="m.unsent_count"> · <span class="font-medium text-orange-800">{{ m.unsent_count }} belum dikirim ke atasan</span></template>
+                            </p>
+                        </div>
+                        <PlanFlowStrip :steps="m.flow" />
                     </header>
 
-                    <div class="space-y-4 px-4 py-3">
+                    <div class="space-y-5 px-4 py-4">
                         <!-- Focus from the PJ -->
                         <div>
-                            <p class="mb-1 flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-gray-500"><Target class="h-3.5 w-3.5" aria-hidden="true" /> Fokus minggu ini</p>
+                            <h3 class="mb-1.5 flex items-center gap-1.5 text-sm font-semibold text-gray-800"><Target class="h-4 w-4 text-primary" aria-hidden="true" /> Fokus minggu ini</h3>
                             <template v-if="canManage">
                                 <Textarea v-model="drafts[m.employee_id]" :rows="2" class="text-sm" :aria-label="`Fokus minggu ini untuk ${m.name}`" placeholder="Contoh: selesaikan entri SE2026 blok 12–20, lalu rapat ISO Kamis" />
                                 <div class="mt-1.5 flex justify-end">
@@ -117,36 +124,45 @@ function saveFocus(member: WeeklyPlanMember) {
                             :can-evaluate="canManage"
                         />
 
-                        <!-- RK with no kegiatan yet -->
-                        <div>
-                            <p class="mb-1 text-xs font-semibold uppercase tracking-wide text-gray-500">RK belum ada kegiatan ({{ m.rks_without_activity.length }})</p>
-                            <p v-if="!m.rk_count" class="text-sm text-gray-400">Daftar RK belum tersinkron. Admin menjalankan Sinkronisasi Kegiatan.</p>
-                            <p v-else-if="!m.rks_without_activity.length" class="text-sm text-green-700">Semua RK sudah punya kegiatan.</p>
-                            <ul v-else class="list-disc space-y-0.5 pl-5 text-sm text-gray-700">
-                                <li v-for="rk in m.rks_without_activity" :key="rk.id">{{ rk.name }}</li>
-                            </ul>
-                        </div>
-
-                        <!-- Unfinished kegiatan -->
-                        <div>
-                            <p class="mb-1 text-xs font-semibold uppercase tracking-wide text-gray-500">Belum selesai ({{ m.unfinished.length }})</p>
-                            <p v-if="!m.unfinished.length" class="text-sm text-gray-400">Tidak ada kegiatan dengan progres di bawah 100%.</p>
-                            <ul v-else class="divide-y rounded border">
-                                <li v-for="a in m.unfinished" :key="a.id" class="grid grid-cols-[1fr_auto] items-center gap-3 px-3 py-2 text-sm">
-                                    <div class="min-w-0">
-                                        <p class="leading-snug text-gray-800">{{ a.description }}</p>
-                                        <p class="text-xs text-gray-500">{{ formatDate(a.date_start) }}<template v-if="a.rk_name"> · {{ a.rk_name }}</template></p>
-                                    </div>
-                                    <div class="flex items-center gap-2">
-                                        <div class="h-1.5 w-16 overflow-hidden rounded-full bg-gray-100" role="progressbar" :aria-valuenow="a.progress" aria-valuemin="0" aria-valuemax="100" :aria-label="`Progres ${a.description}`">
-                                            <div class="h-full rounded-full bg-orange-500" :style="{ width: `${Math.min(100, a.progress)}%` }" />
-                                        </div>
-                                        <span class="w-9 text-right text-xs font-semibold tabular-nums text-orange-700">{{ Math.round(a.progress) }}%</span>
-                                        <a v-if="a.evidence_url" :href="a.evidence_url" target="_blank" rel="noopener noreferrer" class="text-gray-400 hover:text-primary" :aria-label="`Bukti ${a.description}`"><ExternalLink class="h-3.5 w-3.5" /></a>
-                                    </div>
-                                </li>
-                            </ul>
-                        </div>
+                        <Accordion type="multiple" class="rounded-md border">
+                            <AccordionItem value="rk" class="border-b px-4">
+                                <AccordionTrigger class="py-3 text-sm font-medium text-gray-800">
+                                    RK belum ada kegiatan
+                                    <span class="ml-2 rounded-full px-2 py-0.5 text-xs" :class="m.rks_without_activity.length ? 'bg-orange-100 text-orange-800' : 'bg-green-50 text-green-800'">{{ m.rks_without_activity.length }}</span>
+                                </AccordionTrigger>
+                                <AccordionContent>
+                                    <p v-if="!m.rk_count" class="text-sm text-gray-600">Daftar RK belum tersinkron. Admin menjalankan Sinkronisasi Kegiatan.</p>
+                                    <p v-else-if="!m.rks_without_activity.length" class="text-sm text-green-800">Semua RK sudah punya kegiatan.</p>
+                                    <ul v-else class="list-disc space-y-1 pl-5 text-sm text-gray-700">
+                                        <li v-for="rk in m.rks_without_activity" :key="rk.id">{{ rk.name }}</li>
+                                    </ul>
+                                </AccordionContent>
+                            </AccordionItem>
+                            <AccordionItem value="unfinished" class="border-b-0 px-4">
+                                <AccordionTrigger class="py-3 text-sm font-medium text-gray-800">
+                                    Kegiatan belum selesai
+                                    <span class="ml-2 rounded-full px-2 py-0.5 text-xs" :class="m.unfinished.length ? 'bg-orange-100 text-orange-800' : 'bg-green-50 text-green-800'">{{ m.unfinished.length }}</span>
+                                </AccordionTrigger>
+                                <AccordionContent>
+                                    <p v-if="!m.unfinished.length" class="text-sm text-gray-600">Tidak ada kegiatan dengan progres di bawah 100%.</p>
+                                    <ul v-else class="divide-y">
+                                        <li v-for="a in m.unfinished" :key="a.id" class="grid grid-cols-[1fr_auto] items-center gap-3 py-2 text-sm">
+                                            <div class="min-w-0">
+                                                <p class="leading-snug text-gray-900">{{ a.description }}</p>
+                                                <p class="text-xs text-gray-600">{{ formatDate(a.date_start) }}<template v-if="a.rk_name"> · {{ a.rk_name }}</template></p>
+                                            </div>
+                                            <div class="flex items-center gap-2">
+                                                <div class="h-1.5 w-16 overflow-hidden rounded-full bg-gray-100" role="progressbar" :aria-valuenow="a.progress" aria-valuemin="0" aria-valuemax="100" :aria-label="`Progres ${a.description}`">
+                                                    <div class="h-full rounded-full bg-orange-500" :style="{ width: `${Math.min(100, a.progress)}%` }" />
+                                                </div>
+                                                <span class="w-10 text-right text-xs font-semibold tabular-nums text-orange-800">{{ Math.round(a.progress) }}%</span>
+                                                <a v-if="a.evidence_url" :href="a.evidence_url" target="_blank" rel="noopener noreferrer" class="text-gray-500 hover:text-primary" :aria-label="`Bukti ${a.description}`"><ExternalLink class="h-4 w-4" /></a>
+                                            </div>
+                                        </li>
+                                    </ul>
+                                </AccordionContent>
+                            </AccordionItem>
+                        </Accordion>
                     </div>
                 </section>
             </div>

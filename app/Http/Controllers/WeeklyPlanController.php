@@ -12,6 +12,7 @@ use App\Models\PlanItem;
 use App\Models\Team;
 use App\Models\WeeklyFocus;
 use App\Notifications\KinetikNotification;
+use App\Services\Kinetik\MemberPlanFlow;
 use App\Services\Kinetik\PlanEvaluator;
 use Carbon\Carbon;
 use Illuminate\Http\RedirectResponse;
@@ -128,6 +129,7 @@ class WeeklyPlanController extends Controller
             ->get(['id', 'employee_id', 'activity_date_start', 'activity_date_end', 'progress', 'rk_external_id', 'rk_name'])
             ->groupBy('employee_id');
         $evaluator = app(PlanEvaluator::class);
+        $flow = app(MemberPlanFlow::class);
 
         $focus = WeeklyFocus::where('team_id', $team->id)
             ->whereDate('week_start', $monday->toDateString())
@@ -145,7 +147,7 @@ class WeeklyPlanController extends Controller
             ->get(['id', 'employee_id', 'description', 'activity_date_start', 'activity_date_end', 'progress', 'rk_external_id', 'rk_name', 'sent_at', 'evidence_url'])
             ->groupBy('employee_id');
 
-        return $members->map(function (Employee $member) use ($focus, $rks, $activities, $planItems, $planActivities, $evaluator) {
+        return $members->map(function (Employee $member) use ($focus, $rks, $activities, $planItems, $planActivities, $evaluator, $flow) {
             $memberRks = $rks->get($member->id, collect());
             $memberActivities = $activities->get($member->id, collect());
 
@@ -154,26 +156,31 @@ class WeeklyPlanController extends Controller
                 fn (KipActivity $a) => $memberRks->contains(fn (EmployeeRk $rk) => self::sameRk($rk, $a)),
             );
 
+            $plans = $planItems->get($member->id, collect())->map(fn (PlanItem $p) => [
+                'id' => $p->id,
+                'description' => $p->description,
+                'performance_plan_id' => $p->performance_plan_id,
+                'rk_name' => $p->performancePlan?->description,
+                'project_id' => $p->project_id,
+                'date_start' => Carbon::parse($p->date_start)->toDateString(),
+                'date_end' => Carbon::parse($p->date_end)->toDateString(),
+                'target' => $p->target !== null ? (float) $p->target : null,
+                'target_unit' => $p->target_unit,
+                'status' => $p->status,
+                'source' => $p->source,
+                'push_error' => $p->status === 'planned' ? $p->push_error : null,
+                'in_kipapp' => $p->kip_external_id !== null,
+                'sent' => $p->kip_sent_at !== null,
+                'evaluation' => $evaluator->evaluate($p, $planActivities->get($member->id, collect())),
+            ])->values()->all();
+            $unsent = $teamActivities->whereNull('sent_at')->count();
+
             return [
                 'employee_id' => $member->id,
                 'name' => $member->display_name ?? $member->name,
                 'focus' => $focus->get($member->id),
-                'plans' => $planItems->get($member->id, collect())->map(fn (PlanItem $p) => [
-                    'id' => $p->id,
-                    'description' => $p->description,
-                    'performance_plan_id' => $p->performance_plan_id,
-                    'rk_name' => $p->performancePlan?->description,
-                    'project_id' => $p->project_id,
-                    'date_start' => Carbon::parse($p->date_start)->toDateString(),
-                    'date_end' => Carbon::parse($p->date_end)->toDateString(),
-                    'target' => $p->target !== null ? (float) $p->target : null,
-                    'target_unit' => $p->target_unit,
-                    'status' => $p->status,
-                    'source' => $p->source,
-                    'push_error' => $p->status === 'planned' ? $p->push_error : null,
-                    'in_kipapp' => $p->kip_external_id !== null,
-                    'evaluation' => $evaluator->evaluate($p, $planActivities->get($member->id, collect())),
-                ])->values()->all(),
+                'plans' => $plans,
+                'flow' => $flow->steps($memberRks->count(), $teamActivities->count(), $unsent, $plans),
                 'rks_without_activity' => $memberRks
                     ->reject(fn (EmployeeRk $rk) => $memberActivities->contains(fn (KipActivity $a) => self::sameRk($rk, $a)))
                     ->map(fn (EmployeeRk $rk) => ['id' => $rk->id, 'name' => $rk->name])
@@ -192,7 +199,7 @@ class WeeklyPlanController extends Controller
                     ])
                     ->values()
                     ->all(),
-                'unsent_count' => $teamActivities->whereNull('sent_at')->count(),
+                'unsent_count' => $unsent,
                 'activity_count' => $teamActivities->count(),
                 'rk_count' => $memberRks->count(),
             ];
