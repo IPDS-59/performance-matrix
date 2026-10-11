@@ -164,4 +164,78 @@ class KipSsoLoginTest extends TestCase
         $this->assertAuthenticatedAs($admin);
         Http::assertNothingSent();
     }
+
+    private const OTP_FORM = 'https://sso.bps.go.id/auth/realms/pegawai-bps/login-actions/authenticate?session_code=c&amp;execution=d';
+
+    private function fakeOtpSso(string $codeOutcome): void
+    {
+        $jwt = 'h.'.rtrim(strtr(base64_encode(json_encode(['exp' => time() + 86400])), '+/', '-_'), '=').'.s';
+
+        Http::fake([
+            '*/login' => Http::response('<form id="kc-form-login" action="'.self::SSO_FORM.'">', 200),
+            '*session_code=a*' => Http::response('<form action="'.self::OTP_FORM.'"><input name="otp">', 200),
+            '*session_code=c*' => $codeOutcome === 'ok'
+                ? Http::response('', 302, ['Location' => 'https://kipapp.bps.go.id/api/login?code=x'])
+                : Http::response('<form action="'.self::OTP_FORM.'"><input name="otp">', 200),
+            'kipapp.bps.go.id/api/login?*' => Http::response('', 302, ['Location' => 'https://kipapp.bps.go.id/#/auth/process?t='.$jwt]),
+        ]);
+    }
+
+    public function test_an_otp_account_is_asked_for_the_code_then_logged_in_and_connected(): void
+    {
+        $this->fakeOtpSso('ok');
+        $user = $this->staff();
+
+        $this->post('/login', ['email' => 'sukma', 'password' => 'sso-secret'])->assertRedirect(route('kip.otp'));
+        $this->assertGuest();
+        $this->get(route('kip.otp'))->assertOk();
+
+        $this->post(route('kip.otp.store'), ['otp' => '123456'])->assertRedirect(route('dashboard', absolute: false));
+
+        $this->assertAuthenticatedAs($user);
+        $this->assertSame('sso-secret', $user->memberKipCredential->plainPassword());
+        $this->assertNotNull($user->memberKipCredential->plainToken());
+    }
+
+    public function test_a_wrong_otp_code_can_be_retried_and_does_not_log_in(): void
+    {
+        $this->fakeOtpSso('bad');
+        $this->staff();
+
+        $this->post('/login', ['email' => 'sukma', 'password' => 'sso-secret']);
+        $this->post(route('kip.otp.store'), ['otp' => '000000'])->assertSessionHasErrors('otp');
+
+        $this->assertGuest();
+        $this->get(route('kip.otp'))->assertOk();
+    }
+
+    public function test_too_many_wrong_otp_codes_send_the_member_back_to_login(): void
+    {
+        $this->fakeOtpSso('bad');
+        $this->staff();
+
+        $this->post('/login', ['email' => 'sukma', 'password' => 'sso-secret']);
+        for ($i = 0; $i < 4; $i++) {
+            $this->post(route('kip.otp.store'), ['otp' => '000000'])->assertSessionHasErrors('otp');
+        }
+        $this->post(route('kip.otp.store'), ['otp' => '000000'])->assertRedirect(route('login'));
+        $this->get(route('kip.otp'))->assertRedirect(route('login'));
+    }
+
+    public function test_the_otp_page_without_a_started_login_goes_to_login(): void
+    {
+        $this->get(route('kip.otp'))->assertRedirect(route('login'));
+    }
+
+    public function test_connecting_with_an_otp_account_goes_through_the_code_step(): void
+    {
+        $this->fakeOtpSso('ok');
+        $user = $this->staff();
+        $this->actingAs($user);
+
+        $this->post(route('kip.connect.store'), ['password' => 'sso-secret'])->assertRedirect(route('kip.otp'));
+        $this->post(route('kip.otp.store'), ['otp' => '123456'])->assertRedirect(route('dashboard', absolute: false));
+
+        $this->assertFalse($user->fresh()->needsKipConnection());
+    }
 }

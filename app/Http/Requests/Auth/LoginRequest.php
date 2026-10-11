@@ -5,9 +5,11 @@ namespace App\Http\Requests\Auth;
 use App\Actions\Kinetik\ConnectKipAccountAction;
 use App\Models\User;
 use App\Services\Kinetik\KipLoginException;
+use App\Services\Kinetik\KipOtpChallenge;
 use Illuminate\Auth\Events\Lockout;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Http\Exceptions\HttpResponseException;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
@@ -85,6 +87,9 @@ class LoginRequest extends FormRequest
         try {
             app(ConnectKipAccountAction::class)->handle($user, $password);
         } catch (KipLoginException $e) {
+            if ($e->needsOtp()) {
+                throw new HttpResponseException(app(KipOtpChallenge::class)->start($e->pending, $user, $password, $this->boolean('remember'), 'login'));
+            }
             if ($e->rejected) {
                 return false;
             }

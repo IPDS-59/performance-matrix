@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Auth;
 use App\Actions\Kinetik\ConnectKipAccountAction;
 use App\Http\Controllers\Controller;
 use App\Services\Kinetik\KipLoginException;
+use App\Services\Kinetik\KipOtpChallenge;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
@@ -45,6 +46,9 @@ class KipConnectController extends Controller
         try {
             $connect->handle($user, (string) $request->string('password'));
         } catch (KipLoginException $e) {
+            if ($e->needsOtp()) {
+                return app(KipOtpChallenge::class)->start($e->pending, $user, (string) $request->string('password'), false, 'connect');
+            }
             if ($e->rejected) {
                 RateLimiter::hit($key);
                 throw ValidationException::withMessages(['password' => 'Kata sandi SSO BPS salah.']);

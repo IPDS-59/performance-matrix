@@ -6,6 +6,7 @@ use App\Models\MemberKipCredential;
 use App\Models\User;
 use App\Services\Kinetik\KipLoginClient;
 use App\Services\Kinetik\KipLoginException;
+use App\Services\Kinetik\KipLoginResult;
 use Illuminate\Support\Carbon;
 
 /**
@@ -21,8 +22,23 @@ class ConnectKipAccountAction
      */
     public function handle(User $user, #[\SensitiveParameter] string $password): void
     {
-        $result = $this->client->login($user->kipUsername(), $password);
+        $this->store($user, $password, $this->client->login($user->kipUsername(), $password));
+    }
 
+    /**
+     * Second step for accounts with OTP.
+     *
+     * @param  array{action: string, cookies: array<int, array<string, mixed>>}  $pending
+     *
+     * @throws KipLoginException
+     */
+    public function handleOtp(User $user, #[\SensitiveParameter] string $password, array $pending, string $code): void
+    {
+        $this->store($user, $password, $this->client->loginWithOtp($pending, $code));
+    }
+
+    private function store(User $user, #[\SensitiveParameter] string $password, KipLoginResult $result): void
+    {
         $user->forceFill(['password' => $password])->save();
 
         if (MemberKipCredential::keyIsConfigured()) {

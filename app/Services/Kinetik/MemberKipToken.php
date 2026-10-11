@@ -35,6 +35,9 @@ class MemberKipToken
         try {
             $result = $this->login->login($user->kipUsername(), $credential->plainPassword());
         } catch (KipLoginException $e) {
+            if ($e->needsOtp()) {
+                throw new RuntimeException('Token kipApp Anda kedaluwarsa dan akun SSO Anda memakai kode OTP. Keluar, lalu masuk lagi dengan kode OTP.');
+            }
             if (! $e->rejected) {
                 throw new RuntimeException('SSO BPS tidak dapat dihubungi saat ini. Akan dicoba lagi.');
             }

@@ -13,7 +13,7 @@ class EnsureKipConnected
     {
         $user = $request->user();
 
-        if ($user && ! $request->routeIs('kip.connect*', 'logout') && $user->needsKipConnection()) {
+        if ($user && ! $request->routeIs('kip.connect*', 'kip.otp*', 'logout') && $user->needsKipConnection()) {
             return redirect()->route('kip.connect');
         }
 

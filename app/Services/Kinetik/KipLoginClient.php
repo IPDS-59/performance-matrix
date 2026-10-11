@@ -4,6 +4,7 @@ namespace App\Services\Kinetik;
 
 use Carbon\CarbonImmutable;
 use GuzzleHttp\Cookie\CookieJar;
+use Illuminate\Http\Client\Response;
 use Illuminate\Support\Facades\Http;
 use Throwable;
 
@@ -36,10 +37,73 @@ class KipLoginClient
                     'credentialId' => '',
                 ]);
 
-            // Keycloak shows the form again (200) when the credentials are wrong.
+            // Keycloak shows a form again (200): the one-time code form for accounts
+            // with OTP, the login form when the credentials are wrong.
             if ($submit->status() === 200) {
-                throw KipLoginException::rejected();
+                throw $this->hasOtpForm($submit->body())
+                    ? KipLoginException::otpRequired($this->pending($submit->body(), $jar))
+                    : KipLoginException::rejected();
             }
+
+            return $this->finish($jar, $submit, $timeout);
+        } catch (KipLoginException $e) {
+            throw $e;
+        } catch (Throwable $e) {
+            throw KipLoginException::unavailable($e::class);
+        }
+    }
+
+    /**
+     * Second step for accounts with OTP: sends the code to the form that login() stopped at.
+     *
+     * @param  array{action: string, cookies: array<int, array<string, mixed>>}  $pending
+     *
+     * @throws KipLoginException
+     */
+    public function loginWithOtp(array $pending, string $code): KipLoginResult
+    {
+        $jar = new CookieJar(false, $pending['cookies']);
+        $timeout = (int) config('kinetik.kip.timeout', 15);
+
+        try {
+            $submit = Http::withOptions(['cookies' => $jar])->withoutRedirecting()->timeout($timeout)
+                ->asForm()->post($pending['action'], ['otp' => $code, 'login' => 'Log In']);
+
+            if ($submit->status() === 200) {
+                throw $this->hasOtpForm($submit->body())
+                    ? KipLoginException::otpInvalid($this->pending($submit->body(), $jar, $pending['action']))
+                    : KipLoginException::unavailable('SSO answered the one-time code with an unknown form');
+            }
+
+            return $this->finish($jar, $submit, $timeout);
+        } catch (KipLoginException $e) {
+            throw $e;
+        } catch (Throwable $e) {
+            throw KipLoginException::unavailable($e::class);
+        }
+    }
+
+    private function hasOtpForm(string $html): bool
+    {
+        return (bool) preg_match('/<input[^>]*\bname="otp"/i', $html);
+    }
+
+    /** @return array{action: string, cookies: array<int, array<string, mixed>>} */
+    private function pending(string $html, CookieJar $jar, ?string $fallbackAction = null): array
+    {
+        $action = preg_match('/<form[^>]*\baction="([^"]+)"/i', $html, $form) ? html_entity_decode($form[1]) : $fallbackAction;
+
+        if ($action === null) {
+            throw KipLoginException::unavailable('SSO one-time code form has no action');
+        }
+
+        return ['action' => $action, 'cookies' => $jar->toArray()];
+    }
+
+    /** Follows the SSO redirect into kipApp and reads the token from the callback. */
+    private function finish(CookieJar $jar, Response $submit, int $timeout): KipLoginResult
+    {
+        try {
             if (! $submit->redirect() || $submit->header('Location') === '') {
                 throw KipLoginException::unavailable('SSO answered '.$submit->status());
             }
