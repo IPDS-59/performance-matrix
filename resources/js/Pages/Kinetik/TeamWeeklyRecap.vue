@@ -1,79 +1,38 @@
 <script setup lang="ts">
 import AppLayout from '@/Layouts/AppLayout.vue';
-import { Head, router, useForm } from '@inertiajs/vue3';
-import { ref } from 'vue';
-import type { RecapSegment, TeamRecapEvidence, TeamOption } from '@/types';
+import RecapLockBar from '@/Components/Kinetik/RecapLockBar.vue';
+import RecapToolbar from '@/Components/Kinetik/RecapToolbar.vue';
+import MemberCompletenessCard from '@/Components/Kinetik/MemberCompletenessCard.vue';
+import WeeklyProjectCard from '@/Components/Kinetik/WeeklyProjectCard.vue';
+import SavedWeeklyReport from '@/Components/Kinetik/SavedWeeklyReport.vue';
+import RecapPeriodSections from '@/Components/Kinetik/RecapPeriodSections.vue';
+import { Head } from '@inertiajs/vue3';
 import { Button } from '@/Components/ui/button';
 import { Input } from '@/Components/ui/input';
 import { Label } from '@/Components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/Components/ui/select';
-import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/Components/ui/table';
-import { ChevronLeft, ChevronRight, ExternalLink, Trash2 } from 'lucide-vue-next';
+import { ExternalLink, Trash2 } from 'lucide-vue-next';
+import { useRecapExport } from '@/composables/useRecapExport';
 import InputError from '@/Components/InputError.vue';
-import { useDateFormat } from '@/composables/useDateFormat';
+import { useTeamWeeklyRecap, type TeamWeeklyRecapProps } from '@/composables/useTeamWeeklyRecap';
 
-const { formatWeekRange } = useDateFormat();
+const props = defineProps<TeamWeeklyRecapProps>();
 
-const props = defineProps<{
-    teams: TeamOption[];
-    selectedTeamId: number | null;
-    segments: RecapSegment[];
-    evidences: TeamRecapEvidence[];
-    weekStart: string;
-    weekEnd: string;
-    prevWeek: string;
-    nextWeek: string;
-}>();
+const {
+    formatWeekRange,
+    navigate,
+    attentionOnly,
+    attentionCount,
+    filteredRows,
+    rowCanParaphrase,
+    evidenceTypeLabel,
+    showEvidenceForm,
+    evidenceForm,
+    submitEvidence,
+    deleteEvidence,
+} = useTeamWeeklyRecap(props);
 
-function navigate(params: Record<string, string | number>) {
-    router.get(route('team-recap.weekly'), {
-        team: props.selectedTeamId ?? undefined,
-        week: props.weekStart,
-        ...params,
-    }, { preserveState: false });
-}
-
-function achievementColor(val: number | null): string {
-    const n = Number(val ?? 0);
-    if (n >= 80) return 'text-green-600';
-    if (n >= 50) return 'text-yellow-600';
-    return 'text-red-600';
-}
-
-const evidenceTypeLabel: Record<string, string> = {
-    notula: 'Notula',
-    photo: 'Foto',
-    attendance: 'Daftar Hadir',
-};
-
-// ── Evidence form ──────────────────────────────────────────────────────────
-
-const showEvidenceForm = ref(false);
-
-const evidenceForm = useForm({
-    team_id: props.selectedTeamId,
-    project_id: null as number | null,
-    week_start: props.weekStart,
-    type: 'notula',
-    title: '',
-    url: '',
-});
-
-function submitEvidence() {
-    evidenceForm.team_id = props.selectedTeamId;
-    evidenceForm.week_start = props.weekStart;
-    evidenceForm.post(route('team-recap.evidence.store'), {
-        preserveScroll: true,
-        onSuccess: () => {
-            evidenceForm.reset('title', 'url');
-            showEvidenceForm.value = false;
-        },
-    });
-}
-
-function deleteEvidence(id: number) {
-    router.delete(route('team-recap.evidence.destroy', id), { preserveScroll: true });
-}
+const { exporting, download } = useRecapExport();
 </script>
 
 <template>
@@ -86,86 +45,54 @@ function deleteEvidence(id: number) {
         </div>
 
         <template v-else>
-            <!-- Controls -->
-            <div class="mb-6 flex flex-wrap items-center justify-between gap-4 rounded-md border bg-white px-4 py-3">
-                <Select
-                    :model-value="selectedTeamId != null ? String(selectedTeamId) : undefined"
-                    @update:model-value="(v) => navigate({ team: Number(v) })"
-                >
-                    <SelectTrigger class="w-auto min-w-[16rem]">
-                        <SelectValue placeholder="Pilih tim" />
-                    </SelectTrigger>
-                    <SelectContent>
-                        <SelectItem v-for="t in teams" :key="t.id" :value="String(t.id)">{{ t.name }}</SelectItem>
-                    </SelectContent>
-                </Select>
+            <RecapToolbar
+                v-model:attention-only="attentionOnly"
+                :teams="teams"
+                :selected-team-id="selectedTeamId"
+                :period-label="formatWeekRange(weekStart, weekEnd)"
+                prev-label="Minggu sebelumnya"
+                next-label="Minggu berikutnya"
+                :attention-total="segments.reduce((sum, seg) => sum + attentionCount(seg), 0)"
+                :exporting="exporting"
+                @change-team="navigate({ team: $event })"
+                @prev="navigate({ week: prevWeek })"
+                @next="navigate({ week: nextWeek })"
+                @export="download({ period_type: 'week', week: weekStart }, `Rapat Mingguan ${weekStart}.xlsx`)"
+            >
+            </RecapToolbar>
 
-                <div class="flex items-center gap-3">
-                    <button type="button" class="flex h-8 w-8 items-center justify-center rounded hover:bg-gray-100" title="Minggu sebelumnya" @click="navigate({ week: prevWeek })">
-                        <ChevronLeft class="h-4 w-4" />
-                    </button>
-                    <span class="text-sm font-medium text-gray-700">{{ formatWeekRange(weekStart, weekEnd) }}</span>
-                    <button type="button" class="flex h-8 w-8 items-center justify-center rounded hover:bg-gray-100" title="Minggu berikutnya" @click="navigate({ week: nextWeek })">
-                        <ChevronRight class="h-4 w-4" />
-                    </button>
-                </div>
-            </div>
+            <MemberCompletenessCard v-if="selectedTeamId" :members="members" />
 
-            <!-- Segments by project -->
+            <!-- One card per Projek -->
             <div v-if="!segments.length" class="mb-6 rounded-md border border-dashed border-gray-200 bg-gray-50 py-10 text-center text-sm text-gray-400">
-                Belum ada rekap tersimpan untuk tim ini pada minggu ini.
+                Belum ada kegiatan yang diklaim anggota untuk tim ini pada minggu ini.
+            </div>
+            <div v-else class="mb-6 space-y-6">
+                <WeeklyProjectCard
+                    v-for="seg in segments"
+                    :key="seg.project_id ?? 'none'"
+                    :seg="seg"
+                    :rows="filteredRows(seg)"
+                    :can-manage="canManage && !lock"
+                    :can-paraphrase="rowCanParaphrase"
+                    :attention="attentionCount(seg)"
+                    :payload="{ team_id: selectedTeamId, week_start: weekStart }"
+                />
             </div>
 
-            <div v-else class="mb-8 space-y-6">
-                <div v-for="seg in segments" :key="seg.project_id ?? 'none'" class="overflow-hidden rounded-md border bg-white">
-                    <div class="border-b bg-gray-50 px-4 py-3">
-                        <h3 class="text-sm font-semibold text-gray-800">{{ seg.project_name }}</h3>
-                    </div>
-                    <Table class="w-full text-sm">
-                        <TableHeader>
-                            <TableRow class="border-b bg-gray-50 text-xs font-medium uppercase tracking-wide text-gray-500">
-                                <TableHead class="text-left">Rencana Kinerja</TableHead>
-                                <TableHead class="text-right">Target</TableHead>
-                                <TableHead class="text-right">Realisasi</TableHead>
-                                <TableHead class="text-right">Capaian</TableHead>
-                                <TableHead class="text-left">Kontributor</TableHead>
-                                <TableHead class="text-left">Kendala</TableHead>
-                                <TableHead class="text-left">Solusi</TableHead>
-                                <TableHead class="text-left">RTL</TableHead>
-                            </TableRow>
-                        </TableHeader>
-                        <TableBody class="divide-y divide-gray-100">
-                            <TableRow v-for="row in seg.rows" :key="row.performance_plan_id" class="hover:bg-gray-50">
-                                <TableCell class="align-top">
-                                    <p class="font-medium text-gray-800">{{ row.rk_description }}</p>
-                                    <p v-if="row.rk_code" class="text-xs text-gray-500">{{ row.rk_code }}</p>
-                                </TableCell>
-                                <TableCell class="text-right align-top text-gray-700">{{ row.target }} {{ row.target_unit ?? '' }}</TableCell>
-                                <TableCell class="text-right align-top text-gray-700">{{ row.realization }}</TableCell>
-                                <TableCell class="text-right align-top">
-                                    <span v-if="row.achievement != null" :class="['font-semibold', achievementColor(row.achievement)]">{{ row.achievement.toFixed(2) }}%</span>
-                                    <span v-else class="text-gray-400">—</span>
-                                </TableCell>
-                                <TableCell class="align-top text-xs text-gray-600">{{ row.contributors.join(', ') || '—' }}</TableCell>
-                                <TableCell class="align-top text-gray-600">{{ row.obstacle ?? '—' }}</TableCell>
-                                <TableCell class="align-top text-gray-600">{{ row.solution ?? '—' }}</TableCell>
-                                <TableCell class="align-top text-gray-600">{{ row.follow_up_plan ?? '—' }}</TableCell>
-                            </TableRow>
-                        </TableBody>
-                    </Table>
-                </div>
-            </div>
+            <SavedWeeklyReport :segments="segments" :week-start="weekStart" :week-end="weekEnd" />
 
-            <!-- Evidence (notula / foto / DH) -->
-            <div>
+            <!-- Bukti Dukung Rapat -->
+            <div id="bukti-rapat" class="scroll-mt-4">
                 <div class="mb-3 flex items-center justify-between">
                     <h2 class="text-sm font-semibold text-gray-700">Bukti Dukung Rapat</h2>
-                    <Button size="sm" variant="outline" @click="showEvidenceForm = !showEvidenceForm">
+                    <Button v-if="canManage" size="sm" variant="outline" @click="showEvidenceForm = !showEvidenceForm">
                         {{ showEvidenceForm ? 'Tutup' : 'Tambah Bukti' }}
                     </Button>
+                    <span v-else class="text-xs text-gray-400">Hanya PJ yang dapat menambah bukti</span>
                 </div>
 
-                <form v-if="showEvidenceForm" class="mb-4 space-y-3 rounded-md border bg-white p-4" @submit.prevent="submitEvidence">
+                <form v-if="canManage && showEvidenceForm" class="mb-4 space-y-3 rounded-md border bg-white p-4" @submit.prevent="submitEvidence">
                     <div class="grid grid-cols-2 gap-3">
                         <div>
                             <Label for="ev-type">Jenis</Label>
@@ -208,13 +135,23 @@ function deleteEvidence(id: number) {
                             <a :href="ev.url" target="_blank" rel="noopener noreferrer" class="inline-flex items-center gap-1 text-xs text-primary hover:underline">
                                 Buka <ExternalLink class="h-3 w-3" />
                             </a>
-                            <button type="button" class="text-gray-400 hover:text-red-600" title="Hapus" @click="deleteEvidence(ev.id)">
+                            <button v-if="canManage" type="button" class="text-gray-400 hover:text-red-600" title="Hapus" @click="deleteEvidence(ev.id)">
                                 <Trash2 class="h-4 w-4" />
                             </button>
                         </div>
                     </li>
                 </ul>
             </div>
+
+            <RecapPeriodSections v-if="previousWeeks.length" class="mt-8" title="Minggu sebelumnya" :sections="previousWeeks" />
+
+            <RecapLockBar
+                :team-id="selectedTeamId"
+                :lock="lock"
+                :can-lock="canLock"
+                hint="Kunci rekap setelah rapat selesai, supaya klaim anggota dan isi laporan minggu ini tidak berubah lagi. PJ dapat membuka kunci kapan saja."
+                :period="{ period_type: 'week', period_year: Number(weekStart.slice(0, 4)), week_start: weekStart }"
+            />
         </template>
     </AppLayout>
 </template>

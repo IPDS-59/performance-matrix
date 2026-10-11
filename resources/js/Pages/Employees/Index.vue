@@ -58,7 +58,7 @@ function executeDelete() {
                             <div class="font-medium">{{ emp.display_name || emp.name }}</div>
                             <div v-if="emp.office" class="text-xs text-gray-500">{{ emp.office }}</div>
                         </TableCell>
-                        <TableCell class="font-mono text-sm">{{ emp.employee_number ?? '—' }}</TableCell>
+                        <TableCell class="font-mono text-sm">{{ emp.nip_baru ?? emp.nip_lama ?? emp.employee_number ?? '—' }}</TableCell>
                         <TableCell>{{ emp.team?.name ?? '—' }}</TableCell>
                         <TableCell>{{ emp.position ?? '—' }}</TableCell>
                         <TableCell>

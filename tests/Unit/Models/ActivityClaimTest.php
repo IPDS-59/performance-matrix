@@ -54,7 +54,7 @@ it('kip activity has inverse claim relation', function () {
         'kip_activity_id' => $kipActivity->id,
     ]);
 
-    expect($kipActivity->claim)->toBeInstanceOf(ActivityClaim::class);
+    expect($kipActivity->claims()->first())->toBeInstanceOf(ActivityClaim::class);
 });
 
 it('casts dates and decimals correctly', function () {

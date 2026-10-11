@@ -42,22 +42,22 @@ const submit = () => {
 
         <form @submit.prevent="submit" class="space-y-5">
             <div class="space-y-1.5">
-                <Label for="email">Email</Label>
+                <Label for="email">Username SSO BPS atau email</Label>
                 <Input
                     id="email"
-                    type="email"
+                    type="text"
                     v-model="form.email"
                     required
                     autofocus
                     autocomplete="username"
-                    placeholder="nama@bps.go.id"
+                    placeholder="username atau nama@bps.go.id"
                 />
                 <InputError :message="form.errors.email" />
             </div>
 
             <div class="space-y-1.5">
                 <div class="flex items-center justify-between">
-                    <Label for="password">Kata Sandi</Label>
+                    <Label for="password">Kata sandi SSO BPS</Label>
                     <Link
                         v-if="canResetPassword"
                         :href="route('password.request')"

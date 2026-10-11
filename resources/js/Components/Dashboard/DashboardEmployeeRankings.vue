@@ -147,7 +147,7 @@ const empAchievementTooltipTriggers = {
             </CardHeader>
             <CardContent>
                 <div v-if="topByAchievement?.length" class="mb-3 h-52">
-                    <VisXYContainer :data="empByAchievementUnovisData" :yDomain="[0, 100]" :style="{ height: '100%' }">
+                    <VisXYContainer :data="empByAchievementUnovisData" :xDomain="[0, 100]" :style="{ height: '100%' }">
                         <VisGroupedBar orientation="horizontal" :x="empAchievementX" :y="empAchievementY" :color="empAchievementColor" :roundedCorners="4" :barMinHeight="0" />
                         <VisAxis type="x" :tickFormat="empAchievementXTickFormat" />
                         <VisAxis type="y" :tickFormat="empAchievementYTickFormat" :gridLine="false" :tickTextFontSize="'10px'" :numTicks="empByAchievementUnovisData.length" />

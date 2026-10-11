@@ -11,6 +11,8 @@ import { ref, computed } from 'vue';
 
 interface ProjectWithCount extends Project {
     members_count: number;
+    can_update: boolean;
+    can_delete: boolean;
 }
 
 const props = defineProps<{
@@ -162,7 +164,7 @@ const teamGroups = computed(() => {
                                     <TableHead>Ketua</TableHead>
                                     <TableHead>Anggota</TableHead>
                                     <TableHead>Status</TableHead>
-                                    <TableHead class="text-right">Aksi</TableHead>
+                                    <TableHead v-if="canCreate" class="text-right">Aksi</TableHead>
                                 </TableRow>
                             </TableHeader>
                             <TableBody class="divide-y">
@@ -188,12 +190,12 @@ const teamGroups = computed(() => {
                                             {{ statusConfig[project.status]?.label ?? project.status }}
                                         </span>
                                     </TableCell>
-                                    <TableCell class="text-right">
-                                        <div class="inline-flex gap-2">
-                                            <Button variant="outline" size="sm" as-child>
+                                    <TableCell v-if="canCreate" class="text-right">
+                                        <div v-if="project.can_update || project.can_delete" class="inline-flex gap-2">
+                                            <Button v-if="project.can_update" variant="outline" size="sm" as-child>
                                                 <Link :href="route('projects.edit', project.id)">Edit</Link>
                                             </Button>
-                                            <Button variant="destructive" size="sm" @click="confirmDelete(project.id, project.name)">
+                                            <Button v-if="project.can_delete" variant="destructive" size="sm" @click="confirmDelete(project.id, project.name)">
                                                 Hapus
                                             </Button>
                                         </div>

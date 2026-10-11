@@ -14,10 +14,12 @@ class ActivityClaim extends Model
         'kip_activity_id',
         'employee_id',
         'performance_plan_id',
+        'project_id',
         'work_item_id',
         'target',
         'realization',
         'achievement',
+        'adjusted_by',
         'target_unit',
         'obstacle',
         'solution',
@@ -56,6 +58,12 @@ class ActivityClaim extends Model
         return $this->belongsTo(KipActivity::class);
     }
 
+    /** The PJ who last corrected the numbers on the team recap. */
+    public function adjustedBy(): BelongsTo
+    {
+        return $this->belongsTo(Employee::class, 'adjusted_by');
+    }
+
     public function employee(): BelongsTo
     {
         return $this->belongsTo(Employee::class);
@@ -64,6 +72,11 @@ class ActivityClaim extends Model
     public function performancePlan(): BelongsTo
     {
         return $this->belongsTo(PerformancePlan::class);
+    }
+
+    public function project(): BelongsTo
+    {
+        return $this->belongsTo(Project::class);
     }
 
     public function workItem(): BelongsTo

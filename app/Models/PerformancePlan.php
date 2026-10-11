@@ -12,9 +12,13 @@ class PerformancePlan extends Model
     use HasFactory;
 
     protected $fillable = [
+        'kip_external_id',
+        'skp_status',
         'project_id',
+        'team_id',
         'code',
         'description',
+        'leader_rk',
         'target',
         'target_unit',
         'period_type',
@@ -30,6 +34,11 @@ class PerformancePlan extends Model
     public function project(): BelongsTo
     {
         return $this->belongsTo(Project::class);
+    }
+
+    public function team(): BelongsTo
+    {
+        return $this->belongsTo(Team::class);
     }
 
     public function pic(): BelongsTo

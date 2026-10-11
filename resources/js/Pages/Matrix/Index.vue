@@ -87,7 +87,7 @@ function cellBgColor(pct: number): string {
 </script>
 
 <template>
-    <Head title="Matriks Kinerja" />
+    <Head title="Kinetik" />
     <AppLayout>
         <template #title>Matriks Penugasan & Kinerja</template>
 

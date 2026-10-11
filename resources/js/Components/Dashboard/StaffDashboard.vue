@@ -10,7 +10,7 @@ import DashboardPersonalProjects from '@/Components/Dashboard/DashboardPersonalP
 import DashboardSectionHeading from '@/Components/Dashboard/DashboardSectionHeading.vue';
 import DashboardLedProjects from '@/Components/Dashboard/DashboardLedProjects.vue';
 
-const props = defineProps<{
+defineProps<{
     employee: Employee | undefined;
     personalStats: PersonalStats | undefined;
     projects: ProjectWithItems[];
@@ -85,7 +85,9 @@ const props = defineProps<{
                 :current-employee-id="employee.id"
             />
 
-            <DashboardPersonalProjects :projects="projects" />
+            <div class="mt-10">
+                <DashboardPersonalProjects :projects="projects" />
+            </div>
         </template>
     </template>
 </template>

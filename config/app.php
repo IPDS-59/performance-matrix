@@ -67,6 +67,9 @@ return [
 
     'timezone' => 'UTC',
 
+    // Scheduled jobs follow office hours in Palu (WITA); stored times stay UTC.
+    'schedule_timezone' => env('SCHEDULE_TIMEZONE', 'Asia/Makassar'),
+
     /*
     |--------------------------------------------------------------------------
     | Application Locale Configuration

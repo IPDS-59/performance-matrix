@@ -2,10 +2,11 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Database\Eloquent\Relations\HasOne;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class KipActivity extends Model
 {
@@ -52,8 +53,23 @@ class KipActivity extends Model
         return $this->belongsTo(Employee::class);
     }
 
-    public function claim(): HasOne
+    /**
+     * Activities that run during a period (a week, month or quarter): they start
+     * in it, or started earlier and end in or after its first day. A monthly
+     * task counts in every week it covers.
+     */
+    public function scopeDuringWeek(Builder $query, string $weekStart, string $weekEnd): Builder
     {
-        return $this->hasOne(ActivityClaim::class);
+        return $query->whereDate('activity_date_start', '<=', $weekEnd)
+            ->where(fn (Builder $q) => $q->whereDate('activity_date_start', '>=', $weekStart)
+                ->orWhereDate('activity_date_end', '>=', $weekStart));
+    }
+
+    /**
+     * One claim per week the activity covers (a monthly task is claimed weekly).
+     */
+    public function claims(): HasMany
+    {
+        return $this->hasMany(ActivityClaim::class);
     }
 }

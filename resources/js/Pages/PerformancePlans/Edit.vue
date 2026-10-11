@@ -30,7 +30,6 @@ const props = defineProps<{
 
 const form = useForm({
     project_id: props.performancePlan.project_id,
-    code: props.performancePlan.code ?? '',
     description: props.performancePlan.description,
     target: (props.performancePlan.target ?? '') as string | number,
     target_unit: props.performancePlan.target_unit ?? '',
@@ -84,11 +83,6 @@ function submit() {
                 </div>
                 <div v-else class="text-sm text-gray-500">
                     Proyek: <span class="font-medium text-gray-800">{{ performancePlan.project?.name ?? '—' }}</span>
-                </div>
-                <div>
-                    <Label for="code">Kode RK</Label>
-                    <Input id="code" v-model="form.code" class="mt-1" />
-                    <InputError :message="form.errors.code" />
                 </div>
                 <div>
                     <Label for="description">Deskripsi</Label>
