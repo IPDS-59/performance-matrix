@@ -422,6 +422,10 @@ if [ "$ZIP" = true ]; then
     zip -r "${ZIP_PATH}" . "${EXCLUDE_ARGS[@]}" -q
     success "Archive created: ${ZIP_PATH}"
 
+    # The no-dev install above removed Pest and the other dev packages from this
+    # checkout. The zip is already built, so put them back for local work.
+    composer install --no-interaction --quiet && info "Dev dependencies restored for local work."
+
     # Inject .env.production into the zip as .env (never touches the local dev .env)
     if [ -f ".env.production" ]; then
         TMP_ENV_DIR=$(mktemp -d)
