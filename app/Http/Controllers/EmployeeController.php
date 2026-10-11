@@ -23,7 +23,7 @@ class EmployeeController extends Controller
 
         $employees = Employee::with('team:id,name', 'educations')
             ->orderBy('name')
-            ->get(['id', 'name', 'display_name', 'team_id', 'employee_number', 'position', 'office', 'is_active', 'user_id']);
+            ->get(['id', 'name', 'display_name', 'team_id', 'employee_number', 'nip_lama', 'nip_baru', 'position', 'office', 'is_active', 'user_id']);
 
         return Inertia::render('Employees/Index', compact('employees'));
     }

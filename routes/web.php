@@ -1,24 +1,32 @@
 <?php
 
+use App\Http\Controllers\CreditController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\EmployeeController;
 use App\Http\Controllers\EmployeeReportController;
+use App\Http\Controllers\FraController;
+use App\Http\Controllers\GuideController;
+use App\Http\Controllers\KipActivityController;
+use App\Http\Controllers\KipIntegrationController;
+use App\Http\Controllers\MyActivitySyncController;
 use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\PerformanceApprovalController;
 use App\Http\Controllers\PerformanceController;
 use App\Http\Controllers\PerformanceIndicatorController;
 use App\Http\Controllers\PerformancePlanController;
+use App\Http\Controllers\PlanComplianceController;
+use App\Http\Controllers\PlanItemController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\ProjectController;
 use App\Http\Controllers\ProjectDetailController;
 use App\Http\Controllers\ProjectListController;
 use App\Http\Controllers\ReportAttachmentController;
 use App\Http\Controllers\ReportResubmitController;
-use App\Http\Controllers\KipIntegrationController;
 use App\Http\Controllers\TeamController;
 use App\Http\Controllers\TeamMemberController;
 use App\Http\Controllers\TeamRecapController;
 use App\Http\Controllers\WeeklyActivityController;
+use App\Http\Controllers\WeeklyPlanController;
 use App\Http\Controllers\WorkItemController;
 use App\Http\Controllers\WorkItemDetailController;
 use Illuminate\Support\Facades\Route;
@@ -76,6 +84,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
     // Notifications
     Route::get('/notifications', [NotificationController::class, 'index'])->name('notifications.index');
     Route::get('/notifikasi', [NotificationController::class, 'page'])->name('notifications.page');
+
+    // In-app handbook (Buku Pedoman)
+    Route::get('/buku-pedoman', GuideController::class)->name('guide');
     Route::patch('/notifications/{id}/read', [NotificationController::class, 'markRead'])->name('notifications.read');
     Route::patch('/notifications/read-all', [NotificationController::class, 'markAllRead'])->name('notifications.read-all');
     Route::delete('/notifications/{id}', [NotificationController::class, 'destroy'])->name('notifications.destroy');
@@ -86,25 +97,66 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::delete('/report-attachments/{attachment}', [ReportAttachmentController::class, 'destroy'])->name('report-attachments.destroy');
     Route::patch('/report-attachments/{attachment}/review', [ReportAttachmentController::class, 'review'])->name('report-attachments.review');
 
+    // kipApp activities — admins see all, others see their own
+    Route::get('/kegiatan-kipapp', [KipActivityController::class, 'index'])->name('kip-activities.index');
+
     // Weekly activity scrapper / recap
+    Route::get('/rencana-minggu', [WeeklyPlanController::class, 'index'])->name('weekly-plan.index');
+    Route::get('/fra', [FraController::class, 'index'])->name('fra.index');
+    Route::patch('/fra/{indicator}/triwulan/{quarter}', [FraController::class, 'updateValues'])->name('fra.values');
+    Route::patch('/fra/{indicator}/pemilik', [FraController::class, 'updateOwner'])->name('fra.owner');
+    Route::get('/kepatuhan-rencana', [PlanComplianceController::class, 'index'])->name('plan-compliance.index');
+    Route::post('/rencana-minggu/fokus', [WeeklyPlanController::class, 'storeFocus'])->name('weekly-plan.focus');
+    Route::post('/rencana-minggu/item', [PlanItemController::class, 'store'])->name('plan-items.store');
+    Route::patch('/rencana-minggu/item/{planItem}', [PlanItemController::class, 'update'])->name('plan-items.update');
+    Route::post('/rencana-minggu/item/{planItem}/kirim', [PlanItemController::class, 'push'])->name('plan-items.push');
+    Route::post('/rencana-minggu/item/{planItem}/kirim-atasan', [PlanItemController::class, 'send'])->name('plan-items.send');
+    Route::post('/rencana-minggu/item/{planItem}/batal-kirim', [PlanItemController::class, 'unsend'])->name('plan-items.unsend');
+    Route::post('/rencana-minggu/item/{planItem}/selesai', [PlanItemController::class, 'complete'])->name('plan-items.complete');
+    Route::patch('/rencana-minggu/item/{planItem}/evaluasi', [PlanItemController::class, 'evaluate'])->name('plan-items.evaluate');
+    Route::delete('/rencana-minggu/item/{planItem}', [PlanItemController::class, 'destroy'])->name('plan-items.destroy');
     Route::get('/rekap-mingguan', [WeeklyActivityController::class, 'index'])->name('weekly.index');
-    Route::post('/rekap-mingguan/sync', [WeeklyActivityController::class, 'sync'])->name('weekly.sync');
     Route::post('/rekap-mingguan/claim', [WeeklyActivityController::class, 'storeClaim'])->name('weekly.claim');
-    Route::post('/rekap-mingguan/kegiatan', [WeeklyActivityController::class, 'storeManualActivity'])->name('weekly.activity.store');
+    Route::post('/rekap-mingguan/claim-bulk', [WeeklyActivityController::class, 'storeClaimsBulk'])->name('weekly.claim-bulk');
 
     // Team recaps (weekly / monthly / quarterly FRA)
     Route::get('/rekap-tim', [TeamRecapController::class, 'weekly'])->name('team-recap.weekly');
     Route::get('/rekap-bulanan', [TeamRecapController::class, 'monthly'])->name('team-recap.monthly');
     Route::get('/rekap-triwulanan', [TeamRecapController::class, 'quarterly'])->name('team-recap.quarterly');
+    Route::post('/rekap-tim/lock', [TeamRecapController::class, 'toggleLock'])->name('team-recap.lock');
+    Route::get('/rekap-semua-tim', [TeamRecapController::class, 'overview'])->name('team-recap.overview');
+    Route::post('/rekap-semua-tim/catatan', [TeamRecapController::class, 'storeLeadershipNote'])->name('team-recap.leadership-note');
+    Route::get('/rekap-tim/export', [TeamRecapController::class, 'export'])->name('team-recap.export');
+    Route::post('/rekap-tim/weekly-note', [TeamRecapController::class, 'storeWeeklyNote'])->name('team-recap.weekly-note.store');
     Route::post('/rekap-tim/evidence', [TeamRecapController::class, 'storeEvidence'])->name('team-recap.evidence.store');
     Route::delete('/rekap-tim/evidence/{evidence}', [TeamRecapController::class, 'destroyEvidence'])->name('team-recap.evidence.destroy');
     Route::post('/rekap-tim/override', [TeamRecapController::class, 'storeOverride'])->name('team-recap.override.store');
+    Route::post('/rekap-tim/prefill', [TeamRecapController::class, 'prefill'])->name('team-recap.prefill');
+    Route::post('/rekap-tim/merge', [TeamRecapController::class, 'mergeRows'])->name('team-recap.merge');
+    Route::post('/rekap-tim/split', [TeamRecapController::class, 'splitRows'])->name('team-recap.split');
+    Route::post('/rekap-tim/projek', [TeamRecapController::class, 'saveWeeklyProject'])->name('team-recap.weekly-project');
+    Route::post('/rekap-tim/baris/gabung', [TeamRecapController::class, 'mergeWeeklyRows'])->name('team-recap.weekly-rows.merge');
+    Route::post('/rekap-tim/baris/pisah', [TeamRecapController::class, 'splitWeeklyRow'])->name('team-recap.weekly-rows.split');
+    Route::post('/rekap-tim/klaim/{claim}/angka', [TeamRecapController::class, 'adjustClaim'])->name('team-recap.claim-adjust');
+    Route::post('/rekap-tim/ringkasan', [TeamRecapController::class, 'storeSummary'])->name('team-recap.summary');
+    Route::post('/rekap-tim/override/confirm', [TeamRecapController::class, 'confirmOverride'])->name('team-recap.override.confirm');
+    Route::post('/rekap-tim/override/confirm-bulk', [TeamRecapController::class, 'confirmBulk'])->name('team-recap.override.confirm-bulk');
+
+    // A member syncs their own kegiatan from kipApp
+    Route::post('/sinkron-saya', MyActivitySyncController::class)->name('my-sync');
+
+    // Angka Kredit (own, team, admin PAK value)
+    Route::get('/angka-kredit', [CreditController::class, 'mine'])->name('credit.mine');
+    Route::get('/angka-kredit/tim', [CreditController::class, 'team'])->name('credit.team');
+    Route::put('/angka-kredit/{employee}/awal', [CreditController::class, 'updateBase'])->name('credit.base');
 
     // kipApp integration (admin: store token + centralized sync)
     Route::middleware('can:manage-kip-integration')->group(function () {
         Route::get('/integrasi-kipapp', [KipIntegrationController::class, 'index'])->name('kip-integration.index');
         Route::post('/integrasi-kipapp/token', [KipIntegrationController::class, 'storeToken'])->name('kip-integration.token');
         Route::post('/integrasi-kipapp/sync', [KipIntegrationController::class, 'syncAll'])->name('kip-integration.sync');
+        Route::post('/integrasi-kipapp/sync-structure', [KipIntegrationController::class, 'syncStructure'])->name('kip-integration.sync-structure');
+        Route::post('/integrasi-kipapp/sync-careers', [KipIntegrationController::class, 'syncCareers'])->name('kip-integration.sync-careers');
     });
 
     // Profile

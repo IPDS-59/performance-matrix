@@ -51,4 +51,14 @@ describe('useSidebarStore', () => {
         sidebar.open();
         expect(sidebar.isOpen).toBe(true);
     });
+
+    it('mobile drawer opens and closes independently of the desktop state', () => {
+        const sidebar = useSidebarStore();
+        expect(sidebar.mobileOpen).toBe(false);
+        sidebar.openMobile();
+        expect(sidebar.mobileOpen).toBe(true);
+        expect(sidebar.isOpen).toBe(true);
+        sidebar.closeMobile();
+        expect(sidebar.mobileOpen).toBe(false);
+    });
 });

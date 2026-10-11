@@ -1,0 +1,264 @@
+<?php
+
+namespace App\Kinetik\Sources;
+
+use App\Kinetik\Contracts\KipAuthenticator;
+use App\Kinetik\Contracts\KipStructureSource;
+use App\Kinetik\Data\KipMemberData;
+use App\Kinetik\Data\KipOfficeData;
+use App\Kinetik\Data\KipPositionData;
+use App\Kinetik\Data\KipProjectData;
+use App\Kinetik\Data\KipRatingData;
+use App\Kinetik\Data\KipRkData;
+use App\Kinetik\Data\KipSkpTree;
+use App\Kinetik\Data\KipTeamData;
+use App\Kinetik\Exceptions\KipApiException;
+use Illuminate\Http\Client\PendingRequest;
+use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Http;
+
+class ApiKipStructureSource implements KipStructureSource
+{
+    public function __construct(
+        private readonly KipAuthenticator $authenticator,
+    ) {}
+
+    /**
+     * Enumerate every team of the configured unit kerja via the office-wide
+     * team directory (monitoring/hirarki/daerah). Returns all teams, not just
+     * the admin's own (unlike pegawai/lokasi).
+     */
+    public function fetchTeams(): Collection
+    {
+        $response = $this->client()->get('v1/monitoring/hirarki/daerah', [
+            'unitkerjaid' => config('kinetik.kip.unitkerja_id'),
+            'wilayahid' => config('kinetik.kip.wilayah_id'),
+            'periodeid' => config('kinetik.kip.periode_id'),
+        ]);
+
+        if (! $response->successful()) {
+            throw KipApiException::fromResponse($response, 'fetchTeams');
+        }
+
+        $body = $response->json();
+
+        if (! is_array($body)) {
+            return collect();
+        }
+
+        return collect($body['data'] ?? [])
+            ->map(fn (array $row): KipTeamData => KipTeamData::fromApiRow($row))
+            ->filter(fn (KipTeamData $t): bool => $t->externalId !== '')
+            ->unique(fn (KipTeamData $t): string => $t->externalId)
+            ->values();
+    }
+
+    public function fetchTeamProjects(string $timkerjaId): Collection
+    {
+        $response = $this->client()->get('v1/proyek', ['timkerjaid' => $timkerjaId]);
+
+        if (! $response->successful()) {
+            throw KipApiException::fromResponse($response, 'fetchTeamProjects');
+        }
+
+        $rows = $response->json();
+
+        if (! is_array($rows)) {
+            return collect();
+        }
+
+        return collect($rows)
+            ->map(fn (array $row): KipProjectData => KipProjectData::fromApiRow($row))
+            ->filter(fn (KipProjectData $p): bool => $p->externalId !== '')
+            ->values();
+    }
+
+    public function fetchTeamMembers(string $timkerjaId): Collection
+    {
+        $response = $this->client()->get('v1/timkerja/anggota', ['id' => $timkerjaId]);
+
+        if (! $response->successful()) {
+            throw KipApiException::fromResponse($response, 'fetchTeamMembers');
+        }
+
+        $rows = $response->json();
+
+        if (! is_array($rows)) {
+            return collect();
+        }
+
+        return collect($rows)
+            ->map(fn (array $row): KipMemberData => KipMemberData::fromApiRow($row))
+            ->filter(fn (KipMemberData $m): bool => $m->nipLama !== '')
+            ->values();
+    }
+
+    public function fetchEmployeeOffices(string $nipLama): array
+    {
+        $response = $this->client()->get('v1/pegawai/lokasi', [
+            'periodeid' => config('kinetik.kip.periode_id'),
+            'niplama' => $nipLama,
+            'isjpt' => 0,
+            'istimkerja' => 1,
+        ]);
+
+        if (! $response->successful()) {
+            throw KipApiException::fromResponse($response, 'fetchEmployeeOffices');
+        }
+
+        $json = $response->json();
+
+        return is_array($json) ? KipOfficeData::listFromLokasi($json) : [];
+    }
+
+    public function fetchPositionHistory(string $nipLama): array
+    {
+        $response = $this->client()->get('v1/pegawai', ['niplama' => $nipLama]);
+
+        if (! $response->successful()) {
+            throw KipApiException::fromResponse($response, 'fetchPositionHistory');
+        }
+
+        return collect($response->json() ?: [])
+            ->filter(fn ($row) => is_array($row) && (string) ($row['niplama'] ?? '') === $nipLama)
+            ->map(fn (array $row) => KipPositionData::fromApiRow($row))
+            ->sortBy('tmt')
+            ->values()
+            ->all();
+    }
+
+    public function fetchPeriodicRatings(string $pegawaiId): array
+    {
+        // No periodeid: kipApp then returns every year.
+        $response = $this->client()->get('v1/skp', ['pegawaiid' => $pegawaiId, 'jenis' => 2]);
+
+        if (! $response->successful()) {
+            throw KipApiException::fromResponse($response, 'fetchPeriodicRatings');
+        }
+
+        return collect($response->json() ?: [])
+            ->filter(fn ($row) => is_array($row))
+            ->map(fn (array $row) => KipRatingData::fromApiRow($row))
+            ->filter()
+            ->values()
+            ->all();
+    }
+
+    public function fetchSkpTree(string $pegawaiId): ?KipSkpTree
+    {
+        $response = $this->client()->get('v1/skp', [
+            'periodeid' => config('kinetik.kip.periode_id'),
+            'pegawaiid' => $pegawaiId,
+            'jenis' => 1,
+        ]);
+
+        if (! $response->successful()) {
+            throw KipApiException::fromResponse($response, 'fetchSkpTree');
+        }
+
+        // A jabatan change mid-year leaves several yearly SKPs: take the latest.
+        $skp = collect($response->json() ?: [])->filter(fn ($row) => is_array($row) && filled($row['id'] ?? null))->sortByDesc('id')->first();
+        if ($skp === null) {
+            return null;
+        }
+
+        $rks = collect($this->client()->get('v1/skp/rk', ['skpid' => $skp['id']])->json() ?: [])
+            ->filter(fn ($row) => is_array($row) && filled($row['rkid'] ?? null))
+            ->map(fn (array $row) => KipRkData::fromApiRow($row))
+            ->values();
+
+        // skp/iki ignores rkid: one call returns every IKI of the SKP.
+        $ikiByRk = collect($this->client()->get('v1/skp/iki', ['skpid' => $skp['id']])->json() ?: [])
+            ->filter(fn ($row) => is_array($row) && filled($row['rkid'] ?? null))
+            ->groupBy(fn (array $row) => (string) $row['rkid'])
+            ->map(fn (Collection $rows) => $rows->values()->all());
+
+        return new KipSkpTree((string) $skp['id'], filled($skp['atasanid'] ?? null) ? (string) $skp['atasanid'] : null, $rks, $ikiByRk);
+    }
+
+    public function fetchEmployeePlans(string $nipLama): Collection
+    {
+        $response = $this->client()
+            ->get('v1/dashboard/kegiatanpegawai/belumkirim', ['niplama' => $nipLama]);
+
+        if (! $response->successful()) {
+            throw KipApiException::fromResponse($response, 'fetchEmployeePlans');
+        }
+
+        $groups = $response->json();
+        if (! is_array($groups)) {
+            return collect();
+        }
+
+        $skpIds = collect($groups)
+            ->flatMap(fn (array $g): array => $g['kegiatan'] ?? [])
+            ->pluck('skpid')->filter()->unique()->values();
+
+        // Fetch SKP-level statuses (Ditetapkan, Sedang dibuat, etc.) keyed by skpid.
+        $skpStatusBySkpId = $this->fetchSkpStatusMap($nipLama);
+
+        $plans = collect();
+
+        foreach ($skpIds as $skpId) {
+            $rkResponse = $this->client()->get('v1/skp/rk', ['skpid' => $skpId]);
+            if (! $rkResponse->successful() || ! is_array($rkResponse->json())) {
+                continue;
+            }
+
+            $skpStatus = $skpStatusBySkpId->get((string) $skpId);
+
+            // skp/iki ignores rkid and returns every IKI of the SKP: fetch once,
+            // then take each RK's own IKI by its rkid.
+            $ikiResponse = $this->client()->get('v1/skp/iki', ['skpid' => $skpId]);
+            $ikiByRk = collect($ikiResponse->successful() && is_array($ikiResponse->json()) ? $ikiResponse->json() : [])
+                ->filter(fn ($row) => is_array($row) && filled($row['rkid'] ?? null))
+                ->groupBy(fn (array $row) => (string) $row['rkid']);
+
+            foreach ($rkResponse->json() as $rk) {
+                $rkId = $rk['rkid'] ?? null;
+                if (empty($rkId)) {
+                    continue;
+                }
+
+                $ikiText = $ikiByRk->get((string) $rkId)?->first()['iki'] ?? null;
+
+                $plans->push(KipRkData::fromApiRow($rk, $ikiText, $skpStatus));
+            }
+        }
+
+        return $plans->values();
+    }
+
+    /**
+     * Returns a map of skpid → statusskp label for the given employee.
+     * Best-effort: returns an empty collection on API failure so callers
+     * can proceed with null statuses rather than aborting the sync.
+     *
+     * @return Collection<string, string>
+     */
+    private function fetchSkpStatusMap(string $nipLama): Collection
+    {
+        $response = $this->client()->get('v1/skp', [
+            'niplama' => $nipLama,
+            'periodeid' => config('kinetik.kip.periode_id'),
+        ]);
+
+        if (! $response->successful() || ! is_array($response->json())) {
+            return collect();
+        }
+
+        return collect($response->json())
+            ->filter(fn (array $row): bool => isset($row['id'], $row['statusskp']))
+            ->pluck('statusskp', 'id')
+            ->mapWithKeys(fn (string $status, mixed $id): array => [(string) $id => $status]);
+    }
+
+    private function client(): PendingRequest
+    {
+        $request = Http::baseUrl(config('kinetik.kip.base_url'))
+            ->timeout(config('kinetik.kip.timeout'))
+            ->acceptJson();
+
+        return $this->authenticator->apply($request);
+    }
+}

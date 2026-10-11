@@ -76,3 +76,12 @@ it('renders matrix for staff', function () {
         ->get(route('matrix'))
         ->assertInertia(fn ($page) => $page->component('Matrix/Index'));
 });
+
+it('hides personal cards for a head who is in no team', function () {
+    $user = headUser();
+    Employee::factory()->create(['user_id' => $user->id]);
+
+    $this->actingAs($user)
+        ->get(route('dashboard'))
+        ->assertInertia(fn ($page) => $page->missing('personal_stats'));
+});

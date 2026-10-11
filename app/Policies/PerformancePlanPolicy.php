@@ -44,10 +44,9 @@ class PerformancePlanPolicy
         }
 
         $plan->loadMissing('project');
+        $teamId = $plan->project?->team_id ?? $plan->team_id;
 
-        return Team::where('id', $plan->project->team_id)
-            ->where('leader_id', $employee->id)
-            ->exists();
+        return $teamId !== null && Team::where('id', $teamId)->where('leader_id', $employee->id)->exists();
     }
 
     public function delete(User $user, PerformancePlan $plan): bool
@@ -62,9 +61,8 @@ class PerformancePlanPolicy
         }
 
         $plan->loadMissing('project');
+        $teamId = $plan->project?->team_id ?? $plan->team_id;
 
-        return Team::where('id', $plan->project->team_id)
-            ->where('leader_id', $employee->id)
-            ->exists();
+        return $teamId !== null && Team::where('id', $teamId)->where('leader_id', $employee->id)->exists();
     }
 }

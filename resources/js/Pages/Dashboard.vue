@@ -67,7 +67,7 @@ const teamList = computed(() => {
         ...t,
         avg: props.team_progress![t.id]?.avg_achievement ?? 0,
         count: props.team_progress![t.id]?.report_count ?? 0,
-    })).sort((a, b) => b.avg - a.avg);
+    })).sort((a, b) => Number(b.count > 0) - Number(a.count > 0) || b.avg - a.avg);
 });
 
 const teamLeaderMap = computed(() => {

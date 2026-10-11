@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class Employee extends Model
 {
@@ -20,6 +21,7 @@ class Employee extends Model
         'employee_number',
         'nip_lama',
         'nip_baru',
+        'kip_pegawai_id',
         'position',
         'office',
         'display_name',
@@ -28,6 +30,8 @@ class Employee extends Model
 
     protected $casts = [
         'is_active' => 'boolean',
+        'kip_in_office' => 'boolean',
+        'kip_office_checked_at' => 'datetime',
     ];
 
     public function user(): BelongsTo
@@ -65,6 +69,16 @@ class Employee extends Model
     public function performanceReports(): HasMany
     {
         return $this->hasMany(PerformanceReport::class, 'reported_by');
+    }
+
+    public function career(): HasOne
+    {
+        return $this->hasOne(EmployeeCareer::class);
+    }
+
+    public function performanceRatings(): HasMany
+    {
+        return $this->hasMany(KipPerformanceRating::class);
     }
 
     public function teams(): BelongsToMany

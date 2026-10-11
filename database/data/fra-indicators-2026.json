@@ -1,0 +1,1006 @@
+{
+ "year": 2026,
+ "satker": "BPS Provinsi Sulawesi Tengah",
+ "indicators": [
+  {
+   "tujuan": "T1: Mewujudkan Perumusan Kebijakan dan Pengambilan Keputusan Berbasis Data Statistik Berkualitas dan Insight yang Relevan",
+   "sasaran_code": "1.1.1",
+   "sasaran_name": "Terwujudnya Penyediaan Data dan Insight Statistik Kependudukan dan Ketenagakerjaan yang Berkualitas",
+   "code": "1.1.1.1",
+   "name": "Persentase Publikasi/Laporan Statistik Kependudukan dan Ketenagakerjaan yang Berkualitas",
+   "kind": "IKU",
+   "period_type": "Tahunan",
+   "unit_type": "percent",
+   "percent_label": false,
+   "unit": "Persen",
+   "sort_order": 0,
+   "quarters": {
+    "1": {
+     "allocation_x": 0.0,
+     "allocation_y": 6.0,
+     "realization_x": 0.0,
+     "realization_y": 6.0
+    },
+    "2": {
+     "allocation_x": 0.0,
+     "allocation_y": 6.0,
+     "realization_x": 0.0,
+     "realization_y": 6.0,
+     "obstacle": "Tim Duknaker memiliki keterbatasan waktu dan sumber daya manusia dalam menyelesaikan rilis Berita Resmi Statistik (BRS) Keadaan Ketenagakerjaan Februari 2026 dan BRS Hasil Survei Penduduk Antarsensus (SUPAS) 2025 yang dilaksanakan secara bersamaan pada tanggal 5 Mei 2026.",
+     "solution": "Tim Duknaker menggunakan waktu lembur pada periode mendekati tanggal rilis untuk memastikan seluruh tahapan persiapan rilis selesai tepat waktu.",
+     "follow_up": "Tim Duknaker menyusun lembar kerja olah data dan simulasi revalidasi data sejak fase Rekonsiliasi Indikator Ketenagakerjaan hasil pendataan Sakernas agar proses penyusunan BRS dan bahan tayangnya lebih terstruktur, efektif dan efisien",
+     "pic": "Tim Kependudukan dan Ketenagakerjaan",
+     "deadline": "31 Juli 2026",
+     "evidence_url": "https://drive.google.com/file/d/1Xf5MVhK0SMaXiyA-nn6164QA81UR09M4/view?usp=sharing",
+     "previous_follow_up_url": "https://drive.google.com/file/d/1KEscQuADoTi8hfM9d-3EyjdYiTU586tu/view?usp=sharing"
+    },
+    "3": {
+     "allocation_x": 0.0,
+     "allocation_y": 6.0,
+     "realization_x": null,
+     "realization_y": null
+    },
+    "4": {
+     "allocation_x": 6.0,
+     "allocation_y": 6.0,
+     "realization_x": null,
+     "realization_y": null
+    }
+   },
+   "x_label": "X: Jumlah Publikasi/Laporan Statistik Kependudukan dan Ketenagakerjaan yang berkualitas",
+   "y_label": "Y: Jumlah seluruh Publikasi/Laporan Statistik Kependudukan dan Ketenagakerjaan yang dihasilkan",
+   "target_x": 6.0,
+   "target_y": 6.0
+  },
+  {
+   "tujuan": "T1: Mewujudkan Perumusan Kebijakan dan Pengambilan Keputusan Berbasis Data Statistik Berkualitas dan Insight yang Relevan",
+   "sasaran_code": "1.1.3",
+   "sasaran_name": "Terwujudnya Penyediaan Data dan Insight Statistik Kesejahteraan Rakyat yang Berkualitas",
+   "code": "1.1.3.1",
+   "name": "Persentase Publikasi/Laporan Statistik Kesejahteraan Rakyat yang Berkualitas",
+   "kind": "IKU",
+   "period_type": "Tahunan",
+   "unit_type": "percent",
+   "percent_label": false,
+   "unit": "Persen",
+   "sort_order": 1,
+   "quarters": {
+    "1": {
+     "allocation_x": 0.0,
+     "allocation_y": 4.0,
+     "realization_x": 0.0,
+     "realization_y": 4.0
+    },
+    "2": {
+     "allocation_x": 0.0,
+     "allocation_y": 4.0,
+     "realization_x": 0.0,
+     "realization_y": 4.0,
+     "obstacle": "BPS Kab/Kota kesulitan mencari mitra untuk Seruti Triwulan II karena sebagian besar mitra lebih memilih jadi petugas SE2026.",
+     "solution": "BPS Kab/Kota menawarkan kepada mitra SE2026 untuk menjadi petugas Seruti juga dengan syarat beban tugas untuk Seruti hanya 1 SLS saja agar jadwalnya tidak beririsan antara Seruti dan SE2026 di bulan Juni. Selain itu harus diperhatikan juga batasan honor yang diterima dalam 1 bulan (Juni) dari Seruti dan SE2026 tidak melebihi SBML yang sudah ditentukan.",
+     "follow_up": "Kepala BPS Kab/Kota diminta untuk menetapkan mitra-mitra utama kegiatan Seruti triwulan berikutnya karena kegiatan Seruti mulai dari tw I s.d tw IV diutamakan menggunakan petugas yang sama.",
+     "pic": "Tim Statistik Kesejahteraan Rakyat",
+     "deadline": "30 September 2026",
+     "evidence_url": "https://drive.google.com/drive/folders/1h-IfZIPf8kXcDWcIDJbWWBjZ98_f_vAy?usp=drive_link",
+     "previous_follow_up_url": "https://drive.google.com/drive/folders/1erzgc1TwnsSpXdxXqu2L7cHZ-kMu0aYT?usp=sharing"
+    },
+    "3": {
+     "allocation_x": 0.0,
+     "allocation_y": 4.0,
+     "realization_x": null,
+     "realization_y": null
+    },
+    "4": {
+     "allocation_x": 4.0,
+     "allocation_y": 4.0,
+     "realization_x": null,
+     "realization_y": null
+    }
+   },
+   "x_label": "X: Jumlah Publikasi/Laporan Statistik Kesejahteraan Rakyat yang berkualitas",
+   "y_label": "Y: Jumlah seluruh Publikasi/Laporan Statistik Kesejahteraan Rakyat yang dihasilkan",
+   "target_x": 4.0,
+   "target_y": 4.0
+  },
+  {
+   "tujuan": "T1: Mewujudkan Perumusan Kebijakan dan Pengambilan Keputusan Berbasis Data Statistik Berkualitas dan Insight yang Relevan",
+   "sasaran_code": "1.1.5",
+   "sasaran_name": "Terwujudnya penyediaan Data dan Insight Statistik Ketahanan Sosial yang Berkualitas",
+   "code": "1.1.5.1",
+   "name": "Persentase Publikasi/Laporan Statistik Ketahanan Sosial yang Berkualitas",
+   "kind": "IKU",
+   "period_type": "Tahunan",
+   "unit_type": "percent",
+   "percent_label": false,
+   "unit": "Persen",
+   "sort_order": 2,
+   "quarters": {
+    "1": {
+     "allocation_x": 0.0,
+     "allocation_y": 7.0,
+     "realization_x": 0.0,
+     "realization_y": 7.0
+    },
+    "2": {
+     "allocation_x": 0.0,
+     "allocation_y": 7.0,
+     "realization_x": 0.0,
+     "realization_y": 7.0,
+     "obstacle": "1. Kabupaten Morowali belum mencapai target 5 harian pendataan lapangan Podes 2026\n2. Perubahan IKG yang ekstrem, anomali hasil pendataan yang masih cukup tinggi, serta hasil supervisi pendataan Podes 2026 di Kabupaten Donggala menunjukkan non-sampling error yang cukup tinggi yang sebagian besar berasal dari kualitas petugas",
+     "solution": "1. Melakukan koordinasi dengan PJ Podes Morowali untuk melakukan evaluasi dengan petugas lapangan\n2. Melakukan evaluasi hasil pemeriksaan anomali dan pemeriksaan IKG secara mendetail dengan kabupaten/kota",
+     "follow_up": "1. Mempersiapkan bahan rilis kemiskinan dan ketimpangan Maret 2026 pada bulan Agustus 2026\n2. Melakukan pengumpulan data Statistik Politik dan Keamanan\n3. Melakukan perbaikan anomali lanjutan hasil pendataan Podes",
+     "pic": "Tim Ketahanan Sosial",
+     "deadline": "30 September 2026",
+     "evidence_url": "https://drive.google.com/drive/folders/15BPgA_0CoLCdvlplsLjCuj15hmQcBqT0?usp=sharing",
+     "previous_follow_up_url": "https://drive.google.com/drive/folders/1hkeElQoJcl6rhHOAcBC6tbBuMzx-hQcp?usp=drive_link"
+    },
+    "3": {
+     "allocation_x": 0.0,
+     "allocation_y": 7.0,
+     "realization_x": null,
+     "realization_y": 7.0
+    },
+    "4": {
+     "allocation_x": 7.0,
+     "allocation_y": 7.0,
+     "realization_x": null,
+     "realization_y": 7.0
+    }
+   },
+   "x_label": "X: Jumlah Publikasi/Laporan Statistik Ketahanan Sosial yang berkualitas",
+   "y_label": "Y: Jumlah seluruh Publikasi/Laporan Statistik Ketahanan Sosial yang dihasilkan",
+   "target_x": 7.0,
+   "target_y": 7.0
+  },
+  {
+   "tujuan": "T1: Mewujudkan Perumusan Kebijakan dan Pengambilan Keputusan Berbasis Data Statistik Berkualitas dan Insight yang Relevan",
+   "sasaran_code": "1.2.1",
+   "sasaran_name": "Terwujudnya Penyediaan Data dan Insight Statistik Sumber Daya Hayati yang Berkualitas",
+   "code": "1.2.1.1",
+   "name": "Persentase Publikasi/Laporan Statistik Sumber Daya Hayati yang Berkualitas",
+   "kind": "IKU",
+   "period_type": "Tahunan",
+   "unit_type": "percent",
+   "percent_label": false,
+   "unit": "Persen",
+   "sort_order": 3,
+   "quarters": {
+    "1": {
+     "allocation_x": 0.0,
+     "allocation_y": 6.0,
+     "realization_x": 0.0,
+     "realization_y": 6.0
+    },
+    "2": {
+     "allocation_x": 0.0,
+     "allocation_y": 6.0,
+     "realization_x": 0.0,
+     "realization_y": 6.0,
+     "obstacle": "1. Beberapa kabupaten belum dapat memenuhi target penyelesaian sampel ubinan karena sebagian sampel yang dirilis telah memasuki masa panen pada akhir bulan sebelumnya, sehingga tidak lagi dapat dilakukan pengamatan sesuai jadwal kegiatan.\n2. Aplikasi FASIH masih mengalami kendala teknis, seperti error atau gangguan pada proses assign petugas/sampel, sinkronisasi, maupun pengiriman data. Kondisi tersebut menghambat kelancaran pelaksanaan kegiatan serta memperlambat penyelesaian pekerjaan.",
+     "solution": "1. Mengajukan penambahan sampel cadangan apabila sampel yang tersedia tidak mencukupi untuk memenuhi target penyelesaian.\n2. Berkoordinasi dengan penanggung jawab teknis kabupaten/kota serta admin aplikasi di BPS Pusat untuk melakukan assign petugas sebagai tindak lanjut atas kendala teknis pada aplikasi FASIH yang menghambat proses penugasan.",
+     "follow_up": "1. Pada minggu terakhir setiap bulan akan dilakukan pengecekan potensi panen, yang selanjutnya dikonfirmasi kepada BPS kabupaten/kota untuk memastikan bahwa sampel cadangan yang tersedia belum memasuki masa panen dan masih memenuhi kriteria (eligible) sebagai sampel. Langkah ini bertujuan meminimalkan kebutuhan penambahan sampel cadangan.\n2. Selama tiga hari pertama pada setiap periode survei akan dilakukan pemantauan secara intensif terhadap pelaksanaan kegiatan. Apabila kendala pada aplikasi FASIH masih terjadi, permasalahan tersebut akan segera diteruskan kepada BPS Pusat untuk mendapatkan tindak lanjut.",
+     "pic": "Tim Statistik Sumber Daya Hayati",
+     "deadline": "30 September 2026",
+     "evidence_url": "https://drive.google.com/drive/folders/1ocYGQ2qHgw7Fy2V2rbDDM6chYdQUACE7?usp=drive_link",
+     "previous_follow_up_url": "https://drive.google.com/drive/folders/1bPS85AjCd3Mu5wjMzmnuOUHifvCQn9d3?usp=drive_link"
+    },
+    "3": {
+     "allocation_x": 0.0,
+     "allocation_y": 6.0,
+     "realization_x": null,
+     "realization_y": null
+    },
+    "4": {
+     "allocation_x": 6.0,
+     "allocation_y": 6.0,
+     "realization_x": null,
+     "realization_y": null
+    }
+   },
+   "x_label": "X: Jumlah Publikasi/Laporan Statistik Sumber Daya Hayati yang berkualitas",
+   "y_label": "Y: Jumlah seluruh Publikasi/Laporan Statistik Sumber Daya Hayati yang dihasilkan",
+   "target_x": 6.0,
+   "target_y": 6.0
+  },
+  {
+   "tujuan": "T1: Mewujudkan Perumusan Kebijakan dan Pengambilan Keputusan Berbasis Data Statistik Berkualitas dan Insight yang Relevan",
+   "sasaran_code": "1.2.2",
+   "sasaran_name": "Terwujudnya Penyediaan Data dan Insight Statistik Sumber Daya Mineral dan Konstruksi yang Berkualitas",
+   "code": "1.2.2.1",
+   "name": "Persentase publikasi/laporan Statistik Sumber Daya Mineral dan Konstruksi yang Berkualitas",
+   "kind": "IKU",
+   "period_type": "Tahunan",
+   "unit_type": "percent",
+   "percent_label": false,
+   "unit": "Persen",
+   "sort_order": 4,
+   "quarters": {
+    "1": {
+     "allocation_x": 0.0,
+     "allocation_y": 2.0,
+     "realization_x": 0.0,
+     "realization_y": 2.0
+    },
+    "2": {
+     "allocation_x": 0.0,
+     "allocation_y": 2.0,
+     "realization_x": 0.0,
+     "realization_y": 2.0,
+     "obstacle": "1. Raw data tidak lengkap; beberapa variabel penting (alamat, nama badan usaha, dan klasifikasi perusahaan) masih kosong pada Direktori Perusahaan Konstruksi.\n2. Pada Direktori Perusahaan Konstruksi terdapat data perusahaan yang ganda (double).\n3. FASIH sering mengalami kendala teknis, seperti error atau gangguan pada saat proses assign petugas/admin Kab/Kota, sinkronisasi, maupun pengiriman data, sehingga menghambat kelancaran pelaksanaan kegiatan dan penyelesaian pekerjaan, mengingat hampir semua survei diSDMK menggunakan Aplikasi FASIH.\n4. Petugas Lapangan sering kesulitan menggunakan FASIH online karena jaringan yang tidak stabil maupun kesediaan responden untuk langsung didata dengan Aplikasi Fasih",
+     "solution": "1. Melengkapi data yang kosong dengan mencari informasi tambahan melalui internet (Google/sumber eksternal lainnya), serta\n2. Untuk data ganda, jika berada di wilayah berbeda tetap dipertahankan, namun jika berada di wilayah yang sama, dilakukan penghapusan pada salah satu data.\n3. Melakukan koordinasi dengan PIC Pusat untuk menyampaikan masalah Aplikasi Fasih, \n4.Membagikan dokumen PAPI untuk survei yang mengalami gangguan tehnis maupun non tehnis sehingga lapangan tetap bisa berjalan, dan dapat diinput ke FASIH pada saat aplikasi normal kembali",
+     "follow_up": "1.Mendokumentasikan penyesuaian template terbaru dan cara pembersihan data sebagai bahan perbaikan dan SOP penyusunan publikasi di tahun berikutnya.\n2. Mendistribusikan dokumen PAPI sesuai survei yang sedang dijalankan dilapangan untuk antisipasi aplikasi FASIH yang sedang error",
+     "pic": "Tim Statistik Sumber Daya Mineral dan Konstruksi",
+     "deadline": "30 September 2026",
+     "evidence_url": "https://drive.google.com/drive/folders/1JJNrTeawuK8QMzat9UKiw2FucWusGNrZ?usp=drive_link",
+     "previous_follow_up_url": "https://drive.google.com/drive/folders/1tYEunn81lAHA5dZ9MRvtyV60k5E80QHW?usp=drive_link"
+    },
+    "3": {
+     "allocation_x": 0.0,
+     "allocation_y": 2.0,
+     "realization_x": null,
+     "realization_y": null
+    },
+    "4": {
+     "allocation_x": 2.0,
+     "allocation_y": 2.0,
+     "realization_x": null,
+     "realization_y": null
+    }
+   },
+   "x_label": "X: Jumlah Publikasi/Laporan Statistik Sumber Daya Mineral dan Konstruksi yang berkualitas",
+   "y_label": "Y: Jumlah seluruh Publikasi/Laporan Statistik Sumber Daya Mineral dan Konstruksi yang dihasilkan yang dihasilkan",
+   "target_x": 2.0,
+   "target_y": 2.0
+  },
+  {
+   "tujuan": "T1: Mewujudkan Perumusan Kebijakan dan Pengambilan Keputusan Berbasis Data Statistik Berkualitas dan Insight yang Relevan",
+   "sasaran_code": "1.2.3",
+   "sasaran_name": "Terwujudnya penyediaan Data dan Insight Statistik Industri yang Berkualitas",
+   "code": "1.2.3.1",
+   "name": "Persentase Publikasi/laporan Statistik Industri yang Berkualitas",
+   "kind": "IKU",
+   "period_type": "Tahunan",
+   "unit_type": "percent",
+   "percent_label": false,
+   "unit": "Persen",
+   "sort_order": 5,
+   "quarters": {
+    "1": {
+     "allocation_x": 0.0,
+     "allocation_y": 2.0,
+     "realization_x": 0.0,
+     "realization_y": 2.0
+    },
+    "2": {
+     "allocation_x": 0.0,
+     "allocation_y": 2.0,
+     "realization_x": 0.0,
+     "realization_y": 2.0,
+     "obstacle": "1. Daftar tabel dan grafik pada Publikasi Profil IMK tahun 2026 mengalami perubahan dan tidak sama dengan template publikasi tahun-tahun sebelumnya.\n2. Respon rate Survei IBS rendah, petugas kesulitan memperoleh akses ke pengelola data di beberapa perusahaan dikarenakan data adanya di kantor pusat.\n3. Masih terdapat beberapa komoditas IMK yang keliru dalam pengisian kode KBLI 2-digit.",
+     "solution": "1. Melakukan penyesuaian daftar tabel dan grafik dan format tabel sesuai dengan template Publikasi Profil IMK tahun 2026.\n2. Membangun komunikasi dari BPS Kabupaten/kota untuk diteruskan ke BPS Pusat.\n3. Mengirim raw data hasil pencacahan IMK ke PJ Kegiatan untuk melakukan perbaikan.",
+     "follow_up": "1. Melakukan sosialisasi internal tim penyusun untuk mengevaluasi terkait perubahan-perubahan dan catatan penting yang perlu diperhatikan dalam penyusunan publikasi tahun berikutnya.\n2. Mengirim surat ke Direktur Statistik Industri BPS RI terkait permohonan pendataan Survei IBS melalui kantor pusat.\n3. Mengirim reminder ke WA Group untuk melakukan pemeriksaan berjenjang.",
+     "pic": "Tim Statistik Industri",
+     "deadline": "30 September 2026",
+     "evidence_url": "https://drive.google.com/drive/folders/11zhZ6h6kYgCb95DOYsLOeY6LpfEJJx5v?usp=drive_link",
+     "previous_follow_up_url": "https://drive.google.com/drive/folders/1RHB-1XPn9lEtTv9wKhKIAgDKT-Fj3jGl?usp=drive_link"
+    },
+    "3": {
+     "allocation_x": 0.0,
+     "allocation_y": 2.0,
+     "realization_x": null,
+     "realization_y": null
+    },
+    "4": {
+     "allocation_x": 2.0,
+     "allocation_y": 2.0,
+     "realization_x": null,
+     "realization_y": null
+    }
+   },
+   "x_label": "X: Jumlah Publikasi/Laporan Statistik Industri yang berkualitas",
+   "y_label": "Y: Jumlah seluruh Publikasi/Laporan Statistik Industri yang dihasilkan",
+   "target_x": 2.0,
+   "target_y": 2.0
+  },
+  {
+   "tujuan": "T1: Mewujudkan Perumusan Kebijakan dan Pengambilan Keputusan Berbasis Data Statistik Berkualitas dan Insight yang Relevan",
+   "sasaran_code": "1.3.1",
+   "sasaran_name": "Terwujudnya Penyediaan Data dan Insight Statistik Distribusi yang Berkualitas",
+   "code": "1.3.1.1",
+   "name": "Persentase Publikasi/Laporan Statistik Distribusi yang Berkualitas",
+   "kind": "IKU",
+   "period_type": "Tahunan",
+   "unit_type": "percent",
+   "percent_label": false,
+   "unit": "Persen",
+   "sort_order": 6,
+   "quarters": {
+    "1": {
+     "allocation_x": 0.0,
+     "allocation_y": 26.0,
+     "realization_x": 0.0,
+     "realization_y": 26.0
+    },
+    "2": {
+     "allocation_x": 0.0,
+     "allocation_y": 26.0,
+     "realization_x": 0.0,
+     "realization_y": 26.0,
+     "obstacle": "1. Inkonsistensi data Sekunder antara tahun 2024 dan tahun 2025 pada pengumpulan Survei Panjang Jalan;\n2. Sebagian Perusahaan Besar sulit ditemui kembali sehingga dimungkinkan untuk dilakukan pergantian sampel\n3. Dalam rangka publisitas Sensus Ekonomi 2026, Tim Sensus Ekonomi 2026 BPS Provinsi Sulawesi Tengah mengalami kendala dalam pemasangan Iklan Layanan Masyarakat (ILM) yang disebabkan ketidakcocokkan dalam metode pembayaran yang menyebabkan kesulitan dalam kesepakatan pemasangan ILM publisitas SE2026;\n4. Kendala dalam melakukan kegiatan Ngisi Bareng (Ngibar) SE2026.\n5. Beberapa narasumber tidak menyertakan data pada saat rekonsiliasi penyiapan prelist SBR (Metodologi)\n6. Kualitas Data Alamat & Geotagging Awal Belum Presisi Data dari Kementrian/Lembaga pusat atau OPD (Metodologi)\n7. Pemahaman petugas terkait konsep establishment masih kurang, hal ini menyebabkan identifikasi usaha menjadi tidak tepat dan banyak usaha yang tidak dicakup atau menyebabkan undecoverage.",
+     "solution": "1. Koordinasi Ke Kabupaten/Kota untuk melakukan perbaikan kembali Ke OPD terkait;\n2. Melakukan Koordinasi Ke Kabupaten/Kota untuk melakukan pergantian Sampel\n3. Tim Sensus Ekonomi 2026 BPS Provinsi Sulawesi Tengah mencari tempat lain yang sekiranya dapat menerima metode pembayaran yang dilakukan oleh BPS Provinsi Sulawesi Tengah;\n4. Dalam mengupayakan ngibar, tim SE BPS Provinsi Sulteng memberikan sejumlah opsi yang sesuai dengan preferensi pelaku usaha, seperti ngibar dengan skema online, offlin maupun hybrid\n5. Konfirmasi pada saat rekonsiliasi SBR dan memberikan waktu tambahan 1 minggu untuk pemberian data (Metodologi)\n6. Matching dan verifikasi data ondesk menggunakan data scrapping google maps (Metodologi)\n7. Koordinasi ke BPS Kabupaten/Kota terkait kendala Lapangan SE 2026",
+     "follow_up": "1. Koordinasi ke Kabupaten/Kota dan OPD Terkait di Dinas PU Sulawesi Tengah;\n2. Melaporkan ke subject matter BPS Pusat\n3. Mengoptimalkan pelaksanaan KKD agar publisitas ILM dapat terlaksana, seperti pemasangan di videotron yang dikelola oleh pemerintah daerah\n4. Mengoptimalkan pelaksanaan KKD untuk pendekatan ke asosiasi - dinas selaku fasilitator ngibar\n5. Konfirmasi pada saat rekonsiliasi SBR dan memberikan waktu tambahan 1 minggu untuk pemberian data (Metodologi)\n6. Matching dan verifikasi data ondesk menggunakan data scrapping google maps (Metodologi)\n7. Melakukan kegiatan Evaluasi mingguan bersama Kepala BPS kabupaten/Kota dan PJK SE 2026",
+     "pic": "Tim Statistik Distribusi/Metodologi Statistik dan Sains Data",
+     "deadline": "30 September 2026",
+     "evidence_url": "https://drive.google.com/drive/folders/19mZWg6_pQVsYAnIEJXMupjr8P8jg9rOM?usp=sharing",
+     "previous_follow_up_url": "https://drive.google.com/drive/folders/1-S_aNegmDLKC8pcGhRF4699HjV2LpW7V?usp=sharing"
+    },
+    "3": {
+     "allocation_x": 0.0,
+     "allocation_y": 26.0,
+     "realization_x": null,
+     "realization_y": null
+    },
+    "4": {
+     "allocation_x": 26.0,
+     "allocation_y": 26.0,
+     "realization_x": null,
+     "realization_y": null
+    }
+   },
+   "x_label": "X: Jumlah Publikasi/Laporan Statistik Distribusi yang berkualitas",
+   "y_label": "Y: Jumlah seluruh Publikasi/Laporan Statistik Distribusi yang dihasilkan",
+   "target_x": 26.0,
+   "target_y": 26.0
+  },
+  {
+   "tujuan": "T1: Mewujudkan Perumusan Kebijakan dan Pengambilan Keputusan Berbasis Data Statistik Berkualitas dan Insight yang Relevan",
+   "sasaran_code": "1.3.3",
+   "sasaran_name": "Terwujudnya Penyediaan Data dan Insight Statistik Harga yang Berkualitas",
+   "code": "1.3.3.1",
+   "name": "Persentase Publikasi/laporan Statistik Harga yang Berkualitas",
+   "kind": "IKU",
+   "period_type": "Tahunan",
+   "unit_type": "percent",
+   "percent_label": false,
+   "unit": "Persen",
+   "sort_order": 7,
+   "quarters": {
+    "1": {
+     "allocation_x": 0.0,
+     "allocation_y": 26.0,
+     "realization_x": 0.0,
+     "realization_y": 26.0
+    },
+    "2": {
+     "allocation_x": 0.0,
+     "allocation_y": 26.0,
+     "realization_x": 0.0,
+     "realization_y": 26.0,
+     "obstacle": "1. Pada kegiatan Survei Harga Perdesaan (SHPed), baik pada Survei Harga Produsen Perdesaan (HD) maupun Survei Harga Konsumen Perdesaan (HKD) masih terdapat banyak data tidur yang perlu dikonfirmasi datanya kepada responden yang bersangkutan.\n\n2.Pada kegiatan statistik harga perdesaan (SHPed) dan statistik harga konsumen (SHK/Inflasi) terdapat kendala yakni pola arah perubahan harga komoditas-komoditas yang berbeda dan saling bertolak belakang dengan level harga lainnya",
+     "solution": "1. Melakukan konfirmasi terkait komoditas yang terindikasi data tidur, dengan memastikan apakah komoditas terkait masih dijual atau sudah tidak dijual, bila sekiranya komoditas tersebut tidak dijual lagi maka dapat dihapus dari webentry;\n2. Melakukan konfirmasi fenomena pola perubahan harga kepada BPS Kabupaten/Kota terkait;",
+     "follow_up": "Melakukan konfirmasi perubahan data harga dan fenomena yang terjadi di Kabupaten/Kota secara lebih mendalam melalui kegiatan rekonsiliasi data harga daerah yang dilaksanakan secara rutin setiap bulan.",
+     "pic": "Tim Statistik Harga",
+     "deadline": "30 September 2026",
+     "evidence_url": "https://drive.google.com/drive/folders/1kvIxNLhh61HulEKJegxrD3sZ1Lg-Z4SG?usp=sharing",
+     "previous_follow_up_url": "https://drive.google.com/drive/folders/1L2hHVYrqj4FD4iGxIv9tmqj8TfR5QoRV?usp=sharing"
+    },
+    "3": {
+     "allocation_x": 0.0,
+     "allocation_y": 26.0,
+     "realization_x": null,
+     "realization_y": null
+    },
+    "4": {
+     "allocation_x": 26.0,
+     "allocation_y": 26.0,
+     "realization_x": null,
+     "realization_y": null
+    }
+   },
+   "x_label": "X: Jumlah Publikasi/Laporan Statistik Harga yang berkualitas",
+   "y_label": "Y: Jumlah seluruh Publikasi/Laporan Statistik Harga yang dihasilkan",
+   "target_x": 26.0,
+   "target_y": 26.0
+  },
+  {
+   "tujuan": "T1: Mewujudkan Perumusan Kebijakan dan Pengambilan Keputusan Berbasis Data Statistik Berkualitas dan Insight yang Relevan",
+   "sasaran_code": "1.3.5",
+   "sasaran_name": "Terwujudnya Penyediaan Data dan Insight Statistik Jasa yang Berkualitas",
+   "code": "1.3.5.1",
+   "name": "Persentase Publikasi/Laporan Statistik Jasa yang Berkualitas",
+   "kind": "IKU",
+   "period_type": "Tahunan",
+   "unit_type": "percent",
+   "percent_label": false,
+   "unit": "Persen",
+   "sort_order": 8,
+   "quarters": {
+    "1": {
+     "allocation_x": 0.0,
+     "allocation_y": 13.0,
+     "realization_x": 0.0,
+     "realization_y": 13.0
+    },
+    "2": {
+     "allocation_x": 0.0,
+     "allocation_y": 13.0,
+     "realization_x": 0.0,
+     "realization_y": 13.0,
+     "obstacle": "1.  Terdapat 1% anomali isian Rata - Rata Lama Tamu Menginap (RLTM) dan Tingkat Penggunaan Kamar Hari Kemarin Tanggal 1 Bulan Berjalan pada Survei VHTS periode April - Juni 2026 \n2. plikasi FASIH masih mengalami kendala teknis, seperti gangguan saat melakukan alokasi sampel pada petugas dan permasalahan penggantian sampel \n3. Terdapat 44 sampel usaha koperasi yang teridentifikasi tidak ditemukan atau tutup.",
+     "solution": "1. Melakukan pengecekan data anomali secara efektif setiap tanggal 10, 15, dan 20 bulan berjalan dan Melakukan evaluasi perbaikan anomali vhts secara berkala untuk setiap kabupaten/kota\n2. Melaporkan kendala yang dihadapi untuk ditindaklanjuti oleh BPS Pusat \n3. Melakukan matching data dengan prelist UB SE2026 dan data koperasi tahun sebelumnya untuk memverifikasi status usaha.",
+     "follow_up": "1. Melakukan revisi target berdasarkan hasil identifikasi yang telah dilaksanakan\n2. Berkoordinasi dengan BPS Pusat guna penyelesaian permasalahan yang tidak dapat diselesaikan di BPS Provinsi  \n3. Melakukan monitoring secara rutin hingga seluruh status usaha koperasi terverifikasi.",
+     "pic": "Tim Statistik Jasa",
+     "deadline": "30 September 2026",
+     "evidence_url": "https://drive.google.com/drive/folders/1fjB4NTIljvam-eV6pw62sQBZEqS1HuiB?usp=sharing",
+     "previous_follow_up_url": "https://drive.google.com/drive/folders/1WGziVBGBMmQ4Rlm0b0wj8hfapNOzC0YL?usp=sharing"
+    },
+    "3": {
+     "allocation_x": 0.0,
+     "allocation_y": 13.0,
+     "realization_x": null,
+     "realization_y": null
+    },
+    "4": {
+     "allocation_x": 13.0,
+     "allocation_y": 13.0,
+     "realization_x": null,
+     "realization_y": null
+    }
+   },
+   "x_label": "X: Jumlah Publikasi/Laporan Statistik Jasa yang berkualitas",
+   "y_label": "Y: Jumlah seluruh Publikasi/Laporan Statistik Jasa yang dihasilkan",
+   "target_x": 13.0,
+   "target_y": 13.0
+  },
+  {
+   "tujuan": "T1: Mewujudkan Perumusan Kebijakan dan Pengambilan Keputusan Berbasis Data Statistik Berkualitas dan Insight yang Relevan",
+   "sasaran_code": "1.4.1",
+   "sasaran_name": "Terwujudnya Penyediaan Data dan Insight Statistik Lintas Sektor yang Berkualitas",
+   "code": "1.4.1.1",
+   "name": "Persentase Publikasi/Laporan Neraca Produksi yang Berkualitas",
+   "kind": "IKU",
+   "period_type": "Tahunan",
+   "unit_type": "percent",
+   "percent_label": false,
+   "unit": "Persen",
+   "sort_order": 9,
+   "quarters": {
+    "1": {
+     "allocation_x": 0.0,
+     "allocation_y": 6.0,
+     "realization_x": 0.0,
+     "realization_y": 6.0
+    },
+    "2": {
+     "allocation_x": 0.0,
+     "allocation_y": 6.0,
+     "realization_x": 0.0,
+     "realization_y": 6.0,
+     "obstacle": "Diskrepansi PDRB Provinsi Sulawesi Tengah dibanding PDRB total Kabupaten/Kota se-Sulteng nilainya cukup besar",
+     "solution": "Tim Neraca Provinsi melakukan koordinasi dengan PJK Nerwilis Kabupaten/Kota.",
+     "follow_up": "Tim Neraca Provinsi melakukan rekonsiliasi data PDRB bersama BPS Kabupaten/Kota.",
+     "pic": "Tim Neraca Produksi",
+     "deadline": "30 September 2026",
+     "evidence_url": "https://drive.google.com/drive/folders/1alg6nmIo1mDSw_ttzHiD-4Cn2nvb8btW",
+     "previous_follow_up_url": "https://drive.google.com/drive/folders/1l8zlnHqrEznaVWPT0eiY79HDk2M59fU1?usp=sharing"
+    },
+    "3": {
+     "allocation_x": 0.0,
+     "allocation_y": 6.0,
+     "realization_x": null,
+     "realization_y": null
+    },
+    "4": {
+     "allocation_x": 6.0,
+     "allocation_y": 6.0,
+     "realization_x": null,
+     "realization_y": null
+    }
+   },
+   "x_label": "X: Jumlah Publikasi/Laporan Neraca Produksi yang berkualitas",
+   "y_label": "Y: Jumlah seluruh Publikasi/Laporan Neraca Produksi yang dihasilkan",
+   "target_x": 6.0,
+   "target_y": 6.0
+  },
+  {
+   "tujuan": "T1: Mewujudkan Perumusan Kebijakan dan Pengambilan Keputusan Berbasis Data Statistik Berkualitas dan Insight yang Relevan",
+   "sasaran_code": "1.4.1",
+   "sasaran_name": "Terwujudnya Penyediaan Data dan Insight Statistik Lintas Sektor yang Berkualitas",
+   "code": "1.4.1.2",
+   "name": "Persentase Publikasi/Laporan Neraca Pengeluaran yang Berkualitas",
+   "kind": "IKU",
+   "period_type": "Tahunan",
+   "unit_type": "percent",
+   "percent_label": false,
+   "unit": "Persen",
+   "sort_order": 10,
+   "quarters": {
+    "1": {
+     "allocation_x": 0.0,
+     "allocation_y": 2.0,
+     "realization_x": 0.0,
+     "realization_y": 2.0
+    },
+    "2": {
+     "allocation_x": 0.0,
+     "allocation_y": 2.0,
+     "realization_x": 0.0,
+     "realization_y": 2.0,
+     "obstacle": "Diskrepansi PDRB Provinsi Sulawesi Tengah dibanding PDRB total Kabupaten/Kota se-Sulteng nilainya cukup besar",
+     "solution": "Tim Neraca Provinsi melakukan koordinasi dengan PJK Nerwilis Kabupaten/Kota.",
+     "follow_up": "Tim Neraca Provinsi melakukan rekonsiliasi data PDRB bersama BPS Kabupaten/Kota.",
+     "pic": "Tim Neraca Pengeluaran",
+     "deadline": "30 September 2026",
+     "evidence_url": "https://drive.google.com/drive/folders/1CICCU9cDQgI75Yvu7LFtb1KVwhRCoB1w?usp=drive_link",
+     "previous_follow_up_url": "https://drive.google.com/drive/folders/1yw5iItjqs84u8nm_QCwdF9Sc5qaboXau?usp=drive_link"
+    },
+    "3": {
+     "allocation_x": 0.0,
+     "allocation_y": 2.0,
+     "realization_x": null,
+     "realization_y": null
+    },
+    "4": {
+     "allocation_x": 2.0,
+     "allocation_y": 2.0,
+     "realization_x": null,
+     "realization_y": null
+    }
+   },
+   "x_label": "X: Jumlah Publikasi/Laporan Neraca Pengeluaran yang berkualitas",
+   "y_label": "Y: Jumlah seluruh Publikasi/Laporan Neraca Pengeluaran yang dihasilkan",
+   "target_x": 2.0,
+   "target_y": 2.0
+  },
+  {
+   "tujuan": "T1: Mewujudkan Perumusan Kebijakan dan Pengambilan Keputusan Berbasis Data Statistik Berkualitas dan Insight yang Relevan",
+   "sasaran_code": "1.4.1",
+   "sasaran_name": "Terwujudnya Penyediaan Data dan Insight Statistik Lintas Sektor yang Berkualitas",
+   "code": "1.4.1.3",
+   "name": "Persentase Publikasi/Laporan Analisis Statistik dan Neraca Satelit yang Berkualitas",
+   "kind": "IKU",
+   "period_type": "Tahunan",
+   "unit_type": "percent",
+   "percent_label": false,
+   "unit": "Persen",
+   "sort_order": 11,
+   "quarters": {
+    "1": {
+     "allocation_x": 0.0,
+     "allocation_y": 6.0,
+     "realization_x": 0.0,
+     "realization_y": 6.0
+    },
+    "2": {
+     "allocation_x": 0.0,
+     "allocation_y": 6.0,
+     "realization_x": 0.0,
+     "realization_y": 6.0,
+     "obstacle": "Memerlukan pendalaman analisis untuk menghubungkan keterkaitan antarindikator dan fenomena pendukung sehingga menghasilkan narasi yang komprehensif.",
+     "solution": "Melakukan penelusuran data pendukung dari berbagai sumber, pengkajian keterkaitan antarindikator, serta brainstorming untuk memperoleh interpretasi yang sesuai dengan kondisi di lapangan.",
+     "follow_up": "Melakukan penguatan analisis dengan memanfaatkan data pendukung yang relevan, mengkaji hubungan antarindikator, serta melakukan diskusi internal untuk menyusun interpretasi yang lebih komprehensif.",
+     "pic": "Tim Analisis Statistik",
+     "deadline": "30 September 2026",
+     "evidence_url": "https://drive.google.com/drive/folders/14sw5sOU-G-Dyv8TRAokJCFh_aaaq1_N3?usp=drive_link",
+     "previous_follow_up_url": "https://drive.google.com/drive/folders/1grg98i4wS13RmkgR0a4uQI6AuPcggw_V?usp=sharing"
+    },
+    "3": {
+     "allocation_x": 0.0,
+     "allocation_y": 6.0,
+     "realization_x": null,
+     "realization_y": null
+    },
+    "4": {
+     "allocation_x": 6.0,
+     "allocation_y": 6.0,
+     "realization_x": null,
+     "realization_y": null
+    }
+   },
+   "x_label": "X: Jumlah Publikasi/Laporan Analisis Statistik dan Neraca Satelit yang berkualitas",
+   "y_label": "Y: Jumlah seluruh Publikasi/Laporan Analisis Statistik dan Neraca Satelit yang dihasilkan",
+   "target_x": 6.0,
+   "target_y": 6.0
+  },
+  {
+   "tujuan": "T1: Mewujudkan Perumusan Kebijakan dan Pengambilan Keputusan Berbasis Data Statistik Berkualitas dan Insight yang Relevan",
+   "sasaran_code": "1.4.4",
+   "sasaran_name": "Tersedianya Data 5 Sasaran Visi Indonesia Emas dan 45 Indikator Utama Pembangunan",
+   "code": "1.4.4.1",
+   "name": "Indeks Keberhasilan Penyediaan Indikator Sasaran Visi Indonesia Emas dan 45 Indikator Utama Pembangunan",
+   "kind": "IKU",
+   "period_type": "Tahunan",
+   "unit_type": "value",
+   "percent_label": true,
+   "unit": "Persen",
+   "sort_order": 12,
+   "quarters": {
+    "1": {
+     "allocation_x": 0.0,
+     "allocation_y": null,
+     "realization_x": 0.0,
+     "realization_y": null
+    },
+    "2": {
+     "allocation_x": 0.0,
+     "allocation_y": null,
+     "realization_x": 85.22727,
+     "realization_y": null,
+     "obstacle": "Dinas belum memahami makna indikator ISV-IUP karena terdapat perbedaan terminologi yang digunakan oleh Pemerintah Daerah dengan pedoman penyusunan RPJMD yang diterbitkan oleh Kementerian Dalam Negeri.",
+     "solution": "Melaksanakan Focus Group Discussion (FGD) untuk menyamakan persepsi mengenai indikator ISV-IUP serta kunjungan ke perangkat daerah guna mengidentifikasi ketersediaan data pendukung.",
+     "follow_up": "1. Melakukan komunikasi secara intensif dengan Bappeda selaku perangkat daerah yang mengoordinasikan penyusunan RPJMD.\n\n2. Merencanakan pelaksanaan FGD lanjutan pada Triwulan III serta kunjungan kembali ke perangkat daerah untuk memastikan keselarasan pemahaman dan ketersediaan data pendukung.",
+     "pic": "Tim Analisis Statistik",
+     "deadline": "30 September 2026",
+     "evidence_url": "https://drive.google.com/drive/folders/1A0hb_GJ0Im6fKT7lMWQi-rlmu51oabbv?usp=drive_link",
+     "previous_follow_up_url": "https://drive.google.com/drive/folders/1Ie9EmbT9QfJ3XwPU6fInyvzOLj3AEYZd?usp=sharing"
+    },
+    "3": {
+     "allocation_x": 12.75,
+     "allocation_y": null,
+     "realization_x": null,
+     "realization_y": null
+    },
+    "4": {
+     "allocation_x": 63.07,
+     "allocation_y": null,
+     "realization_x": null,
+     "realization_y": null
+    }
+   },
+   "x_label": null,
+   "y_label": null,
+   "target_x": 63.07,
+   "target_y": null
+  },
+  {
+   "tujuan": "T2: Mewujudkan Penyelenggaraan Sistem Statistik Nasional yang Andal, Efektif, dan Efisien",
+   "sasaran_code": "2.1.4",
+   "sasaran_name": "Terwujudnya Kapasitas Tata Kelola Pemerintah Desa Untuk Menghasilkan Statistik Berkualitas",
+   "code": "2.1.4.1",
+   "name": "Persentase Kumulatif Desa Yang Berpredikat Desa Cinta Statistik",
+   "kind": "IKU",
+   "period_type": "Tahunan",
+   "unit_type": "percent",
+   "percent_label": false,
+   "unit": "Persen",
+   "sort_order": 13,
+   "quarters": {
+    "1": {
+     "allocation_x": 41.0,
+     "allocation_y": 2019.0,
+     "realization_x": 41.0,
+     "realization_y": 2019.0
+    },
+    "2": {
+     "allocation_x": 41.0,
+     "allocation_y": 2019.0,
+     "realization_x": 41.0,
+     "realization_y": 2019.0,
+     "obstacle": "Berdasarkan hasil monitoring, terdapat 4 kabupaten dengan progres pembinaan Desa Cantik yang masih lambat, yaitu Kabupaten Toli-toli, Kabupaten Buol, Kabupaten Banggai Laut, dan Kabupaten Morowali Utara.",
+     "solution": "Melakukan komunikasi yang intens dengan PJ Desa Cantik kabupaten yang bersangkutan terkait kendala yang dihadapi dan mengingatkan deadline target",
+     "follow_up": "1. Melakukan monitoring dan evaluasi  progress pembinaan desa cantik via Zoom\n2. Melakukan supervisi terkait pelaksanaan pembinaan desa cantik di Kabupaten/kota\n3. Melakukan penilaian mandiri LKE provinsi\n4. Melakukan verifikasi penilaian mandiri LKE desa\n5. Melakukan verifikasi penilaian mandiri LKE kabupaten/kota\n6. Menyusun laporan akhir pelaksanaan Desa Cantik",
+     "pic": "Tim Ketahanan Sosial",
+     "deadline": "30 September 2026",
+     "evidence_url": "https://drive.google.com/drive/folders/1d7Xq6evqEBIQZBBPj9a7l3dcklFzaz-4?usp=drive_link",
+     "previous_follow_up_url": "https://drive.google.com/drive/folders/1LqlmNiq0ixjOFr1gUD1zUEX-NjkbwgCk?usp=drive_link"
+    },
+    "3": {
+     "allocation_x": 41.0,
+     "allocation_y": 2019.0,
+     "realization_x": null,
+     "realization_y": 2019.0
+    },
+    "4": {
+     "allocation_x": 60.0,
+     "allocation_y": 2019.0,
+     "realization_x": null,
+     "realization_y": 2019.0
+    }
+   },
+   "x_label": "X: Jumlah Kumulatif dari Tahun-Tahun Sebelumnya dari Desa/Kelurahan/yang setara yang Berpredikat Desa Cinta Statistik",
+   "y_label": "Y: Jumlah Desa/Kelurahan/yang Setara",
+   "target_x": 60.0,
+   "target_y": 2019.0
+  },
+  {
+   "tujuan": "T2: Mewujudkan Penyelenggaraan Sistem Statistik Nasional yang Andal, Efektif, dan Efisien",
+   "sasaran_code": "2.5.1",
+   "sasaran_name": "Terwujudnya Penguatan Penyelenggaraan Pembinaan Statistik Sektoral Kementerian/Lembaga/Pemerintah Daerah",
+   "code": "2.5.1.1",
+   "name": "Tingkat Penyelenggaraan Pembinaan Statistik Sektoral sesuai standar",
+   "kind": "IKU",
+   "period_type": "Triwulanan",
+   "unit_type": "value",
+   "percent_label": false,
+   "unit": "Persen",
+   "sort_order": 14,
+   "quarters": {
+    "1": {
+     "allocation_x": 30.0,
+     "allocation_y": null,
+     "realization_x": 65.5,
+     "realization_y": null
+    },
+    "2": {
+     "allocation_x": 60.0,
+     "allocation_y": null,
+     "realization_x": 94.0,
+     "realization_y": null,
+     "obstacle": "Kesulitan mengidentifikasi daftar kebutuhan data yang dapat dijadikan target aliran data, terutama dalam memastikan ketersediaan data sesuai periode yang diminta.",
+     "solution": "Melakukan koordinasi dengan PJK BPS Provinsi dan konfirmasi kepada OPD produsen data untuk memastikan ketersediaan serta periode data.",
+     "follow_up": "Melakukan permintaan data kepada OPD produsen data berdasarkan target aliran data yang telah ditetapkan.",
+     "pic": "Tim Pembinaan Statistik Sektoral",
+     "deadline": "30 September 2026",
+     "evidence_url": "https://drive.google.com/drive/folders/11s6g-JelDMBYxR2UGrEd8sptEM5HMBzX?usp=drive_link",
+     "previous_follow_up_url": "https://drive.google.com/drive/folders/1tVrsuidBj9aKkOYQNopCxt6sIHekWeQB?usp=drive_link"
+    },
+    "3": {
+     "allocation_x": 90.0,
+     "allocation_y": null,
+     "realization_x": null,
+     "realization_y": null
+    },
+    "4": {
+     "allocation_x": 120.0,
+     "allocation_y": null,
+     "realization_x": null,
+     "realization_y": null
+    }
+   },
+   "x_label": null,
+   "y_label": null,
+   "target_x": 120.0,
+   "target_y": null
+  },
+  {
+   "tujuan": "T2: Mewujudkan Penyelenggaraan Sistem Statistik Nasional yang Andal, Efektif, dan Efisien",
+   "sasaran_code": "2.6.1",
+   "sasaran_name": "Terwujudnya Layanan Edukasi dan Promosi Statistik yang Prima",
+   "code": "2.6.1.1",
+   "name": "Persentase Kegiatan Edukasi dan Promosi Statistik yang terselenggara dengan baik",
+   "kind": "IKU",
+   "period_type": "Triwulanan",
+   "unit_type": "percent",
+   "percent_label": false,
+   "unit": "Persen",
+   "sort_order": 15,
+   "quarters": {
+    "1": {
+     "allocation_x": 8.0,
+     "allocation_y": 40.0,
+     "realization_x": 10.0,
+     "realization_y": 40.0
+    },
+    "2": {
+     "allocation_x": 16.0,
+     "allocation_y": 40.0,
+     "realization_x": 19.0,
+     "realization_y": 40.0,
+     "obstacle": "Peran Agen Pojok Statistik UNTAD dalam pelaksanaan kegiatan Edukasi Statistik masih terbatas sebagai peserta.",
+     "solution": "Melibatkan Agen Pojok Statistik UNTAD dalam kegiatan Edukasi Statistik Triwulan II Tahun 2026 sebagai moderator webinar, penyusun poster dan notulen, serta pendukung promosi kegiatan di lingkungan Universitas Tadulako.",
+     "follow_up": "Menyusun jadwal dan pembagian tugas Agen Pojok Statistik UNTAD dalam mendukung pelaksanaan kegiatan Edukasi Statistik.",
+     "pic": "Tim IPDS dan Humas",
+     "deadline": "30 September 2026",
+     "evidence_url": "https://drive.google.com/drive/folders/1Kpfa9FCrKpf8e1Po2Fqbs2-GSXEoMqGE?usp=drive_link",
+     "previous_follow_up_url": "https://drive.google.com/drive/folders/1wB0HbpYR9PGKdl24Dnm4n4AJAz2HTmD9?usp=drive_link"
+    },
+    "3": {
+     "allocation_x": 24.0,
+     "allocation_y": 40.0,
+     "realization_x": null,
+     "realization_y": null
+    },
+    "4": {
+     "allocation_x": 32.0,
+     "allocation_y": 40.0,
+     "realization_x": null,
+     "realization_y": null
+    }
+   },
+   "x_label": "X : Jumlah kegiatan edukasi dan promosi statistik yang telah terselenggara dengan baik",
+   "y_label": "Y : Jumlah kegiatan edukasi dan promosi statistik yang direncanakan pada awal tahun berjalan",
+   "target_x": 32.0,
+   "target_y": 40.0
+  },
+  {
+   "tujuan": "T2: Mewujudkan Penyelenggaraan Sistem Statistik Nasional yang Andal, Efektif, dan Efisien",
+   "sasaran_code": "2.7.1",
+   "sasaran_name": "Terwujudnya Kemudahan Akses Data BPS",
+   "code": "2.7.1.1",
+   "name": "Indeks Pelayanan Publik - Penilaian mandiri",
+   "kind": "IKU",
+   "period_type": "Triwulanan",
+   "unit_type": "value",
+   "percent_label": false,
+   "unit": "Poin",
+   "sort_order": 16,
+   "quarters": {
+    "1": {
+     "allocation_x": 1.17,
+     "allocation_y": null,
+     "realization_x": 1.19702,
+     "realization_y": null
+    },
+    "2": {
+     "allocation_x": 4.52,
+     "allocation_y": null,
+     "realization_x": 4.6269,
+     "realization_y": null,
+     "obstacle": "Belum terpenuhinya pembaruan informasi harian secara konsisten pada seluruh media informasi yang dikelola BPS Provinsi Sulawesi Tengah.",
+     "solution": "Melakukan pembaruan informasi pada berbagai media informasi BPS Provinsi Sulawesi Tengah, meliputi website (update berita, tabel dinamis, publikasi, BRS, pop-up), media sosial (Instagram, Facebook, YouTube, WhatsApp), PPID, SP4N Lapor, SIPPN, dan Aplikasi SULTENG DATA.",
+     "follow_up": "Menyusun dan menerapkan jadwal pembaruan informasi secara berkala pada seluruh media informasi yang dikelola.",
+     "pic": "Tim Diseminasi Layanan Statistik",
+     "deadline": "30 September 2026",
+     "evidence_url": "https://drive.google.com/drive/folders/1L9w0p1OAB-Vp4BIY1zGYP3Wan7xVNKS7?usp=drive_link",
+     "previous_follow_up_url": "https://drive.google.com/drive/folders/13zKdjuSklOPcZHNLIxvBSF0D9uxqd0UC?usp=drive_link"
+    },
+    "3": {
+     "allocation_x": 4.6269,
+     "allocation_y": null,
+     "realization_x": null,
+     "realization_y": null
+    },
+    "4": {
+     "allocation_x": 4.86,
+     "allocation_y": null,
+     "realization_x": null,
+     "realization_y": null
+    }
+   },
+   "x_label": null,
+   "y_label": null,
+   "target_x": 4.86,
+   "target_y": null
+  },
+  {
+   "tujuan": "T3: Mewujudkan Tata Kelola Badan Pusat Statistik yang Berkualitas, Akuntabel, Efektif, dan Efisien dalam Menyelenggarakan Statistik",
+   "sasaran_code": "3.2.4",
+   "sasaran_name": "Terwujudnya Dukungan Manajemen pada BPS Provinsi dan BPS Kabupaten/Kota yang Efektif dan Efisien",
+   "code": "3.2.4.1",
+   "name": "Nilai SAKIP oleh Inspektorat",
+   "kind": "IKU",
+   "period_type": "Tahunan",
+   "unit_type": "value",
+   "percent_label": false,
+   "unit": "Poin",
+   "sort_order": 17,
+   "quarters": {
+    "1": {
+     "allocation_x": 0.0,
+     "allocation_y": null,
+     "realization_x": 0.0,
+     "realization_y": null
+    },
+    "2": {
+     "allocation_x": 0.0,
+     "allocation_y": null,
+     "realization_x": 0.0,
+     "realization_y": null,
+     "obstacle": "1. Link yang dibuat oleh anggota tim (bukan pemilik onedrive) tidak bisa diakses\n2. Tindak Lanjut LHE AKIP tahun 2025 tidak disosialisasikan ke pegawai sehingga pada saat pemenuhan dokumen kesulitan untuk pemenuhan kelengkapannya",
+     "solution": "1. Pemilik akun onedrive mengganti link yang tidak bisa diakses\n2. Tetap memenuhi Permindok Tindak Lanjut sesuai dengan Tindak Lanjut LHE AKIP 2025",
+     "follow_up": "1. Penyesuaian Format Notulen pada website https://notulen-fra.bpssulteng.id/ dengan notulen dari Biro Perencanaan dan Kerjasama BPS RI",
+     "pic": "Tim Sakip",
+     "deadline": "31 Juli 2026",
+     "evidence_url": "https://drive.google.com/drive/folders/1Ei562onFXuU3rifYvQftXwm7Wtkwngr_?usp=drive_link",
+     "previous_follow_up_url": "https://drive.google.com/file/d/1k1cGeSPF7g3NgxQ8eedn-w2Xf0JwkF4t/view?usp=drive_link"
+    },
+    "3": {
+     "allocation_x": 0.0,
+     "allocation_y": null,
+     "realization_x": null,
+     "realization_y": null
+    },
+    "4": {
+     "allocation_x": 78.1,
+     "allocation_y": null,
+     "realization_x": null,
+     "realization_y": null
+    }
+   },
+   "x_label": null,
+   "y_label": null,
+   "target_x": 78.1,
+   "target_y": null
+  },
+  {
+   "tujuan": "T3: Mewujudkan Tata Kelola Badan Pusat Statistik yang Berkualitas, Akuntabel, Efektif, dan Efisien dalam Menyelenggarakan Statistik",
+   "sasaran_code": "3.2.4",
+   "sasaran_name": "Terwujudnya Dukungan Manajemen pada BPS Provinsi dan BPS Kabupaten/Kota yang Efektif dan Efisien",
+   "code": "3.2.4.2",
+   "name": "Indeks Implementasi BerAKHLAK",
+   "kind": "IKU",
+   "period_type": "Tahunan",
+   "unit_type": "value",
+   "percent_label": false,
+   "unit": "Persen",
+   "sort_order": 18,
+   "quarters": {
+    "1": {
+     "allocation_x": 0.0,
+     "allocation_y": null,
+     "realization_x": 0.0,
+     "realization_y": null
+    },
+    "2": {
+     "allocation_x": 0.0,
+     "allocation_y": null,
+     "realization_x": 0.0,
+     "realization_y": null,
+     "obstacle": "1. Pelaksanaan  agenda strategis organisasi masih menimbulkan tantangan dalam pemerataan partisipasi pegawai pada program budaya kerja akibat perbedaan beban kerja dan penugasan;\n\n2. Masih diperlukan penguatan pemahaman mengenai keterkaitan program budaya kerja dengan peningkatan kinerja organisasi",
+     "solution": "1. Mengoptimalkan komunikasi dan koordinasi untuk meningkatkan partisipasi pegawai dalam program budaya kerja.\n2. Memperkuat internalisasi budaya kerja melalui komunikasi, edukasi, dan berbagi praktik yang mendukung kinerja organisasi.",
+     "follow_up": "1. Evaluasi partisipasi pegawai melalui masing-masing Change Ambassador setiap tim ;\n2. Mengadakan Internalisasi dan promosi terkait Budaya Organisasi.",
+     "pic": "Tim Manajemen Perubahan",
+     "deadline": "30 September 2026",
+     "evidence_url": "https://drive.google.com/drive/folders/1idCbzEX3ckjp2c2jaDsVEIWqHK1KF-Le?usp=drive_link",
+     "previous_follow_up_url": "https://drive.google.com/drive/folders/11iJETU6k-9S_D4VnhkQ9ZTplITLtoPfl?usp=drive_link"
+    },
+    "3": {
+     "allocation_x": 0.0,
+     "allocation_y": null,
+     "realization_x": null,
+     "realization_y": null
+    },
+    "4": {
+     "allocation_x": 56.1,
+     "allocation_y": null,
+     "realization_x": null,
+     "realization_y": null
+    }
+   },
+   "x_label": null,
+   "y_label": null,
+   "target_x": 56.1,
+   "target_y": null
+  },
+  {
+   "tujuan": "T3: Mewujudkan Tata Kelola Badan Pusat Statistik yang Berkualitas, Akuntabel, Efektif, dan Efisien dalam Menyelenggarakan Statistik",
+   "sasaran_code": "3.2.5",
+   "sasaran_name": "Peningkatan Pembangunan Zona Integritas",
+   "code": "3.2.5.1",
+   "name": "Tingkat Keberhasilan Pembangunan Zona Integritas",
+   "kind": "IKU",
+   "period_type": "Tahunan",
+   "unit_type": "percent",
+   "percent_label": false,
+   "unit": "Persen",
+   "sort_order": 19,
+   "quarters": {
+    "1": {
+     "allocation_x": 0.0,
+     "allocation_y": 2.0,
+     "realization_x": 0.0,
+     "realization_y": 0.0
+    },
+    "2": {
+     "allocation_x": 0.0,
+     "allocation_y": 2.0,
+     "realization_x": 3.0,
+     "realization_y": 2.0,
+     "obstacle": "Hasil evaluasi TPI menunjukkan terdapat beberapa dokumen bukti dukung yang kurang tepat sehingga tidak mendapatkan nilai tinggi pada LKE Penilaian Mandiri",
+     "solution": "Tim Reformasi Birokrasi dan Pembangunan Zona Integritas melakukan perbaikan dokumen bukti dukung sesuai arahan TPI sampai dengan 9 Mei 2026",
+     "follow_up": "Tim Reformasi Birokrasi dan Pembangunan Zona Integritas mempersiapkan dokumen tambahan penilaian sesuai arahan TPI guna penilaian TPN",
+     "pic": "Tim Reformasi Birokrasi dan Pembangunan Zona Integritas",
+     "deadline": "31 Juli 2026",
+     "evidence_url": "https://drive.google.com/drive/folders/1T6bLvbiKlxWyKRD8kY4PWFDFFjk5OfO_",
+     "previous_follow_up_url": "https://drive.google.com/file/d/1EJ4axdAp76HMhfyB2rLvJ9deZd_2AuC3/view?usp=sharing"
+    },
+    "3": {
+     "allocation_x": 2.0,
+     "allocation_y": 2.0,
+     "realization_x": null,
+     "realization_y": null
+    },
+    "4": {
+     "allocation_x": 2.0,
+     "allocation_y": 2.0,
+     "realization_x": null,
+     "realization_y": null
+    }
+   },
+   "x_label": "X : Jumlah Unit Kerja yang memperoleh predikat WBK/WBBM dari TPI",
+   "y_label": "Y : Jumlah Unit Kerja yang diusulkan ke TPI",
+   "target_x": 2.0,
+   "target_y": 2.0
+  }
+ ]
+}

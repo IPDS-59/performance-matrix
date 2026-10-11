@@ -17,24 +17,32 @@ class PerformanceIndicatorController extends Controller
         $this->authorize('viewAny', PerformanceIndicator::class);
 
         $user = $request->user();
-        $isAdmin = $user->hasPermissionTo('manage-projects');
+        // The head reads every team's data; edit rights still come from the policies.
+        $isAdmin = $user->hasPermissionTo('manage-projects') || $user->hasRole('head');
         $year = $request->integer('year', now()->year);
         $teamId = $request->integer('team_id');
 
-        if (! $isAdmin && ! $teamId) {
-            $teamId = $user->employee?->team_id;
-        }
+        // Non-admins see IKU across all teams they belong to (not just home team).
+        $memberTeamIds = $isAdmin
+            ? collect()
+            : ($user->employee?->teams()->pluck('teams.id') ?? collect());
 
         $indicators = PerformanceIndicator::with('team:id,name')
             ->when($teamId, fn ($q) => $q->where('team_id', $teamId))
+            ->when(! $isAdmin && ! $teamId, fn ($q) => $q->whereIn('team_id', $memberTeamIds))
             ->where('year', $year)
             ->orderBy('code')
             ->orderBy('name')
             ->get();
 
+        $indicators = $indicators->map(fn ($indicator) => array_merge($indicator->toArray(), [
+            'can_update' => $user->can('update', $indicator),
+            'can_delete' => $user->can('delete', $indicator),
+        ]));
+
         $teams = $isAdmin
             ? Team::where('is_active', true)->orderBy('name')->get(['id', 'name'])
-            : Team::where('id', $teamId)->get(['id', 'name']);
+            : Team::whereIn('id', $memberTeamIds)->orderBy('name')->get(['id', 'name']);
 
         $canCreate = $user->can('create', PerformanceIndicator::class);
 
@@ -70,7 +78,6 @@ class PerformanceIndicatorController extends Controller
             $validated = $request->validate([
                 'team_id' => ['required', 'exists:teams,id'],
                 'year' => ['required', 'integer', 'min:2020', 'max:2099'],
-                'code' => ['nullable', 'string', 'max:50'],
                 'name' => ['required', 'string', 'max:255'],
                 'target' => ['nullable', 'numeric'],
                 'target_unit' => ['nullable', 'string', 'max:100'],
@@ -84,7 +91,6 @@ class PerformanceIndicatorController extends Controller
             $validated = $request->validate([
                 'team_id' => ['required', Rule::in($ledTeamIds->all())],
                 'year' => ['required', 'integer', 'min:2020', 'max:2099'],
-                'code' => ['nullable', 'string', 'max:50'],
                 'name' => ['required', 'string', 'max:255'],
                 'target' => ['nullable', 'numeric'],
                 'target_unit' => ['nullable', 'string', 'max:100'],
@@ -124,7 +130,6 @@ class PerformanceIndicatorController extends Controller
             $validated = $request->validate([
                 'team_id' => ['required', 'exists:teams,id'],
                 'year' => ['required', 'integer', 'min:2020', 'max:2099'],
-                'code' => ['nullable', 'string', 'max:50'],
                 'name' => ['required', 'string', 'max:255'],
                 'target' => ['nullable', 'numeric'],
                 'target_unit' => ['nullable', 'string', 'max:100'],
@@ -133,7 +138,6 @@ class PerformanceIndicatorController extends Controller
         } else {
             $validated = $request->validate([
                 'year' => ['required', 'integer', 'min:2020', 'max:2099'],
-                'code' => ['nullable', 'string', 'max:50'],
                 'name' => ['required', 'string', 'max:255'],
                 'target' => ['nullable', 'numeric'],
                 'target_unit' => ['nullable', 'string', 'max:100'],

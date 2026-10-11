@@ -1,0 +1,244 @@
+<?php
+
+namespace App\Http\Controllers;
+
+use App\Actions\Kinetik\LinkPlansToProjectsAction;
+use App\Http\Controllers\Concerns\ResolvesTeams;
+use App\Models\Employee;
+use App\Models\EmployeeRk;
+use App\Models\KipActivity;
+use App\Models\PerformancePlan;
+use App\Models\PlanItem;
+use App\Models\Team;
+use App\Models\WeeklyFocus;
+use App\Notifications\KinetikNotification;
+use App\Services\Kinetik\MemberPlanFlow;
+use App\Services\Kinetik\PlanEvaluator;
+use Carbon\Carbon;
+use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
+use Illuminate\Support\Str;
+use Inertia\Inertia;
+use Inertia\Response;
+
+/**
+ * "Rencana Minggu Ini": for each team member, the PJ's focus for the week,
+ * the RK with no kegiatan yet this quarter, and the kegiatan still under 100%.
+ * Read from the synced kipApp data; nothing is written to kipApp.
+ */
+class WeeklyPlanController extends Controller
+{
+    use ResolvesTeams;
+
+    public function index(Request $request): Response
+    {
+        $employee = $request->user()->employee;
+        $teams = $this->teamsFor($request);
+        $team = $this->selectedTeam($request, $teams, $employee);
+
+        $monday = Carbon::parse($request->query('week', now()->toDateString()))->startOfWeek(Carbon::MONDAY);
+        $weekStart = $monday->toDateString();
+
+        return Inertia::render('Kinetik/WeeklyPlan', [
+            'teams' => $this->teamOptions($teams),
+            'selectedTeamId' => $team?->id,
+            'weekStart' => $weekStart,
+            'weekEnd' => $monday->copy()->endOfWeek(Carbon::SUNDAY)->toDateString(),
+            'prevWeek' => $monday->copy()->subWeek()->toDateString(),
+            'nextWeek' => $monday->copy()->addWeek()->toDateString(),
+            'quarter' => $monday->quarter,
+            'canManage' => $team !== null && $employee !== null && $this->isPj($employee, $team->id),
+            'currentEmployeeId' => $employee?->id,
+            'members' => $team ? $this->members($team, $monday) : [],
+            'rkOptions' => $team ? $this->rkOptions($team) : [],
+            'projectOptions' => $team ? $team->projects()->orderBy('name')->get(['id', 'name'])->all() : [],
+        ]);
+    }
+
+    /**
+     * The PJ sets (or clears, with an empty text) a member's focus for a week.
+     */
+    public function storeFocus(Request $request): RedirectResponse
+    {
+        $employee = $request->user()->employee;
+        abort_if($employee === null, 403, 'Akun tidak terhubung ke data pegawai.');
+
+        $validated = $request->validate([
+            'team_id' => ['required', 'integer', 'exists:teams,id'],
+            'employee_id' => ['required', 'integer', 'exists:employees,id'],
+            'week_start' => ['required', 'date'],
+            'body' => ['nullable', 'string', 'max:2000'],
+        ]);
+
+        $team = Team::findOrFail($validated['team_id']);
+        abort_unless($this->isPj($employee, $team->id), 403, 'Hanya PJ yang dapat mengisi fokus minggu ini.');
+        abort_unless($team->members()->where('employees.id', $validated['employee_id'])->exists(), 422, 'Pegawai ini bukan anggota tim.');
+
+        $key = [
+            'team_id' => $team->id,
+            'employee_id' => (int) $validated['employee_id'],
+        ];
+        $weekStart = Carbon::parse($validated['week_start'])->startOfWeek(Carbon::MONDAY)->toDateString();
+        $existing = WeeklyFocus::where($key)->whereDate('week_start', $weekStart)->first();
+        $body = trim((string) ($validated['body'] ?? ''));
+
+        if ($body === '') {
+            $existing?->delete();
+
+            return back()->with('success', 'Fokus minggu ini dihapus.');
+        }
+
+        $changed = $existing?->body !== $body;
+        if ($existing) {
+            $existing->update(['body' => $body, 'created_by' => $employee->id]);
+        } else {
+            WeeklyFocus::create([...$key, 'week_start' => $weekStart, 'body' => $body, 'created_by' => $employee->id]);
+        }
+
+        $member = Employee::find($key['employee_id']);
+        if ($changed && $member?->user && $member->user_id !== $request->user()->id) {
+            $member->user->notify(new KinetikNotification(
+                'weekly_focus',
+                ($employee->display_name ?? $employee->name).' mengisi fokus Anda untuk minggu '.Carbon::parse($weekStart)->locale('id')->translatedFormat('j M').': '.Str::limit($body, 140),
+                route('weekly-plan.index', ['team' => $team->id, 'week' => $weekStart]),
+            ));
+        }
+
+        return back()->with('success', 'Fokus minggu ini disimpan.');
+    }
+
+    /**
+     * @return list<array<string, mixed>>
+     */
+    private function members(Team $team, Carbon $monday): array
+    {
+        $members = $team->members()->orderBy('employees.name')->get();
+        $ids = $members->pluck('id');
+        $quarterStart = $monday->copy()->firstOfQuarter()->toDateString();
+        $quarterEnd = $monday->copy()->lastOfQuarter()->toDateString();
+
+        $planItems = PlanItem::where('team_id', $team->id)
+            ->duringWeek($monday->toDateString(), $monday->copy()->endOfWeek(Carbon::SUNDAY)->toDateString())
+            ->with('performancePlan:id,description,kip_external_id')
+            ->orderBy('date_start')
+            ->get()
+            ->groupBy('employee_id');
+
+        $planActivities = $planItems->isEmpty() ? collect() : KipActivity::whereIn('employee_id', $planItems->keys())
+            ->duringWeek($planItems->flatten()->min('date_start'), $planItems->flatten()->max('date_end'))
+            ->get(['id', 'employee_id', 'activity_date_start', 'activity_date_end', 'progress', 'rk_external_id', 'rk_name'])
+            ->groupBy('employee_id');
+        $evaluator = app(PlanEvaluator::class);
+        $flow = app(MemberPlanFlow::class);
+
+        $focus = WeeklyFocus::where('team_id', $team->id)
+            ->whereDate('week_start', $monday->toDateString())
+            ->pluck('body', 'employee_id');
+
+        $rks = EmployeeRk::whereIn('employee_id', $ids)
+            ->where('year', $monday->year)
+            ->when($team->kip_external_id, fn ($q) => $q->where('team_kip_id', $team->kip_external_id))
+            ->get()
+            ->groupBy('employee_id');
+
+        $activities = KipActivity::whereIn('employee_id', $ids)
+            ->duringWeek($quarterStart, $quarterEnd)
+            ->orderByDesc('activity_date_start')
+            ->get(['id', 'employee_id', 'description', 'activity_date_start', 'activity_date_end', 'progress', 'rk_external_id', 'rk_name', 'sent_at', 'evidence_url'])
+            ->groupBy('employee_id');
+
+        return $members->map(function (Employee $member) use ($focus, $rks, $activities, $planItems, $planActivities, $evaluator, $flow) {
+            $memberRks = $rks->get($member->id, collect());
+            $memberActivities = $activities->get($member->id, collect());
+
+            // Only this team's kegiatan when the member's RK list is known.
+            $teamActivities = $memberRks->isEmpty() ? $memberActivities : $memberActivities->filter(
+                fn (KipActivity $a) => $memberRks->contains(fn (EmployeeRk $rk) => self::sameRk($rk, $a)),
+            );
+
+            $plans = $planItems->get($member->id, collect())->map(fn (PlanItem $p) => [
+                'id' => $p->id,
+                'description' => $p->description,
+                'performance_plan_id' => $p->performance_plan_id,
+                'rk_name' => $p->performancePlan?->description,
+                'project_id' => $p->project_id,
+                'date_start' => Carbon::parse($p->date_start)->toDateString(),
+                'date_end' => Carbon::parse($p->date_end)->toDateString(),
+                'target' => $p->target !== null ? (float) $p->target : null,
+                'target_unit' => $p->target_unit,
+                'status' => $p->status,
+                'source' => $p->source,
+                'push_error' => $p->status === 'planned' ? $p->push_error : null,
+                'in_kipapp' => $p->kip_external_id !== null,
+                'sent' => $p->kip_sent_at !== null,
+                'evaluation' => $evaluator->evaluate($p, $planActivities->get($member->id, collect())),
+            ])->values()->all();
+            $unsent = $teamActivities->whereNull('sent_at')->count();
+
+            return [
+                'employee_id' => $member->id,
+                'name' => $member->display_name ?? $member->name,
+                'focus' => $focus->get($member->id),
+                'plans' => $plans,
+                'flow' => $flow->steps($memberRks->count(), $teamActivities->count(), $unsent, $plans),
+                'rks_without_activity' => $memberRks
+                    ->reject(fn (EmployeeRk $rk) => $memberActivities->contains(fn (KipActivity $a) => self::sameRk($rk, $a)))
+                    ->map(fn (EmployeeRk $rk) => ['id' => $rk->id, 'name' => $rk->name])
+                    ->values()
+                    ->all(),
+                'unfinished' => $teamActivities
+                    ->filter(fn (KipActivity $a) => (float) $a->progress < 100)
+                    ->take(10)
+                    ->map(fn (KipActivity $a) => [
+                        'id' => $a->id,
+                        'description' => $a->description,
+                        'date_start' => Carbon::parse($a->activity_date_start)->toDateString(),
+                        'progress' => (float) $a->progress,
+                        'rk_name' => $a->rk_name,
+                        'evidence_url' => $a->evidence_url,
+                    ])
+                    ->values()
+                    ->all(),
+                'unsent_count' => $unsent,
+                'activity_count' => $teamActivities->count(),
+                'rk_count' => $memberRks->count(),
+            ];
+        })->all();
+    }
+
+    /**
+     * The team's RK a plan can point to, with the Projek rule of claims.
+     *
+     * @return list<array<string, mixed>>
+     */
+    private function rkOptions(Team $team): array
+    {
+        $links = app(LinkPlansToProjectsAction::class);
+        $plans = PerformancePlan::with('project')
+            ->where(fn ($q) => $q->where('team_id', $team->id)->orWhereHas('project', fn ($p) => $p->where('team_id', $team->id)))
+            ->orderBy('description')
+            ->get();
+        $candidates = $links->candidates($plans);
+
+        return $plans->map(fn (PerformancePlan $plan) => [
+            'id' => $plan->id,
+            'description' => $plan->description,
+            'project_id' => $plan->project_id,
+            'project_candidates' => $candidates->get($plan->id, []),
+            'project_optional' => $links->projectOptional($plan),
+            'target_unit' => $plan->target_unit,
+        ])->values()->all();
+    }
+
+    /** kipApp RK ids are per employee; the text is the fallback. */
+    private static function sameRk(EmployeeRk $rk, KipActivity $activity): bool
+    {
+        return ($activity->rk_external_id !== null && (string) $activity->rk_external_id === $rk->kip_rk_id)
+            || self::norm($activity->rk_name) === self::norm($rk->name);
+    }
+
+    private static function norm(?string $text): string
+    {
+        return mb_strtolower(preg_replace('/\s+/', ' ', trim((string) $text)));
+    }
+}

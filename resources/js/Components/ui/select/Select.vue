@@ -1,19 +1,34 @@
 <script setup lang="ts">
-import type { SelectRootEmits, SelectRootProps } from "reka-ui"
-import { SelectRoot, useForwardPropsEmits } from "reka-ui"
+import { useVModel } from "@vueuse/core"
+import { provide, reactive, ref, toRef } from "vue"
+import { Popover } from "@/Components/ui/popover"
+import { selectKey } from "./context"
+import type { SelectValueType } from "./context"
 
-const props = defineProps<SelectRootProps>()
-const emits = defineEmits<SelectRootEmits>()
+const props = defineProps<{
+  modelValue?: SelectValueType
+  defaultValue?: SelectValueType
+  disabled?: boolean
+}>()
+const emit = defineEmits<{ "update:modelValue": [value: string | number | null] }>()
 
-const forwarded = useForwardPropsEmits(props, emits)
+const value = useVModel(props, "modelValue", emit, { passive: true, defaultValue: props.defaultValue })
+const open = ref(false)
+
+provide(selectKey, {
+  value,
+  open,
+  labels: reactive(new Map<string | number | null, string>()),
+  disabled: toRef(props, "disabled"),
+  select(next) {
+    value.value = next
+    open.value = false
+  },
+})
 </script>
 
 <template>
-  <SelectRoot
-    v-slot="slotProps"
-    data-slot="select"
-    v-bind="forwarded"
-  >
-    <slot v-bind="slotProps" />
-  </SelectRoot>
+  <Popover v-model:open="open">
+    <slot />
+  </Popover>
 </template>

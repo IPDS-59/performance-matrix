@@ -2,6 +2,8 @@
 
 namespace App\Http\Middleware;
 
+use App\Http\Controllers\CreditController;
+use App\Http\Controllers\PlanComplianceController;
 use App\Models\PerformanceIndicator;
 use App\Models\PerformancePlan;
 use App\Models\Project;
@@ -40,6 +42,7 @@ class HandleInertiaRequests extends Middleware
                     'name' => $request->user()->name,
                     'email' => $request->user()->email,
                     'role' => $request->user()->role,
+                    'position' => $request->user()->employee?->position,
                 ] : null,
                 'has_employee' => $request->user() ? $request->user()->employee !== null : false,
             ],
@@ -47,6 +50,8 @@ class HandleInertiaRequests extends Middleware
                 'view_projects' => $request->user() ? rescue(fn () => $request->user()->can('viewAny', Project::class), false) : false,
                 'view_indicators' => $request->user() ? rescue(fn () => $request->user()->can('viewAny', PerformanceIndicator::class), false) : false,
                 'view_plans' => $request->user() ? rescue(fn () => $request->user()->can('viewAny', PerformancePlan::class), false) : false,
+                'view_plan_compliance' => rescue(fn () => PlanComplianceController::canView($request->user()), false),
+                'view_team_credits' => $request->user() ? rescue(fn () => CreditController::visibleTeams($request)->isNotEmpty(), false) : false,
             ],
             'flash' => [
                 'success' => $request->session()->get('success'),

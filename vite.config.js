@@ -9,6 +9,10 @@ export default defineConfig({
         laravel({
             input: 'resources/js/app.ts',
             refresh: true,
+            // Vitest boots its own Vite server; without a separate hot file it
+            // overwrites public/hot and deletes it on exit, which unhooks the
+            // running dev server from Laravel.
+            hotFile: process.env.VITEST ? 'storage/framework/vitest.hot' : undefined,
         }),
         vue({
             template: {

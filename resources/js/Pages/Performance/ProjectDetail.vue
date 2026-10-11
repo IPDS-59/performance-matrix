@@ -9,6 +9,7 @@ import { Label } from '@/Components/ui/label';
 import { Checkbox } from '@/Components/ui/checkbox';
 import { Textarea } from '@/Components/ui/textarea';
 import { RadioGroup, RadioGroupItem } from '@/Components/ui/radio-group';
+import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/Components/ui/table';
 import InputError from '@/Components/InputError.vue';
 import {
     Dialog, DialogContent, DialogHeader, DialogTitle,
@@ -291,95 +292,95 @@ function submitEdit() {
         <!-- ── Employee view ──────────────────────────────────────────────── -->
         <template v-else-if="!is_lead">
             <div class="overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm">
-                <table class="w-full text-sm">
-                    <thead class="bg-gray-50 text-xs uppercase tracking-wider text-gray-500">
-                        <tr>
-                            <th class="px-4 py-3 text-left w-10">#</th>
-                            <th class="px-4 py-3 text-left">Rincian Kegiatan</th>
-                            <th class="px-4 py-3 text-right whitespace-nowrap">Target</th>
-                            <th class="px-4 py-3 text-right whitespace-nowrap hidden sm:table-cell">Realisasi</th>
-                            <th class="px-4 py-3 text-center whitespace-nowrap hidden md:table-cell">Progress</th>
-                            <th class="px-4 py-3 text-center">Status</th>
-                            <th class="px-4 py-3 text-center"></th>
-                        </tr>
-                    </thead>
-                    <tbody class="divide-y divide-gray-100">
-                        <tr v-for="wi in employeeItems()" :key="wi.id" class="hover:bg-gray-50 transition">
-                            <td class="px-4 py-3 text-gray-400 text-xs">{{ wi.number }}</td>
-                            <td class="px-4 py-3">
+                <Table class="w-full text-sm">
+                    <TableHeader class="bg-gray-50 text-xs uppercase tracking-wider text-gray-500">
+                        <TableRow>
+                            <TableHead class="text-left w-10">#</TableHead>
+                            <TableHead class="text-left">Rincian Kegiatan</TableHead>
+                            <TableHead class="text-right whitespace-nowrap">Target</TableHead>
+                            <TableHead class="text-right whitespace-nowrap hidden sm:table-cell">Realisasi</TableHead>
+                            <TableHead class="text-center whitespace-nowrap hidden md:table-cell">Progress</TableHead>
+                            <TableHead class="text-center">Status</TableHead>
+                            <TableHead class="text-center"></TableHead>
+                        </TableRow>
+                    </TableHeader>
+                    <TableBody class="divide-y divide-gray-100">
+                        <TableRow v-for="wi in employeeItems()" :key="wi.id" class="hover:bg-gray-50 transition">
+                            <TableCell class="text-gray-400 text-xs">{{ wi.number }}</TableCell>
+                            <TableCell>
                                 <p class="font-medium text-gray-800 leading-snug">{{ wi.description }}</p>
-                            </td>
-                            <td class="px-4 py-3 text-right text-gray-600 whitespace-nowrap">
+                            </TableCell>
+                            <TableCell class="text-right text-gray-600 whitespace-nowrap">
                                 {{ Number(wi.target).toLocaleString('id') }} {{ wi.target_unit }}
-                            </td>
-                            <td class="px-4 py-3 text-right text-gray-600 whitespace-nowrap hidden sm:table-cell">
+                            </TableCell>
+                            <TableCell class="text-right text-gray-600 whitespace-nowrap hidden sm:table-cell">
                                 {{ Number(wi.year_realization).toLocaleString('id') }} {{ wi.target_unit }}
-                            </td>
-                            <td class="px-4 py-3 hidden md:table-cell">
+                            </TableCell>
+                            <TableCell class="hidden md:table-cell">
                                 <div class="flex items-center gap-2">
                                     <div class="flex-1 h-1.5 rounded-full bg-gray-200 overflow-hidden">
                                         <div :class="['h-full rounded-full transition-all', progressBarColor(wi.year_pct)]" :style="`width: ${wi.year_pct}%`" />
                                     </div>
                                     <span :class="['text-xs font-medium w-10 text-right shrink-0', pctTextColor(wi.year_pct)]">{{ wi.year_pct }}%</span>
                                 </div>
-                            </td>
-                            <td class="px-4 py-3 text-center">
+                            </TableCell>
+                            <TableCell class="text-center">
                                 <span v-if="wi.all_approved" class="inline-flex items-center rounded border border-green-200 bg-green-50 px-2 py-0.5 text-[10px] font-medium text-green-700">Disetujui</span>
                                 <span v-else-if="wi.has_rejected" class="inline-flex items-center rounded border border-red-200 bg-red-50 px-2 py-0.5 text-[10px] font-medium text-red-700">Ditolak</span>
                                 <span v-else-if="wi.has_pending" class="inline-flex items-center rounded border border-yellow-200 bg-yellow-50 px-2 py-0.5 text-[10px] font-medium text-yellow-700">Menunggu</span>
                                 <span v-else-if="wi.report_count === 0" class="inline-flex items-center rounded border border-gray-200 bg-gray-50 px-2 py-0.5 text-[10px] font-medium text-gray-500">Belum lapor</span>
-                            </td>
-                            <td class="px-4 py-3 text-center">
+                            </TableCell>
+                            <TableCell class="text-center">
                                 <a :href="route('performance.work-items.show', wi.id)" class="inline-flex items-center rounded bg-blue-600 px-2.5 py-1 text-[11px] font-medium text-white hover:bg-blue-700 transition">Laporan</a>
-                            </td>
-                        </tr>
-                    </tbody>
-                </table>
+                            </TableCell>
+                        </TableRow>
+                    </TableBody>
+                </Table>
             </div>
         </template>
 
         <!-- ── Lead view ─────────────────────────────────────────────────── -->
         <template v-else>
             <div class="overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm">
-                <table class="w-full text-sm">
-                    <thead class="bg-gray-50 text-xs uppercase tracking-wider text-gray-500">
-                        <tr>
-                            <th class="px-4 py-3 text-left w-10">#</th>
-                            <th class="px-4 py-3 text-left">Rincian Kegiatan</th>
-                            <th class="px-4 py-3 text-left hidden lg:table-cell">Anggota</th>
-                            <th class="px-4 py-3 text-center whitespace-nowrap">Laporan</th>
-                            <th class="px-4 py-3 text-center"></th>
-                        </tr>
-                    </thead>
-                    <tbody class="divide-y divide-gray-100">
-                        <tr v-for="wi in leadItems()" :key="wi.id" class="hover:bg-gray-50 transition">
-                            <td class="px-4 py-3 text-gray-400 text-xs">{{ wi.number }}</td>
-                            <td class="px-4 py-3">
+                <Table class="w-full text-sm">
+                    <TableHeader class="bg-gray-50 text-xs uppercase tracking-wider text-gray-500">
+                        <TableRow>
+                            <TableHead class="text-left w-10">#</TableHead>
+                            <TableHead class="text-left">Rincian Kegiatan</TableHead>
+                            <TableHead class="text-left hidden lg:table-cell">Anggota</TableHead>
+                            <TableHead class="text-center whitespace-nowrap">Laporan</TableHead>
+                            <TableHead class="text-center"></TableHead>
+                        </TableRow>
+                    </TableHeader>
+                    <TableBody class="divide-y divide-gray-100">
+                        <TableRow v-for="wi in leadItems()" :key="wi.id" class="hover:bg-gray-50 transition">
+                            <TableCell class="text-gray-400 text-xs">{{ wi.number }}</TableCell>
+                            <TableCell>
                                 <p class="font-medium text-gray-800 leading-snug">{{ wi.description }}</p>
                                 <p class="mt-0.5 text-xs text-gray-500">Target: {{ Number(wi.target).toLocaleString('id') }} {{ wi.target_unit }}</p>
-                            </td>
-                            <td class="px-4 py-3 hidden lg:table-cell">
+                            </TableCell>
+                            <TableCell class="hidden lg:table-cell">
                                 <div class="flex flex-wrap gap-1">
                                     <span v-for="m in wi.assigned_members" :key="m.employee_id" class="inline-flex items-center rounded border border-gray-200 bg-gray-50 px-1.5 py-0.5 text-[10px] text-gray-600">{{ m.name }}</span>
                                 </div>
-                            </td>
-                            <td class="px-4 py-3">
+                            </TableCell>
+                            <TableCell>
                                 <div class="flex flex-wrap items-center justify-center gap-1">
                                     <span v-if="wi.pending_count > 0" class="inline-flex items-center rounded border border-yellow-200 bg-yellow-50 px-1.5 py-0.5 text-[10px] font-medium text-yellow-700">{{ wi.pending_count }} menunggu</span>
                                     <span v-if="wi.rejected_count > 0" class="inline-flex items-center rounded border border-red-200 bg-red-50 px-1.5 py-0.5 text-[10px] font-medium text-red-700">{{ wi.rejected_count }} ditolak</span>
                                     <span v-if="wi.approved_count > 0" class="inline-flex items-center rounded border border-green-200 bg-green-50 px-1.5 py-0.5 text-[10px] font-medium text-green-700">{{ wi.approved_count }} disetujui</span>
                                     <span v-if="wi.total_report_count === 0" class="inline-flex items-center rounded border border-gray-200 bg-gray-50 px-1.5 py-0.5 text-[10px] text-gray-400">Belum ada laporan</span>
                                 </div>
-                            </td>
-                            <td class="px-4 py-3 text-center">
+                            </TableCell>
+                            <TableCell class="text-center">
                                 <div class="flex items-center justify-center gap-1.5">
                                     <button @click="openEditDialog(wi)" class="inline-flex items-center rounded border border-gray-300 bg-white px-2 py-1 text-[11px] font-medium text-gray-600 hover:bg-gray-50 transition">Edit</button>
                                     <a :href="route('performance.work-items.show', wi.id)" class="inline-flex items-center rounded bg-blue-600 px-2.5 py-1 text-[11px] font-medium text-white hover:bg-blue-700 transition">Tinjau</a>
                                 </div>
-                            </td>
-                        </tr>
-                    </tbody>
-                </table>
+                            </TableCell>
+                        </TableRow>
+                    </TableBody>
+                </Table>
             </div>
         </template>
     </AppLayout>

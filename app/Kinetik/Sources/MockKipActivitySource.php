@@ -5,6 +5,7 @@ namespace App\Kinetik\Sources;
 use App\Kinetik\Contracts\KipActivitySource;
 use App\Kinetik\Data\KipActivityData;
 use App\Kinetik\Data\KipPlanData;
+use App\Kinetik\Data\KipRkData;
 use Illuminate\Support\Collection;
 
 /**
@@ -15,7 +16,7 @@ use Illuminate\Support\Collection;
  */
 class MockKipActivitySource implements KipActivitySource
 {
-    public function fetchUnsentActivities(string $nipLama): Collection
+    public function fetchActivities(string $nipLama, ?string $pegawaiId = null): Collection
     {
         return collect([
             KipActivityData::fromApiRow([
@@ -90,6 +91,13 @@ class MockKipActivitySource implements KipActivitySource
                 '_mock' => true,
                 '_niplama' => $nipLama,
             ]),
+        ]);
+    }
+
+    public function fetchYearlyRks(string $pegawaiId): Collection
+    {
+        return collect([
+            KipRkData::fromApiRow(['rkid' => "{$pegawaiId}-rk1", 'rencanakinerja' => 'RK Contoh', 'rencanakinerjaatasan' => 'RK Ketua Contoh', 'timkerjaid' => '1']),
         ]);
     }
 }

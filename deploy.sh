@@ -65,6 +65,16 @@ if [ "$BUILD" = true ]; then
     success "Composer install complete."
 fi
 
+# ── KIP_CREDENTIAL_KEY must stay the same forever ────────────────────────────
+# It encrypts members' stored SSO passwords. A new key makes them unreadable.
+# Create it once if missing or empty; never overwrite an existing value.
+if [ -f ".env.production" ] && ! grep -Eq '^KIP_CREDENTIAL_KEY=.+' .env.production; then
+    sed -i.bak '/^KIP_CREDENTIAL_KEY=/d' .env.production && rm -f .env.production.bak
+    printf '\n# Encrypts members'"'"' stored SSO passwords and tokens. Do not change or lose it.\nKIP_CREDENTIAL_KEY=base64:%s\n' \
+        "$(openssl rand -base64 32)" >> .env.production
+    warn "KIP_CREDENTIAL_KEY was missing: created one in .env.production. Back up that file."
+fi
+
 # ── Load .env.production to resolve BASE_URL (after build, before zip) ───────
 # Loading here avoids prod DB vars leaking into the build step above.
 ENV_FILE=".env.production"
@@ -127,12 +137,24 @@ foreach ([
     ['view:cache',    []],
     ['optimize',      []],
 ] as [\$cmd, \$args]) {
-    \$buf  = new \Symfony\Component\Console\Output\BufferedOutput();
-    \$code = \$kernel->call(\$cmd, \$args, \$buf);
+    // Shared hosting often forbids symlink(); keep an existing storage link.
+    if (\$cmd === 'storage:link' && file_exists(__DIR__ . '/storage')) {
+        \$results[] = ['cmd' => 'php artisan storage:link', 'ok' => true, 'out' => 'public/storage already exists, skipped.'];
+        continue;
+    }
+    \$buf = new \Symfony\Component\Console\Output\BufferedOutput();
+    // One failing command must not stop the rest (or return a bare 500).
+    try {
+        \$code = \$kernel->call(\$cmd, \$args, \$buf);
+        \$out = \$buf->fetch();
+    } catch (\Throwable \$e) {
+        \$code = 1;
+        \$out = \$buf->fetch() . get_class(\$e) . ': ' . \$e->getMessage();
+    }
     \$results[] = [
         'cmd' => 'php artisan ' . \$cmd,
         'ok'  => \$code === 0,
-        'out' => htmlspecialchars(\$buf->fetch()),
+        'out' => htmlspecialchars(\$out),
     ];
 }
 
@@ -310,6 +332,7 @@ if [ "$ZIP" = true ]; then
         ".git/*"
         ".github/*"
         ".codegraph/*"
+        ".impeccable/*"
         ".beads/*"
         ".dolt/*"
         ".claude/*"
@@ -325,6 +348,12 @@ if [ "$ZIP" = true ]; then
         # OS junk
         ".DS_Store"
         "Thumbs.db"
+        # Screenshots / image artefacts at repo root
+        "*.png"
+        "*.jpg"
+        "*.jpeg"
+        "*.gif"
+        "*.zip"
         # Dev dependencies
         "node_modules/*"
         # Test / dev-only files
@@ -343,6 +372,16 @@ if [ "$ZIP" = true ]; then
         "*.db"
         ".beads-credential-key"
         "storage/pail/*"
+        # Seeder production data files (gitignored but may exist on disk)
+        "database/seeders/data/*.prod.json"
+        # Local dev database (prod uses PostgreSQL)
+        "database/*.sqlite"
+        "database/*.sqlite-*"
+        # Local-only config / session files
+        ".mcp.json"
+        ".playwright-mcp/*"
+        ".kipapp/*"
+        "*.postman_collection.json"
         # Env files — .env.example intentionally kept as template
         ".env"
         ".env.prod"
@@ -373,7 +412,6 @@ if [ "$ZIP" = true ]; then
         "storage/framework/views/*"
         "storage/app/public/*"
         "public/hot"
-        "matriks-kinerja_*.zip"
     )
 
     EXCLUDE_ARGS=()
@@ -383,6 +421,10 @@ if [ "$ZIP" = true ]; then
 
     zip -r "${ZIP_PATH}" . "${EXCLUDE_ARGS[@]}" -q
     success "Archive created: ${ZIP_PATH}"
+
+    # The no-dev install above removed Pest and the other dev packages from this
+    # checkout. The zip is already built, so put them back for local work.
+    composer install --no-interaction --quiet && info "Dev dependencies restored for local work."
 
     # Inject .env.production into the zip as .env (never touches the local dev .env)
     if [ -f ".env.production" ]; then

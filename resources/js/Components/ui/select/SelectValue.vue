@@ -1,15 +1,18 @@
 <script setup lang="ts">
-import type { SelectValueProps } from "reka-ui"
-import { SelectValue } from "reka-ui"
+import { computed, inject } from "vue"
+import { selectKey } from "./context"
 
-const props = defineProps<SelectValueProps>()
+const props = defineProps<{ placeholder?: string }>()
+
+const ctx = inject(selectKey)!
+const label = computed(() => {
+  const v = ctx.value.value
+  return v === undefined ? undefined : ctx.labels.get(v)
+})
 </script>
 
 <template>
-  <SelectValue
-    data-slot="select-value"
-    v-bind="props"
-  >
-    <slot />
-  </SelectValue>
+  <span data-slot="select-value" class="pointer-events-none truncate">
+    <slot>{{ label ?? props.placeholder }}</slot>
+  </span>
 </template>

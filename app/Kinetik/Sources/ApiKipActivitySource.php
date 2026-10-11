@@ -6,6 +6,7 @@ use App\Kinetik\Contracts\KipActivitySource;
 use App\Kinetik\Contracts\KipAuthenticator;
 use App\Kinetik\Data\KipActivityData;
 use App\Kinetik\Data\KipPlanData;
+use App\Kinetik\Data\KipRkData;
 use App\Kinetik\Exceptions\KipApiException;
 use Illuminate\Http\Client\PendingRequest;
 use Illuminate\Support\Collection;
@@ -18,32 +19,53 @@ class ApiKipActivitySource implements KipActivitySource
     ) {}
 
     /**
-     * Fetch unsent activities for the given NIP via the two-step kipApp flow:
+     * Fetch all daily activities (submitted + unsent) for the given NIP.
      *
-     *  1. GET /v1/dashboard/kegiatanpegawai/belumkirim?niplama=<niplama>
-     *     Returns an array of period/SKP groups; collect every skpid from
-     *     group.kegiatan[] where jumlahkegiatan > 0.
+     * SKP IDs are discovered from the UNION of two sources so that employees
+     * who have already submitted everything are still covered:
      *
-     *  2. For each skpid: GET /v1/kegiatan?skpid=<skpid>
-     *     Returns per-day activity rows. Keep only rows where tanggalkirim === null
-     *     (those are the truly unsent ones).
+     *  1. GET /v1/dashboard/rkpegawai?niplama=<niplama>  (state-independent)
+     *     Returns [{rk:[{skpid:...}]}]; extracts group['rk'][]['skpid'].
+     *
+     *  2. GET /v1/dashboard/kegiatanpegawai/belumkirim?niplama=<niplama>
+     *     Returns groups of unsubmitted activity buckets; extracts skpid from
+     *     group['kegiatan'][] where jumlahkegiatan > 0.
+     *     Kept so freshly-created activities not yet in rkpegawai are covered.
+     *
+     * The two sets are union-ed and de-duplicated. For each skpid,
+     * GET /v1/kegiatan?skpid=<skpid> is called and ALL rows (sent + unsent)
+     * are returned — no filtering on sentAt.
      */
-    public function fetchUnsentActivities(string $nipLama): Collection
+    public function fetchActivities(string $nipLama, ?string $pegawaiId = null): Collection
     {
-        $response = $this->client()
+        // Source 1: rkpegawai (state-independent)
+        $rkResponse = $this->client()
+            ->get('v1/dashboard/rkpegawai', ['niplama' => $nipLama]);
+
+        if (! $rkResponse->successful()) {
+            throw KipApiException::fromResponse($rkResponse, 'fetchActivities');
+        }
+
+        $rkSkpIds = collect($this->asGroups($rkResponse->json()))
+            ->flatMap(function (array $group): array {
+                $rk = $group['rk'] ?? [];
+
+                return collect($rk)
+                    ->pluck('skpid')
+                    ->filter()
+                    ->values()
+                    ->all();
+            });
+
+        // Source 2: belumkirim (catches freshly-created activities not yet in rkpegawai)
+        $belumKirimResponse = $this->client()
             ->get('v1/dashboard/kegiatanpegawai/belumkirim', ['niplama' => $nipLama]);
 
-        if (! $response->successful()) {
-            throw KipApiException::fromResponse($response, 'fetchUnsentActivities');
+        if (! $belumKirimResponse->successful()) {
+            throw KipApiException::fromResponse($belumKirimResponse, 'fetchActivities');
         }
 
-        $groups = $response->json();
-
-        if (! is_array($groups)) {
-            return collect();
-        }
-
-        $skpIds = collect($groups)
+        $belumKirimSkpIds = collect($this->asGroups($belumKirimResponse->json()))
             ->flatMap(function (array $group): array {
                 $kegiatan = $group['kegiatan'] ?? [];
 
@@ -55,10 +77,97 @@ class ApiKipActivitySource implements KipActivitySource
                     ->all();
             });
 
+        // Source 3: every periodic (quarterly) SKP of the period (what kipApp's own
+        // "Pelaksanaan" page lists). rkpegawai only covers the current month and
+        // belumkirim only unsent activities, so without this, activities already
+        // sent in past months are never fetched.
+        $periodSkpIds = $pegawaiId !== null ? $this->fetchPeriodSkpIds($pegawaiId) : collect();
+
+        $skpIds = $rkSkpIds
+            ->merge($belumKirimSkpIds)
+            ->merge($periodSkpIds)
+            ->filter()
+            ->unique()
+            ->values();
+
         return $skpIds
             ->flatMap(fn (string $skpId): Collection => $this->fetchActivitiesBySkp($skpId))
-            ->filter(fn (KipActivityData $dto): bool => $dto->sentAt === null)
             ->values();
+    }
+
+    /**
+     * SKP ids of every periodic (quarterly) SKP (jenis=2) an employee has in the configured
+     * period, from GET v1/skp?periodeid=&pegawaiid=&jenis=2.
+     *
+     * @return Collection<int, string>
+     */
+    public function fetchYearlyRks(string $pegawaiId): Collection
+    {
+        $response = $this->client()->get('v1/skp', [
+            'periodeid' => config('kinetik.kip.periode_id'),
+            'pegawaiid' => $pegawaiId,
+            'jenis' => 1,
+        ]);
+
+        if (! $response->successful()) {
+            throw KipApiException::fromResponse($response, 'fetchYearlyRks');
+        }
+
+        $skps = $response->json();
+
+        return collect(is_array($skps) && array_is_list($skps) ? $skps : [])
+            ->pluck('id')
+            ->filter()
+            ->flatMap(function ($skpId) {
+                $rows = $this->client()->get('v1/skp/rk', ['skpid' => $skpId])->json();
+
+                return is_array($rows) && array_is_list($rows) ? $rows : [];
+            })
+            ->filter(fn ($row) => is_array($row) && filled($row['rkid'] ?? null))
+            ->map(fn (array $row) => KipRkData::fromApiRow($row))
+            ->values();
+    }
+
+    private function fetchPeriodSkpIds(string $pegawaiId): Collection
+    {
+        $response = $this->client()->get('v1/skp', [
+            'periodeid' => config('kinetik.kip.periode_id'),
+            'pegawaiid' => $pegawaiId,
+            'jenis' => 2,
+        ]);
+
+        if (! $response->successful()) {
+            throw KipApiException::fromResponse($response, 'fetchPeriodSkpIds');
+        }
+
+        $rows = $response->json();
+
+        return collect(is_array($rows) && array_is_list($rows) ? $rows : [])
+            ->pluck('id')
+            ->filter()
+            ->map(fn ($id) => (string) $id)
+            ->values();
+    }
+
+    /**
+     * Normalise a kipApp "groups" response into a list of group arrays.
+     *
+     * Some dashboard endpoints return a LIST of group objects when there is data
+     * (`[{rk:[...]}]`) but a single associative object when empty
+     * (`{jumlahrk:0}`). Wrap the object case so callers can always iterate
+     * arrays; non-array / scalar payloads collapse to an empty list.
+     *
+     * @return array<int, array<string, mixed>>
+     */
+    private function asGroups(mixed $json): array
+    {
+        if (! is_array($json)) {
+            return [];
+        }
+
+        $groups = array_is_list($json) ? $json : [$json];
+
+        return array_values(array_filter($groups, 'is_array'));
     }
 
     /**

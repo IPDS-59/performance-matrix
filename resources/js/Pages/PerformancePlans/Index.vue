@@ -82,7 +82,6 @@ const periodTypeLabel: Record<string, string> = {
             <Table>
                 <TableHeader>
                     <TableRow>
-                        <TableHead>Kode</TableHead>
                         <TableHead>Deskripsi</TableHead>
                         <TableHead>Proyek</TableHead>
                         <TableHead>Periode</TableHead>
@@ -93,12 +92,11 @@ const periodTypeLabel: Record<string, string> = {
                 </TableHeader>
                 <TableBody>
                     <TableRow v-if="!plans.length">
-                        <TableCell colspan="7" class="text-center text-gray-400 py-8">Belum ada data.</TableCell>
+                        <TableCell colspan="6" class="text-center text-gray-400 py-8">Belum ada data.</TableCell>
                     </TableRow>
                     <TableRow v-for="plan in plans" :key="plan.id">
-                        <TableCell class="font-mono text-sm">{{ plan.code ?? '—' }}</TableCell>
                         <TableCell>{{ plan.description }}</TableCell>
-                        <TableCell>{{ plan.project?.name ?? '—' }}</TableCell>
+                        <TableCell>{{ plan.project?.name ?? plan.team?.name ?? '—' }}</TableCell>
                         <TableCell>
                             {{ periodTypeLabel[plan.period_type] ?? plan.period_type }}
                             <template v-if="plan.period"> TW{{ plan.period }}</template>
@@ -109,14 +107,15 @@ const periodTypeLabel: Record<string, string> = {
                         </TableCell>
                         <TableCell>{{ plan.pic?.display_name || plan.pic?.name || '—' }}</TableCell>
                         <TableCell class="text-right">
-                            <div class="inline-flex gap-2">
-                                <Button variant="outline" size="sm" as-child>
+                            <div v-if="plan.can_update || plan.can_delete" class="inline-flex gap-2">
+                                <Button v-if="plan.can_update" variant="outline" size="sm" as-child>
                                     <Link :href="route('performance-plans.edit', plan.id)">Edit</Link>
                                 </Button>
-                                <Button variant="destructive" size="sm" @click="confirmDelete(plan.id, plan.description)">
+                                <Button v-if="plan.can_delete" variant="destructive" size="sm" @click="confirmDelete(plan.id, plan.description)">
                                     Hapus
                                 </Button>
                             </div>
+                            <span v-else class="text-gray-400">—</span>
                         </TableCell>
                     </TableRow>
                 </TableBody>
