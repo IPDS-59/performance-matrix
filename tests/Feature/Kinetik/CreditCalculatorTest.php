@@ -3,6 +3,8 @@
 use App\Actions\Kinetik\SyncKipCareersAction;
 use App\Kinetik\Credit\CreditCalculator;
 use App\Kinetik\Credit\FunctionalLevel;
+use App\Kinetik\Data\KipPositionData;
+use App\Kinetik\Data\KipRatingData;
 use App\Models\Employee;
 use App\Models\EmployeeCareer;
 use App\Models\KipPerformanceRating;
@@ -105,18 +107,18 @@ it('syncs golongan history and ratings from kipApp without touching the PAK valu
 });
 
 it('takes the real month of old monthly SKPs that carry the whole year', function () {
-    $monthly = \App\Kinetik\Data\KipRatingData::fromApiRow([
+    $monthly = KipRatingData::fromApiRow([
         'id' => 1, 'tahun' => 2024, 'jenisperiodepenilaian' => 1, 'namaperiodepenilaian' => 10,
         'periodeawal' => '2024-01-01', 'periodeakhir' => '2024-12-31', 'predikat' => 'Sangat Baik', 'statusskp' => 'Dinilai',
     ]);
-    $quarterly = \App\Kinetik\Data\KipRatingData::fromApiRow([
+    $quarterly = KipRatingData::fromApiRow([
         'id' => 2, 'tahun' => 2026, 'jenisperiodepenilaian' => 2, 'namaperiodepenilaian' => 2,
         'periodeawal' => '2026-04-01', 'periodeakhir' => '2026-06-30',
     ]);
 
     expect([$monthly->periodStart, $monthly->periodEnd])->toBe(['2024-10-01', '2024-10-31'])
         ->and([$quarterly->periodStart, $quarterly->periodEnd])->toBe(['2026-04-01', '2026-06-30'])
-        ->and(\App\Kinetik\Data\KipPositionData::golongan('IV/a '))->toBe('IV/a');
+        ->and(KipPositionData::golongan('IV/a '))->toBe('IV/a');
 });
 
 it('reads a padded golongan and shows how each quarter was computed', function () {

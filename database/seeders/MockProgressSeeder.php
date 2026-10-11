@@ -24,13 +24,13 @@ class MockProgressSeeder extends Seeder
 
     // Achievement profiles per team: [min, max] so rankings spread naturally
     private const TEAM_PROFILES = [
-        1  => [70, 95],   // UMUM
-        2  => [60, 85],   // HUMAS
-        3  => [80, 105],  // KEUANGAN (top performer)
-        4  => [55, 80],   // PERENCANAAN ANGGARAN
-        7  => [65, 90],   // STATISTIK INDUSTRI
-        8  => [75, 100],  // KETAHANAN SOSIAL
-        9  => [50, 75],   // KETENAGAKERJAAN
+        1 => [70, 95],   // UMUM
+        2 => [60, 85],   // HUMAS
+        3 => [80, 105],  // KEUANGAN (top performer)
+        4 => [55, 80],   // PERENCANAAN ANGGARAN
+        7 => [65, 90],   // STATISTIK INDUSTRI
+        8 => [75, 100],  // KETAHANAN SOSIAL
+        9 => [50, 75],   // KETENAGAKERJAAN
         10 => [85, 110],  // STATISTIK DISTRIBUSI (best)
         11 => [60, 88],   // STATISTIK KEUANGAN
         12 => [70, 92],   // NERACA WILAYAH
@@ -112,30 +112,30 @@ class MockProgressSeeder extends Seeder
                         $obstacle = self::OBSTACLES[array_rand(self::OBSTACLES)];
                         $solution = $obstacle ? self::SOLUTIONS[array_rand(self::SOLUTIONS)] : null;
 
-                        $actDate = date('Y-m-d', strtotime($weekStart . ' +' . rand(0, 4) . ' days'));
+                        $actDate = date('Y-m-d', strtotime($weekStart.' +'.rand(0, 4).' days'));
 
                         $rows[] = [
-                            'kip_activity_id'    => null,
-                            'employee_id'        => $empId,
-                            'performance_plan_id'=> $plan->id,
-                            'work_item_id'       => null,
-                            'target'             => $target,
-                            'realization'        => $realization,
-                            'achievement'        => $achievement,
-                            'target_unit'        => 'dokumen',
-                            'obstacle'           => $obstacle,
-                            'solution'           => $solution,
-                            'follow_up_plan'     => $solution ? 'Memantau perkembangan secara berkala.' : null,
-                            'activity_date_start'=> $actDate,
-                            'activity_date_end'  => $actDate,
-                            'status'             => 'saved',
-                            'week_start'         => $weekStart,
-                            'period_year'        => 2026,
-                            'period_month'       => 6,
-                            'period_quarter'     => 2,
-                            'claimed_at'         => $now,
-                            'created_at'         => $now,
-                            'updated_at'         => $now,
+                            'kip_activity_id' => null,
+                            'employee_id' => $empId,
+                            'performance_plan_id' => $plan->id,
+                            'work_item_id' => null,
+                            'target' => $target,
+                            'realization' => $realization,
+                            'achievement' => $achievement,
+                            'target_unit' => 'dokumen',
+                            'obstacle' => $obstacle,
+                            'solution' => $solution,
+                            'follow_up_plan' => $solution ? 'Memantau perkembangan secara berkala.' : null,
+                            'activity_date_start' => $actDate,
+                            'activity_date_end' => $actDate,
+                            'status' => 'saved',
+                            'week_start' => $weekStart,
+                            'period_year' => 2026,
+                            'period_month' => 6,
+                            'period_quarter' => 2,
+                            'claimed_at' => $now,
+                            'created_at' => $now,
+                            'updated_at' => $now,
                         ];
                     }
                 }
