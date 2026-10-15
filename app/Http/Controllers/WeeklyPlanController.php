@@ -47,6 +47,7 @@ class WeeklyPlanController extends Controller
             'prevWeek' => $monday->copy()->subWeek()->toDateString(),
             'nextWeek' => $monday->copy()->addWeek()->toDateString(),
             'quarter' => $monday->quarter,
+            'canSendToAtasan' => (bool) config('kinetik.kip.send_to_atasan'),
             'canManage' => $team !== null && $employee !== null && $this->isPj($employee, $team->id),
             'currentEmployeeId' => $employee?->id,
             'members' => $team ? $this->members($team, $monday) : [],

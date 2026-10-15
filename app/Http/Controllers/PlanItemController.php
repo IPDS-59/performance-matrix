@@ -114,6 +114,7 @@ class PlanItemController extends Controller
 
     private function sendOrCancel(Request $request, PlanItem $planItem, \Closure $run, string $done): RedirectResponse
     {
+        abort_unless(config('kinetik.kip.send_to_atasan'), 403, 'Kirim ke atasan belum diaktifkan.');
         $this->authorizeFor($this->actor($request), Team::findOrFail($planItem->team_id), $planItem->employee_id);
         $planItem->load('employee.user');
 

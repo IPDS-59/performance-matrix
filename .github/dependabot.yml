@@ -13,6 +13,10 @@ updates:
   - package-ecosystem: npm
     directory: /
     target-branch: develop
+    ignore:
+      # TypeScript 7 is the native compiler; vue-tsc 3 cannot load it yet (ERR_PACKAGE_PATH_NOT_EXPORTED).
+      - dependency-name: typescript
+        update-types: [version-update:semver-major]
     schedule:
       interval: weekly
     open-pull-requests-limit: 10
