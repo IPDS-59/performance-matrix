@@ -23,6 +23,7 @@ const props = defineProps<{
     canEdit: boolean;
     /** The PJ may correct the Friday evaluation. */
     canEvaluate?: boolean;
+    canSend?: boolean;
 }>();
 
 const editing = ref<number | 'new' | null>(null);
@@ -95,7 +96,7 @@ const field = 'w-full rounded-md border border-gray-300 bg-white px-2 py-1.5 tex
         </p>
 
         <ul v-if="plans.length" class="divide-y rounded-md border">
-            <PlanItemCard v-for="plan in plans" :key="plan.id" :plan="plan" :can-edit="canEdit" :can-evaluate="canEvaluate" @edit="openEdit" />
+            <PlanItemCard v-for="plan in plans" :key="plan.id" :plan="plan" :can-edit="canEdit" :can-evaluate="canEvaluate" :can-send="canSend" @edit="openEdit" />
         </ul>
 
         <form v-if="editing !== null" class="mt-2 space-y-2 rounded border border-primary/30 bg-primary/5 p-3" @submit.prevent="save">

@@ -17,7 +17,7 @@ A recording of a walkthrough of kipApp (screen share, 11 minutes, 2026-10-11). T
 
 ## What was built on 2026-10-12
 
-- `ApiKipWriter::sendActivities()` and `cancelSend()`: `POST /kegiatan/kirim` and `/kegiatan/batal` with `{id: [...]}`. **Not verified against live kipApp.** The payload is decoded from kipApp's own code (see `docs/kinetik/spec-planning.md` section 5 on the first agent's machine). Test it on a throwaway kegiatan of the owner's own SKP before relying on it.
+- `ApiKipWriter::sendActivities()` and `cancelSend()`: `POST /kegiatan/kirim` and `/kegiatan/batal` with `{id: [...]}`. **Not verified against live kipApp.** The payload is decoded from kipApp's own code (see `docs/kinetik/spec-planning.md` section 5 on the first agent's machine). The buttons stay hidden until the setting `KIP_SEND_TO_ATASAN=true` is in `.env` (config `kinetik.kip.send_to_atasan`, default false, and the routes answer 403 while it is off). Test on a throwaway kegiatan of the owner's own SKP first. Then turn it on.
 - `SendPlanItemAction` (send and cancel), routes `plan-items.send` and `plan-items.unsend`, column `plan_items.kip_sent_at` (migration `2026_10_12_000100`). `ReconcilePlanItemsAction` copies `sent_at` from the synced kipApp kegiatan, so kipApp wins.
 - `MemberPlanFlow` (service): five steps per member from local data only (RK Anggota, SKP triwulan, rencana minggu ini, ada di kipApp, terkirim ke atasan). The SKP step is `unknown` until a push shows whether the quarter SKP exists. It never guesses the SKP Tahunan or its approval, because Kinetik does not read them.
 - UI on `Rencana Minggu Ini`:
@@ -66,3 +66,14 @@ A recording of a walkthrough of kipApp (screen share, 11 minutes, 2026-10-11). T
 - `node_modules` was damaged more than once (missing build folders of `@lucide/vue`, `@tanstack/table-core`, `d3-interpolate-path`). `pnpm install --force --frozen-lockfile` fixed it.
 - Never run the dev server. Never commit `docs/credentials` or `docs/kinetik/`. No attribution lines in commits. Ask before writing to the live kipApp and use the owner's own SKP for any test. Do not paste tokens.
 - Tests: PHP `php artisan test`, JS `pnpm exec vitest run`, types `pnpm exec vue-tsc --noEmit`. State at handoff: 579 PHP tests, 91 vitest tests, `vue-tsc` clean, `vite build` passes.
+
+## Repo and release state (2026-10-12)
+
+- Branches: work happens on `develop`. `main` is the release branch. Merge `develop` into `main` with a pull request and a **merge commit**, never a squash. Squashing makes the two branches diverge.
+- Rules on `main` and `develop`: an approving review from an account other than the PR author, and the required checks (Test, Lint PHP, Lint Frontend, Build, TypeScript Check). The approval must be on the latest commit.
+- Branch work from the latest `develop`. Housekeeping deletes a branch after its PR is merged. Never push more commits to a branch whose PR is merged.
+- Dependabot now targets `develop`. On 2026-10-12 all 19 old Dependabot PRs were replaced by one update (PR #130). `spatie/laravel-permission` is at ^8.
+- The Release workflow failed to start on every push to `main` since June, because it passed an input (`package-manager`) that the shared workflow does not define. The line is removed in the PR that added the send setting. If the workflow still fails, read the run log.
+- Pint (`vendor/bin/pint --test`) runs in CI over the whole repo. Run it before you push.
+- Deploy: `./deploy.sh` builds the zip from the working tree and injects `.env.production` as `.env`. Upload it, open the setup link, then run `migrate-prod.sh`. This release adds the migration for `plan_items.kip_sent_at`. Run the migration right after the upload.
+- State at this handoff: 580 PHP tests, 92 vitest tests, `vue-tsc` clean.

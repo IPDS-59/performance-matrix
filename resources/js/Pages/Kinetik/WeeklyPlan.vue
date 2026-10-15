@@ -122,6 +122,7 @@ function saveFocus(member: WeeklyPlanMember) {
                             :week-end="weekEnd"
                             :can-edit="canManage || m.employee_id === currentEmployeeId"
                             :can-evaluate="canManage"
+                            :can-send="canSendToAtasan"
                         />
 
                         <Accordion type="multiple" class="rounded-md border">

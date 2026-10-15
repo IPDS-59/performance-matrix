@@ -76,6 +76,7 @@ it('keeps the plan unsent and shows the reason when kipApp refuses', function ()
 });
 
 it('lets the member send through the page and shows an error message when kipApp refuses', function () {
+    config(['kinetik.kip.send_to_atasan' => true]);
     $plan = sendSetup();
     $user = $plan->employee->user;
     Http::fake(['*/v1/kegiatan/kirim' => Http::response(['status' => true])]);
@@ -89,6 +90,7 @@ it('lets the member send through the page and shows an error message when kipApp
 });
 
 it('does not let another member send someone else\'s plan', function () {
+    config(['kinetik.kip.send_to_atasan' => true]);
     $plan = sendSetup();
     $other = Employee::factory()->create(['user_id' => User::factory()->create()->id]);
     $other->teams()->attach($plan->team_id, ['role' => 'member', 'is_primary' => false]);
@@ -107,4 +109,14 @@ it('follows the sent state of the kipApp kegiatan after a sync', function () {
     app(ReconcilePlanItemsAction::class)->execute([$plan->employee_id]);
 
     expect($plan->fresh())->status->toBe('done')->kip_sent_at->not->toBeNull();
+});
+
+it('refuses to send or cancel while the setting is off', function () {
+    $plan = sendSetup();
+    Http::fake();
+
+    expect(config('kinetik.kip.send_to_atasan'))->toBeFalse();
+    $this->actingAs($plan->employee->user)->post(route('plan-items.send', $plan))->assertForbidden();
+    $this->actingAs($plan->employee->user)->post(route('plan-items.unsend', $plan))->assertForbidden();
+    Http::assertNothingSent();
 });
