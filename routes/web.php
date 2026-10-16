@@ -30,6 +30,7 @@ use App\Http\Controllers\WeeklyPlanController;
 use App\Http\Controllers\WorkItemController;
 use App\Http\Controllers\WorkItemDetailController;
 use Illuminate\Support\Facades\Route;
+use Inertia\Inertia;
 
 Route::get('/', function () {
     return redirect()->route('login');
@@ -102,6 +103,10 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
     // Weekly activity scrapper / recap
     Route::get('/rencana-minggu', [WeeklyPlanController::class, 'index'])->name('weekly-plan.index');
+    // Design demo (sample data, nothing saved). Local only.
+    if (app()->environment('local')) {
+        Route::get('/demo/kegiatan', fn () => Inertia::render('Kinetik/DemoKegiatan'))->name('demo.kegiatan');
+    }
     Route::get('/fra', [FraController::class, 'index'])->name('fra.index');
     Route::patch('/fra/{indicator}/triwulan/{quarter}', [FraController::class, 'updateValues'])->name('fra.values');
     Route::patch('/fra/{indicator}/pemilik', [FraController::class, 'updateOwner'])->name('fra.owner');
