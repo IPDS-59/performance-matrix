@@ -36,7 +36,7 @@ class RemindWeeklyPlansAction
                         $member->user->notify(new KinetikNotification(
                             'plan_reminder',
                             'Anda belum membuat rencana kerja untuk minggu ini. Isi sekarang di Rencana Minggu Ini.',
-                            route('weekly-plan.index', ['team' => $team->id, 'week' => $week]),
+                            route('weekly.index', ['week' => $week]),
                         ));
                         $sent['members']++;
                     }
@@ -50,7 +50,7 @@ class RemindWeeklyPlansAction
                     $leader->user->notify(new KinetikNotification(
                         'plan_reminder_pj',
                         "{$others->count()} anggota {$team->name} belum membuat rencana minggu ini: {$names}{$more}.",
-                        route('weekly-plan.index', ['team' => $team->id, 'week' => $week]),
+                        route('weekly.index', ['week' => $week]),
                     ));
                     $sent['pj']++;
                 }

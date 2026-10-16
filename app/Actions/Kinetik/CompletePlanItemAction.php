@@ -20,12 +20,14 @@ class CompletePlanItemAction
     /**
      * @throws RuntimeException with a message for the user
      */
-    public function execute(PlanItem $plan, ?string $capaian, ?string $evidenceUrl): void
+    public function execute(PlanItem $plan, ?string $note, ?string $evidenceUrl, ?float $capaian = null): void
     {
         if ($plan->kip_external_id === null && ! $this->push->execute($plan)) {
             throw new RuntimeException($plan->fresh()->push_error ?? 'Kegiatan belum bisa dikirim ke kipApp.');
         }
 
+        $note ??= $plan->capaian_note;
+        $evidenceUrl ??= $plan->evidence_url;
         $user = $plan->employee?->user ?? throw new RuntimeException('Pegawai belum punya akun.');
 
         try {
@@ -47,13 +49,20 @@ class CompletePlanItemAction
                 'jammulai' => $row['jammulai'] ?? '08:00',
                 'jamselesai' => $row['jamselesai'] ?? '16:00',
                 'progres' => 100,
-                'capaian' => $capaian ?? (string) ($row['capaian'] ?? ''),
+                'capaian' => $note ?? (string) ($row['capaian'] ?? ''),
                 'datadukung' => $evidenceUrl ?? (string) ($row['datadukung'] ?? ''),
             ]);
         } catch (KipApiException $e) {
             throw new RuntimeException('kipApp menolak perubahan: '.$e->getMessage());
         }
 
-        $plan->update(['status' => 'done', 'kip_synced_at' => now()]);
+        $plan->update([
+            'status' => 'done',
+            'progress' => 100,
+            'capaian' => $capaian ?? $plan->capaian,
+            'capaian_note' => $note,
+            'evidence_url' => $evidenceUrl,
+            'kip_synced_at' => now(),
+        ]);
     }
 }

@@ -6,6 +6,7 @@ use App\Models\PlanItem;
 use App\Models\Project;
 use App\Models\Team;
 use App\Models\User;
+use Illuminate\Support\Facades\Http;
 
 function planSetup(): array
 {
@@ -88,4 +89,47 @@ it('shows the week plans and RK options on the board, leaving out cancelled ones
             ->where('members', fn ($m) => collect($m)->firstWhere('employee_id', $member->id)['plans'][0]['description'] === 'Minggu ini'
                 && count(collect($m)->firstWhere('employee_id', $member->id)['plans']) === 1)
             ->where('rkOptions.0.description', 'RK Inovasi'));
+});
+
+it('stores the kipApp fields, target and capaian as numbers', function () {
+    [, $team, , $memberUser, $rk] = planSetup();
+    $payload = planPayload($team, $rk, ['target' => 12, 'target_unit' => 'blok', 'capaian' => 9.5, 'capaian_note' => 'Blok 1-9 selesai', 'evidence_url' => 'https://drive.example/b', 'progress' => 75]);
+
+    $this->actingAs($memberUser)->post(route('plan-items.store'), $payload)->assertSessionHasNoErrors();
+
+    $item = PlanItem::sole();
+    expect($item->capaian)->toBe('9.50')->and($item->capaian_note)->toBe('Blok 1-9 selesai')->and($item->progress)->toBe(75)->and($item->evidence_url)->toBe('https://drive.example/b');
+
+    foreach ([['target' => 'banyak'], ['capaian' => 'sembilan'], ['capaian' => -1], ['evidence_url' => 'bukan-url'], ['progress' => 101]] as $bad) {
+        $this->actingAs($memberUser)->post(route('plan-items.store'), planPayload($team, $rk, $bad))->assertSessionHasErrors(array_key_first($bad));
+    }
+    expect(PlanItem::count())->toBe(1);
+});
+
+it('validates the date order and the clock time of a jam kegiatan', function () {
+    [, $team, , $memberUser, $rk] = planSetup();
+
+    $this->actingAs($memberUser)->post(route('plan-items.store'), planPayload($team, $rk, ['date_end' => '2026-10-01']))->assertSessionHasErrors('date_end');
+    // A jam kegiatan is one day, and the end must come after the start.
+    $timed = ['date_start' => '2026-10-05', 'date_end' => '2026-10-05', 'time_start' => '09:00', 'time_end' => '11:30'];
+    $this->actingAs($memberUser)->post(route('plan-items.store'), planPayload($team, $rk, [...$timed, 'date_end' => '2026-10-06']))->assertSessionHasErrors('date_end');
+    $this->actingAs($memberUser)->post(route('plan-items.store'), planPayload($team, $rk, [...$timed, 'time_end' => '08:00']))->assertSessionHasErrors('time_end');
+    $this->actingAs($memberUser)->post(route('plan-items.store'), planPayload($team, $rk, [...$timed, 'time_end' => null]))->assertSessionHasErrors('time_end');
+
+    $this->actingAs($memberUser)->post(route('plan-items.store'), planPayload($team, $rk, $timed))->assertSessionHasNoErrors();
+    expect(PlanItem::sole())->time_start->toStartWith('09:00')->time_end->toStartWith('11:30');
+});
+
+it('saves the result of a kegiatan locally, for the owner or the PJ only', function () {
+    [$pjUser, $team, $member, $memberUser, $rk] = planSetup();
+    $item = PlanItem::create(['team_id' => $team->id, 'employee_id' => $member->id, 'performance_plan_id' => $rk->id, 'description' => 'Awal', 'date_start' => '2026-10-05', 'date_end' => '2026-10-05', 'status' => 'done', 'kip_external_id' => '55']);
+    Http::fake();
+
+    $this->actingAs($memberUser)->patch(route('plan-items.result', $item), ['capaian' => 4, 'capaian_note' => 'Empat blok', 'evidence_url' => 'https://x.example/a'])->assertSessionHas('success');
+    expect($item->fresh())->capaian->toBe('4.00')->capaian_note->toBe('Empat blok')->status->toBe('done');
+    Http::assertNothingSent();
+
+    $this->actingAs($memberUser)->patch(route('plan-items.result', $item), ['capaian' => 'x'])->assertSessionHasErrors('capaian');
+    $this->actingAs(User::factory()->create())->patch(route('plan-items.result', $item), ['capaian' => 1])->assertStatus(403);
+    $this->actingAs($pjUser)->patch(route('plan-items.result', $item), ['capaian' => 5])->assertSessionHas('success');
 });

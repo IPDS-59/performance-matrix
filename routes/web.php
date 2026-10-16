@@ -117,6 +117,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('/rencana-minggu/item/{planItem}/kirim', [PlanItemController::class, 'push'])->name('plan-items.push');
     Route::post('/rencana-minggu/item/{planItem}/kirim-atasan', [PlanItemController::class, 'send'])->name('plan-items.send');
     Route::post('/rencana-minggu/item/{planItem}/batal-kirim', [PlanItemController::class, 'unsend'])->name('plan-items.unsend');
+    Route::patch('/rencana-minggu/item/{planItem}/capaian', [PlanItemController::class, 'result'])->name('plan-items.result');
     Route::post('/rencana-minggu/item/{planItem}/selesai', [PlanItemController::class, 'complete'])->name('plan-items.complete');
     Route::patch('/rencana-minggu/item/{planItem}/evaluasi', [PlanItemController::class, 'evaluate'])->name('plan-items.evaluate');
     Route::delete('/rencana-minggu/item/{planItem}', [PlanItemController::class, 'destroy'])->name('plan-items.destroy');

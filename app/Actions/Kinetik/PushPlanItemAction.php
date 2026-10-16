@@ -47,6 +47,11 @@ class PushPlanItemAction
                     'kegiatan' => $plan->description,
                     'tanggal' => Carbon::parse($plan->date_start)->toDateString(),
                     'tanggalselesai' => Carbon::parse($plan->date_end)->toDateString(),
+                    'progres' => (int) $plan->progress,
+                    'jammulai' => $plan->time_start ? substr((string) $plan->time_start, 0, 5) : null,
+                    'jamselesai' => $plan->time_end ? substr((string) $plan->time_end, 0, 5) : null,
+                    'capaian' => (string) $plan->capaian_note,
+                    'datadukung' => (string) $plan->evidence_url,
                 ]),
                 'kip_skp_id' => $skpId,
                 'kip_rk_id' => (string) $rk['rkid'],
@@ -105,7 +110,7 @@ class PushPlanItemAction
         $attempts = $plan->push_attempts + 1;
         $plan->update(['push_attempts' => $attempts, 'push_error' => mb_substr($e->getMessage(), 0, 500)]);
 
-        $url = route('weekly-plan.index', ['team' => $plan->team_id, 'week' => Carbon::parse($plan->date_start)->toDateString()]);
+        $url = route('weekly.index', ['week' => Carbon::parse($plan->date_start)->toDateString()]);
 
         // One notice for the first failure only.
         if ($attempts === 1) {

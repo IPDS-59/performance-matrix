@@ -33,7 +33,7 @@ class PlanItemController extends Controller
     public function store(Request $request): RedirectResponse
     {
         $actor = $this->actor($request);
-        $data = $request->validate($this->rules() + ['team_id' => ['required', 'integer', 'exists:teams,id']]);
+        $data = $request->validate($this->rules($request) + ['team_id' => ['required', 'integer', 'exists:teams,id']]);
         $team = Team::findOrFail($data['team_id']);
         $employeeId = (int) ($data['employee_id'] ?? $actor->id);
 
@@ -41,7 +41,7 @@ class PlanItemController extends Controller
         $this->checkRk($team, $employeeId, $data);
 
         $item = PlanItem::create([
-            ...collect($data)->except(['employee_id', 'team_id'])->all(),
+            ...$this->attributes($data, ['employee_id', 'team_id']),
             'team_id' => $team->id,
             'employee_id' => $employeeId,
             'source' => $employeeId === $actor->id ? 'member' : 'pj',
@@ -60,9 +60,9 @@ class PlanItemController extends Controller
         $this->authorizeFor($actor, $team, $planItem->employee_id);
         abort_unless($planItem->status === 'planned', 422, 'Rencana yang sudah dikirim ke kipApp tidak dapat diubah di sini.');
 
-        $data = $request->validate($this->rules());
+        $data = $request->validate($this->rules($request));
         $this->checkRk($team, $planItem->employee_id, $data);
-        $planItem->update(collect($data)->except('employee_id')->all());
+        $planItem->update($this->attributes($data, ['employee_id']));
 
         $this->notifyOwner($request, $actor, $planItem, 'diubah');
 
@@ -86,18 +86,29 @@ class PlanItemController extends Controller
         $this->authorizeFor($this->actor($request), Team::findOrFail($planItem->team_id), $planItem->employee_id);
         abort_if($planItem->status === 'cancelled', 422, 'Rencana ini sudah dibatalkan.');
 
-        $data = $request->validate([
-            'capaian' => ['nullable', 'string', 'max:1000'],
-            'evidence_url' => ['nullable', 'url', 'max:2000'],
-        ]);
+        $data = $request->validate($this->resultRules());
 
         try {
-            $complete->execute($planItem->load(['employee.user', 'performancePlan']), $data['capaian'] ?? null, $data['evidence_url'] ?? null);
+            $complete->execute($planItem->load(['employee.user', 'performancePlan']), $data['capaian_note'] ?? null, $data['evidence_url'] ?? null, isset($data['capaian']) ? (float) $data['capaian'] : null);
         } catch (\RuntimeException $e) {
             return back()->with('error', $e->getMessage());
         }
 
         return back()->with('success', 'Rencana ditandai selesai dan dikirim ke kipApp.');
+    }
+
+    /**
+     * Saves the result of a plan in Kinetik only (capaian, uraian, bukti, progres).
+     * Nothing is written to kipApp here; "Tandai selesai" sends it.
+     */
+    public function result(Request $request, PlanItem $planItem): RedirectResponse
+    {
+        $this->authorizeFor($this->actor($request), Team::findOrFail($planItem->team_id), $planItem->employee_id);
+        abort_if($planItem->status === 'cancelled', 422, 'Rencana ini sudah dibatalkan.');
+
+        $planItem->update($this->attributes($request->validate($this->resultRules())));
+
+        return back()->with('success', 'Capaian disimpan.');
     }
 
     /** "Kirim ke atasan": the kegiatan in kipApp is sent for the atasan to rate. */
@@ -167,15 +178,44 @@ class PlanItemController extends Controller
     }
 
     /** @return array<string, array<int, mixed>> */
-    private function rules(): array
+    private function resultRules(): array
     {
         return [
+            'capaian' => ['nullable', 'numeric', 'min:0', 'max:9999999999'],
+            'capaian_note' => ['nullable', 'string', 'max:1000'],
+            'evidence_url' => ['nullable', 'url', 'max:2000'],
+            'progress' => ['nullable', 'integer', 'between:0,100'],
+        ];
+    }
+
+    /**
+     * The validated fields as model attributes. Progres is a non-null column, so
+     * an empty value is left out instead of overwriting it with null.
+     *
+     * @param  array<string, mixed>  $data
+     * @param  list<string>  $except
+     * @return array<string, mixed>
+     */
+    private function attributes(array $data, array $except = []): array
+    {
+        return collect($data)->except($except)->reject(fn ($value, $key) => $key === 'progress' && $value === null)->all();
+    }
+
+    /** @return array<string, array<int, mixed>> */
+    private function rules(Request $request): array
+    {
+        // A "jam" kegiatan is one day with a clock time, like in kipApp.
+        $timed = $request->filled('time_start');
+
+        return $this->resultRules() + [
             'employee_id' => ['nullable', 'integer', 'exists:employees,id'],
             'performance_plan_id' => ['required', 'integer', 'exists:performance_plans,id'],
             'project_id' => ['nullable', 'integer', 'exists:projects,id'],
             'description' => ['required', 'string', 'max:1000'],
             'date_start' => ['required', 'date'],
-            'date_end' => ['required', 'date', 'after_or_equal:date_start'],
+            'date_end' => ['required', 'date', $timed ? 'same:date_start' : 'after_or_equal:date_start'],
+            'time_start' => ['nullable', 'date_format:H:i'],
+            'time_end' => ['nullable', 'date_format:H:i', 'required_with:time_start', 'after:time_start'],
             'target' => ['nullable', 'numeric', 'gt:0'],
             'target_unit' => ['nullable', 'string', 'max:100'],
         ];
@@ -218,7 +258,7 @@ class PlanItemController extends Controller
         $owner->notify(new KinetikNotification(
             'plan_item',
             ($actor->display_name ?? $actor->name)." {$verb} rencana untuk Anda: ".Str::limit($item->description, 120),
-            route('weekly-plan.index', ['team' => $item->team_id, 'week' => Carbon::parse($item->date_start)->toDateString()]),
+            route('weekly.index', ['week' => Carbon::parse($item->date_start)->toDateString()]),
         ));
     }
 }

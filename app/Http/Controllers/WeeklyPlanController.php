@@ -101,7 +101,7 @@ class WeeklyPlanController extends Controller
             $member->user->notify(new KinetikNotification(
                 'weekly_focus',
                 ($employee->display_name ?? $employee->name).' mengisi fokus Anda untuk minggu '.Carbon::parse($weekStart)->locale('id')->translatedFormat('j M').': '.Str::limit($body, 140),
-                route('weekly-plan.index', ['team' => $team->id, 'week' => $weekStart]),
+                route('weekly.index', ['week' => $weekStart]),
             ));
         }
 
