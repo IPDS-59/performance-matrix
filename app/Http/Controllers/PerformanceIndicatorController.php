@@ -46,26 +46,13 @@ class PerformanceIndicatorController extends Controller
 
         $canCreate = $user->can('create', PerformanceIndicator::class);
 
-        return Inertia::render('PerformanceIndicators/Index', compact('indicators', 'teams', 'year', 'teamId', 'canCreate'));
-    }
+        // Teams the form popup can pick: admins any active team, a PJ the teams they lead.
+        $manager = $user->hasPermissionTo('manage-projects');
+        $formTeams = $manager
+            ? Team::where('is_active', true)->orderBy('name')->get(['id', 'name'])
+            : Team::where('leader_id', $user->employee?->id)->where('is_active', true)->orderBy('name')->get(['id', 'name']);
 
-    public function create(Request $request): Response
-    {
-        $this->authorize('create', PerformanceIndicator::class);
-
-        $user = $request->user();
-        $isAdmin = $user->hasPermissionTo('manage-projects');
-
-        if ($isAdmin) {
-            $teams = Team::where('is_active', true)->orderBy('name')->get(['id', 'name']);
-        } else {
-            $employee = $user->employee;
-            $teams = $employee
-                ? Team::where('leader_id', $employee->id)->where('is_active', true)->orderBy('name')->get(['id', 'name'])
-                : collect();
-        }
-
-        return Inertia::render('PerformanceIndicators/Create', compact('teams', 'isAdmin'));
+        return Inertia::render('PerformanceIndicators/Index', compact('indicators', 'teams', 'year', 'teamId', 'canCreate', 'formTeams', 'manager'));
     }
 
     public function store(Request $request): RedirectResponse
@@ -102,22 +89,6 @@ class PerformanceIndicatorController extends Controller
 
         return redirect()->route('performance-indicators.index')
             ->with('success', 'IKU berhasil ditambahkan.');
-    }
-
-    public function edit(PerformanceIndicator $performanceIndicator, Request $request): Response
-    {
-        $this->authorize('update', $performanceIndicator);
-
-        $user = $request->user();
-        $isAdmin = $user->hasPermissionTo('manage-projects');
-
-        if ($isAdmin) {
-            $teams = Team::where('is_active', true)->orderBy('name')->get(['id', 'name']);
-        } else {
-            $teams = Team::where('id', $performanceIndicator->team_id)->get(['id', 'name']);
-        }
-
-        return Inertia::render('PerformanceIndicators/Edit', compact('performanceIndicator', 'teams', 'isAdmin'));
     }
 
     public function update(Request $request, PerformanceIndicator $performanceIndicator): RedirectResponse

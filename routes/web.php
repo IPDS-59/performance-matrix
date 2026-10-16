@@ -50,7 +50,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::resource('employees', EmployeeController::class)->except(['show']);
     Route::resource('projects', ProjectController::class)->except(['show']);
     Route::post('/projects/{project}/copy', [ProjectController::class, 'copy'])->name('projects.copy');
-    Route::resource('performance-indicators', PerformanceIndicatorController::class)->except(['show']);
+    Route::resource('performance-indicators', PerformanceIndicatorController::class)->except(['show', 'create', 'edit']);
     Route::resource('performance-plans', PerformancePlanController::class)->except(['show']);
 
     // Work items (nested under project for create, standalone for update/delete)

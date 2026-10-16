@@ -1,14 +1,16 @@
 <script setup lang="ts">
 import AppLayout from '@/Layouts/AppLayout.vue';
-import { Head, Link, router } from '@inertiajs/vue3';
+import { Head, router } from '@inertiajs/vue3';
 import type { PerformanceIndicator, Team } from '@/types';
+import type { TeamPickProps } from '@/types/crud';
+import IndicatorFormDialog from '@/Components/PerformanceIndicators/IndicatorFormDialog.vue';
 import { Button } from '@/Components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/Components/ui/table';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/Components/ui/select';
 import ConfirmDialog from '@/Components/ConfirmDialog.vue';
 import { ref } from 'vue';
 
-const props = defineProps<{
+const props = defineProps<TeamPickProps & {
     indicators: PerformanceIndicator[];
     teams: Team[];
     year: number;
@@ -17,6 +19,9 @@ const props = defineProps<{
 }>();
 
 const year = ref(String(props.year));
+const formOpen = ref(false);
+const editing = ref<PerformanceIndicator | null>(null);
+function openForm(item: PerformanceIndicator | null) { editing.value = item; formOpen.value = true; }
 const teamId = ref(props.teamId ? String(props.teamId) : 'all');
 
 function applyFilters() {
@@ -71,9 +76,7 @@ function executeDelete() {
                 </Select>
             </div>
             <div class="ml-auto" v-if="canCreate">
-                <Button as-child>
-                    <Link :href="route('performance-indicators.create')">Tambah IKU</Link>
-                </Button>
+                <Button @click="openForm(null)">Tambah IKU</Button>
             </div>
         </div>
 
@@ -107,9 +110,7 @@ function executeDelete() {
                         </TableCell>
                         <TableCell class="text-right">
                             <div v-if="indicator.can_update || indicator.can_delete" class="inline-flex gap-2">
-                                <Button v-if="indicator.can_update" variant="outline" size="sm" as-child>
-                                    <Link :href="route('performance-indicators.edit', indicator.id)">Edit</Link>
-                                </Button>
+                                <Button v-if="indicator.can_update" variant="outline" size="sm" @click="openForm(indicator)">Edit</Button>
                                 <Button v-if="indicator.can_delete" variant="destructive" size="sm" @click="confirmDelete(indicator.id, indicator.name)">
                                     Hapus
                                 </Button>
@@ -120,6 +121,8 @@ function executeDelete() {
                 </TableBody>
             </Table>
         </div>
+
+        <IndicatorFormDialog v-model:open="formOpen" :item="editing" :teams="formTeams" :manager="manager" :default-year="props.year" />
 
         <ConfirmDialog
             v-model:open="confirmOpen"
