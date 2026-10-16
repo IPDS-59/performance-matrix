@@ -47,7 +47,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::resource('teams', TeamController::class)->except(['show', 'create', 'edit']);
     Route::get('/teams/{team}/members', [TeamMemberController::class, 'edit'])->name('teams.members.edit');
     Route::put('/teams/{team}/members', [TeamMemberController::class, 'update'])->name('teams.members.update');
-    Route::resource('employees', EmployeeController::class)->except(['show']);
+    Route::resource('employees', EmployeeController::class)->except(['show', 'create']);
     Route::resource('projects', ProjectController::class)->except(['show']);
     Route::post('/projects/{project}/copy', [ProjectController::class, 'copy'])->name('projects.copy');
     Route::resource('performance-indicators', PerformanceIndicatorController::class)->except(['show', 'create', 'edit']);
