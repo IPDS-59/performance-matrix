@@ -195,74 +195,6 @@ export type PageProps<
     };
 };
 
-// ── Kinetik / Weekly Scrapper types ──────────────────────────────────────────
-
-export interface KipActivity {
-    id: number;
-    employee_id: number;
-    external_id: string;
-    description: string;
-    activity_date_start: string;
-    activity_date_end?: string | null;
-    time_start?: string | null;
-    time_end?: string | null;
-    evidence_url?: string | null;
-    rk_name?: string | null;
-    is_claimed: boolean;
-    /** kipApp progres, 0–100. */
-    progress?: number | null;
-    /** Runs past this week: claimed once per week it covers. */
-    spans_weeks?: boolean;
-    /** The part of the activity inside the viewed week (default claim dates). */
-    week_date_start?: string;
-    week_date_end?: string;
-    matched_plan_id?: number | null;
-    /** True when the PJ locked the recap period this activity falls in. */
-    locked?: boolean;
-    claim?: ActivityClaim | null;
-}
-
-export interface ActivityClaim {
-    id: number;
-    kip_activity_id?: number | null;
-    employee_id: number;
-    performance_plan_id: number;
-    project_id?: number | null;
-    work_item_id?: number | null;
-    target?: string | number | null;
-    realization?: string | number | null;
-    achievement?: string | number | null;
-    target_unit?: string | null;
-    obstacle?: string | null;
-    solution?: string | null;
-    follow_up_plan?: string | null;
-    activity_date_start: string;
-    activity_date_end?: string | null;
-    start_time?: string | null;
-    end_time?: string | null;
-    evidence_url?: string | null;
-    status: 'draft' | 'saved';
-    week_start: string;
-    performance_plan?: PerformancePlan & { project?: { name: string; team?: { name: string } | null } | null } | null;
-    kip_activity?: KipActivity | null;
-    project?: { id: number; name: string } | null;
-}
-
-export interface PlanOption {
-    id: number;
-    description: string;
-    project_id: number | null;
-    project_name: string;
-    team_id: number | null;
-    team_name: string;
-    /** Projek under this RK's leader RK in kipApp, when there are several; empty = any Projek of the team. */
-    project_candidates: number[];
-    /** "Tanpa projek" allowed: the RK's leader RK has no Projek in kipApp. */
-    project_optional: boolean;
-    /** Unit of the RK's IKI target, e.g. "Dokumen". */
-    target_unit?: string | null;
-}
-
 export interface ProjectOption {
     id: number;
     name: string;
@@ -272,63 +204,72 @@ export interface ProjectOption {
 
 // ── Kinetik / Team recaps (Phase 4) ──────────────────────────────────────────
 
-/** One member claim behind a recap row. */
-export interface RecapClaimLine {
-    claim_id: number;
-    name: string;
-    uraian: string | null;
-    target: number | null;
-    realization: number | null;
-    target_unit: string | null;
-    achievement: number | null;
-    /** PJ who corrected the numbers, if any. */
-    adjusted_by: string | null;
-}
-
 export interface RecapRow {
     /** "planId:projectId" — one RK within one Projek. */
     row_key: string;
-    /** Row key of the merge group's lead; null when not merged. */
-    /** Member claims behind this row. */
-    claims?: RecapClaimLine[];
-    merge_key: string | null;
     performance_plan_id: number;
     project_id: number | null;
     rk_code?: string | null;
     rk_description: string;
     uraian_aggregated?: string | null;
-    uraian_items?: Array<{ name: string; uraian: string }>;
+    /** Numbers: the PJ's own for the RK, else the members' plan items summed. */
     target: number;
     realization: number;
     achievement: number | null;
     target_unit?: string | null;
+    contributors: string[];
+    /** Week/month: locked by the PJ. Quarter: signed off. */
+    is_confirmed?: boolean;
+    confirmed_by?: string | null;
+    /** The PJ's paraphrase. */
+    pj_uraian?: string | null;
+    is_overridden: boolean;
+    pic_employee_id?: number | null;
+    // Quarterly (FRA) only
     obstacle: string | null;
     solution: string | null;
     follow_up_plan: string | null;
-    obstacle_aggregated: string | null;
-    solution_aggregated: string | null;
-    follow_up_aggregated: string | null;
-    is_overridden: boolean;
-    contributors: string[];
-    // Confirmation
-    is_confirmed?: boolean;
-    confirmed_by?: string | null;
-    // PJ paraphrase fields (read-only view for non-PJ members)
-    pj_uraian?: string | null;
-    pj_obstacle?: string | null;
-    pj_solution?: string | null;
-    pj_follow_up_plan?: string | null;
-    // Inherited from previous weekly paraphrase (used to prefill monthly/quarterly)
-    inherited_obstacle?: string | null;
-    inherited_solution?: string | null;
-    inherited_follow_up_plan?: string | null;
-    // PIC employee id (for row-level paraphrase permission)
-    pic_employee_id?: number | null;
-    // Quarterly (FRA) only
     follow_up_evidence_url?: string | null;
     follow_up_pic?: string | null;
     follow_up_pic_employee_id?: number | null;
     follow_up_deadline?: string | null;
+}
+
+/** What one member wrote for an RK in a week or month, from their plan items. */
+export interface RkEntry {
+    employee_id: number;
+    name: string;
+    /** One sentence each: the uraian capaian, else the kegiatan. */
+    lines: string[];
+    items: number;
+    target: number | null;
+    capaian: number | null;
+    unit: string | null;
+}
+
+/** The PJ's saved paraphrase, target and capaian for an RK and period. */
+export interface RkRecapState {
+    paraphrase: string | null;
+    target: number | null;
+    target_unit: string | null;
+    capaian: number | null;
+    locked: boolean;
+    locked_by: string | null;
+}
+
+/** One RK of the team in a week or month (GET team-recap.weekly / monthly `panels`). */
+export interface RkPanel {
+    performance_plan_id: number;
+    rk_description: string;
+    project_id: number | null;
+    project_name: string | null;
+    pic_employee_id: number | null;
+    entry_count: number;
+    entries: RkEntry[];
+    recap: RkRecapState | null;
+    default_unit: string | null;
+    /** Monthly only: the weekly paraphrases of the month. */
+    weeks: Array<{ label: string; start: string; paraphrase: string }>;
 }
 
 export interface RecapSegment {
@@ -337,44 +278,6 @@ export interface RecapSegment {
     /** The ketua tim's RK this Projek hangs under. */
     leader_rk?: string | null;
     rows: RecapRow[];
-}
-
-/** One member kegiatan inside a weekly output row. */
-export interface WeeklyRowLine {
-    claim_id: number;
-    name: string;
-    uraian: string | null;
-    rk_description: string;
-    target: number | null;
-    realization: number | null;
-    target_unit: string | null;
-    achievement: number | null;
-    adjusted_by: string | null;
-    pic_employee_id: number | null;
-    plan_id: number;
-}
-
-/** The PJ's output row of a week: one kegiatan, or several the PJ merged. */
-export interface WeeklyRow {
-    /** "c<claim id>" until the PJ saves or merges, then "r<row id>". */
-    key: string;
-    row_id: number | null;
-    claim_ids: number[];
-    claims: WeeklyRowLine[];
-    merged: boolean;
-    /** Part of "Laporan Tersimpan". */
-    saved: boolean;
-    pj_uraian: string | null;
-    obstacle: string | null;
-    solution: string | null;
-    follow_up_plan: string | null;
-}
-
-export interface WeeklySegment {
-    project_id: number | null;
-    project_name: string;
-    leader_rk: string | null;
-    rows: WeeklyRow[];
 }
 
 /** The PJ's narrative for one Projek of a month or quarter. */
@@ -476,16 +379,6 @@ export interface TeamOption {
     name: string;
 }
 
-export interface WeeklyTeamNote {
-    id: number;
-    team_id: number;
-    week_start: string;
-    uraian: string | null;
-    obstacle: string | null;
-    solution: string | null;
-    follow_up_plan: string | null;
-}
-
 export interface KipSyncRun {
     id: number;
     status: string;
@@ -526,7 +419,7 @@ export interface KipActivityRow {
     description?: string | null;
     rk_name?: string | null;
     progress?: number | null;
-    is_claimed: boolean;
+    is_sent: boolean;
     evidence_url?: string | null;
 }
 

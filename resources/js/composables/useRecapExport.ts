@@ -9,10 +9,8 @@ export interface RecapSheet {
     merges: XLSX.Range[];
 }
 
-const BASE_HEADER = [
-    'No', 'Tim PJK', 'Projek', 'Rencana Kinerja', 'Uraian', 'Target', 'Realisasi',
-    'Capaian Kinerja (%)', 'Permasalahan', 'Solusi', 'Rencana Tindak Lanjut',
-];
+const BASE_HEADER = ['No', 'Tim PJK', 'Projek', 'Rencana Kinerja', 'Uraian', 'Target', 'Realisasi', 'Capaian Kinerja (%)'];
+const FRA_TEXT_HEADER = ['Permasalahan', 'Solusi', 'Rencana Tindak Lanjut'];
 const WEEK_HEADER = ['Notula', 'Dokumentasi', 'Daftar Hadir'];
 const FRA_HEADER = ['Link Bukti Tindak Lanjut', 'PIC', 'Batas Waktu'];
 
@@ -28,8 +26,8 @@ export function buildRecapSheet(data: RecapExport): RecapSheet {
     const type = data.period_type;
     const header = [
         ...BASE_HEADER,
+        ...(type === 'quarter' ? [...FRA_TEXT_HEADER, ...FRA_HEADER] : []),
         ...(type === 'week' ? WEEK_HEADER : []),
-        ...(type === 'quarter' ? FRA_HEADER : []),
     ];
     const rows: Cell[][] = [header];
     const merges: XLSX.Range[] = [];
@@ -52,35 +50,11 @@ export function buildRecapSheet(data: RecapExport): RecapSheet {
 
         segments.forEach((seg) => {
             const projectStart = rows.length;
-            seg.rows.forEach((row, i) => {
-                // Merged rows ("Gabungkan") sit next to each other: the text cells
-                // of the group are written once and merged down, like the old sheets.
-                const group = row.merge_key ? seg.rows.filter((r) => r.merge_key === row.merge_key) : [row];
-                const inGroupAfterFirst = row.merge_key !== null && row.merge_key !== undefined && seg.rows[i - 1]?.merge_key === row.merge_key;
-                const text = (value: Cell): Cell => (inGroupAfterFirst ? null : value);
-                const uraian = group.length > 1
-                    ? (row.pj_uraian || group.map((r) => r.uraian_aggregated).filter(Boolean).join('\n') || null)
-                    : uraianOf(row);
-                const line: Cell[] = [
-                    null, null, null,
-                    row.rk_description,
-                    text(uraian),
-                    row.target,
-                    row.realization,
-                    row.achievement,
-                    text(row.obstacle),
-                    text(row.solution),
-                    text(row.follow_up_plan),
-                ];
+            seg.rows.forEach((row) => {
+                const line: Cell[] = [null, null, null, row.rk_description, uraianOf(row), row.target, row.realization, row.achievement];
+                if (type === 'quarter') line.push(row.obstacle, row.solution, row.follow_up_plan, row.follow_up_evidence_url ?? null, row.follow_up_pic ?? null, row.follow_up_deadline ?? null);
                 if (type === 'week') line.push(null, null, null);
-                if (type === 'quarter') line.push(row.follow_up_evidence_url ?? null, row.follow_up_pic ?? null, row.follow_up_deadline ?? null);
                 rows.push(line);
-                const isLastOfGroup = group.length > 1 && seg.rows[i + 1]?.merge_key !== row.merge_key;
-                if (isLastOfGroup) {
-                    const end = rows.length - 1;
-                    const start = end - group.length + 1;
-                    [4, 8, 9, 10].forEach((col) => mergeDown(col, start, end));
-                }
             });
             rows[projectStart][2] = seg.project_name;
             mergeDown(2, projectStart, rows.length - 1);

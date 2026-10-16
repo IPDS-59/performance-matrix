@@ -1,14 +1,10 @@
 <script setup lang="ts">
-import { hasObstacle } from '@/composables/useTeamWeeklyRecap';
+import { said } from '@/composables/useRecapSummary';
 import AppLayout from '@/Layouts/AppLayout.vue';
 import RecapLockBar from '@/Components/Kinetik/RecapLockBar.vue';
 import RecapToolbar from '@/Components/Kinetik/RecapToolbar.vue';
-import PrefillButton from '@/Components/Kinetik/PrefillButton.vue';
-import RecapMergeCell from '@/Components/Kinetik/RecapMergeCell.vue';
-import RecapMemberLines from '@/Components/Kinetik/RecapMemberLines.vue';
 import RecapPeriodSections from '@/Components/Kinetik/RecapPeriodSections.vue';
 import ProjectSummaries from '@/Components/Kinetik/ProjectSummaries.vue';
-import { groupAdjacent, groupSize, isGroupLead, textKey, textTarget, useRecapMerge } from '@/composables/useRecapMerge';
 import MeetingChecklist from '@/Components/Kinetik/MeetingChecklist.vue';
 import { periodChecklist } from '@/composables/useMeetingChecklist';
 import { Head, router } from '@inertiajs/vue3';
@@ -90,7 +86,7 @@ function toggleSort(segKey: string) {
 const attentionOnly = ref(false);
 
 function needsAttention(row: RecapRow): boolean {
-    return (row.achievement ?? 0) < 100 || hasObstacle(row.obstacle_aggregated) || !row.is_confirmed;
+    return (row.achievement ?? 0) < 100 || !!said(row.obstacle) || !row.is_confirmed;
 }
 
 function attentionCount(seg: RecapSegment): number {
@@ -101,19 +97,12 @@ function filteredRows(seg: RecapSegment): RecapRow[] {
     const base = attentionOnly.value ? seg.rows.filter(needsAttention) : seg.rows;
     const key = String(seg.project_id ?? 'none');
     const dir = sortDir(key);
-    return groupAdjacent([...base].sort((a, b) =>
+    return [...base].sort((a, b) =>
         dir === 'asc'
             ? (a.achievement ?? 0) - (b.achievement ?? 0)
             : (b.achievement ?? 0) - (a.achievement ?? 0),
-    ));
+    );
 }
-
-// ── Gabungkan / Pisahkan ───────────────────────────────────────────────────
-
-const rowMerge = useRecapMerge(
-    () => ({ team_id: props.selectedTeamId, period_type: 'quarter', period_year: props.year, period_quarter: props.quarter }),
-    () => { fraForms.value = {}; },
-);
 
 // ── Bulk confirm ───────────────────────────────────────────────────────────
 
@@ -155,7 +144,8 @@ function toggleExpand(key: string) {
 function toggleConfirm(row: RecapRow) {
     router.post(route('team-recap.override.confirm'), {
         team_id: props.selectedTeamId,
-        ...textTarget(row),
+        performance_plan_id: row.performance_plan_id,
+        project_id: row.project_id,
         period_type: 'quarter',
         period_year: props.year,
         period_quarter: props.quarter,
@@ -172,7 +162,6 @@ function rowCanParaphrase(row: RecapRow): boolean {
 
 // ── Paraphrase + FRA follow-up forms (per planId) ─────────────────────────
 
-type SeedSource = 'pj' | 'inherited' | 'agg' | 'none';
 type FraForm = {
     obstacle: string;
     solution: string;
@@ -183,64 +172,25 @@ type FraForm = {
     uraian: string;
     saving: boolean;
     errors: Record<string, string>;
-    seedSource: SeedSource;
 };
 const fraForms = ref<Record<string, FraForm>>({});
 
 function getFraForm(row: RecapRow): FraForm {
-    if (!fraForms.value[textKey(row)]) {
-        const hasPj = row.pj_obstacle !== null && row.pj_obstacle !== '';
-        const hasInherited = !!row.inherited_obstacle;
-
-        let seedSource: SeedSource;
-        let obstacleInit: string;
-        let solutionInit: string;
-        let followUpInit: string;
-
-        if (hasPj) {
-            seedSource = 'pj';
-            obstacleInit = row.pj_obstacle!;
-            solutionInit = row.pj_solution ?? '';
-            followUpInit = row.pj_follow_up_plan ?? '';
-        } else if (hasInherited) {
-            seedSource = 'inherited';
-            obstacleInit = row.inherited_obstacle!;
-            solutionInit = row.inherited_solution ?? '';
-            followUpInit = row.inherited_follow_up_plan ?? '';
-        } else if (row.obstacle_aggregated) {
-            seedSource = 'agg';
-            obstacleInit = row.obstacle_aggregated;
-            solutionInit = '';
-            followUpInit = '';
-        } else {
-            seedSource = 'none';
-            obstacleInit = '';
-            solutionInit = '';
-            followUpInit = '';
-        }
-
-        fraForms.value[textKey(row)] = {
+    if (!fraForms.value[row.row_key]) {
+        fraForms.value[row.row_key] = {
             uraian: row.pj_uraian ?? '',
-            obstacle: obstacleInit,
-            solution: solutionInit,
-            follow_up_plan: followUpInit,
+            obstacle: row.obstacle ?? '',
+            solution: row.solution ?? '',
+            follow_up_plan: row.follow_up_plan ?? '',
             follow_up_evidence_url: row.follow_up_evidence_url ?? '',
             follow_up_pic_employee_id: row.follow_up_pic_employee_id ?? null,
             follow_up_deadline: row.follow_up_deadline ?? '',
             saving: false,
             errors: {},
-            seedSource,
         };
     }
 
-    return fraForms.value[textKey(row)];
-}
-
-function pullFromInherited(row: RecapRow) {
-    const f = getFraForm(row);
-    f.obstacle = row.inherited_obstacle ?? '';
-    f.solution = row.inherited_solution ?? '';
-    f.follow_up_plan = row.inherited_follow_up_plan ?? '';
+    return fraForms.value[row.row_key];
 }
 
 function saveParaphrase(row: RecapRow) {
@@ -295,12 +245,6 @@ function saveParaphrase(row: RecapRow) {
                 @export="download({ period_type: 'quarter', year, quarter }, `FRA ${quarterLabel}.xlsx`)"
             >
                 <template #actions>
-                    <PrefillButton
-                        v-if="canManage && selectedTeamId"
-                        source="bulanan"
-                        :payload="{ team_id: selectedTeamId, period_type: 'quarter', period_year: year, period_quarter: quarter }"
-                        @done="fraForms = {}"
-                    />
                     <Button
                         v-if="canManage"
                         size="sm"
@@ -351,15 +295,6 @@ function saveParaphrase(row: RecapRow) {
                             <h3 class="text-sm font-semibold text-gray-800">{{ seg.project_name }}</h3>
                             <p v-if="seg.leader_rk" class="mt-0.5 text-xs leading-snug text-primary">RK Ketua: {{ seg.leader_rk }}</p>
                         </div>
-                        <Button
-                            v-if="canManage && rowMerge.selectedCount(seg) >= 2"
-                            size="sm"
-                            class="ml-auto h-7 px-2.5 text-xs"
-                            :disabled="rowMerge.busy.value"
-                            @click="rowMerge.merge(seg, filteredRows(seg))"
-                        >
-                            Gabungkan {{ rowMerge.selectedCount(seg) }} baris
-                        </Button>
                         <span v-if="attentionCount(seg) > 0" class="inline-flex shrink-0 items-center whitespace-nowrap rounded-full bg-orange-100 px-2 py-0.5 text-xs font-medium text-orange-700">
                             {{ attentionCount(seg) }} perlu perhatian
                         </span>
@@ -384,23 +319,11 @@ function saveParaphrase(row: RecapRow) {
                         </TableHeader>
                         <TableBody class="divide-y divide-gray-100">
                             <template v-for="row in filteredRows(seg)" :key="row.row_key">
-                                <TableRow :class="['hover:bg-gray-50', groupSize(seg, row) > 1 ? 'border-l-2 border-l-primary/60' : '']">
+                                <TableRow :class="'hover:bg-gray-50'">
                                     <TableCell class="min-w-[13rem] whitespace-normal align-top sm:min-w-[18rem]">
-                                        <RecapMergeCell
-                                            :row="row"
-                                            :size="groupSize(seg, row)"
-                                            :lead="isGroupLead(row)"
-                                            :selectable="canManage"
-                                            :selected="rowMerge.isSelected(seg, row)"
-                                            :busy="rowMerge.busy.value"
-                                            @toggle="rowMerge.toggle(seg, row)"
-                                            @split="rowMerge.split(row)"
-                                        >
-                                            <p class="font-medium leading-snug text-gray-800">{{ row.rk_description }}</p>
-                                            <p v-if="row.rk_code" class="text-xs text-gray-500">{{ row.rk_code }}</p>
-                                            <p v-if="row.is_overridden" class="mt-0.5 text-xs italic text-blue-500">Telah diparafrase</p>
-                                            <RecapMemberLines :claims="row.claims ?? []" :can-adjust="canManage" />
-                                        </RecapMergeCell>
+                                        <p class="font-medium leading-snug text-gray-800">{{ row.rk_description }}</p>
+                                        <p v-if="row.rk_code" class="text-xs text-gray-500">{{ row.rk_code }}</p>
+                                        <p v-if="row.is_overridden" class="mt-0.5 text-xs italic text-blue-500">Telah diparafrase</p>
                                     </TableCell>
                                     <TableCell class="hidden min-w-[10rem] max-w-[16rem] whitespace-normal align-top md:table-cell text-xs leading-snug text-gray-600">{{ row.contributors.join(', ') || '—' }}</TableCell>
                                     <TableCell class="text-right align-top tabular-nums text-gray-700">{{ row.target }} {{ row.target_unit ?? '' }}</TableCell>
@@ -444,12 +367,6 @@ function saveParaphrase(row: RecapRow) {
                                 <TableRow v-if="expandedRows[row.row_key]" :key="`${row.row_key}-panel`" class="bg-gray-50">
                                     <TableCell colspan="8" class="whitespace-normal px-4 py-4 sm:px-6">
                                         <div class="space-y-4">
-                                            <!-- Member kendala (read-only) -->
-                                            <div>
-                                                <p class="mb-1 text-xs font-medium text-gray-500">Kendala (anggota)</p>
-                                                <p class="rounded bg-white px-3 py-2 text-sm text-gray-700 ring-1 ring-gray-200">{{ row.obstacle_aggregated || '—' }}</p>
-                                            </div>
-
                                             <!-- Paraphrase + FRA inputs (PJ or this row's PIC) -->
                                             <template v-if="rowCanParaphrase(row)">
                                                 <div>
@@ -460,32 +377,16 @@ function saveParaphrase(row: RecapRow) {
                                                     <div>
                                                         <Label class="text-xs">Kendala (PJ)</Label>
                                                         <Textarea v-model="getFraForm(row).obstacle" :rows="2" class="mt-1 text-sm" />
-                                                        <p v-if="getFraForm(row).seedSource === 'inherited'" class="mt-0.5 text-xs italic text-gray-400">Dirangkum dari parafrase mingguan</p>
-                                                        <p v-else-if="getFraForm(row).seedSource === 'agg'" class="mt-0.5 text-xs italic text-gray-400">Prafilled dari kendala anggota</p>
                                                     </div>
                                                     <div>
                                                         <Label class="text-xs">Solusi (PJ)</Label>
                                                         <Textarea v-model="getFraForm(row).solution" :rows="2" class="mt-1 text-sm" />
-                                                        <p v-if="getFraForm(row).seedSource === 'inherited'" class="mt-0.5 text-xs italic text-gray-400">Dirangkum dari parafrase mingguan</p>
                                                     </div>
                                                     <div>
                                                         <Label class="text-xs">RTL (PJ)</Label>
                                                         <Textarea v-model="getFraForm(row).follow_up_plan" :rows="2" class="mt-1 text-sm" />
-                                                        <p v-if="getFraForm(row).seedSource === 'inherited'" class="mt-0.5 text-xs italic text-gray-400">Dirangkum dari parafrase mingguan</p>
                                                     </div>
                                                 </div>
-                                                <div class="flex items-center justify-start">
-                                                    <Button
-                                                        type="button"
-                                                        size="sm"
-                                                        variant="outline"
-                                                        :disabled="!row.inherited_obstacle && !row.inherited_solution && !row.inherited_follow_up_plan"
-                                                        @click="pullFromInherited(row)"
-                                                    >
-                                                        Tarik dari mingguan
-                                                    </Button>
-                                                </div>
-
                                                 <!-- FRA follow-up fields -->
                                                 <div class="grid grid-cols-1 gap-3 sm:grid-cols-3">
                                                     <div>
@@ -529,15 +430,15 @@ function saveParaphrase(row: RecapRow) {
                                                 <div class="grid grid-cols-1 gap-3 sm:grid-cols-3">
                                                     <div>
                                                         <p class="mb-1 text-xs font-medium text-gray-500">Kendala (PJ)</p>
-                                                        <p class="text-sm text-gray-700">{{ row.pj_obstacle || '—' }}</p>
+                                                        <p class="text-sm text-gray-700">{{ row.obstacle || '—' }}</p>
                                                     </div>
                                                     <div>
                                                         <p class="mb-1 text-xs font-medium text-gray-500">Solusi (PJ)</p>
-                                                        <p class="text-sm text-gray-700">{{ row.pj_solution || '—' }}</p>
+                                                        <p class="text-sm text-gray-700">{{ row.solution || '—' }}</p>
                                                     </div>
                                                     <div>
                                                         <p class="mb-1 text-xs font-medium text-gray-500">RTL (PJ)</p>
-                                                        <p class="text-sm text-gray-700">{{ row.pj_follow_up_plan || '—' }}</p>
+                                                        <p class="text-sm text-gray-700">{{ row.follow_up_plan || '—' }}</p>
                                                     </div>
                                                 </div>
                                                 <div class="grid grid-cols-1 gap-3 sm:grid-cols-3">

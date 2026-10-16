@@ -43,7 +43,7 @@ function shortLabel(name: string, code?: string | null): string {
     return name.length > 14 ? `${name.slice(0, 12)}…` : name;
 }
 
-// Teams with no saved claim this month have count 0; showing them as a red 0%
+// Teams with no capaian this month have count 0; showing them as a red 0%
 // would read as failure, so the chart waits for real data.
 const hasAnyData = computed(() => props.teamList.some(t => t.count > 0));
 
@@ -136,7 +136,7 @@ function leaderBadgeLabel(employeeId: number, team: { id: number; leader_id?: nu
                     </div>
                 </div>
                 <div v-else class="flex h-64 items-center justify-center rounded-lg border border-dashed border-gray-200 bg-gray-50">
-                    <p class="px-4 text-center text-sm text-gray-500">Belum ada klaim tersimpan untuk bulan ini. Grafik muncul setelah anggota menyimpan klaim.</p>
+                    <p class="px-4 text-center text-sm text-gray-500">Belum ada capaian untuk bulan ini. Grafik muncul setelah anggota mengisi target dan capaian di Rekap Mingguan.</p>
                 </div>
             </CardContent>
         </Card>

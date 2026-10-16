@@ -18,7 +18,7 @@ export function periodChecklist(input: { segments: RecapSegment[]; lock: RecapLo
         {
             label: 'Semua baris dikonfirmasi',
             done: rows.length > 0 && confirmed === rows.length,
-            detail: rows.length ? `${confirmed} dari ${rows.length} baris dikonfirmasi.` : 'Belum ada klaim tersimpan pada periode ini.',
+            detail: rows.length ? `${confirmed} dari ${rows.length} baris dikonfirmasi.` : 'Belum ada kegiatan anggota pada periode ini.',
             target: 'rekap-baris',
         },
         lockStep(input.lock),

@@ -10,11 +10,11 @@ defineProps<{
     periodLabel: string;
     prevLabel: string;
     nextLabel: string;
-    attentionTotal: number;
+    attentionTotal?: number;
     exporting: boolean;
 }>();
 
-const attentionOnly = defineModel<boolean>('attentionOnly', { required: true });
+const attentionOnly = defineModel<boolean>('attentionOnly', { default: false });
 
 const emit = defineEmits<{
     'change-team': [teamId: number];
@@ -54,6 +54,7 @@ const emit = defineEmits<{
         <!-- Row 2: what you can do -->
         <div class="mt-3 flex flex-wrap items-center gap-2 border-t pt-3">
             <button
+                v-if="attentionTotal !== undefined"
                 type="button"
                 :aria-pressed="attentionOnly"
                 :class="[

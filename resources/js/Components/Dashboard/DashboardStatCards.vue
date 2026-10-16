@@ -152,7 +152,7 @@ const { achievementColor, progressVariant, avgIconBgColor, avgIconColor } = useA
                     </template>
                     <template v-else>
                         <p class="mt-1 text-2xl font-bold text-gray-300">—</p>
-                        <p class="mt-1 text-xs text-gray-500">Belum ada klaim tersimpan bulan ini</p>
+                        <p class="mt-1 text-xs text-gray-500">Belum ada capaian terisi bulan ini</p>
                     </template>
                 </div>
             </div>
