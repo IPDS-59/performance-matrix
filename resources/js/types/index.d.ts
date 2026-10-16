@@ -599,43 +599,26 @@ export interface RecapSection {
     segments: RecapSegment[];
 }
 
-/** One member card on "Rencana Minggu Ini". */
-export interface WeeklyPlanMember {
-    employee_id: number;
-    name: string;
-    /** The PJ's focus for this member this week. */
-    focus: string | null;
-    /** The member's RK of this team with no kegiatan yet this quarter. */
-    rks_without_activity: Array<{ id: number; name: string }>;
-    /** This quarter's kegiatan still under 100% (newest first, up to 10). */
-    unfinished: Array<{ id: number; description: string; date_start: string; progress: number; rk_name: string | null; evidence_url: string | null }>;
-    unsent_count: number;
-    activity_count: number;
-    rk_count: number;
-    /** Plan items that overlap the week (cancelled ones are left out). */
-    plans: PlanItemRow[];
-    /** Where the member stands in the kipApp planning chain. */
-    flow: PlanFlowStep[];
-}
-
-/** One step of the kipApp planning chain for a member. `unknown` means Kinetik cannot see it. */
-export interface PlanFlowStep {
-    key: 'rk' | 'skp' | 'plan' | 'kipapp' | 'sent';
-    label: string;
-    state: 'done' | 'todo' | 'blocked' | 'unknown';
-    hint: string;
-}
-
+/** One kegiatan of the signed-in member on "Rekap Mingguan". Target and capaian are numbers. */
 export interface PlanItemRow {
     id: number;
+    team_id: number;
     description: string;
     performance_plan_id: number;
     rk_name: string | null;
     project_id: number | null;
     date_start: string;
     date_end: string;
+    /** "HH:MM" for a kegiatan with a clock time (one day), else null. */
+    time_start: string | null;
+    time_end: string | null;
     target: number | null;
     target_unit: string | null;
+    capaian: number | null;
+    /** Uraian capaian: the text sent to kipApp. */
+    capaian_note: string | null;
+    evidence_url: string | null;
+    progress: number;
     status: 'planned' | 'pushed' | 'in_progress' | 'done' | 'cancelled';
     source: 'member' | 'pj' | 'rtl';
     /** Why the last push to kipApp failed; only while the plan is still unsent. */
@@ -643,17 +626,6 @@ export interface PlanItemRow {
     in_kipapp: boolean;
     /** Sent to the atasan in kipApp ("Kirim ke atasan"). */
     sent: boolean;
-    evaluation: PlanEvaluation;
-}
-
-/** Friday evaluation of a plan item: what the member's kipApp kegiatan show, or the PJ's correction. */
-export interface PlanEvaluation {
-    state: 'done' | 'in_progress' | 'not_started';
-    computed_state: 'done' | 'in_progress' | 'not_started';
-    progress: number | null;
-    activity_count: number;
-    overridden: boolean;
-    override_reason: string | null;
 }
 
 export interface FraQuarter {
@@ -751,25 +723,30 @@ export interface PlanComplianceProps {
 export interface PlanRkOption {
     id: number;
     description: string;
+    team_id: number;
+    team_name: string | null;
     project_id: number | null;
     project_candidates: number[];
     project_optional: boolean;
     target_unit: string | null;
 }
 
-export interface WeeklyPlanProps {
-    teams: TeamOption[];
-    selectedTeamId: number | null;
-    weekStart: string;
-    weekEnd: string;
-    prevWeek: string;
-    nextWeek: string;
-    quarter: number;
-    canManage: boolean;
-    currentEmployeeId: number | null;
+export interface MemberWeekProps {
+    employee: { id: number; name: string } | null;
     /** The "Kirim ke atasan" buttons are shown only when the setting is on. */
     canSendToAtasan: boolean;
-    members: WeeklyPlanMember[];
-    rkOptions: PlanRkOption[];
-    projectOptions: Array<{ id: number; name: string }>;
+    weekStart?: string;
+    weekEnd?: string;
+    lastWeekStart?: string;
+    lastWeekEnd?: string;
+    prevWeek?: string;
+    nextWeek?: string;
+    lastWeek?: PlanItemRow[];
+    thisWeek?: PlanItemRow[];
+    /** The PJ's focus for this member this week. */
+    focus?: string | null;
+    rkOptions?: PlanRkOption[];
+    projectOptions?: Array<{ id: number; name: string }>;
+    /** False until the member synced their RK list from kipApp. */
+    rkSynced?: boolean;
 }

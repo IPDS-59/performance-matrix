@@ -31,7 +31,7 @@ it('notifies the member when the PJ sets their weekly focus, once per change', f
     expect($memberUser->notifications)->toHaveCount(1)
         ->and($memberUser->notifications->first()->data)->toMatchArray(['type' => 'weekly_focus'])
         ->and($memberUser->notifications->first()->data['message'])->toContain('Sukma mengisi fokus Anda')->toContain('Entri SE2026')
-        ->and($memberUser->notifications->first()->data['url'])->toContain('/rencana-minggu');
+        ->and($memberUser->notifications->first()->data['url'])->toContain('/rekap-mingguan');
 });
 
 it('notifies the member when the PJ corrects their numbers', function () {

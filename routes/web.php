@@ -8,6 +8,7 @@ use App\Http\Controllers\FraController;
 use App\Http\Controllers\GuideController;
 use App\Http\Controllers\KipActivityController;
 use App\Http\Controllers\KipIntegrationController;
+use App\Http\Controllers\MemberWeekController;
 use App\Http\Controllers\MyActivitySyncController;
 use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\PerformanceApprovalController;
@@ -25,12 +26,11 @@ use App\Http\Controllers\ReportResubmitController;
 use App\Http\Controllers\TeamController;
 use App\Http\Controllers\TeamMemberController;
 use App\Http\Controllers\TeamRecapController;
-use App\Http\Controllers\WeeklyActivityController;
 use App\Http\Controllers\WeeklyPlanController;
 use App\Http\Controllers\WorkItemController;
 use App\Http\Controllers\WorkItemDetailController;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
-use Inertia\Inertia;
 
 Route::get('/', function () {
     return redirect()->route('login');
@@ -102,11 +102,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/kegiatan-kipapp', [KipActivityController::class, 'index'])->name('kip-activities.index');
 
     // Weekly activity scrapper / recap
-    Route::get('/rencana-minggu', [WeeklyPlanController::class, 'index'])->name('weekly-plan.index');
-    // Design demo (sample data, nothing saved). Local only.
-    if (app()->environment('local')) {
-        Route::get('/demo/kegiatan', fn () => Inertia::render('Kinetik/DemoKegiatan'))->name('demo.kegiatan');
-    }
+    // The old plan page; old links and notifications still land on the new one.
+    Route::get('/rencana-minggu', fn (Request $request) => redirect()->route('weekly.index', $request->only('week')))->name('weekly-plan.index');
     Route::get('/fra', [FraController::class, 'index'])->name('fra.index');
     Route::patch('/fra/{indicator}/triwulan/{quarter}', [FraController::class, 'updateValues'])->name('fra.values');
     Route::patch('/fra/{indicator}/pemilik', [FraController::class, 'updateOwner'])->name('fra.owner');
@@ -121,9 +118,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('/rencana-minggu/item/{planItem}/selesai', [PlanItemController::class, 'complete'])->name('plan-items.complete');
     Route::patch('/rencana-minggu/item/{planItem}/evaluasi', [PlanItemController::class, 'evaluate'])->name('plan-items.evaluate');
     Route::delete('/rencana-minggu/item/{planItem}', [PlanItemController::class, 'destroy'])->name('plan-items.destroy');
-    Route::get('/rekap-mingguan', [WeeklyActivityController::class, 'index'])->name('weekly.index');
-    Route::post('/rekap-mingguan/claim', [WeeklyActivityController::class, 'storeClaim'])->name('weekly.claim');
-    Route::post('/rekap-mingguan/claim-bulk', [WeeklyActivityController::class, 'storeClaimsBulk'])->name('weekly.claim-bulk');
+    Route::get('/rekap-mingguan', [MemberWeekController::class, 'index'])->name('weekly.index');
 
     // Team recaps (weekly / monthly / quarterly FRA)
     Route::get('/rekap-tim', [TeamRecapController::class, 'weekly'])->name('team-recap.weekly');

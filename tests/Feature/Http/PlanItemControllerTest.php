@@ -78,19 +78,6 @@ it('edits and cancels only plans still in the planned state', function () {
     $this->actingAs($memberUser)->patch(route('plan-items.update', $item), planPayload($team, $rk))->assertStatus(422);
 });
 
-it('shows the week plans and RK options on the board, leaving out cancelled ones', function () {
-    [$pjUser, $team, $member, , $rk] = planSetup();
-    foreach ([['Minggu ini', '2026-10-06', '2026-10-06', 'planned'], ['Minggu lalu', '2026-09-29', '2026-09-30', 'planned'], ['Batal', '2026-10-06', '2026-10-06', 'cancelled']] as [$d, $s, $e, $st]) {
-        PlanItem::create(['team_id' => $team->id, 'employee_id' => $member->id, 'performance_plan_id' => $rk->id, 'description' => $d, 'date_start' => $s, 'date_end' => $e, 'status' => $st]);
-    }
-
-    $this->actingAs($pjUser)->get(route('weekly-plan.index', ['team' => $team->id, 'week' => '2026-10-05']))
-        ->assertInertia(fn ($page) => $page
-            ->where('members', fn ($m) => collect($m)->firstWhere('employee_id', $member->id)['plans'][0]['description'] === 'Minggu ini'
-                && count(collect($m)->firstWhere('employee_id', $member->id)['plans']) === 1)
-            ->where('rkOptions.0.description', 'RK Inovasi'));
-});
-
 it('stores the kipApp fields, target and capaian as numbers', function () {
     [, $team, , $memberUser, $rk] = planSetup();
     $payload = planPayload($team, $rk, ['target' => 12, 'target_unit' => 'blok', 'capaian' => 9.5, 'capaian_note' => 'Blok 1-9 selesai', 'evidence_url' => 'https://drive.example/b', 'progress' => 75]);
