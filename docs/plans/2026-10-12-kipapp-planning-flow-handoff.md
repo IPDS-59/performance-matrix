@@ -77,3 +77,20 @@ A recording of a walkthrough of kipApp (screen share, 11 minutes, 2026-10-11). T
 - Pint (`vendor/bin/pint --test`) runs in CI over the whole repo. Run it before you push.
 - Deploy: `./deploy.sh` builds the zip from the working tree and injects `.env.production` as `.env`. Upload it, open the setup link, then run `migrate-prod.sh`. This release adds the migration for `plan_items.kip_sent_at`. Run the migration right after the upload.
 - State at this handoff: 580 PHP tests, 92 vitest tests, `vue-tsc` clean.
+
+## Planning redesign: decisions of 2026-10-16 (from the team lead and the product owner)
+
+A clickable prototype is in `docs/prototype/kinetik-rencana-rekap.html` (one HTML file, sample data). Build the real version from it, one PR per part.
+
+1. **No claim flow.** The Rekap Mingguan claim form goes away. kipApp data is already synced, so members add and edit kegiatan directly. Planning (Rencana Minggu Ini) and the weekly recap become one page per member: input and monitoring in the same table.
+2. **Weekly cycle.** Meeting in week 1: discuss the plan for the next week and enter targets. Meeting in the following weeks: discuss last week's capaian, then plan for the current week and enter targets. The page has two tables: "Capaian minggu lalu" and "Rencana minggu ini".
+3. **Tables, not cards.** Sent items show as a table with a few columns. Clicking a row opens a popup with every field.
+4. **Popup form.** A button opens the form as a popup, like kipApp. After saving, the row appears in the table.
+5. **Target and capaian.** Each member enters and edits their own target and capaian. The PJ does not edit per-person values. The PJ adds one target and one capaian for the whole RK, next to the paraphrase.
+6. **Paraphrase (PJ).** No merged rows, and no prefill from every member (the box fills up when many people share an RK). Show a context panel beside an empty box: one line per member, expandable, with a "Sisipkan" button per sentence so the PJ picks what to reuse. Show "Dibaca n/m" as a nudge, not a lock. Lock stays as it is. The weekly paraphrase can feed the monthly recap.
+7. **Recap linked to members.** Weekly and monthly team recaps read from each member's entries and can be filtered per person.
+8. **Own card only.** Rencana Minggu Ini shows only the signed-in person (PR #144). The PJ's team view is the recap and compliance pages.
+9. **Simpler menu.** Reduce the sidebar. Exact items are not decided: ask the team lead.
+10. **First sync after connecting SSO.** The "RK belum ada kegiatan" message still says an admin must run the sync. Replace it with "Tekan Sinkronkan data saya", and run the first sync automatically when a member finishes connecting SSO.
+
+Open questions: where does item 5's "choose" (kegiatan from presensi, as in kipApp) get its list from? Ask for a screenshot of that kipApp screen. Should changes to capaian be logged with who and when?
