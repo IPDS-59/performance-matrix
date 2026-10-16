@@ -206,7 +206,7 @@ export const GUIDE_FLOWS: GuideFlow[] = [
                 where: 'Menu Kegiatan → Rencana Minggu Ini',
                 route: 'weekly-plan.index',
                 body: [
-                    'Kartu Anda tampil paling atas. Isinya fokus dari PJ untuk minggu ini, RK yang belum punya kegiatan di triwulan ini, dan kegiatan yang progresnya belum 100%.',
+                    'Halaman ini hanya menampilkan kartu Anda sendiri. Isinya fokus dari PJ untuk minggu ini, RK yang belum punya kegiatan di triwulan ini, dan kegiatan yang progresnya belum 100%.',
                     'Di bawah nama Anda ada lima langkah: RK Anggota, SKP triwulan, rencana minggu ini, ada di kipApp, dan terkirim ke atasan. Langkah merah menunjukkan apa yang menghambat, lengkap dengan cara memperbaikinya.',
                     'Buka "Urutan perencanaan di kipApp" di bagian atas halaman untuk melihat urutan lengkap dari RK Anggota sampai kirim ke atasan.',
                     'Mulai minggu dari daftar itu: kerjakan fokus PJ, lalu lanjutkan kegiatan yang belum selesai.',

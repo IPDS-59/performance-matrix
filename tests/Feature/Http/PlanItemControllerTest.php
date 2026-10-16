@@ -77,13 +77,13 @@ it('edits and cancels only plans still in the planned state', function () {
     $this->actingAs($memberUser)->patch(route('plan-items.update', $item), planPayload($team, $rk))->assertStatus(422);
 });
 
-it('shows the week plans and RK options on the board, leaving out cancelled ones', function () {
-    [$pjUser, $team, $member, , $rk] = planSetup();
+it('shows the member their own week plans and the RK options, leaving out cancelled ones', function () {
+    [, $team, $member, $memberUser, $rk] = planSetup();
     foreach ([['Minggu ini', '2026-10-06', '2026-10-06', 'planned'], ['Minggu lalu', '2026-09-29', '2026-09-30', 'planned'], ['Batal', '2026-10-06', '2026-10-06', 'cancelled']] as [$d, $s, $e, $st]) {
         PlanItem::create(['team_id' => $team->id, 'employee_id' => $member->id, 'performance_plan_id' => $rk->id, 'description' => $d, 'date_start' => $s, 'date_end' => $e, 'status' => $st]);
     }
 
-    $this->actingAs($pjUser)->get(route('weekly-plan.index', ['team' => $team->id, 'week' => '2026-10-05']))
+    $this->actingAs($memberUser)->get(route('weekly-plan.index', ['team' => $team->id, 'week' => '2026-10-05']))
         ->assertInertia(fn ($page) => $page
             ->where('members', fn ($m) => collect($m)->firstWhere('employee_id', $member->id)['plans'][0]['description'] === 'Minggu ini'
                 && count(collect($m)->firstWhere('employee_id', $member->id)['plans']) === 1)

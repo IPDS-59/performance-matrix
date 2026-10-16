@@ -113,7 +113,8 @@ class WeeklyPlanController extends Controller
      */
     private function members(Team $team, Carbon $monday): array
     {
-        $members = $team->members()->orderBy('employees.name')->get();
+        // Each person sees only their own plan. The PJ's view of the whole team is the recap and compliance pages.
+        $members = $team->members()->where('employees.id', auth()->user()->employee?->id)->get();
         $ids = $members->pluck('id');
         $quarterStart = $monday->copy()->firstOfQuarter()->toDateString();
         $quarterEnd = $monday->copy()->lastOfQuarter()->toDateString();
