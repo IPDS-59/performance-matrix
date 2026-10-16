@@ -73,33 +73,14 @@ class PerformancePlanController extends Controller
 
         $canCreate = $user->can('create', PerformancePlan::class);
 
-        return Inertia::render('PerformancePlans/Index', compact('plans', 'projects', 'projectId', 'canCreate'));
-    }
+        // For the add/edit popup: admins pick any project, a PJ one of the projects of the teams they lead.
+        $manager = $user->hasPermissionTo('manage-projects');
+        $formProjects = $manager
+            ? Project::orderBy('name')->get(['id', 'name', 'team_id', 'year'])
+            : Project::whereIn('team_id', $ledTeamIds)->orderBy('name')->get(['id', 'name', 'team_id', 'year']);
+        $employees = Employee::where('is_active', true)->orderBy('name')->get(['id', 'name', 'display_name', 'team_id']);
 
-    public function create(Request $request): Response
-    {
-        $this->authorize('create', PerformancePlan::class);
-
-        $user = $request->user();
-        $isAdmin = $user->hasPermissionTo('manage-projects');
-
-        if ($isAdmin) {
-            $projects = Project::with('team:id,name')->orderBy('name')->get(['id', 'name', 'team_id']);
-            $employees = Employee::where('is_active', true)->orderBy('name')->get(['id', 'name', 'display_name', 'team_id']);
-        } else {
-            $employee = $user->employee;
-            $ledTeamIds = $employee
-                ? Team::where('leader_id', $employee->id)->pluck('id')
-                : collect();
-
-            $projects = $ledTeamIds->isNotEmpty()
-                ? Project::with('team:id,name')->whereIn('team_id', $ledTeamIds)->orderBy('name')->get(['id', 'name', 'team_id'])
-                : collect();
-
-            $employees = Employee::where('is_active', true)->orderBy('name')->get(['id', 'name', 'display_name', 'team_id']);
-        }
-
-        return Inertia::render('PerformancePlans/Create', compact('projects', 'employees', 'isAdmin'));
+        return Inertia::render('PerformancePlans/Index', compact('plans', 'projects', 'projectId', 'canCreate', 'formProjects', 'employees', 'manager'));
     }
 
     public function store(Request $request): RedirectResponse
@@ -140,35 +121,6 @@ class PerformancePlanController extends Controller
 
         return redirect()->route('performance-plans.index')
             ->with('success', 'Rencana Kinerja berhasil ditambahkan.');
-    }
-
-    public function edit(PerformancePlan $performancePlan, Request $request): Response
-    {
-        $this->authorize('update', $performancePlan);
-
-        $user = $request->user();
-        $isAdmin = $user->hasPermissionTo('manage-projects');
-
-        $performancePlan->load('project.team:id,name', 'pic:id,name,display_name');
-
-        if ($isAdmin) {
-            $projects = Project::with('team:id,name')->orderBy('name')->get(['id', 'name', 'team_id']);
-            $employees = Employee::where('is_active', true)->orderBy('name')->get(['id', 'name', 'display_name', 'team_id']);
-        } else {
-            $employee = $user->employee;
-            $ledTeamIds = $employee
-                ? Team::where('leader_id', $employee->id)->pluck('id')
-                : collect();
-            $projects = $ledTeamIds->isNotEmpty()
-                ? Project::with('team:id,name')->whereIn('team_id', $ledTeamIds)->orderBy('name')->get(['id', 'name', 'team_id'])
-                : collect();
-            $teamId = $performancePlan->project?->team_id ?? $performancePlan->team_id;
-            $employees = $teamId
-                ? Employee::where('team_id', $teamId)->where('is_active', true)->orderBy('name')->get(['id', 'name', 'display_name', 'team_id'])
-                : collect();
-        }
-
-        return Inertia::render('PerformancePlans/Edit', compact('performancePlan', 'projects', 'employees', 'isAdmin'));
     }
 
     public function update(Request $request, PerformancePlan $performancePlan): RedirectResponse

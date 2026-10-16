@@ -18,7 +18,7 @@ class TeamController extends Controller
         $user = $request->user();
         $isAdmin = $user->hasPermissionTo('manage-teams');
 
-        $teams = Team::orderBy('name')->get(['id', 'name', 'code', 'is_active', 'leader_id']);
+        $teams = Team::orderBy('name')->get(['id', 'name', 'code', 'description', 'is_active', 'leader_id']);
 
         $manageableTeamIds = $isAdmin
             ? $teams->pluck('id')->all()
@@ -26,16 +26,9 @@ class TeamController extends Controller
                 ? $teams->where('leader_id', $user->employee->id)->pluck('id')->all()
                 : []);
 
-        return Inertia::render('Teams/Index', compact('teams', 'manageableTeamIds'));
-    }
-
-    public function create(): Response
-    {
-        $this->authorize('create', Team::class);
-
         $employees = Employee::where('is_active', true)->orderBy('name')->get(['id', 'name', 'display_name']);
 
-        return Inertia::render('Teams/Create', compact('employees'));
+        return Inertia::render('Teams/Index', compact('teams', 'manageableTeamIds', 'employees'));
     }
 
     public function store(Request $request): RedirectResponse
@@ -53,16 +46,6 @@ class TeamController extends Controller
         Team::create($validated);
 
         return redirect()->route('teams.index')->with('success', 'Tim berhasil ditambahkan.');
-    }
-
-    public function edit(Team $team): Response
-    {
-        $this->authorize('update', $team);
-
-        $team->load('leader:id,name,display_name');
-        $employees = Employee::where('is_active', true)->orderBy('name')->get(['id', 'name', 'display_name']);
-
-        return Inertia::render('Teams/Edit', compact('team', 'employees'));
     }
 
     public function update(Request $request, Team $team): RedirectResponse

@@ -1,5 +1,6 @@
 <?php
 
+use App\Models\Employee;
 use App\Models\Team;
 
 it('redirects guests to login', function () {
@@ -22,12 +23,6 @@ it('denies index for staff', function () {
         ->assertForbidden();
 });
 
-it('renders create form for admin', function () {
-    $this->actingAs(adminUser())
-        ->get(route('teams.create'))
-        ->assertInertia(fn ($page) => $page->component('Teams/Create'));
-});
-
 it('stores a team and redirects', function () {
     $this->actingAs(adminUser())
         ->post(route('teams.store'), [
@@ -47,12 +42,13 @@ it('validates required fields on store', function () {
         ->assertSessionHasErrors(['name', 'code']);
 });
 
-it('renders edit form for admin', function () {
-    $team = Team::factory()->create();
+it('gives the team popup the employees and the full team fields', function () {
+    $team = Team::factory()->create(['description' => 'Tim data']);
+    Employee::factory()->create(['is_active' => true]);
 
     $this->actingAs(adminUser())
-        ->get(route('teams.edit', $team))
-        ->assertInertia(fn ($page) => $page->component('Teams/Edit')->has('team'));
+        ->get(route('teams.index'))
+        ->assertInertia(fn ($page) => $page->component('Teams/Index')->has('employees')->where('teams', fn ($teams) => collect($teams)->contains('description', 'Tim data')));
 });
 
 it('updates a team and redirects', function () {
