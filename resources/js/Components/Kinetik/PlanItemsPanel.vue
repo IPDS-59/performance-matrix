@@ -8,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import InputError from '@/Components/InputError.vue';
 import { Plus } from 'lucide-vue-next';
 import PlanItemCard from '@/Components/Kinetik/PlanItemCard.vue';
+import FormDialog from '@/Components/FormDialog.vue';
 
 /** The planned tasks of one member this week, with the form to add or edit one. */
 const props = defineProps<{
@@ -99,7 +100,15 @@ const field = 'w-full rounded-md border border-gray-300 bg-white px-2 py-1.5 tex
             <PlanItemCard v-for="plan in plans" :key="plan.id" :plan="plan" :can-edit="canEdit" :can-evaluate="canEvaluate" :can-send="canSend" @edit="openEdit" />
         </ul>
 
-        <form v-if="editing !== null" class="mt-2 space-y-2 rounded border border-primary/30 bg-primary/5 p-3" @submit.prevent="save">
+        <FormDialog
+            :open="editing !== null"
+            :title="editing === 'new' ? 'Tambah rencana' : 'Ubah rencana'"
+            description="Rencana dikirim ke kipApp pada tanggal mulainya."
+            submit-label="Simpan rencana"
+            :processing="form.processing"
+            @update:open="(v: boolean) => { if (!v) editing = null; }"
+            @submit="save"
+        >
             <label class="block text-xs text-gray-600">Rencana Kinerja (RK)
                 <Select :model-value="form.performance_plan_id" @update:model-value="(v) => { form.performance_plan_id = Number(v); onRkChange(); }">
                     <SelectTrigger class="mt-0.5 h-auto min-h-9 w-full whitespace-normal text-left"><SelectValue placeholder="Pilih RK" /></SelectTrigger>
@@ -132,10 +141,6 @@ const field = 'w-full rounded-md border border-gray-300 bg-white px-2 py-1.5 tex
                 <label class="text-xs text-gray-600">Target (opsional) <input v-model="form.target" type="number" min="0" step="any" :class="[field, 'mt-0.5']" /></label>
                 <label class="text-xs text-gray-600">Satuan <input v-model="form.target_unit" type="text" :class="[field, 'mt-0.5']" /></label>
             </div>
-            <div class="flex justify-end gap-2">
-                <Button type="button" variant="ghost" size="sm" @click="editing = null">Batal</Button>
-                <Button type="submit" size="sm" :disabled="form.processing">{{ form.processing ? 'Menyimpan…' : 'Simpan rencana' }}</Button>
-            </div>
-        </form>
+        </FormDialog>
     </div>
 </template>

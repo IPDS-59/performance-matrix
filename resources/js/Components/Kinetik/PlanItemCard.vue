@@ -9,6 +9,7 @@ import { Textarea } from '@/Components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/Components/ui/select';
 import InputError from '@/Components/InputError.vue';
 import ConfirmDialog from '@/Components/ConfirmDialog.vue';
+import FormDialog from '@/Components/FormDialog.vue';
 import { planStage, toneClass } from '@/composables/usePlanStage';
 import { useDateFormat } from '@/composables/useDateFormat';
 
@@ -134,7 +135,15 @@ const confirmCopy = computed(() => ({
             <Button type="button" :variant="stage.action === 'unsend' ? 'outline' : 'default'" size="sm" class="h-8" @click="runPrimary">{{ stage.actionLabel }}</Button>
         </div>
 
-        <form v-if="panel === 'complete'" class="mt-3 space-y-2 rounded-md border border-primary/30 bg-primary/5 p-3" @submit.prevent="saveComplete">
+        <FormDialog
+            :open="panel === 'complete'"
+            title="Tandai selesai"
+            :description="plan.description"
+            submit-label="Simpan dan kirim"
+            :processing="completion.processing"
+            @update:open="(v: boolean) => { if (!v) panel = null; }"
+            @submit="saveComplete"
+        >
             <label class="block text-xs font-medium text-gray-700">Capaian
                 <Textarea v-model="completion.capaian" :rows="2" class="mt-1 text-sm" placeholder="Apa yang sudah selesai (opsional)" />
             </label>
@@ -143,13 +152,16 @@ const confirmCopy = computed(() => ({
             </label>
             <InputError :message="completion.errors.evidence_url || completion.errors.capaian" />
             <p class="text-xs text-gray-600">Progres 100% dikirim ke kipApp atas nama Anda.</p>
-            <div class="flex justify-end gap-2">
-                <Button type="button" variant="ghost" size="sm" @click="panel = null">Batal</Button>
-                <Button type="submit" size="sm" :disabled="completion.processing">{{ completion.processing ? 'Mengirim…' : 'Simpan dan kirim' }}</Button>
-            </div>
-        </form>
+        </FormDialog>
 
-        <form v-if="panel === 'correct'" class="mt-3 space-y-2 rounded-md border border-primary/30 bg-primary/5 p-3" @submit.prevent="saveCorrect">
+        <FormDialog
+            :open="panel === 'correct'"
+            title="Koreksi hasil"
+            :description="plan.description"
+            :processing="correction.processing"
+            @update:open="(v: boolean) => { if (!v) panel = null; }"
+            @submit="saveCorrect"
+        >
             <Select v-model="correction.status">
                 <SelectTrigger class="h-9 w-full text-sm" aria-label="Hasil rencana"><SelectValue /></SelectTrigger>
                 <SelectContent>
@@ -158,12 +170,8 @@ const confirmCopy = computed(() => ({
             </Select>
             <Input v-model="correction.reason" class="h-9 text-sm" placeholder="Alasan koreksi (wajib)" aria-label="Alasan koreksi" required maxlength="500" />
             <InputError :message="correction.errors.reason || correction.errors.status" />
-            <div class="flex justify-end gap-2">
-                <Button v-if="plan.evaluation.overridden" type="button" variant="ghost" size="sm" @click="clearCorrect">Hapus koreksi</Button>
-                <Button type="button" variant="ghost" size="sm" @click="panel = null">Batal</Button>
-                <Button type="submit" size="sm" :disabled="correction.processing">Simpan</Button>
-            </div>
-        </form>
+            <Button v-if="plan.evaluation.overridden" type="button" variant="outline" size="sm" @click="clearCorrect">Hapus koreksi</Button>
+        </FormDialog>
 
         <ConfirmDialog
             :open="confirming !== null"

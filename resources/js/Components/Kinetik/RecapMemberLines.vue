@@ -3,6 +3,9 @@ import { router } from '@inertiajs/vue3';
 import { computed, ref } from 'vue';
 import type { RecapClaimLine } from '@/types';
 import { Pencil } from 'lucide-vue-next';
+import FormDialog from '@/Components/FormDialog.vue';
+import { Input } from '@/Components/ui/input';
+import { Label } from '@/Components/ui/label';
 
 /**
  * The member claims behind a recap row: who did what (kipApp uraian) and
@@ -27,7 +30,11 @@ function start(line: RecapClaimLine) {
     draft.value = { target: line.target != null ? String(line.target) : '', realization: line.realization != null ? String(line.realization) : '' };
 }
 
-function save(line: RecapClaimLine) {
+const editingLine = computed(() => props.claims.find(c => c.claim_id === editing.value) ?? null);
+
+function save() {
+    const line = editingLine.value;
+    if (!line) return;
     saving.value = true;
     router.post(route('team-recap.claim-adjust', line.claim_id), {
         target: draft.value.target === '' ? null : draft.value.target,
@@ -49,14 +56,8 @@ const number = (v: number | null) => (v == null ? '—' : new Intl.NumberFormat(
                 <span class="rounded-full bg-indigo-50 px-1.5 py-px font-medium text-indigo-700">{{ line.name }}</span>
                 <span class="min-w-0 flex-1 text-gray-600">{{ line.uraian ?? 'Tanpa uraian' }}</span>
 
-                <form v-if="editing === line.claim_id" class="flex items-center gap-1" @submit.prevent="save(line)">
-                    <input v-model="draft.target" type="number" min="0" step="any" class="h-6 w-14 rounded border border-gray-300 px-1 text-right text-xs tabular-nums" :aria-label="`Target ${line.name}`" />
-                    <span class="text-gray-400">/</span>
-                    <input v-model="draft.realization" type="number" min="0" step="any" class="h-6 w-14 rounded border border-gray-300 px-1 text-right text-xs tabular-nums" :aria-label="`Realisasi ${line.name}`" />
-                    <button type="submit" class="rounded bg-primary px-1.5 py-0.5 font-medium text-primary-foreground disabled:opacity-50" :disabled="saving">Simpan</button>
-                    <button type="button" class="px-1 text-gray-500 hover:text-gray-800" @click="editing = null">Batal</button>
-                </form>
-                <span v-else class="inline-flex items-center gap-1 whitespace-nowrap tabular-nums text-gray-700">
+
+                <span class="inline-flex items-center gap-1 whitespace-nowrap tabular-nums text-gray-700">
                     {{ number(line.realization) }} / {{ number(line.target) }} {{ line.target_unit ?? '' }}
                     <button
                         v-if="canAdjust"
@@ -77,4 +78,18 @@ const number = (v: number | null) => (v == null ? '—' : new Intl.NumberFormat(
             </button>
         </li>
     </ul>
+
+    <FormDialog
+        :open="editingLine !== null"
+        title="Koreksi angka"
+        :description="editingLine ? `${editingLine.name}: ${editingLine.uraian ?? 'Tanpa uraian'}` : ''"
+        :processing="saving"
+        @update:open="(v: boolean) => { if (!v) editing = null; }"
+        @submit="save"
+    >
+        <div class="grid grid-cols-2 gap-3">
+            <div class="space-y-1.5"><Label for="adj-target">Target</Label><Input id="adj-target" v-model="draft.target" type="number" min="0" step="any" /></div>
+            <div class="space-y-1.5"><Label for="adj-real">Realisasi</Label><Input id="adj-real" v-model="draft.realization" type="number" min="0" step="any" /></div>
+        </div>
+    </FormDialog>
 </template>

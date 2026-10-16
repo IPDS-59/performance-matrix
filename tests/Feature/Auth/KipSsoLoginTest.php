@@ -238,4 +238,17 @@ class KipSsoLoginTest extends TestCase
 
         $this->assertFalse($user->fresh()->needsKipConnection());
     }
+
+    public function test_with_sso_login_switched_off_staff_use_their_local_password_and_bps_is_never_called(): void
+    {
+        config(['kinetik.kip.sso_login' => false]);
+        Http::fake();
+        $user = $this->staff();
+
+        $this->post('/login', ['email' => 'sukma', 'password' => 'password'])->assertRedirect(route('dashboard', absolute: false));
+
+        $this->assertAuthenticatedAs($user);
+        $this->get('/dashboard')->assertOk();
+        Http::assertNothingSent();
+    }
 }
