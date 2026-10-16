@@ -24,20 +24,6 @@ export interface GuideShot {
 
 // Screenshots of the real pages with mock names (public/images/pedoman).
 export const SHOTS = {
-    anggotaKlaim: {
-        src: '/images/pedoman/anggota-klaim.webp',
-        alt: 'Halaman Rekap Mingguan dengan satu kegiatan yang siap diklaim',
-        width: 1024, height: 814,
-        markers: [
-            { n: 1, x: 2.6, y: 15.8, label: 'Progres minggu ini: berapa kegiatan sudah disimpan.' },
-            { n: 2, x: 65.3, y: 16.8, label: 'Isi cepat semua kegiatan yang belum diklaim.' },
-            { n: 3, x: 81.1, y: 16.8, label: 'Simpan semua kegiatan yang sudah lengkap sekaligus.' },
-            { n: 4, x: 2.6, y: 55.4, label: 'Pilih Projek tempat kegiatan dikerjakan.' },
-            { n: 5, x: 2.6, y: 67.5, label: 'Target, Realisasi dan Satuan. Capaian dihitung otomatis.' },
-            { n: 6, x: 2.6, y: 81.2, label: 'Kendala wajib diisi. Tulis "-" jika tidak ada.' },
-            { n: 7, x: 2.6, y: 94.6, label: 'Isi cepat untuk satu kegiatan ini saja.' },
-        ],
-    },
     pjRekapTim: {
         src: '/images/pedoman/pj-rekap-tim.webp',
         alt: 'Halaman Rekap Tim mingguan: kartu per projek dengan satu baris per kegiatan, baris gabungan, Laporan Tersimpan dan tombol Kunci rekap di bawah',
@@ -132,7 +118,7 @@ export const SHOTS = {
             { n: 2, x: 6, y: 73.1, label: 'Tempel token x-auth baru dari kipApp.' },
             { n: 3, x: 19.5, y: 82.7, label: 'Simpan token.' },
             { n: 4, x: 38.5, y: 39.1, label: 'Sinkronisasi Struktur: tim, projek, anggota, RK. Jalankan lebih dulu.' },
-            { n: 5, x: 38.5, y: 7.3, label: 'Sinkronisasi Kegiatan: kegiatan harian semua pegawai.' },
+            { n: 5, x: 38.5, y: 7.3, label: 'Sinkronisasi Kegiatan: kegiatan harian semua pegawai (anggota menyinkronkan dirinya sendiri lewat "Sinkronkan data saya").' },
             { n: 6, x: 38.5, y: 70.9, label: 'Sinkronisasi Angka Kredit: golongan dan predikat SKP.' },
             { n: 7, x: 83.5, y: 71.9, label: 'Tekan Sinkronkan dan biarkan halaman terbuka sampai selesai.' },
         ],
@@ -188,7 +174,7 @@ const SSO_LOGIN_STEP: GuideStep = {
 };
 
 export const GUIDE_OVERVIEW = [
-    { who: 'Anggota', what: 'Mengisi kegiatan harian di kipApp, lalu mengklaim kegiatan mingguan di Kinetik.' },
+    { who: 'Anggota', what: 'Merencanakan kegiatan dan mengisi capaian mingguan di Rekap Mingguan.' },
     { who: 'PJ / Ketua Tim', what: 'Meninjau rekap tim, mengisi solusi dan rencana tindak lanjut, menambah bukti rapat, lalu mengunci rekap sebelum rapat.' },
     { who: 'Pimpinan', what: 'Membaca rekap semua tim di Review Bersama, menulis Catatan Pimpinan, dan mengunduh Excel untuk rapat.' },
 ];
@@ -197,96 +183,58 @@ export const GUIDE_FLOWS: GuideFlow[] = [
     {
         role: 'anggota',
         label: 'Anggota',
-        summary: 'Setiap minggu Anda mengklaim kegiatan kipApp ke Rencana Kinerja (RK) dan Projek, lalu mengisi capaian dan kendala.',
+        summary: 'Setiap minggu Anda merencanakan kegiatan per Rencana Kinerja (RK), lalu mengisi capaian (angka dan uraian) dan tautan bukti.',
         replaces: 'Sheet "Kegiatan Mingguan Anggota"',
         steps: [
             SSO_LOGIN_STEP,
-            {
-                title: 'Lihat Rencana Minggu Ini setiap Senin',
-                where: 'Menu Kegiatan → Rencana Minggu Ini',
-                route: 'weekly-plan.index',
-                body: [
-                    'Kartu Anda tampil paling atas. Isinya fokus dari PJ untuk minggu ini, RK yang belum punya kegiatan di triwulan ini, dan kegiatan yang progresnya belum 100%.',
-                    'Di bawah nama Anda ada lima langkah: RK Anggota, SKP triwulan, rencana minggu ini, ada di kipApp, dan terkirim ke atasan. Langkah merah menunjukkan apa yang menghambat, lengkap dengan cara memperbaikinya.',
-                    'Buka "Urutan perencanaan di kipApp" di bagian atas halaman untuk melihat urutan lengkap dari RK Anggota sampai kirim ke atasan.',
-                    'Mulai minggu dari daftar itu: kerjakan fokus PJ, lalu lanjutkan kegiatan yang belum selesai.',
-                ],
-            },
-            {
-                title: 'Buat rencana kerja minggu ini',
-                where: 'Menu Kegiatan → Rencana Minggu Ini',
-                route: 'weekly-plan.index',
-                body: [
-                    'Pada kartu Anda, klik "Tambah rencana". Pilih RK, tulis apa yang akan dikerjakan, lalu isi tanggal mulai dan selesai.',
-                    'Pilih Projek bila RK itu belum punya projek. Target dan satuan boleh dikosongkan.',
-                    'Isi rencana paling lambat Senin pukul 09.00. Anda dapat mengubah atau membatalkan rencana selama belum dikirim ke kipApp.',
-                ],
-            },
-            {
-                title: 'Kirim rencana ke kipApp dan tandai selesai',
-                where: 'Menu Kegiatan → Rencana Minggu Ini',
-                route: 'weekly-plan.index',
-                body: [
-                    'Pada tanggal mulai rencana, Kinetik membuat kegiatan di kipApp atas nama Anda dengan progres 0. Anda tidak perlu membuka kipApp. Pengiriman berjalan otomatis setiap jam kerja mulai pukul 05.10 WITA.',
-                    'Ingin mengirim lebih awal? Tekan "Kirim ke kipApp" pada rencana itu.',
-                    'Jika belum terkirim, alasannya tampil merah di bawah rencana, misalnya "SKP triwulan 4 belum dibuat di kipApp". Kinetik mencoba lagi pada jam berikutnya sampai tanggal selesai rencana, dan memberi tahu Anda satu kali lewat lonceng.',
-                    'Selesai mengerjakan? Tekan "Tandai selesai", isi capaian dan link bukti bila ada, lalu simpan. Kinetik mengirim progres 100% ke kipApp atas nama Anda.',
-                    'Setelah selesai, tekan "Kirim ke atasan" agar atasan dapat menilai kegiatan itu di kipApp. Bila perlu mengubahnya lagi, tekan "Batalkan kirim" selama atasan belum menilai.',
-                    'Jika progres diubah langsung di kipApp, Kinetik mengikuti kipApp pada sinkronisasi berikutnya.',
-                ],
-                tip: 'Jika kata sandi SSO Anda ditolak BPS, Kinetik berhenti mengakses kipApp atas nama Anda dan meminta Anda memasukkannya lagi saat masuk. Kinetik tidak mencoba ulang dengan kata sandi yang sama.',
-            },
-            {
-                title: 'Isi kegiatan harian di kipApp',
-                body: [
-                    'Catat setiap kegiatan harian di kipApp seperti biasa, lengkap dengan uraian dan link bukti dukung.',
-                    'Kinetik menarik kegiatan kipApp setiap pagi pukul 05.00 WITA. Kegiatan yang Anda isi sesudahnya muncul besok pagi.',
-                    'Ingin melihatnya sekarang? Tekan "Sinkronkan data saya" di halaman Rekap Mingguan atau Rencana Minggu Ini. Tombol itu menarik kegiatan dan RK Anda sendiri dari kipApp, tidak perlu menunggu admin. Tunggu sampai selesai; tombol hanya dapat dipakai sekali per menit.',
-                ],
-            },
             {
                 title: 'Buka Rekap Mingguan',
                 where: 'Menu Kegiatan → Rekap Mingguan',
                 route: 'weekly.index',
                 body: [
-                    'Halaman terbuka pada minggu kegiatan terakhir Anda. Gunakan tombol ‹ dan › untuk pindah minggu.',
-                    'Kotak di atas menunjukkan berapa kegiatan yang sudah disimpan dan berapa yang masih menunggu.',
+                    'Satu halaman untuk merencanakan dan memantau. Isinya hanya kegiatan Anda sendiri: tabel "Capaian minggu lalu" dan tabel "Rencana minggu ini". Gunakan ‹ dan › untuk pindah minggu, dan kolom cari untuk menyaring.',
+                    'Jika PJ mengisi fokus untuk Anda, fokus itu tampil di atas tabel.',
+                    'Tekan "Sinkronkan data saya" untuk menarik RK dan kegiatan Anda dari kipApp. Sinkronisasi pertama berjalan otomatis setelah Anda menghubungkan akun SSO. Jika daftar RK kosong, tekan tombol ini.',
                 ],
             },
             {
-                title: 'Klaim setiap kegiatan',
+                title: 'Rapat minggu pertama: isi target',
+                where: 'Menu Kegiatan → Rekap Mingguan',
+                route: 'weekly.index',
                 body: [
-                    'Rencana Kinerja terisi otomatis dari kipApp.',
-                    'Pilih Projek tempat kegiatan ini dikerjakan. kipApp tidak menyimpan projek sebuah RK, jadi Kinetik mengisinya lebih dulu: projek yang Anda pilih terakhir untuk RK yang sama, projek yang namanya tertulis di RK, atau satu-satunya projek Anda di tim itu. Periksa lalu ubah jika perlu.',
-                    'Isi Target, Realisasi dan Satuan (wajib). Capaian dihitung otomatis. Projek juga wajib, kecuali RK Ketua Anda di kipApp tidak punya projek.',
-                    '"Isi cepat" mengisi kolom yang masih kosong: target 1, realisasi dari progres kegiatan di kipApp, satuan dari IKI RK (atau Kegiatan), kendala "-". Periksa lalu ubah jika perlu.',
-                    'Kegiatan yang berlangsung lebih dari seminggu, misalnya kegiatan bulanan atau triwulanan, bertanda "Klaim tiap minggu". Kegiatan itu muncul di setiap minggu yang dilaluinya. Klaim target dan realisasi minggu itu saja, lalu ulangi di minggu berikutnya.',
-                    'Isi Kendala. Tulis "-" jika tidak ada kendala. Solusi dan Rencana Tindak Lanjut diisi PJ saat rapat tim.',
-                    'Jam Mulai dan Jam Selesai boleh dikosongkan.',
-                ],
-                shot: SHOTS.anggotaKlaim,
-                tip: 'Tombol "Isi cepat" mengisi kolom yang masih kosong dengan target 1, realisasi 1, satuan Kegiatan dan kendala "-". Kolom yang sudah Anda isi tidak diubah.',
-            },
-            {
-                title: 'Simpan',
-                body: [
-                    'Tekan "Simpan ke Rekap" untuk satu kegiatan, atau "Simpan semua" untuk menyimpan semua kegiatan yang sudah lengkap sekaligus.',
-                    'Kegiatan yang tersimpan diberi tanda "Tersimpan" dan formnya ditutup. Tekan "Ubah" untuk memperbaiki.',
+                    'Tekan "Tambah". Isi seperti di kipApp: pilih RK (bisa dicari), tulis kegiatan, pilih "periode tanggal" atau "jam", isi progres, tautan bukti dukung dan uraian capaian.',
+                    'Isi juga Target (angka) dan Satuan. Capaian (angka) boleh diisi nanti. Target dan capaian selalu angka; teks penjelasan ditulis di uraian capaian.',
+                    'Pilih Projek bila RK itu belum punya projek. Anda dapat mengubah atau membatalkan kegiatan selama belum dikirim ke kipApp.',
                 ],
             },
             {
-                title: 'Perhatikan tanda "Dikunci PJ"',
+                title: 'Rapat berikutnya: tinjau capaian lalu rencanakan',
+                where: 'Menu Kegiatan → Rekap Mingguan',
+                route: 'weekly.index',
                 body: [
-                    'Setelah PJ mengunci rekap untuk rapat, kegiatan di periode itu tidak dapat diubah.',
-                    'Jika perlu koreksi, minta PJ membuka kunci terlebih dahulu.',
+                    'Pada rapat minggu kedua dan seterusnya, mulai dari tabel "Capaian minggu lalu". Klik baris untuk mengisi capaian (angka), uraian capaian dan tautan bukti. Persentase capaian terhadap target dihitung otomatis.',
+                    'Lalu tambahkan kegiatan untuk "Rencana minggu ini".',
                 ],
+            },
+            {
+                title: 'Kirim ke kipApp dan tandai selesai',
+                where: 'Menu Kegiatan → Rekap Mingguan',
+                route: 'weekly.index',
+                body: [
+                    'Klik baris kegiatan untuk melihat semua isinya dan langkah berikutnya.',
+                    'Pada tanggal mulai, Kinetik membuat kegiatan di kipApp atas nama Anda. Pengiriman berjalan otomatis setiap jam kerja mulai pukul 05.10 WITA. Ingin lebih awal? Tekan "Kirim ke kipApp".',
+                    'Jika belum terkirim, alasannya tampil di detail kegiatan, misalnya "SKP triwulan 4 belum dibuat di kipApp". Kinetik mencoba lagi pada jam berikutnya sampai tanggal selesai dan memberi tahu Anda satu kali lewat lonceng.',
+                    'Selesai mengerjakan? Tekan "Tandai selesai". Kinetik mengirim progres 100%, uraian capaian dan tautan bukti ke kipApp. Tombol "Simpan capaian" hanya menyimpan di Kinetik.',
+                    'Jika progres diubah langsung di kipApp, Kinetik mengikuti kipApp pada sinkronisasi berikutnya.',
+                ],
+                tip: 'Jika kata sandi SSO Anda ditolak BPS, Kinetik berhenti mengakses kipApp atas nama Anda dan meminta Anda memasukkannya lagi saat masuk. Kinetik tidak mencoba ulang dengan kata sandi yang sama.',
             },
             {
                 title: 'Lihat hasilnya',
                 where: 'Menu Kegiatan → Kegiatan Saya, dan menu Rekap Tim',
                 route: 'kip-activities.index',
                 body: [
-                    'Kegiatan Saya menampilkan semua kegiatan kipApp Anda dan status klaimnya. Saring per Minggu, Bulan atau Triwulan, lalu pindah periode dengan ‹ dan ›.',
+                    'Kegiatan Saya menampilkan semua kegiatan kipApp Anda. Saring per Minggu, Bulan atau Triwulan, lalu pindah periode dengan ‹ dan ›.',
                     'Rekap Tim menampilkan rekap tim Anda. Anda dapat membaca, tetapi hanya PJ yang mengubah ringkasan.',
                 ],
             },
@@ -315,28 +263,10 @@ export const GUIDE_FLOWS: GuideFlow[] = [
         steps: [
             SSO_LOGIN_STEP,
             {
-                title: 'Klaim kegiatan Anda sendiri',
+                title: 'Isi Rekap Mingguan Anda sendiri',
                 where: 'Menu Kegiatan → Rekap Mingguan',
                 route: 'weekly.index',
-                body: ['Sama seperti anggota. Sebagai PJ, Anda juga dapat mengisi Solusi dan Rencana Tindak Lanjut di sini.'],
-            },
-            {
-                title: 'Isi fokus minggu ini untuk setiap anggota',
-                where: 'Menu Kegiatan → Rencana Minggu Ini',
-                route: 'weekly-plan.index',
-                body: [
-                    'Isi fokus setiap anggota sebelum Senin, lalu klik Simpan di kartu anggota itu. Kosongkan teksnya untuk menghapus fokus.',
-                    'Kartu juga menunjukkan RK anggota yang belum punya kegiatan di triwulan ini dan kegiatan yang belum selesai. Pakai daftar itu untuk memilih fokus.',
-                ],
-            },
-            {
-                title: 'Buat rencana untuk anggota',
-                where: 'Menu Kegiatan → Rencana Minggu Ini',
-                route: 'weekly-plan.index',
-                body: [
-                    'Pada kartu anggota, klik "Tambah rencana" untuk menugaskan pekerjaan. Anggota menerima notifikasi, dan rencana itu tampak berlabel "Dari PJ".',
-                    'Anda dapat mengubah atau membatalkan rencana siapa pun di tim selama belum dikirim ke kipApp. Tidak ada langkah persetujuan.',
-                ],
+                body: ['Sama seperti anggota. Halaman ini hanya menampilkan kegiatan Anda sendiri; rekap anggota ada di menu Rekap Tim.'],
             },
             {
                 title: 'Buka Rekap Tim mingguan',
