@@ -23,7 +23,9 @@ function planTeam(): array
 }
 
 it('shows each member the RK without kegiatan, unfinished kegiatan and the PJ focus', function () {
-    [$user, , $team, $member] = planTeam();
+    [, , $team, $member] = planTeam();
+    $user = staffUser();
+    $member->update(['user_id' => $user->id]);
     foreach (['RK Inovasi' => 'rk-1', 'RK Metodologi' => 'rk-2'] as $name => $id) {
         EmployeeRk::create(['employee_id' => $member->id, 'kip_rk_id' => $id, 'name' => $name, 'team_kip_id' => '106453', 'year' => 2026]);
     }
@@ -40,7 +42,7 @@ it('shows each member the RK without kegiatan, unfinished kegiatan and the PJ fo
             ->component('Kinetik/WeeklyPlan')
             ->where('weekStart', '2026-10-05')
             ->where('quarter', 4)
-            ->where('canManage', true)
+            ->where('canManage', false)
             ->where('canSendToAtasan', false)
             ->where('members', fn ($members) => collect(collect($members)->firstWhere('name', 'Andi')['flow'])->pluck('state', 'key')->all() === ['rk' => 'done', 'skp' => 'done', 'plan' => 'todo', 'kipapp' => 'unknown', 'sent' => 'todo'])
             ->where('members', fn ($members) => Arr::except(collect($members)->firstWhere('name', 'Andi'), 'flow') == [
@@ -88,4 +90,11 @@ it('stores each member RK list during the activity sync', function () {
 
     expect(EmployeeRk::where('employee_id', $employee->id)->pluck('name')->all())->toBe(['RK Contoh'])
         ->and(EmployeeRk::first())->leader_rk->toBe('RK Ketua Contoh')->team_kip_id->toBe('1');
+});
+
+it('shows the PJ only their own card, never the other members', function () {
+    [$user, $pj, $team] = planTeam();
+
+    $this->actingAs($user)->get(route('weekly-plan.index', ['team' => $team->id, 'week' => '2026-10-07']))
+        ->assertInertia(fn ($page) => $page->where('members', fn ($members) => collect($members)->pluck('employee_id')->all() === [$pj->id]));
 });
