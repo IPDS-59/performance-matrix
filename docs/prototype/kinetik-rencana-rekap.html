@@ -136,7 +136,7 @@
         <h4><span>Parafrase PJ</span></h4>
         <textarea id="para" placeholder="Tulis parafrase sendiri. Pakai “Sisipkan” di kiri untuk mengambil satu kalimat."></textarea>
         <div class="hint">Tidak ada isi otomatis dari semua anggota. Anda memilih kalimat mana yang dipakai.</div>
-        <div class="row2"><div><label for="rkTarget">Target RK (satu untuk seluruh RK)</label><input id="rkTarget" placeholder="Contoh: 1 aplikasi"></div><div><label for="rkCap">Capaian RK</label><input id="rkCap" placeholder="Contoh: Aplikasi berjalan"></div></div>
+        <div class="row2"><div><label for="rkTarget">Target RK (satu untuk seluruh RK)</label><div class="row2"><input id="rkTarget" type="number" placeholder="1" aria-label="Target RK"><input id="rkUnit" placeholder="Satuan, mis. aplikasi" aria-label="Satuan RK"></div></div><div><label for="rkCap">Capaian RK</label><input id="rkCap" placeholder="Contoh: Aplikasi berjalan"></div></div>
         <div class="actions">
           <button class="btn primary" id="saveP">Simpan parafrase</button>
           <button class="btn" id="lockP">Kunci</button>
@@ -189,12 +189,12 @@ const esc = s => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>'
 const badge = { plan:['b-plan','Direncanakan'], kip:['b-kip','Ada di kipApp'], done:['b-done','Selesai'], sent:['b-sent','Terkirim ke atasan'] };
 
 const last = [
-  { t:'Menyusun skema tabel Kinetik', rk:'Membuat Kinetik', d:'5 – 9 Okt', target:'1 skema', cap:'Skema selesai, 12 tabel', s:'sent', bukti:'drive.bps.go.id/skema' },
-  { t:'Entri data SE2026 blok 1–11', rk:'Pengolahan SE2026', d:'6 – 10 Okt', target:'11 blok', cap:'9 blok selesai', s:'done', bukti:'—' },
+  { t:'Menyusun skema tabel Kinetik', rk:'Membuat Kinetik', d:'5 – 9 Okt', tnum:1, unit:'skema', target:'1 skema', cap:'Skema selesai, 12 tabel', s:'sent', bukti:'drive.bps.go.id/skema' },
+  { t:'Entri data SE2026 blok 1–11', rk:'Pengolahan SE2026', d:'6 – 10 Okt', tnum:11, unit:'blok', target:'11 blok', cap:'9 blok selesai', s:'done', bukti:'—' },
 ];
 const now = [
-  { t:'Entri data SE2026 blok 12–20', rk:'Pengolahan SE2026', d:'12 – 16 Okt', target:'9 blok', s:'kip' },
-  { t:'Susun laporan triwulan', rk:'Membuat Kinetik', d:'14 – 16 Okt', target:'1 laporan', s:'plan' },
+  { t:'Entri data SE2026 blok 12–20', rk:'Pengolahan SE2026', d:'12 – 16 Okt', tnum:9, unit:'blok', target:'9 blok', s:'kip' },
+  { t:'Susun laporan triwulan', rk:'Membuat Kinetik', d:'14 – 16 Okt', tnum:1, unit:'laporan', target:'1 laporan', s:'plan' },
 ];
 let current = null;
 
@@ -218,19 +218,19 @@ function openDetail(r) {
   current = r;
   const [c, l] = badge[r.s];
   $('#dBody').innerHTML = `<dt>Kegiatan</dt><dd>${esc(r.t)}</dd><dt>RK</dt><dd>${esc(r.rk)}</dd><dt>Tanggal</dt><dd>${esc(r.d)}</dd>` +
-    `<dt><label for="e-target" style="margin:0">Target</label></dt><dd><input id="e-target" value="${esc(r.target)}"></dd>` +
+    `<dt><label for="e-target" style="margin:0">Target</label></dt><dd><div class="row2"><input id="e-target" type="number" value="${esc(r.tnum)}" aria-label="Target"><input id="e-unit" value="${esc(r.unit)}" placeholder="Satuan" aria-label="Satuan"></div></dd>` +
     `<dt><label for="e-cap" style="margin:0">Capaian</label></dt><dd><textarea id="e-cap" placeholder="Isi capaian Anda">${esc(r.cap || '')}</textarea></dd>` +
     `<dt>Bukti dukung</dt><dd>${esc(r.bukti || '—')}</dd><dt>Status</dt><dd><span class="badge ${c}">${l}</span></dd>`;
   const a = $('#dAction'); const next = { plan:'Kirim ke kipApp', kip:'Tandai selesai', done:'Kirim ke atasan' }[r.s];
   a.style.display = next ? '' : 'none'; a.textContent = next || '';
   $('#detailModal').classList.add('open');
 }
-$('#dSave').onclick = () => { current.target = $('#e-target').value; current.cap = $('#e-cap').value; $('#detailModal').classList.remove('open'); render(); };
-$('#dAction').onclick = () => { const f = { plan:'kip', kip:'done', done:'sent' }; current.target = $('#e-target').value; current.cap = $('#e-cap').value; current.s = f[current.s]; $('#detailModal').classList.remove('open'); render(); };
+$('#dSave').onclick = () => { current.tnum = $('#e-target').value; current.unit = $('#e-unit').value; current.target = current.tnum + ' ' + current.unit; current.cap = $('#e-cap').value; $('#detailModal').classList.remove('open'); render(); };
+$('#dAction').onclick = () => { const f = { plan:'kip', kip:'done', done:'sent' }; current.tnum = $('#e-target').value; current.unit = $('#e-unit').value; current.target = current.tnum + ' ' + current.unit; current.cap = $('#e-cap').value; current.s = f[current.s]; $('#detailModal').classList.remove('open'); render(); };
 $('#add').onclick = () => $('#addModal').classList.add('open');
 $('#saveAdd').onclick = () => {
   const t = $('#f-text').value.trim() || 'Kegiatan baru';
-  now.push({ t, rk:$('#f-rk').value, d:'14 – 16 Okt', target:`${$('#f-target').value} ${$('#f-unit').value}`, s:'plan' });
+  now.push({ t, rk:$('#f-rk').value, d:'14 – 16 Okt', tnum:$('#f-target').value, unit:$('#f-unit').value, target:`${$('#f-target').value} ${$('#f-unit').value}`, s:'plan' });
   $('#f-text').value=''; $('#addModal').classList.remove('open'); render();
 };
 
