@@ -64,6 +64,10 @@
   .ctx li.open .more { display:block; } .ctx li.open .one { display:none; }
   .ctx li.read .who::after { content:" ✓"; color:var(--ok); }
   .para { padding:14px 16px; }
+  .scroll { max-height:380px; overflow-y:auto; padding-right:4px; }
+  .ctxbar { display:flex; justify-content:space-between; align-items:center; margin-bottom:8px; }
+  .chk { display:flex; align-items:center; gap:6px; font-weight:400; margin:0; font-size:12px; }
+  .chk input { width:auto; }
   .actions { display:flex; gap:8px; margin-top:10px; align-items:center; }
   .lock { margin-left:auto; color:var(--mute); font-size:12px; }
   .hint { font-size:12px; color:var(--mute); margin-top:6px; }
@@ -126,17 +130,20 @@
   <div class="note">Data rekap ini diambil dari isian tiap anggota, jadi bisa dilihat per orang. Target dan capaian tiap orang diisi anggotanya sendiri. PJ hanya menambah satu target dan satu capaian untuk RK ini, dan menulis parafrase sendiri di kotak kanan. Konteks ada di kiri dan tidak otomatis masuk ke kotak, supaya tidak penuh.</div>
 
   <div class="card">
-    <h3>Membuat Kinetik <small>RK Tim MTI · 3 anggota</small></h3>
+    <h3>Membuat Kinetik <small id="memCount">RK Tim MTI</small></h3>
     <div class="split">
       <div class="ctx">
-        <h4><span>Kontribusi anggota</span><span id="readCount">Dibaca 0/3</span></h4>
-        <ul id="ctxList"></ul>
+        <h4><span>Kontribusi anggota</span><span id="readCount"></span></h4>
+        <input id="ctxSearch" type="search" placeholder="Cari nama atau isi kegiatan" aria-label="Cari anggota" style="margin-bottom:8px">
+        <div class="ctxbar"><label class="chk"><input id="onlyUnread" type="checkbox"> Belum dibaca saja</label><span class="hint" id="shown"></span></div>
+        <ul id="ctxList" class="scroll"></ul>
+        <div class="empty" id="ctxEmpty" style="display:none;padding:14px">Tidak ada anggota yang cocok.</div>
       </div>
       <div class="para">
         <h4><span>Parafrase PJ</span></h4>
         <textarea id="para" placeholder="Tulis parafrase sendiri. Pakai “Sisipkan” di kiri untuk mengambil satu kalimat."></textarea>
         <div class="hint">Tidak ada isi otomatis dari semua anggota. Anda memilih kalimat mana yang dipakai.</div>
-        <div class="row2"><div><label for="rkTarget">Target RK (satu untuk seluruh RK)</label><div class="row2"><input id="rkTarget" type="number" placeholder="1" aria-label="Target RK"><input id="rkUnit" placeholder="Satuan, mis. aplikasi" aria-label="Satuan RK"></div></div><div><label for="rkCap">Capaian RK (angka, satuan sama dengan target)</label><input id="rkCap" type="number" min="0" step="any" placeholder="0" aria-label="Capaian RK"></div></div>
+        <div class="row2"><div><label for="rkTarget">Target RK (satu untuk seluruh RK)</label><div class="row2"><input id="rkTarget" type="number" placeholder="1" aria-label="Target RK"><input id="rkUnit" placeholder="Satuan" aria-label="Satuan RK"></div></div><div><label for="rkCap">Capaian RK (angka, satuan sama dengan target)</label><input id="rkCap" type="number" min="0" step="any" placeholder="0" aria-label="Capaian RK"></div></div>
         <div class="actions">
           <button class="btn primary" id="saveP">Simpan parafrase</button>
           <button class="btn" id="lockP">Kunci</button>
@@ -239,23 +246,35 @@ document.querySelectorAll('.tab').forEach(b => b.onclick = () => {
   document.querySelectorAll('.view').forEach(v => v.classList.toggle('on', v.id === b.dataset.view));
 });
 
-const contrib = [
-  { who:'Bayu (DB)', one:'Menyusun skema tabel dan migrasi…', all:['Menyusun skema tabel dan migrasi untuk rekap mingguan.', 'Menambah indeks agar sinkronisasi kipApp lebih cepat.'], tnum:2, cnum:2, unit:'tabel' },
-  { who:'Sukma (FE)', one:'Membuat halaman rekap dan popup isian…', all:['Membuat halaman rekap dan popup isian.', 'Merapikan tabel agar hanya menampilkan kolom ringkas.'], tnum:2, cnum:1, unit:'halaman' },
-  { who:'Ical (Scraping/BE)', one:'Sinkron kegiatan dan RK dari kipApp…', all:['Sinkron kegiatan dan RK dari kipApp per anggota.', 'Menjadwalkan sinkron harian pukul 05.00.'], tnum:1, cnum:1, unit:'sinkron' },
-];
-$('#ctxList').innerHTML = contrib.map((c,i) => `<li><button class="head" aria-expanded="false"><span class="who">${esc(c.who)}</span><span class="one">${esc(c.one)}</span></button>
-  <div class="more">${c.all.map((s,j)=>`<div style="display:flex;gap:8px;margin:4px 0"><span style="flex:1">${esc(s)}</span><button class="btn small" data-ins="${i}-${j}">Sisipkan</button></div>`).join('')}
+const names = ['Bayu (DB)','Sukma (FE)','Ical (Scraping/BE)','Andi Pratama','Dewi Lestari','Rudi Hartono','Maya Sari','Fajar Nugroho','Intan Permata','Hasan Basri','Lina Marlina','Yusuf Rahman','Nadia Putri','Eko Prasetyo','Rina Wulandari','Dedi Kurniawan','Siti Aminah','Agus Salim','Wulan Dari','Budi Santoso','Citra Dewi','Hendra Wijaya','Mega Utami','Taufik Hidayat'];
+const acts = ['Menyusun skema tabel dan migrasi untuk rekap mingguan.','Membuat halaman rekap dan popup isian.','Sinkron kegiatan dan RK dari kipApp per anggota.','Menguji alur login dan tombol sinkron.','Menulis dokumentasi pengguna.','Memperbaiki laporan yang tidak muncul.','Merapikan tabel agar kolom ringkas.','Menjadwalkan sinkron harian pukul 05.00.'];
+const contrib = names.map((who, i) => {
+  const a1 = acts[i % acts.length], a2 = acts[(i + 3) % acts.length], t = 2 + (i % 4);
+  return { who, one: a1.slice(0, 40) + '…', all: [a1, a2], tnum: t, cnum: Math.max(0, t - (i % 3)), unit: 'tugas', read: false };
+});
+const total = contrib.length;
+$('#memCount').textContent = `RK Tim MTI · ${total} anggota`;
+function drawCtx() {
+  const q = $('#ctxSearch').value.trim().toLowerCase(), unread = $('#onlyUnread').checked;
+  const list = contrib.map((c, i) => ({ c, i })).filter(({ c }) => (!unread || !c.read) && (!q || (c.who + ' ' + c.all.join(' ')).toLowerCase().includes(q)));
+  $('#ctxList').innerHTML = list.map(({ c, i }) => `<li class="${c.open ? 'open' : ''} ${c.read ? 'read' : ''}" data-i="${i}"><button class="head" aria-expanded="${!!c.open}"><span class="who">${esc(c.who)}</span><span class="one">${esc(c.one)}</span></button>
+    <div class="more">${c.all.map((t, j) => `<div style="display:flex;gap:8px;margin:4px 0"><span style="flex:1">${esc(t)}</span><button class="btn small" data-ins="${i}-${j}">Sisipkan</button></div>`).join('')}
     <dl style="grid-template-columns:70px 1fr;margin:8px 0 0"><dt>Target</dt><dd>${esc(c.tnum + ' ' + c.unit)}</dd><dt>Capaian</dt><dd>${esc(c.cnum + ' ' + c.unit)} <span class="muted">(${Math.round(c.cnum / c.tnum * 100)}%)</span></dd></dl>
     <div class="hint">Diisi ${esc(c.who.split(' ')[0])} sendiri. PJ tidak mengubahnya.</div></div></li>`).join('');
+  $('#ctxEmpty').style.display = list.length ? 'none' : 'block';
+  $('#shown').textContent = `Menampilkan ${list.length} dari ${total}`;
+  $('#readCount').textContent = `Dibaca ${contrib.filter(c => c.read).length}/${total}`;
+}
+$('#ctxSearch').addEventListener('input', drawCtx);
+$('#onlyUnread').addEventListener('change', drawCtx);
 $('#ctxList').addEventListener('click', e => {
-
   const ins = e.target.closest('[data-ins]');
-  if (ins) { const [i,j] = ins.dataset.ins.split('-'); const t = $('#para'); t.value = (t.value ? t.value + ' ' : '') + contrib[i].all[j]; return; }
+  if (ins) { const [i, j] = ins.dataset.ins.split('-'); const t = $('#para'); t.value = (t.value ? t.value + ' ' : '') + contrib[i].all[j]; return; }
   const head = e.target.closest('.head'); if (!head) return;
-  const li = head.parentElement; li.classList.toggle('open'); li.classList.add('read'); head.setAttribute('aria-expanded', li.classList.contains('open'));
-  $('#readCount').textContent = `Dibaca ${document.querySelectorAll('#ctxList .read').length}/3`;
+  const c = contrib[head.parentElement.dataset.i]; c.open = !c.open; c.read = true;
+  const top = $('#ctxList').scrollTop; drawCtx(); $('#ctxList').scrollTop = top;
 });
+drawCtx();
 $('#saveP').onclick = () => { $('#lockInfo').textContent = 'Tersimpan ' + new Date().toLocaleTimeString('id-ID',{hour:'2-digit',minute:'2-digit'}); };
 $('#lockP').onclick = () => { $('#para').disabled = true; $('#saveP').disabled = true; $('#lockInfo').textContent = 'Terkunci oleh PJ'; $('#lockP').textContent='Buka kunci'; $('#lockP').onclick = () => location.reload(); };
 render();
