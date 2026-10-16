@@ -37,3 +37,17 @@ touch $DB_DATABASE && php artisan migrate --force
 cd public && php -S 127.0.0.1:8092 ../vendor/laravel/framework/src/Illuminate/Foundation/resources/server.php
 ```
 `KIP_SSO_LOGIN` defaults to off when `APP_ENV=local`, so a local password login works. Stop the server and delete the SQLite file when done.
+
+## Update 2026-10-17: the app is not in use yet, so the full rewrite is allowed
+
+The user confirmed nobody uses the app yet, so there is no data or workflow to protect. Phase 2 is now in scope after phase 1 passes its checks. You may delete the claim tables, models, controllers, routes, pages and tests, and rewrite the team recap and the monthly recap. Do not keep dead code for compatibility.
+
+Phase 2 requirements:
+1. **Weekly team recap (PJ):** per RK and period. Left side: a searchable, scrollable list of the members' entries for that RK (one line each, expandable, a "Sisipkan" button per sentence, "Dibaca n/m", an "unread only" filter, "Menampilkan x dari N"). Right side: an empty paraphrase box the PJ writes, one target (number), one satuan and one capaian (number) for the whole RK, Simpan and Kunci. No prefill from all members and no merged rows. Per-person target and capaian come from the members' own `plan_items` and are read-only here. A person filter shows one member's entries.
+2. **Link to members:** the recap reads `plan_items` (and the synced `kip_activities`) of the members. No separate claim records. Weekly paraphrase and RK target and capaian are stored per team, RK and week (new table, with `locked_at` and `locked_by`).
+3. **Monthly recap:** the same panel per RK and month, and it can show the weekly paraphrases of that month as context. Keep the quarterly recap and the FRA pages working. Update them if they read removed tables.
+4. **Remove** the claim flow completely: `WeeklyActivityController`, claim and bulk routes, claim models and tables (add a migration that drops them), `RecapMemberLines` and the merge and prefill actions and components (`MergeRecapRowsAction`, `PrefillButton`, `useRecapMerge` and the like), and their tests. Keep exports (Excel) for the recaps if they still make sense on the new data.
+5. **Forms to popups:** the create and edit pages for employees, teams, projects, RK (performance plans) and performance indicators become popups opened from their index pages, with `FormDialog` and searchable selects. Keep the login, profile and password forms as pages. If a page is too big to convert safely (`Projects/Edit.vue` is 610 lines), say so in the status file and leave it.
+6. **Docs:** update `resources/js/data/guide.ts` and the handoff doc for everything that changed.
+
+Same rules: tests with the logic, Pint, `vue-tsc`, vitest and `vite build` pass, small commits, no dev server on ports 8000 or 8091, push the branch, status file at the end (extend it for phase 2).
