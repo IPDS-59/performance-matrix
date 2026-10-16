@@ -24,36 +24,6 @@ export interface GuideShot {
 
 // Screenshots of the real pages with mock names (public/images/pedoman).
 export const SHOTS = {
-    pjRekapTim: {
-        src: '/images/pedoman/pj-rekap-tim.webp',
-        alt: 'Halaman Rekap Tim mingguan: kartu per projek dengan satu baris per kegiatan, baris gabungan, Laporan Tersimpan dan tombol Kunci rekap di bawah',
-        width: 1024, height: 2071,
-        markers: [
-            { n: 1, x: 82.5, y: 17.1, label: 'Centang baris satu projek, lalu klik Gabungkan yang dipilih untuk menjadikannya satu baris.' },
-            { n: 2, x: 5.2, y: 23, label: 'Parafrase PJ, lalu Permasalahan, Solusi dan RTL. Isi dari anggota sudah ada, jadi cukup dirapikan.' },
-            { n: 3, x: 90.2, y: 39.1, label: 'Simpan: seluruh baris projek ini masuk ke Laporan Tersimpan.' },
-            { n: 4, x: 8.7, y: 51.6, label: 'Baris gabungan: target dan realisasi adalah total semua kegiatan yang digabung.' },
-            { n: 5, x: 3.5, y: 64.7, label: 'Laporan Tersimpan: hasil rekap minggu ini per projek, siap dibacakan di rapat.' },
-            { n: 6, x: 3.5, y: 73.8, label: 'Bukti rapat: Notula, Dokumentasi, Daftar Hadir.' },
-            { n: 7, x: 5.2, y: 95.4, label: 'Kunci rekap setelah rapat selesai, supaya klaim dan isi laporan tidak berubah lagi.' },
-            { n: 8, x: 84, y: 5.9, label: 'Unduh Excel format Rapat Mingguan.' },
-        ],
-    },
-    pjRekapBulanan: {
-        src: '/images/pedoman/pj-rekap-bulanan.webp',
-        alt: 'Halaman Rekap Tim bulanan: rekap mingguan yang dapat dibuka, Ringkasan Bulanan per projek dan Rincian per RK yang terlipat',
-        width: 1024, height: 1417,
-        markers: [
-            { n: 1, x: 20.8, y: 8.6, label: 'Isi Uraian, Permasalahan, Solusi dan RTL dari rekap mingguan (hanya kolom kosong).' },
-            { n: 2, x: 37.5, y: 8.6, label: 'Konfirmasi semua baris yang capaiannya 100%.' },
-            { n: 3, x: 5.2, y: 14, label: 'Rekap setiap minggu bulan ini. Buka satu minggu untuk membacanya.' },
-            { n: 4, x: 84.2, y: 33.1, label: 'Pre-fill: menyusun draf ringkasan bulanan dari rekap mingguan.' },
-            { n: 5, x: 5.2, y: 45.6, label: 'Satu entri per projek: Uraian, Permasalahan, Solusi dan RTL.' },
-            { n: 6, x: 90.1, y: 57.3, label: 'Simpan entri projek ini.' },
-            { n: 7, x: 3.5, y: 87.9, label: 'Rincian per RK untuk konfirmasi, Excel dan FRA. Klik untuk membuka.' },
-            { n: 8, x: 87.6, y: 93.3, label: 'Kunci rekap bulan ini setelah rapat.' },
-        ],
-    },
     pjAngkaKreditTim: {
         src: '/images/pedoman/pj-angka-kredit-tim.webp',
         alt: 'Halaman Angka Kredit Tim untuk PJ, anggota diurutkan dari yang paling dekat ke kenaikan',
@@ -258,7 +228,7 @@ export const GUIDE_FLOWS: GuideFlow[] = [
     {
         role: 'pj',
         label: 'PJ / Ketua Tim',
-        summary: 'Anda menyiapkan bahan rapat tim dan rapat dengan pimpinan dari klaim anggota, lalu mengunci rekap.',
+        summary: 'Anda menyiapkan bahan rapat tim dan rapat dengan pimpinan dari Rekap Mingguan anggota, menulis parafrase per RK, lalu mengunci.',
         replaces: 'Sheet "Rapat Mingguan" dan "Rapat Bulanan"',
         steps: [
             SSO_LOGIN_STEP,
@@ -273,62 +243,42 @@ export const GUIDE_FLOWS: GuideFlow[] = [
                 where: 'Menu Rekap Tim → Mingguan',
                 route: 'team-recap.weekly',
                 body: [
-                    'Pilih tim dan minggu. Setiap projek tampil sebagai satu kartu, dan setiap kegiatan anggota menjadi satu baris.',
-                    'Bagian "Kelengkapan anggota" menunjukkan siapa yang belum mengisi klaim. Ingatkan mereka sebelum rapat.',
-                ],
-                shot: SHOTS.pjRekapTim,
-            },
-            {
-                title: 'Tinjau dan rapikan setiap baris',
-                body: [
-                    'Setiap baris menampilkan anggota, uraian dari kipApp, RK-nya, lalu Target, Realisasi, Satuan dan Capaian.',
-                    'Permasalahan, Solusi dan RTL sudah terisi dari yang ditulis anggota. Cukup rapikan, dan isi Parafrase PJ bila uraian anggota perlu diringkas.',
-                    'Jika angka anggota keliru, ubah langsung target, realisasi atau satuan di barisnya. Baris itu bertanda "Angka dikoreksi". Jika anggota menyimpan ulang klaimnya, angka anggota berlaku lagi.',
-                    'Tombol "Perlu perhatian" menyaring baris dengan capaian di bawah 100% atau yang ada permasalahan.',
+                    'Pilih tim dan minggu, lalu pilih satu RK dari daftar (bisa dicari). Daftar menandai RK yang sudah ditulis atau terkunci.',
+                    'Bagian "Kelengkapan anggota" menunjukkan siapa yang belum mengisi capaian di Rekap Mingguan. Ingatkan mereka sebelum rapat.',
                 ],
             },
             {
-                title: 'Gabungkan pekerjaan yang sama',
+                title: 'Baca kontribusi anggota dan tulis parafrase',
                 body: [
-                    'Centang baris-baris dalam satu projek, lalu klik "Gabungkan yang dipilih". Baris itu menjadi satu baris "Gabungan" dengan satu parafrase.',
-                    'Target dan realisasi baris gabungan adalah total semua kegiatan yang digabung, dan Capaian dihitung dari total itu. Uraian asli tiap anggota tampil kecil di bawah nama anggota.',
-                    'Klik "Batalkan penggabungan" untuk mengembalikan setiap kegiatan menjadi baris sendiri.',
+                    'Di kiri ada kegiatan anggota untuk RK itu, satu baris per anggota. Klik nama untuk membukanya. Kolom cari dan "Belum dibaca saja" membantu menelusuri tim yang besar; "Dibaca n/m" menghitung yang sudah Anda buka. Filter "Lihat" menampilkan satu anggota saja.',
+                    'Di kanan ada kotak Parafrase PJ yang kosong. Tulis sendiri, atau tekan "Sisipkan" pada satu kalimat anggota untuk mengambilnya. Kinetik tidak mengisi otomatis dari semua anggota.',
+                    'Target dan capaian setiap anggota berasal dari Rekap Mingguan mereka dan tidak dapat diubah di sini.',
                 ],
             },
             {
-                title: 'Simpan setiap projek',
+                title: 'Isi target, satuan dan capaian RK, lalu simpan atau kunci',
                 body: [
-                    'Klik "Simpan" di bawah kartu projek. Seluruh baris projek itu masuk ke "Laporan Tersimpan", dan Anda tidak perlu menulis ringkasan mingguan lagi.',
-                    'Laporan Tersimpan menampilkan baris bernomor per projek dengan hasil (misalnya 3/3 laporan), Permasalahan, Solusi dan RTL. Pakai bagian ini saat rapat.',
+                    'Isi satu Target (angka), satu Satuan dan satu Capaian (angka) untuk seluruh RK. Persentase capaian dihitung otomatis.',
+                    '"Simpan" menyimpan tanpa mengunci. "Simpan dan kunci" menyimpan lalu mengunci RK itu, sehingga tidak berubah lagi. "Buka kunci" membukanya kembali.',
+                    'PJ dan PIC RK dapat menulis. Anggota lain hanya membaca.',
                 ],
+                tip: 'Kunci tiap RK setelah rapat selesai. Tekan "Buka kunci" jika masih ada koreksi.',
             },
             {
                 title: 'Tambah bukti rapat',
                 body: ['Tambahkan link Notula, Dokumentasi (foto) dan Daftar Hadir rapat tim.'],
             },
             {
-                title: 'Kunci rekap setelah rapat',
-                body: [
-                    'Tombol "Kunci rekap" ada di bagian bawah halaman. Setelah dikunci, klaim anggota, angka dan isi laporan minggu itu tidak dapat diubah lagi.',
-                    'Kunci rekap setelah rapat selesai. Tekan "Buka kunci" jika masih ada koreksi.',
-                ],
-            },
-            {
                 title: 'Rekap bulanan dan triwulanan (FRA)',
                 where: 'Menu Rekap Tim → Bulanan / Triwulanan (FRA)',
                 route: 'team-recap.monthly',
                 body: [
-                    'Bagian atas halaman bulanan menampilkan rekap setiap minggu (triwulanan: setiap bulan). Buka satu minggu untuk membacanya.',
-                    'Ringkasan Bulanan (atau Triwulanan) berisi satu entri per projek: Uraian, Permasalahan, Solusi dan RTL. Klik "Pre-fill dari … minggu" untuk menyusun draf dari rekap mingguan. Rapikan lalu klik Simpan.',
-                    'Rincian per RK ada di bagian bawah dan terlipat. Klik untuk membukanya, dipakai untuk konfirmasi, Excel dan FRA.',
-                    'Klik "Isi dari mingguan" (bulanan) atau "Isi dari bulanan" (triwulanan) untuk mengisi Uraian, Permasalahan, Solusi dan RTL semua baris sekaligus. Hanya kolom yang masih kosong yang diisi.',
-                    'Parafrase mingguan satu baris juga dapat ditarik dengan "Tarik dari mingguan" di panel baris itu.',
-                    'Konfirmasi setiap baris. "Konfirmasi semua capaian 100%" mengonfirmasi semua baris yang sudah 100% sekaligus.',
-                    'Di triwulanan (FRA), isi juga link bukti tindak lanjut, PIC dan batas waktu.',
-                    'Kunci rekap setelah rapat selesai, sama seperti mingguan. Tombolnya ada di bagian bawah halaman bulanan.',
+                    'Halaman bulanan memakai panel yang sama dengan mingguan, per RK dan per bulan. Parafrase mingguan bulan itu tampil di kiri sebagai bahan, lengkap dengan tombol "Sisipkan".',
+                    'Halaman triwulanan (FRA) menampilkan satu baris per RK dengan target dan capaian dari rekap bulanan. Jika bulanan belum diisi, angkanya dijumlahkan dari kegiatan anggota.',
+                    'Buka panel sebuah baris untuk menulis uraian, permasalahan, solusi dan RTL. Isi juga link bukti tindak lanjut, PIC dan batas waktu.',
+                    'Konfirmasi setiap baris. "Konfirmasi semua capaian 100%" mengonfirmasi semua baris yang sudah 100% sekaligus. Kunci triwulan setelah rapat selesai; tombolnya ada di bagian atas halaman.',
                 ],
-                shot: SHOTS.pjRekapBulanan,
-                tip: 'PIC sebuah RK boleh menulis draf parafrase untuk RK-nya. Konfirmasi, bukti dan kunci tetap oleh PJ.',
+                tip: 'PIC sebuah RK boleh menulis parafrase untuk RK-nya. Konfirmasi, bukti dan kunci triwulan tetap oleh PJ.',
             },
             {
                 title: 'Unduh Excel untuk rapat',
@@ -383,7 +333,7 @@ export const GUIDE_FLOWS: GuideFlow[] = [
                     'Pada periode mingguan ada kolom "Anggota lengkap".',
                     'Kolom Status: Tercapai (capaian 100% atau lebih), Progres (70% sampai di bawah 100%), Rendah (di bawah 70%).',
                     'Saring dengan pilihan tim dan tombol status di atas tabel, misalnya hanya tim yang Rendah.',
-                    '"Belum ada data" berarti belum ada klaim tersimpan, bukan capaian 0%.',
+                    '"Belum ada data" berarti belum ada rekap atau kegiatan pada periode itu, bukan capaian 0%.',
                 ],
                 tip: 'Rekap yang sudah "Dikunci" berarti PJ sudah menyiapkannya untuk rapat dan isinya tidak berubah lagi.',
             },
@@ -483,7 +433,7 @@ export const GUIDE_FLOWS: GuideFlow[] = [
                     'Sinkronisasi Angka Kredit juga berjalan otomatis setiap Senin pukul 05.30 WITA.',
                     'Token kipApp berlaku sekitar 24 jam. Kinetik mengirim notifikasi ke admin tiga jam sebelum token kedaluwarsa dan sekali lagi saat sudah kedaluwarsa. Simpan token baru di halaman Integrasi kipApp.',
                 ],
-                tip: 'Sinkronisasi hanya menambah dan memperbarui data. Klaim, parafrase, konfirmasi, kunci dan bukti rapat tidak pernah dihapus. Satu pengecualian: anggota projek disamakan dengan daftar di kipApp.',
+                tip: 'Sinkronisasi hanya menambah dan memperbarui data. Kegiatan Anda, parafrase, konfirmasi, kunci dan bukti rapat tidak pernah dihapus. Satu pengecualian: anggota projek disamakan dengan daftar di kipApp.',
             },
             {
                 title: 'Kelola tim dan pegawai',
@@ -535,19 +485,15 @@ export const GUIDE_FAQ = [
     },
     {
         q: 'Rencana Kinerja pada kegiatan saya kosong. Apa yang harus dilakukan?',
-        a: 'Kinetik mencocokkan RK dari kipApp dengan RK tim Anda. Jika tidak ditemukan, formulir menampilkan pilihan "Pilih RK": pilih RK yang sesuai lalu simpan. Jika RK Anda tidak ada di daftar, minta admin menjalankan Sinkronisasi Struktur.',
+        a: 'Tekan "Sinkronkan data saya" di Rekap Mingguan untuk menarik RK Anda dari kipApp. Jika RK Anda masih tidak ada di daftar, minta admin menjalankan Sinkronisasi Struktur.',
     },
     {
-        q: 'Saya tidak bisa menyimpan klaim: "Rekap tim untuk periode ini sudah dikunci PJ".',
-        a: 'PJ sudah mengunci rekap untuk rapat. Minta PJ membuka kunci, simpan koreksi Anda, lalu PJ mengunci lagi.',
-    },
-    {
-        q: 'Mengapa saya tidak bisa mengisi Solusi dan Rencana Tindak Lanjut?',
-        a: 'Solusi dan RTL dibahas saat rapat dengan PJ, sehingga hanya PJ yang mengisinya.',
+        q: 'PJ tidak bisa menyimpan parafrase RK: "Rekap RK ini sudah dikunci".',
+        a: 'RK itu sudah dikunci setelah rapat. Tekan "Buka kunci" pada panel RK, simpan koreksi, lalu kunci lagi.',
     },
     {
         q: 'Apa arti "Belum ada data"?',
-        a: 'Belum ada klaim tersimpan untuk periode itu. Ini berbeda dengan capaian 0%.',
+        a: 'Belum ada kegiatan dengan target dan capaian pada periode itu. Ini berbeda dengan capaian 0%.',
     },
     {
         q: 'Kegiatan bulan lalu yang sudah saya kirim di kipApp tidak muncul.',
