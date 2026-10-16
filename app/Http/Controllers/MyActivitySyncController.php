@@ -2,13 +2,8 @@
 
 namespace App\Http\Controllers;
 
-use App\Actions\Kinetik\SyncKipActivitiesAction;
-use App\Kinetik\Auth\StaticBearerAuthenticator;
-use App\Kinetik\Contracts\KipActivitySource;
+use App\Actions\Kinetik\SyncMemberActivitiesAction;
 use App\Kinetik\Exceptions\KipApiException;
-use App\Kinetik\Sources\ApiKipActivitySource;
-use App\Models\KipCredential;
-use App\Services\Kinetik\MemberKipToken;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\RateLimiter;
@@ -18,7 +13,7 @@ use Throwable;
 /** A member syncs their own kegiatan and RK from kipApp. */
 class MyActivitySyncController extends Controller
 {
-    public function __invoke(Request $request, KipActivitySource $source, SyncKipActivitiesAction $action, MemberKipToken $tokens): RedirectResponse
+    public function __invoke(Request $request, SyncMemberActivitiesAction $action): RedirectResponse
     {
         $user = $request->user();
         $employee = $user->employee;
@@ -39,25 +34,12 @@ class MyActivitySyncController extends Controller
             report($e);
         }
 
-        // The member's own token first (T3, T5 in the planning spec): a stored one is renewed with the
-        // stored SSO password when it has expired. The admin token is the fallback.
         try {
-            $token = $tokens->for($user);
-        } catch (RuntimeException $e) {
-            $token = null;
-            if (KipCredential::current() === null && empty(config('kinetik.kip.token'))) {
-                return back()->with('error', $e->getMessage());
-            }
-        }
-
-        if ($token !== null && config('kinetik.kip.source') !== 'mock') {
-            $source = new ApiKipActivitySource(new StaticBearerAuthenticator($token));
-        }
-
-        try {
-            $count = $action->execute($source, collect([$employee]));
+            $count = $action->execute($user);
         } catch (KipApiException $e) {
             return back()->with('error', 'Sinkronisasi gagal: '.$e->getMessage());
+        } catch (RuntimeException $e) {
+            return back()->with('error', $e->getMessage());
         } catch (Throwable $e) {
             report($e);
 
