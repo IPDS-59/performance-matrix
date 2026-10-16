@@ -26,10 +26,25 @@ it('filters rk by project_id', function () {
         ->assertInertia(fn ($page) => $page->component('PerformancePlans/Index')->has('plans', 1));
 });
 
-it('renders rk create form for admin', function () {
+it('gives the rk popup its projects and employees', function () {
+    Project::factory()->create();
+    Employee::factory()->create(['is_active' => true]);
+
     $this->withoutVite()->actingAs(adminUser())
-        ->get(route('performance-plans.create'))
-        ->assertInertia(fn ($page) => $page->component('PerformancePlans/Create')->has('projects')->has('employees'));
+        ->get(route('performance-plans.index'))
+        ->assertInertia(fn ($page) => $page->where('manager', true)->has('formProjects', 1)->has('employees', 1));
+});
+
+it('offers a PJ only the projects of the teams they lead in the rk popup', function () {
+    $user = staffUser();
+    $employee = Employee::factory()->create(['user_id' => $user->id]);
+    $team = Team::factory()->create(['leader_id' => $employee->id]);
+    $mine = Project::factory()->create(['team_id' => $team->id]);
+    Project::factory()->create();
+
+    $this->withoutVite()->actingAs($user)
+        ->get(route('performance-plans.index'))
+        ->assertInertia(fn ($page) => $page->where('manager', false)->has('formProjects', 1)->where('formProjects.0.id', $mine->id));
 });
 
 it('admin can store rk', function () {
@@ -205,20 +220,6 @@ it('a member who owns a plan sees only their owned plan', function () {
         ->assertInertia(fn ($page) => $page->component('PerformancePlans/Index')->has('plans', 1));
 });
 
-it('team-scoped RK: leader can GET edit without 500', function () {
-    $user = staffUser();
-    $team = Team::factory()->create(['is_active' => true]);
-    $employee = Employee::factory()->create(['user_id' => $user->id]);
-    $team->update(['leader_id' => $employee->id]);
-
-    // Team-scoped plan: project_id = null, team_id set.
-    $plan = PerformancePlan::factory()->create(['project_id' => null, 'team_id' => $team->id]);
-
-    $this->withoutVite()->actingAs($user)
-        ->get(route('performance-plans.edit', $plan))
-        ->assertOk();
-});
-
 it('team-scoped RK: leader can PUT update', function () {
     $user = staffUser();
     $team = Team::factory()->create(['is_active' => true]);
@@ -237,7 +238,7 @@ it('team-scoped RK: leader can PUT update', function () {
     expect($plan->fresh()->description)->toBe('Updated Team RK');
 });
 
-it('staff member with no plan and no led team sees empty index and gets 403 on edit', function () {
+it('staff member with no plan and no led team sees empty index and gets 403 on update', function () {
     $user = staffUser();
     Employee::factory()->create(['user_id' => $user->id]);
 
@@ -248,7 +249,7 @@ it('staff member with no plan and no led team sees empty index and gets 403 on e
         ->assertInertia(fn ($page) => $page->component('PerformancePlans/Index')->has('plans', 0));
 
     $this->actingAs($user)
-        ->get(route('performance-plans.edit', $plan))
+        ->put(route('performance-plans.update', $plan), ['description' => 'X', 'period_type' => 'year'])
         ->assertForbidden();
 });
 
