@@ -78,7 +78,7 @@ function saveFocus(member: WeeklyPlanMember) {
 
             <div v-if="!members.length" class="rounded-md border border-dashed bg-gray-50 py-10 text-center text-sm text-gray-500">Anda belum menjadi anggota tim ini.</div>
 
-            <div class="grid gap-4 xl:grid-cols-2">
+            <div class="grid max-w-3xl gap-4">
                 <section
                     v-for="m in members"
                     :key="m.employee_id"
@@ -121,7 +121,7 @@ function saveFocus(member: WeeklyPlanMember) {
                             :week-start="weekStart"
                             :week-end="weekEnd"
                             :can-edit="canManage || m.employee_id === currentEmployeeId"
-                            :can-evaluate="canManage"
+                            :can-evaluate="false"
                             :can-send="canSendToAtasan"
                         />
 
