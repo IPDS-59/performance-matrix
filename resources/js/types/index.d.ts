@@ -700,3 +700,14 @@ export interface TeamWeekPlan {
     in_kipapp: boolean;
     sent: boolean;
 }
+
+/** One group of things that need the head's or PJ's attention. */
+export interface AttentionGroup {
+    key: string;
+    title: string;
+    hint: string;
+    severity: 'high' | 'medium' | 'info';
+    count: number;
+    samples: string[];
+    route: string;
+}

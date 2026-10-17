@@ -338,6 +338,7 @@ export const GUIDE_FLOWS: GuideFlow[] = [
                 where: 'Menu Rekap Tim → Review Bersama',
                 route: 'team-recap.overview',
                 body: [
+                    'Bagian "Perlu perhatian" di paling atas menunjukkan yang harus Anda lihat lebih dulu. Merah berarti perlu tindakan: kegiatan bulan ini yang belum punya target, kegiatan selesai tanpa capaian, anggota yang belum punya rencana minggu ini, dan kegiatan yang belum terkirim ke kipApp. Kuning berarti segera: tim yang rekap minggu lalunya belum dikunci. Biru memberi informasi: pegawai yang sudah siap atau hampir naik pangkat atau jenjang menurut Angka Kredit. Tiap kartu menampilkan beberapa nama dan tombol "Buka halamannya".',
                     'Pilih Mingguan, Bulanan atau Triwulanan, lalu pilih periode dengan ‹ dan ›.',
                     'Kotak ringkasan menunjukkan jumlah tim yang sudah punya rekap, rata-rata capaian kantor, jumlah rekap yang sudah dikunci PJ, dan jumlah baris yang sudah dikonfirmasi.',
                 ],

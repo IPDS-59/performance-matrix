@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Actions\Kinetik\BuildAttentionItemsAction;
 use App\Actions\Kinetik\SaveRkRecapAction;
 use App\Http\Controllers\Concerns\ResolvesTeams;
 use App\Models\Employee;
@@ -391,6 +392,7 @@ class TeamRecapController extends Controller
             'weekEnd' => Carbon::parse($weekStart)->endOfWeek(Carbon::SUNDAY)->toDateString(),
             'teams' => $teams,
             'canWriteNotes' => $request->user()->hasRole('head'),
+            'attention' => app(BuildAttentionItemsAction::class)->execute($this->teamsFor($request)),
         ]);
     }
 
