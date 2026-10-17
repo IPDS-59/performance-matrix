@@ -7,10 +7,12 @@ use App\Http\Controllers\Concerns\ResolvesTeams;
 use App\Models\Employee;
 use App\Models\LeadershipNote;
 use App\Models\PerformancePlan;
+use App\Models\PlanItem;
 use App\Models\Project;
 use App\Models\RecapLock;
 use App\Models\RecapOverride;
 use App\Models\RecapSummary;
+use App\Models\RkRecap;
 use App\Models\Team;
 use App\Models\TeamRecapEvidence;
 use App\Notifications\KinetikNotification;
@@ -81,16 +83,30 @@ class TeamRecapController extends Controller
         $teams = $this->teamsFor($request);
         $team = $this->selectedTeam($request, $teams, $employee);
 
-        if ($request->query('year') === null && $request->query('month') === null && $team) {
-            $latest = $this->aggregator->latestPeriod($team) ?? now();
-            $year = $latest->year;
-            $month = $latest->month;
-        } else {
-            $year = (int) $request->query('year', now()->year);
-            $month = (int) $request->query('month', now()->month);
+        $year = $request->query('year') !== null
+            ? (int) $request->query('year')
+            : (($team ? $this->aggregator->latestPeriod($team) : null) ?? now())->year;
+
+        // No month in the address: show the list of months. A month opens its detail.
+        if ($request->query('month') === null) {
+            return Inertia::render('Kinetik/MonthlyRecap', [
+                'teams' => $this->teamOptions($teams),
+                'selectedTeamId' => $team?->id,
+                'view' => 'list',
+                'months' => $team ? $this->monthRows($team, $year) : [],
+                'panels' => [],
+                'year' => $year,
+                'month' => null,
+                'canManage' => $team !== null && $employee !== null && $this->isPj($employee, $team->id),
+                'currentEmployeeId' => $employee?->id,
+            ]);
         }
 
+        $month = (int) $request->query('month');
+
         return Inertia::render('Kinetik/MonthlyRecap', [
+            'view' => 'detail',
+            'months' => [],
             'teams' => $this->teamOptions($teams),
             'selectedTeamId' => $team?->id,
             'panels' => $team ? $this->aggregator->panels($team, 'month', Carbon::create($year, $month, 1)) : [],
@@ -99,6 +115,33 @@ class TeamRecapController extends Controller
             'canManage' => $team !== null && $employee !== null && $this->isPj($employee, $team->id),
             'currentEmployeeId' => $employee?->id,
         ]);
+    }
+
+    /**
+     * One row per month of the year: how many kegiatan the members planned, how many RK have a
+     * paraphrase, and how many are locked.
+     *
+     * @return list<array{month: int, label: string, activities: int, written: int, locked: int}>
+     */
+    private function monthRows(Team $team, int $year): array
+    {
+        $activities = PlanItem::where('team_id', $team->id)->where('status', '!=', 'cancelled')
+            ->whereDate('date_start', '>=', "{$year}-01-01")->whereDate('date_start', '<=', "{$year}-12-31")
+            ->pluck('date_start')
+            ->countBy(fn ($d) => (int) Carbon::parse($d)->month);
+
+        $recaps = RkRecap::where('team_id', $team->id)->where('period_type', 'month')
+            ->whereDate('period_start', '>=', "{$year}-01-01")->whereDate('period_start', '<=', "{$year}-12-31")
+            ->get(['period_start', 'paraphrase', 'locked_at'])
+            ->groupBy(fn ($r) => (int) Carbon::parse($r->period_start)->month);
+
+        return collect(range(1, 12))->map(fn (int $m) => [
+            'month' => $m,
+            'label' => Carbon::create($year, $m, 1)->locale('id')->translatedFormat('F'),
+            'activities' => (int) ($activities[$m] ?? 0),
+            'written' => ($recaps[$m] ?? collect())->filter(fn ($r) => filled($r->paraphrase))->count(),
+            'locked' => ($recaps[$m] ?? collect())->filter(fn ($r) => $r->locked_at !== null)->count(),
+        ])->all();
     }
 
     // ── Team quarterly recap (FRA) ───────────────────────────────────────────

@@ -446,7 +446,8 @@ it('opens the weekly recap on the week of the latest plan item', function () {
     recapItem($team, $pj, $plan, ['date_start' => '2026-09-16', 'date_end' => '2026-09-16']);
 
     $this->actingAs($user)->get(route('team-recap.weekly'))->assertInertia(fn ($page) => $page->where('weekStart', '2026-09-14'));
-    $this->actingAs($user)->get(route('team-recap.monthly'))->assertInertia(fn ($page) => $page->where('year', 2026)->where('month', 9));
+    // The monthly page opens on the list of months, in the year of the latest plan item.
+    $this->actingAs($user)->get(route('team-recap.monthly'))->assertInertia(fn ($page) => $page->where('view', 'list')->where('year', 2026)->where('month', null));
     $this->actingAs($user)->get(route('team-recap.quarterly'))->assertInertia(fn ($page) => $page->where('quarter', 3));
 });
 
@@ -509,4 +510,23 @@ it('exports the weekly recap rows from plan items', function () {
         ->assertOk()
         ->assertJsonPath('teams.0.segments.0.rows.0.rk_description', 'RK Ekspor')
         ->assertJsonPath('teams.0.segments.0.rows.0.achievement', 50);
+});
+
+it('lists the months of the year with their counts and opens one month on click', function () {
+    [$user, $pj, $team] = pjOfTeam();
+    $plan = PerformancePlan::factory()->create(['project_id' => null, 'team_id' => $team->id]);
+    recapItem($team, $pj, $plan, ['date_start' => '2026-09-16', 'date_end' => '2026-09-16']);
+    recapItem($team, $pj, $plan, ['date_start' => '2026-09-18', 'date_end' => '2026-09-18']);
+    recapItem($team, $pj, $plan, ['date_start' => '2026-10-05', 'date_end' => '2026-10-05']);
+    RkRecap::create(['team_id' => $team->id, 'performance_plan_id' => $plan->id, 'period_type' => 'month', 'period_start' => '2026-09-01', 'paraphrase' => 'Ringkasan', 'locked_at' => now()]);
+
+    $this->actingAs($user)->get(route('team-recap.monthly', ['year' => 2026]))->assertInertia(fn ($page) => $page
+        ->where('view', 'list')
+        ->where('panels', [])
+        ->where('months.8', ['month' => 9, 'label' => 'September', 'activities' => 2, 'written' => 1, 'locked' => 1])
+        ->where('months.9.activities', 1)
+        ->where('months.0.activities', 0));
+
+    $this->actingAs($user)->get(route('team-recap.monthly', ['year' => 2026, 'month' => 9]))->assertInertia(fn ($page) => $page
+        ->where('view', 'detail')->where('month', 9)->where('months', []));
 });

@@ -643,3 +643,12 @@ export interface MemberWeekProps {
     /** False until the member synced their RK list from kipApp. */
     rkSynced?: boolean;
 }
+
+/** One month of the monthly recap list. */
+export interface MonthRow {
+    month: number;
+    label: string;
+    activities: number;
+    written: number;
+    locked: number;
+}
