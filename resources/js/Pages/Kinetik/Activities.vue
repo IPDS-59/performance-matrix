@@ -12,14 +12,14 @@ const props = defineProps<{
     activities: Paginated<KipActivityRow>;
     filters: {
         q: string;
-        status: 'all' | 'claimed' | 'unclaimed';
+        status: 'all' | 'sent' | 'unsent';
         period: 'all' | 'week' | 'month' | 'quarter';
         /** Anchor date of the period (YYYY-MM-DD). */
         date: string;
         from: string | null;
         to: string | null;
     };
-    stats: { total: number; claimed: number };
+    stats: { total: number; sent: number };
     canViewAll: boolean;
 }>();
 
@@ -112,15 +112,15 @@ function formatDate(iso: string | null): string {
 
         <div class="mb-4 flex flex-wrap items-center justify-between gap-3">
             <div class="text-sm text-gray-500">
-                {{ stats.claimed }} dari {{ stats.total }} kegiatan sudah diklaim<template v-if="periodLabel"> ({{ periodLabel }})</template>
+                {{ stats.sent }} dari {{ stats.total }} kegiatan sudah dikirim ke atasan<template v-if="periodLabel"> ({{ periodLabel }})</template>
             </div>
             <div class="flex items-center gap-2">
                 <Select v-model="status">
                     <SelectTrigger class="w-44" aria-label="Filter status"><SelectValue /></SelectTrigger>
                     <SelectContent>
                         <SelectItem value="all">Semua status</SelectItem>
-                        <SelectItem value="claimed">Sudah diklaim</SelectItem>
-                        <SelectItem value="unclaimed">Belum diklaim</SelectItem>
+                        <SelectItem value="sent">Sudah dikirim</SelectItem>
+                        <SelectItem value="unsent">Belum dikirim</SelectItem>
                     </SelectContent>
                 </Select>
                 <input
@@ -161,12 +161,12 @@ function formatDate(iso: string | null): string {
                         <TableCell class="text-center text-sm">{{ act.progress != null ? act.progress + '%' : '—' }}</TableCell>
                         <TableCell class="text-center">
                             <span
-                                :class="act.is_claimed
+                                :class="act.is_sent
                                     ? 'inline-flex items-center gap-1 rounded-full border border-green-200 bg-green-100 px-2 py-0.5 text-xs font-medium text-green-700'
                                     : 'inline-flex items-center gap-1 rounded-full border border-gray-200 bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-500'"
                             >
-                                <component :is="act.is_claimed ? CheckCircle2 : Circle" class="h-3 w-3" />
-                                {{ act.is_claimed ? 'Diklaim' : 'Belum' }}
+                                <component :is="act.is_sent ? CheckCircle2 : Circle" class="h-3 w-3" />
+                                {{ act.is_sent ? 'Terkirim' : 'Belum' }}
                             </span>
                         </TableCell>
                         <TableCell class="text-center">

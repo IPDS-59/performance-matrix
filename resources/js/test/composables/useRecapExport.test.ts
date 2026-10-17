@@ -4,9 +4,9 @@ import type { RecapExport, RecapRow } from '@/types';
 
 function row(overrides: Partial<RecapRow> = {}): RecapRow {
     return {
-        row_key: '1:1', merge_key: null, performance_plan_id: 1, project_id: 1, rk_description: 'RK', uraian_aggregated: 'uraian anggota',
+        row_key: '1:1', performance_plan_id: 1, project_id: 1, rk_description: 'RK', uraian_aggregated: 'uraian anggota',
         target: 4, realization: 2, achievement: 50, obstacle: 'kendala', solution: null, follow_up_plan: null,
-        obstacle_aggregated: null, solution_aggregated: null, follow_up_aggregated: null, is_overridden: false, contributors: [],
+        is_overridden: false, contributors: [],
         ...overrides,
     };
 }
@@ -35,7 +35,7 @@ describe('buildRecapSheet', () => {
         expect(rows[1].slice(0, 5)).toEqual([1, 'MTI', 'Projek A', 'RK', 'uraian anggota']);
         expect(rows[2][4]).toBe('uraian PJ');
         expect(rows[3][2]).toBe('Projek B');
-        expect(rows[1][11]).toBe('https://n1\nhttps://n2');
+        expect(rows[1][8]).toBe('https://n1\nhttps://n2');
         expect(rows[4].slice(0, 5)).toEqual([2, 'Umum', null, null, 'Tidak ada kegiatan']);
         // Team "No"/"Tim" span rows 1-3; Projek A spans rows 1-2.
         expect(merges).toContainEqual({ s: { r: 1, c: 1 }, e: { r: 3, c: 1 } });
@@ -55,36 +55,5 @@ describe('buildRecapSheet', () => {
 
         expect(rows[0].slice(-3)).toEqual(['Link Bukti Tindak Lanjut', 'PIC', 'Batas Waktu']);
         expect(rows[1].slice(-2)).toEqual(['Dewi', '2026-07-01']);
-    });
-
-    it('writes the text of merged rows once and merges those cells down', () => {
-        const data: RecapExport = {
-            period_type: 'month',
-            year: 2026,
-            month: 6,
-            teams: [{
-                team_name: 'MTI',
-                segments: [{
-                    project_id: 1,
-                    project_name: 'Projek A',
-                    rows: [
-                        row({ row_key: '1:1', merge_key: '1:1', pj_uraian: 'uraian gabungan', obstacle: 'hujan' }),
-                        row({ row_key: '2:1', merge_key: '1:1', rk_description: 'RK 2', obstacle: 'hujan' }),
-                        row({ row_key: '3:1' }),
-                    ],
-                }],
-                evidences: {},
-            }],
-        } as unknown as RecapExport;
-
-        const { rows, merges } = buildRecapSheet(data);
-
-        expect(rows[1][4]).toBe('uraian gabungan');
-        expect(rows[2][3]).toBe('RK 2');
-        expect(rows[2][4]).toBeNull();
-        expect(rows[2][8]).toBeNull();
-        expect(rows[3][4]).toBe('uraian anggota');
-        expect(merges).toContainEqual({ s: { r: 1, c: 4 }, e: { r: 2, c: 4 } });
-        expect(merges).toContainEqual({ s: { r: 1, c: 10 }, e: { r: 2, c: 10 } });
     });
 });

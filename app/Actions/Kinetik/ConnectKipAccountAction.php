@@ -2,6 +2,7 @@
 
 namespace App\Actions\Kinetik;
 
+use App\Jobs\SyncMyActivitiesJob;
 use App\Models\MemberKipCredential;
 use App\Models\User;
 use App\Services\Kinetik\KipLoginClient;
@@ -43,6 +44,8 @@ class ConnectKipAccountAction
 
         if (MemberKipCredential::keyIsConfigured()) {
             MemberKipCredential::remember($user, $password, $result->token, $result->expiresAt);
+            // First sync of the member's own RK and kegiatan, after the response.
+            SyncMyActivitiesJob::dispatchAfterResponse($user->id);
         }
     }
 

@@ -2,12 +2,17 @@
 
 namespace Tests\Feature\Auth;
 
+use App\Kinetik\Contracts\KipActivitySource;
+use App\Kinetik\Sources\MockKipActivitySource;
 use App\Models\Employee;
+use App\Models\KipActivity;
 use App\Models\MemberKipCredential;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Http;
+use RuntimeException;
 use Tests\TestCase;
 
 class KipSsoLoginTest extends TestCase
@@ -88,6 +93,48 @@ class KipSsoLoginTest extends TestCase
         $this->assertTrue(Hash::check('sso-secret', $fresh->password));
         $this->assertFalse(Hash::check('password', $fresh->password));
         $this->assertFalse($fresh->needsKipConnection());
+    }
+
+    public function test_connecting_runs_the_first_sync_of_the_member(): void
+    {
+        config(['kinetik.kip.source' => 'mock']);
+        $this->app->bind(KipActivitySource::class, MockKipActivitySource::class);
+        $this->fakeSso('ok');
+        $user = $this->staff();
+        $user->employee->update(['nip_lama' => '340099999']);
+
+        $this->actingAs($user)->post(route('kip.connect.store'), ['password' => 'sso-secret'])->assertRedirect(route('dashboard', absolute: false));
+
+        $this->assertSame(3, KipActivity::where('employee_id', $user->employee->id)->count());
+    }
+
+    public function test_a_failing_first_sync_never_blocks_the_connection(): void
+    {
+        $this->app->bind(KipActivitySource::class, fn () => new class implements KipActivitySource
+        {
+            public function fetchActivities(string $nipLama, ?string $pegawaiId = null): Collection
+            {
+                throw new RuntimeException('kipApp down');
+            }
+
+            public function fetchPlans(string $nipLama): Collection
+            {
+                throw new RuntimeException('kipApp down');
+            }
+
+            public function fetchYearlyRks(string $pegawaiId): Collection
+            {
+                throw new RuntimeException('kipApp down');
+            }
+        });
+        $this->fakeSso('ok');
+        $user = $this->staff();
+        $user->employee->update(['nip_lama' => '340099999']);
+
+        $this->actingAs($user)->post(route('kip.connect.store'), ['password' => 'sso-secret'])->assertRedirect(route('dashboard', absolute: false));
+
+        $this->assertNotNull(MemberKipCredential::firstWhere('user_id', $user->id));
+        $this->assertSame(0, KipActivity::count());
     }
 
     public function test_a_wrong_sso_password_is_rejected_on_the_connect_page(): void
@@ -237,5 +284,18 @@ class KipSsoLoginTest extends TestCase
         $this->post(route('kip.otp.store'), ['otp' => '123456'])->assertRedirect(route('dashboard', absolute: false));
 
         $this->assertFalse($user->fresh()->needsKipConnection());
+    }
+
+    public function test_with_sso_login_switched_off_staff_use_their_local_password_and_bps_is_never_called(): void
+    {
+        config(['kinetik.kip.sso_login' => false]);
+        Http::fake();
+        $user = $this->staff();
+
+        $this->post('/login', ['email' => 'sukma', 'password' => 'password'])->assertRedirect(route('dashboard', absolute: false));
+
+        $this->assertAuthenticatedAs($user);
+        $this->get('/dashboard')->assertOk();
+        Http::assertNothingSent();
     }
 }

@@ -20,10 +20,13 @@ it('denies index for staff', function () {
         ->assertForbidden();
 });
 
-it('renders create form with teams', function () {
+it('gives the add-employee popup the active teams', function () {
+    Team::factory()->create(['is_active' => true]);
+    Team::factory()->create(['is_active' => false]);
+
     $this->actingAs(adminUser())
-        ->get(route('employees.create'))
-        ->assertInertia(fn ($page) => $page->component('Employees/Create')->has('teams'));
+        ->get(route('employees.index'))
+        ->assertInertia(fn ($page) => $page->component('Employees/Index')->has('teams', 1));
 });
 
 it('stores an employee and redirects', function () {

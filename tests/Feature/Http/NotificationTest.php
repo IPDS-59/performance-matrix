@@ -1,9 +1,6 @@
 <?php
 
-use App\Models\ActivityClaim;
 use App\Models\Employee;
-use App\Models\KipActivity;
-use App\Models\PerformancePlan;
 use App\Models\Team;
 use App\Models\User;
 use App\Notifications\KinetikNotification;
@@ -31,24 +28,7 @@ it('notifies the member when the PJ sets their weekly focus, once per change', f
     expect($memberUser->notifications)->toHaveCount(1)
         ->and($memberUser->notifications->first()->data)->toMatchArray(['type' => 'weekly_focus'])
         ->and($memberUser->notifications->first()->data['message'])->toContain('Sukma mengisi fokus Anda')->toContain('Entri SE2026')
-        ->and($memberUser->notifications->first()->data['url'])->toContain('/rencana-minggu');
-});
-
-it('notifies the member when the PJ corrects their numbers', function () {
-    [$pjUser, $team, $member, $memberUser] = teamWithPjAndMember();
-    $plan = PerformancePlan::factory()->create(['project_id' => null, 'team_id' => $team->id]);
-    $activity = KipActivity::factory()->create(['employee_id' => $member->id, 'description' => 'Rapat ISO']);
-    $claim = ActivityClaim::factory()->saved()->create([
-        'employee_id' => $member->id, 'kip_activity_id' => $activity->id, 'performance_plan_id' => $plan->id,
-        'target' => 4, 'realization' => 2, 'target_unit' => 'Dokumen', 'week_start' => '2026-06-01', 'activity_date_start' => '2026-06-02', 'period_year' => 2026, 'period_month' => 6,
-    ]);
-
-    $this->actingAs($pjUser)->post(route('team-recap.claim-adjust', $claim), ['target' => 4, 'realization' => 3]);
-    $this->actingAs($pjUser)->post(route('team-recap.claim-adjust', $claim), ['target' => 4, 'realization' => 3]); // no change
-
-    expect($memberUser->notifications)->toHaveCount(1)
-        ->and($memberUser->notifications->first()->data['message'])->toContain('Rapat ISO')->toContain('realisasi 3 dari target 4 Dokumen')
-        ->and($memberUser->notifications->first()->data['url'])->toContain('week=2026-06-01');
+        ->and($memberUser->notifications->first()->data['url'])->toContain('/rekap-mingguan');
 });
 
 it('notifies the team PJ when the head writes a note', function () {

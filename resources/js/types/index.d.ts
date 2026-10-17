@@ -195,74 +195,6 @@ export type PageProps<
     };
 };
 
-// ── Kinetik / Weekly Scrapper types ──────────────────────────────────────────
-
-export interface KipActivity {
-    id: number;
-    employee_id: number;
-    external_id: string;
-    description: string;
-    activity_date_start: string;
-    activity_date_end?: string | null;
-    time_start?: string | null;
-    time_end?: string | null;
-    evidence_url?: string | null;
-    rk_name?: string | null;
-    is_claimed: boolean;
-    /** kipApp progres, 0–100. */
-    progress?: number | null;
-    /** Runs past this week: claimed once per week it covers. */
-    spans_weeks?: boolean;
-    /** The part of the activity inside the viewed week (default claim dates). */
-    week_date_start?: string;
-    week_date_end?: string;
-    matched_plan_id?: number | null;
-    /** True when the PJ locked the recap period this activity falls in. */
-    locked?: boolean;
-    claim?: ActivityClaim | null;
-}
-
-export interface ActivityClaim {
-    id: number;
-    kip_activity_id?: number | null;
-    employee_id: number;
-    performance_plan_id: number;
-    project_id?: number | null;
-    work_item_id?: number | null;
-    target?: string | number | null;
-    realization?: string | number | null;
-    achievement?: string | number | null;
-    target_unit?: string | null;
-    obstacle?: string | null;
-    solution?: string | null;
-    follow_up_plan?: string | null;
-    activity_date_start: string;
-    activity_date_end?: string | null;
-    start_time?: string | null;
-    end_time?: string | null;
-    evidence_url?: string | null;
-    status: 'draft' | 'saved';
-    week_start: string;
-    performance_plan?: PerformancePlan & { project?: { name: string; team?: { name: string } | null } | null } | null;
-    kip_activity?: KipActivity | null;
-    project?: { id: number; name: string } | null;
-}
-
-export interface PlanOption {
-    id: number;
-    description: string;
-    project_id: number | null;
-    project_name: string;
-    team_id: number | null;
-    team_name: string;
-    /** Projek under this RK's leader RK in kipApp, when there are several; empty = any Projek of the team. */
-    project_candidates: number[];
-    /** "Tanpa projek" allowed: the RK's leader RK has no Projek in kipApp. */
-    project_optional: boolean;
-    /** Unit of the RK's IKI target, e.g. "Dokumen". */
-    target_unit?: string | null;
-}
-
 export interface ProjectOption {
     id: number;
     name: string;
@@ -272,63 +204,72 @@ export interface ProjectOption {
 
 // ── Kinetik / Team recaps (Phase 4) ──────────────────────────────────────────
 
-/** One member claim behind a recap row. */
-export interface RecapClaimLine {
-    claim_id: number;
-    name: string;
-    uraian: string | null;
-    target: number | null;
-    realization: number | null;
-    target_unit: string | null;
-    achievement: number | null;
-    /** PJ who corrected the numbers, if any. */
-    adjusted_by: string | null;
-}
-
 export interface RecapRow {
     /** "planId:projectId" — one RK within one Projek. */
     row_key: string;
-    /** Row key of the merge group's lead; null when not merged. */
-    /** Member claims behind this row. */
-    claims?: RecapClaimLine[];
-    merge_key: string | null;
     performance_plan_id: number;
     project_id: number | null;
     rk_code?: string | null;
     rk_description: string;
     uraian_aggregated?: string | null;
-    uraian_items?: Array<{ name: string; uraian: string }>;
+    /** Numbers: the PJ's own for the RK, else the members' plan items summed. */
     target: number;
     realization: number;
     achievement: number | null;
     target_unit?: string | null;
+    contributors: string[];
+    /** Week/month: locked by the PJ. Quarter: signed off. */
+    is_confirmed?: boolean;
+    confirmed_by?: string | null;
+    /** The PJ's paraphrase. */
+    pj_uraian?: string | null;
+    is_overridden: boolean;
+    pic_employee_id?: number | null;
+    // Quarterly (FRA) only
     obstacle: string | null;
     solution: string | null;
     follow_up_plan: string | null;
-    obstacle_aggregated: string | null;
-    solution_aggregated: string | null;
-    follow_up_aggregated: string | null;
-    is_overridden: boolean;
-    contributors: string[];
-    // Confirmation
-    is_confirmed?: boolean;
-    confirmed_by?: string | null;
-    // PJ paraphrase fields (read-only view for non-PJ members)
-    pj_uraian?: string | null;
-    pj_obstacle?: string | null;
-    pj_solution?: string | null;
-    pj_follow_up_plan?: string | null;
-    // Inherited from previous weekly paraphrase (used to prefill monthly/quarterly)
-    inherited_obstacle?: string | null;
-    inherited_solution?: string | null;
-    inherited_follow_up_plan?: string | null;
-    // PIC employee id (for row-level paraphrase permission)
-    pic_employee_id?: number | null;
-    // Quarterly (FRA) only
     follow_up_evidence_url?: string | null;
     follow_up_pic?: string | null;
     follow_up_pic_employee_id?: number | null;
     follow_up_deadline?: string | null;
+}
+
+/** What one member wrote for an RK in a week or month, from their plan items. */
+export interface RkEntry {
+    employee_id: number;
+    name: string;
+    /** One sentence each: the uraian capaian, else the kegiatan. */
+    lines: string[];
+    items: number;
+    target: number | null;
+    capaian: number | null;
+    unit: string | null;
+}
+
+/** The PJ's saved paraphrase, target and capaian for an RK and period. */
+export interface RkRecapState {
+    paraphrase: string | null;
+    target: number | null;
+    target_unit: string | null;
+    capaian: number | null;
+    locked: boolean;
+    locked_by: string | null;
+}
+
+/** One RK of the team in a week or month (GET team-recap.weekly / monthly `panels`). */
+export interface RkPanel {
+    performance_plan_id: number;
+    rk_description: string;
+    project_id: number | null;
+    project_name: string | null;
+    pic_employee_id: number | null;
+    entry_count: number;
+    entries: RkEntry[];
+    recap: RkRecapState | null;
+    default_unit: string | null;
+    /** Monthly only: the weekly paraphrases of the month. */
+    weeks: Array<{ label: string; start: string; paraphrase: string }>;
 }
 
 export interface RecapSegment {
@@ -337,44 +278,6 @@ export interface RecapSegment {
     /** The ketua tim's RK this Projek hangs under. */
     leader_rk?: string | null;
     rows: RecapRow[];
-}
-
-/** One member kegiatan inside a weekly output row. */
-export interface WeeklyRowLine {
-    claim_id: number;
-    name: string;
-    uraian: string | null;
-    rk_description: string;
-    target: number | null;
-    realization: number | null;
-    target_unit: string | null;
-    achievement: number | null;
-    adjusted_by: string | null;
-    pic_employee_id: number | null;
-    plan_id: number;
-}
-
-/** The PJ's output row of a week: one kegiatan, or several the PJ merged. */
-export interface WeeklyRow {
-    /** "c<claim id>" until the PJ saves or merges, then "r<row id>". */
-    key: string;
-    row_id: number | null;
-    claim_ids: number[];
-    claims: WeeklyRowLine[];
-    merged: boolean;
-    /** Part of "Laporan Tersimpan". */
-    saved: boolean;
-    pj_uraian: string | null;
-    obstacle: string | null;
-    solution: string | null;
-    follow_up_plan: string | null;
-}
-
-export interface WeeklySegment {
-    project_id: number | null;
-    project_name: string;
-    leader_rk: string | null;
-    rows: WeeklyRow[];
 }
 
 /** The PJ's narrative for one Projek of a month or quarter. */
@@ -476,16 +379,6 @@ export interface TeamOption {
     name: string;
 }
 
-export interface WeeklyTeamNote {
-    id: number;
-    team_id: number;
-    week_start: string;
-    uraian: string | null;
-    obstacle: string | null;
-    solution: string | null;
-    follow_up_plan: string | null;
-}
-
 export interface KipSyncRun {
     id: number;
     status: string;
@@ -526,7 +419,7 @@ export interface KipActivityRow {
     description?: string | null;
     rk_name?: string | null;
     progress?: number | null;
-    is_claimed: boolean;
+    is_sent: boolean;
     evidence_url?: string | null;
 }
 
@@ -599,43 +492,26 @@ export interface RecapSection {
     segments: RecapSegment[];
 }
 
-/** One member card on "Rencana Minggu Ini". */
-export interface WeeklyPlanMember {
-    employee_id: number;
-    name: string;
-    /** The PJ's focus for this member this week. */
-    focus: string | null;
-    /** The member's RK of this team with no kegiatan yet this quarter. */
-    rks_without_activity: Array<{ id: number; name: string }>;
-    /** This quarter's kegiatan still under 100% (newest first, up to 10). */
-    unfinished: Array<{ id: number; description: string; date_start: string; progress: number; rk_name: string | null; evidence_url: string | null }>;
-    unsent_count: number;
-    activity_count: number;
-    rk_count: number;
-    /** Plan items that overlap the week (cancelled ones are left out). */
-    plans: PlanItemRow[];
-    /** Where the member stands in the kipApp planning chain. */
-    flow: PlanFlowStep[];
-}
-
-/** One step of the kipApp planning chain for a member. `unknown` means Kinetik cannot see it. */
-export interface PlanFlowStep {
-    key: 'rk' | 'skp' | 'plan' | 'kipapp' | 'sent';
-    label: string;
-    state: 'done' | 'todo' | 'blocked' | 'unknown';
-    hint: string;
-}
-
+/** One kegiatan of the signed-in member on "Rekap Mingguan". Target and capaian are numbers. */
 export interface PlanItemRow {
     id: number;
+    team_id: number;
     description: string;
     performance_plan_id: number;
     rk_name: string | null;
     project_id: number | null;
     date_start: string;
     date_end: string;
+    /** "HH:MM" for a kegiatan with a clock time (one day), else null. */
+    time_start: string | null;
+    time_end: string | null;
     target: number | null;
     target_unit: string | null;
+    capaian: number | null;
+    /** Uraian capaian: the text sent to kipApp. */
+    capaian_note: string | null;
+    evidence_url: string | null;
+    progress: number;
     status: 'planned' | 'pushed' | 'in_progress' | 'done' | 'cancelled';
     source: 'member' | 'pj' | 'rtl';
     /** Why the last push to kipApp failed; only while the plan is still unsent. */
@@ -643,17 +519,26 @@ export interface PlanItemRow {
     in_kipapp: boolean;
     /** Sent to the atasan in kipApp ("Kirim ke atasan"). */
     sent: boolean;
-    evaluation: PlanEvaluation;
+    /** Date (YYYY-MM-DD) it was sent, else null. */
+    sent_at: string | null;
+    /** kipApp "Masukan ke capaian SKP". */
+    is_capaian_skp: boolean;
+    /** False until the start date: kipApp takes no future date, so it cannot be pushed yet. */
+    startable: boolean;
+    /** What the settings and the SKP status allow for a kegiatan that is already in kipApp. */
+    can_edit: boolean;
+    can_delete: boolean;
+    can_send: boolean;
+    /** Short reason when the quarter SKP is locked in kipApp. */
+    lock_reason: string | null;
 }
 
-/** Friday evaluation of a plan item: what the member's kipApp kegiatan show, or the PJ's correction. */
-export interface PlanEvaluation {
-    state: 'done' | 'in_progress' | 'not_started';
-    computed_state: 'done' | 'in_progress' | 'not_started';
-    progress: number | null;
-    activity_count: number;
-    overridden: boolean;
-    override_reason: string | null;
+/** One row of the kipApp presensi list ("List Aktivitas"). */
+export interface PresensiRow {
+    id: string;
+    /** YYYY-MM-DD */
+    date: string;
+    description: string;
 }
 
 export interface FraQuarter {
@@ -751,25 +636,78 @@ export interface PlanComplianceProps {
 export interface PlanRkOption {
     id: number;
     description: string;
+    team_id: number;
+    team_name: string | null;
     project_id: number | null;
     project_candidates: number[];
     project_optional: boolean;
     target_unit: string | null;
 }
 
-export interface WeeklyPlanProps {
-    teams: TeamOption[];
-    selectedTeamId: number | null;
-    weekStart: string;
-    weekEnd: string;
-    prevWeek: string;
-    nextWeek: string;
-    quarter: number;
-    canManage: boolean;
-    currentEmployeeId: number | null;
+export interface MemberWeekProps {
+    employee: { id: number; name: string } | null;
+    view: 'months' | 'weeks' | 'detail';
+    periods: PeriodRow[];
+    year: number;
+    month: number | null;
     /** The "Kirim ke atasan" buttons are shown only when the setting is on. */
     canSendToAtasan: boolean;
-    members: WeeklyPlanMember[];
-    rkOptions: PlanRkOption[];
-    projectOptions: Array<{ id: number; name: string }>;
+    /** The SKP year (kinetik.kip.tahun): dates of a kegiatan must stay in one quarter of it. */
+    skpYear: number;
+    weekStart?: string;
+    weekEnd?: string;
+    lastWeekStart?: string;
+    lastWeekEnd?: string;
+    prevWeek?: string;
+    nextWeek?: string;
+    lastWeek?: PlanItemRow[];
+    thisWeek?: PlanItemRow[];
+    /** The PJ's focus for this member this week. */
+    focus?: string | null;
+    rkOptions?: PlanRkOption[];
+    projectOptions?: Array<{ id: number; name: string }>;
+    /** False until the member synced their RK list from kipApp. */
+    rkSynced?: boolean;
+}
+
+
+/** One row of a period list (a month or a week of the recap). */
+export interface PeriodRow {
+    key: number | string;
+    label: string;
+    activities: number;
+    written: number;
+    locked: number;
+    /** True for the month or week that contains today. */
+    current: boolean;
+}
+
+/** A member's plan item for one week, as the PJ sees it (read only). */
+export interface TeamWeekPlan {
+    id: number;
+    employee_id: number;
+    employee_name: string;
+    description: string;
+    rk_name: string | null;
+    date_start: string;
+    date_end: string;
+    target: number | null;
+    target_unit: string | null;
+    capaian: number | null;
+    capaian_note: string | null;
+    evidence_url: string | null;
+    status: 'planned' | 'pushed' | 'in_progress' | 'done' | 'cancelled';
+    in_kipapp: boolean;
+    sent: boolean;
+}
+
+/** One group of things that need the head's or PJ's attention. */
+export interface AttentionGroup {
+    key: string;
+    title: string;
+    hint: string;
+    severity: 'high' | 'medium' | 'info';
+    count: number;
+    samples: string[];
+    route: string;
 }

@@ -41,9 +41,30 @@ class ApiKipWriter
     }
 
     /**
+     * The member's presensi activities of one period, for the "List Aktivitas" picker. Each row is
+     * {date: Y-m-d, description}. Rows without a date or a description are dropped. The field names
+     * are read from kipApp's own code (id, fullDate, description); `tanggal` is the fallback seen in a probe.
+     *
+     * @return list<array{id: string, date: string, description: string}>
+     */
+    public function presensi(int $periodeId, int $periodePenilaianId, string $niplama): array
+    {
+        $rows = $this->rows($this->get('v1/kegiatan/presensi', ['periodeid' => $periodeId, 'periodepenilaianid' => $periodePenilaianId, 'niplama' => $niplama]), 'presensi');
+
+        return collect($rows)
+            ->map(function ($r) {
+                $date = is_array($r) ? substr((string) ($r['fullDate'] ?? $r['tanggal'] ?? ''), 0, 10) : '';
+                $text = is_array($r) ? trim((string) ($r['description'] ?? '')) : '';
+
+                return preg_match('/^\d{4}-\d{2}-\d{2}$/', $date) && $text !== '' ? ['id' => (string) ($r['id'] ?? $date.$text), 'date' => $date, 'description' => $text] : null;
+            })
+            ->filter()->sortBy('date')->values()->all();
+    }
+
+    /**
      * Create a kegiatan and return its kegiatanperhariid.
      *
-     * @param  array{skpid: string, rkid: string, rencanakinerja: string, kegiatan: string, tanggal: string, tanggalselesai: string, progres?: int}  $data
+     * @param  array{skpid: string, rkid: string, rencanakinerja: string, kegiatan: string, tanggal: string, tanggalselesai: ?string, progres?: int}  $data
      */
     public function createActivity(array $data): string
     {
@@ -103,13 +124,17 @@ class ApiKipWriter
      */
     private function payload(array $data): array
     {
+        // KIP_NULL_TIMES on: null stays null, like kipApp's own form. Off: today's defaults.
+        $nullTimes = (bool) config('kinetik.kip.null_times');
+
         return [
             'skpid' => $data['skpid'], 'rkid' => $data['rkid'], 'rencanakinerja' => $data['rencanakinerja'],
-            'kegiatan' => $data['kegiatan'], 'tanggal' => $data['tanggal'], 'tanggalselesai' => $data['tanggalselesai'],
+            'kegiatan' => $data['kegiatan'], 'tanggal' => $data['tanggal'],
+            'tanggalselesai' => $nullTimes ? ($data['tanggalselesai'] ?? null) : $data['tanggalselesai'],
             'progres' => $data['progres'] ?? 0, 'butirid' => null,
-            'jammulai' => $data['jammulai'] ?? '08:00', 'jamselesai' => $data['jamselesai'] ?? '16:00',
+            'jammulai' => $data['jammulai'] ?? ($nullTimes ? null : '08:00'), 'jamselesai' => $data['jamselesai'] ?? ($nullTimes ? null : '16:00'),
             'capaian' => $data['capaian'] ?? '', 'datadukung' => $data['datadukung'] ?? '',
-            'iscapaianskp' => 1, 'parentid' => null,
+            'iscapaianskp' => (int) ($data['iscapaianskp'] ?? 1), 'parentid' => $data['parentid'] ?? null,
         ];
     }
 

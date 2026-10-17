@@ -27,7 +27,7 @@ function shortRange(start: string, end: string): string {
     <section class="mb-6 overflow-hidden rounded-md border bg-white" :aria-label="title">
         <div class="border-b bg-gray-50 px-4 py-3.5">
             <h2 class="text-sm font-bold text-gray-900">{{ title }}</h2>
-            <p class="text-xs text-gray-400">{{ subtitle ?? 'Dari rekap yang sudah disimpan PJ · Hanya dibaca' }}</p>
+            <p class="text-xs text-gray-400">{{ subtitle ?? 'Dari kegiatan anggota dan rekap PJ · Hanya dibaca' }}</p>
         </div>
         <details v-for="section in sections" :key="section.start" class="group border-b last:border-b-0">
             <summary class="flex cursor-pointer list-none items-center gap-2.5 px-4 py-2.5 text-sm hover:bg-gray-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary">
@@ -56,7 +56,7 @@ function shortRange(start: string, end: string): string {
                         </li>
                     </ul>
                 </div>
-                <p v-if="!section.segments.length" class="text-sm text-gray-500">Belum ada klaim tersimpan.</p>
+                <p v-if="!section.segments.length" class="text-sm text-gray-500">Belum ada kegiatan anggota.</p>
             </div>
         </details>
     </section>

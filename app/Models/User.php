@@ -42,7 +42,7 @@ class User extends Authenticatable
     {
         $domain = (string) config('kinetik.kip.real_email_domain', 'bps.go.id');
 
-        return ! ($this->role === 'admin' || $this->hasRole('admin'))
+        return config('kinetik.kip.sso_login', true) && ! ($this->role === 'admin' || $this->hasRole('admin'))
             && str_ends_with((string) $this->email, '@'.$domain)
             && $this->employee()->exists();
     }

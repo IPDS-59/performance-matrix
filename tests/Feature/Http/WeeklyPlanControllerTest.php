@@ -4,11 +4,9 @@ use App\Actions\Kinetik\SyncKipActivitiesAction;
 use App\Kinetik\Sources\MockKipActivitySource;
 use App\Models\Employee;
 use App\Models\EmployeeRk;
-use App\Models\KipActivity;
 use App\Models\Team;
 use App\Models\User;
 use App\Models\WeeklyFocus;
-use Illuminate\Support\Arr;
 
 function planTeam(): array
 {
@@ -21,44 +19,6 @@ function planTeam(): array
 
     return [$user, $pj, $team, $member];
 }
-
-it('shows each member the RK without kegiatan, unfinished kegiatan and the PJ focus', function () {
-    [$user, , $team, $member] = planTeam();
-    foreach (['RK Inovasi' => 'rk-1', 'RK Metodologi' => 'rk-2'] as $name => $id) {
-        EmployeeRk::create(['employee_id' => $member->id, 'kip_rk_id' => $id, 'name' => $name, 'team_kip_id' => '106453', 'year' => 2026]);
-    }
-    // Another team's RK is not listed.
-    EmployeeRk::create(['employee_id' => $member->id, 'kip_rk_id' => 'rk-9', 'name' => 'RK Tim Lain', 'team_kip_id' => '999', 'year' => 2026]);
-    KipActivity::factory()->create(['employee_id' => $member->id, 'rk_external_id' => 'rk-1', 'rk_name' => 'RK Inovasi', 'description' => 'Bangun fitur', 'progress' => 60, 'sent_at' => null, 'activity_date_start' => '2026-10-02', 'activity_date_end' => '2026-10-02']);
-    // Last quarter's kegiatan does not count for Q4.
-    KipActivity::factory()->create(['employee_id' => $member->id, 'rk_external_id' => 'rk-2', 'rk_name' => 'RK Metodologi', 'progress' => 100, 'activity_date_start' => '2026-09-10', 'activity_date_end' => '2026-09-10']);
-    WeeklyFocus::create(['team_id' => $team->id, 'employee_id' => $member->id, 'week_start' => '2026-10-05', 'body' => 'Selesaikan fitur']);
-
-    $this->actingAs($user)->get(route('weekly-plan.index', ['team' => $team->id, 'week' => '2026-10-07']))
-        ->assertOk()
-        ->assertInertia(fn ($page) => $page
-            ->component('Kinetik/WeeklyPlan')
-            ->where('weekStart', '2026-10-05')
-            ->where('quarter', 4)
-            ->where('canManage', true)
-            ->where('canSendToAtasan', false)
-            ->where('members', fn ($members) => collect(collect($members)->firstWhere('name', 'Andi')['flow'])->pluck('state', 'key')->all() === ['rk' => 'done', 'skp' => 'done', 'plan' => 'todo', 'kipapp' => 'unknown', 'sent' => 'todo'])
-            ->where('members', fn ($members) => Arr::except(collect($members)->firstWhere('name', 'Andi'), 'flow') == [
-                'employee_id' => $member->id,
-                'name' => 'Andi',
-                'focus' => 'Selesaikan fitur',
-                'rks_without_activity' => [['id' => EmployeeRk::where('kip_rk_id', 'rk-2')->value('id'), 'name' => 'RK Metodologi']],
-                'unfinished' => [[
-                    'id' => KipActivity::where('description', 'Bangun fitur')->value('id'),
-                    'description' => 'Bangun fitur', 'date_start' => '2026-10-02', 'progress' => 60.0, 'rk_name' => 'RK Inovasi',
-                    'evidence_url' => KipActivity::where('description', 'Bangun fitur')->value('evidence_url'),
-                ]],
-                'unsent_count' => 1,
-                'activity_count' => 1,
-                'rk_count' => 2,
-                'plans' => [],
-            ]));
-});
 
 it('lets the PJ set and clear a member focus, and nobody else', function () {
     [$user, , $team, $member] = planTeam();

@@ -2,6 +2,7 @@
 
 use App\Actions\Kinetik\CompletePlanItemAction;
 use App\Actions\Kinetik\PushDuePlansAction;
+use App\Actions\Kinetik\PushPlanItemAction;
 use App\Actions\Kinetik\ReconcilePlanItemsAction;
 use App\Models\Employee;
 use App\Models\KipActivity;
@@ -142,4 +143,36 @@ it('lets a member push and complete through the endpoints, and blocks other memb
     $other = Employee::factory()->create(['user_id' => User::factory()->create()->id]);
     $other->teams()->attach($plan->team_id, ['role' => 'member', 'is_primary' => true]);
     $this->actingAs($other->user)->post(route('plan-items.complete', $plan), [])->assertForbidden();
+});
+
+it('sends uraian, bukti, progres and clock time in the kegiatan it creates', function () {
+    $plan = pushSetup(['capaian_note' => 'Sudah 5 blok', 'evidence_url' => 'https://drive.example/b', 'progress' => 40, 'time_start' => '09:00:00', 'time_end' => '11:30:00', 'date_end' => '2026-10-08']);
+    fakeKip();
+
+    expect(app(PushPlanItemAction::class)->execute($plan->load('employee.user', 'performancePlan')))->toBeTrue();
+
+    Http::assertSent(fn ($r) => $r->method() === 'POST' && str_contains($r->url(), 'v1/kegiatan') && $r['capaian'] === 'Sudah 5 blok' && $r['datadukung'] === 'https://drive.example/b' && $r['progres'] === 40 && $r['jammulai'] === '09:00' && $r['jamselesai'] === '11:30');
+});
+
+it('keeps the old kegiatan payload when the new fields are empty', function () {
+    $plan = pushSetup();
+    fakeKip();
+
+    app(PushPlanItemAction::class)->execute($plan->load('employee.user', 'performancePlan'));
+
+    Http::assertSent(fn ($r) => $r->method() === 'POST' && str_contains($r->url(), 'v1/kegiatan') && $r['capaian'] === '' && $r['datadukung'] === '' && $r['progres'] === 0 && $r['jammulai'] === '08:00' && $r['jamselesai'] === '16:00');
+});
+
+it('stores the numeric capaian when a plan is completed', function () {
+    $plan = pushSetup(['status' => 'pushed', 'kip_external_id' => '5550001', 'kip_skp_id' => '1460709', 'kip_rk_id' => '14656590']);
+    Http::fake([
+        '*/v1/kegiatan*' => Http::sequence([
+            Http::response([['kegiatanperhariid' => 5550001, 'kegiatan' => 'Entri SE2026', 'rkid' => '14656590', 'rencanakinerja' => 'RK Inovasi', 'tanggal' => '2026-10-08', 'tanggalselesai' => '2026-10-09']]),
+            Http::response(['status' => true]),
+        ]),
+    ]);
+
+    app(CompletePlanItemAction::class)->execute($plan->load('employee.user', 'performancePlan'), 'Selesai semua', 'https://d.example/x', 12.0);
+
+    expect($plan->fresh())->capaian->toBe('12.00')->capaian_note->toBe('Selesai semua')->progress->toBe(100)->evidence_url->toBe('https://d.example/x');
 });

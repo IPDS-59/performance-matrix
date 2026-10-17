@@ -1,19 +1,16 @@
 <?php
 
-use App\Models\ActivityClaim;
 use App\Models\Employee;
-use App\Models\KipActivity;
 use App\Models\LeadershipNote;
 use App\Models\PerformancePlan;
+use App\Models\PlanItem;
 use App\Models\Project;
 use App\Models\RecapLock;
 use App\Models\RecapOverride;
-use App\Models\RecapSummary;
+use App\Models\RkRecap;
 use App\Models\Team;
 use App\Models\TeamRecapEvidence;
 use App\Models\User;
-use App\Models\WeeklyRecapRow;
-use App\Services\Kinetik\RecapAggregator;
 
 /**
  * Create a staff user with an employee attached to a fresh team.
@@ -51,47 +48,6 @@ it('redirects guests to login', function () {
     $this->get(route('team-recap.weekly'))->assertRedirect(route('login'));
 });
 
-it('renders the team weekly recap', function () {
-    [$user, , $team] = memberOfTeam();
-
-    $this->actingAs($user)
-        ->get(route('team-recap.weekly'))
-        ->assertInertia(fn ($page) => $page
-            ->component('Kinetik/TeamWeeklyRecap')
-            ->has('teams', 1)
-            ->where('selectedTeamId', $team->id)
-            ->has('segments')
-            ->has('evidences')
-            ->has('weekStart')
-        );
-});
-
-it('renders the monthly recap', function () {
-    [$user] = memberOfTeam();
-
-    $this->actingAs($user)
-        ->get(route('team-recap.monthly'))
-        ->assertInertia(fn ($page) => $page
-            ->component('Kinetik/MonthlyRecap')
-            ->has('segments')
-            ->has('year')
-            ->has('month')
-        );
-});
-
-it('renders the quarterly recap with PIC options', function () {
-    [$user] = memberOfTeam();
-
-    $this->actingAs($user)
-        ->get(route('team-recap.quarterly'))
-        ->assertInertia(fn ($page) => $page
-            ->component('Kinetik/QuarterlyRecap')
-            ->has('segments')
-            ->has('quarter')
-            ->has('pics')
-        );
-});
-
 it('only lists teams the employee belongs to', function () {
     [$user, $employee] = memberOfTeam();
     Team::factory()->create(); // a team the employee is NOT in
@@ -118,66 +74,6 @@ it('PJ hits weekly with no params and lands on the team they lead', function () 
         );
 });
 
-it('PJ with no ?week param sees the week of the latest saved claim', function () {
-    [$pjUser, $pjEmployee, $team] = pjOfTeam();
-
-    $member = Employee::factory()->create();
-    $team->members()->attach($member->id, ['role' => 'member', 'is_primary' => true]);
-
-    $plan = PerformancePlan::factory()->create([
-        'project_id' => null,
-        'team_id' => $team->id,
-    ]);
-
-    $claimWeek = '2026-05-04'; // a Monday
-    ActivityClaim::factory()->saved()->create([
-        'employee_id' => $member->id,
-        'performance_plan_id' => $plan->id,
-        'week_start' => $claimWeek,
-        'period_year' => 2026,
-        'period_month' => 5,
-        'period_quarter' => 2,
-    ]);
-
-    $this->actingAs($pjUser)
-        ->get(route('team-recap.weekly'))
-        ->assertInertia(fn ($page) => $page
-            ->where('weekStart', $claimWeek)
-            ->where('selectedTeamId', $team->id)
-        );
-});
-
-it('PJ weekly recap segments contain a member RK from a team-scoped claim', function () {
-    [$pjUser, $pjEmployee, $team] = pjOfTeam();
-
-    $member = Employee::factory()->create(['display_name' => 'Dewi']);
-    $team->members()->attach($member->id, ['role' => 'member', 'is_primary' => true]);
-
-    $plan = PerformancePlan::factory()->create([
-        'project_id' => null,
-        'team_id' => $team->id,
-        'description' => 'RK Khusus Tim',
-    ]);
-
-    $claimWeek = '2026-06-01';
-    ActivityClaim::factory()->saved()->create([
-        'employee_id' => $member->id,
-        'performance_plan_id' => $plan->id,
-        'week_start' => $claimWeek,
-        'period_year' => 2026,
-        'period_month' => 6,
-        'period_quarter' => 2,
-    ]);
-
-    $this->actingAs($pjUser)
-        ->get(route('team-recap.weekly', ['week' => $claimWeek]))
-        ->assertInertia(fn ($page) => $page
-            ->where('selectedTeamId', $team->id)
-            ->where('weekStart', $claimWeek)
-            ->has('segments', 1)
-        );
-});
-
 it('explicit ?team param overrides PJ preference', function () {
     [$pjUser, $pjEmployee, $ledTeam] = pjOfTeam();
 
@@ -190,85 +86,6 @@ it('explicit ?team param overrides PJ preference', function () {
             ->where('selectedTeamId', $otherTeam->id)
         );
 });
-
-it('monthly with no params defaults to the period of the latest claim', function () {
-    [$pjUser, , $team] = pjOfTeam();
-
-    $plan = PerformancePlan::factory()->create([
-        'project_id' => null,
-        'team_id' => $team->id,
-    ]);
-
-    ActivityClaim::factory()->saved()->create([
-        'employee_id' => Employee::factory(),
-        'performance_plan_id' => $plan->id,
-        'period_year' => 2025,
-        'period_month' => 11,
-        'period_quarter' => 4,
-    ]);
-
-    $this->actingAs($pjUser)
-        ->get(route('team-recap.monthly'))
-        ->assertInertia(fn ($page) => $page
-            ->where('year', 2025)
-            ->where('month', 11)
-        );
-});
-
-it('quarterly with no params defaults to the period of the latest claim', function () {
-    [$pjUser, , $team] = pjOfTeam();
-
-    $plan = PerformancePlan::factory()->create([
-        'project_id' => null,
-        'team_id' => $team->id,
-    ]);
-
-    ActivityClaim::factory()->saved()->create([
-        'employee_id' => Employee::factory(),
-        'performance_plan_id' => $plan->id,
-        'period_year' => 2025,
-        'period_month' => 10,
-        'period_quarter' => 4,
-    ]);
-
-    $this->actingAs($pjUser)
-        ->get(route('team-recap.quarterly'))
-        ->assertInertia(fn ($page) => $page
-            ->where('year', 2025)
-            ->where('quarter', 4)
-        );
-});
-
-// ── Project-scoped RK claims still appear in weekly recap ────────────────────
-
-it('project-scoped RK claim still appears in the weekly recap', function () {
-    [$pjUser, , $team] = pjOfTeam();
-
-    $project = Project::factory()->create(['team_id' => $team->id]);
-    $plan = PerformancePlan::factory()->create(['project_id' => $project->id, 'team_id' => null]);
-
-    $member = Employee::factory()->create();
-    $team->members()->attach($member->id, ['role' => 'member', 'is_primary' => true]);
-
-    $claimWeek = '2026-06-01';
-    ActivityClaim::factory()->saved()->create([
-        'employee_id' => $member->id,
-        'performance_plan_id' => $plan->id,
-        'week_start' => $claimWeek,
-        'period_year' => 2026,
-        'period_month' => 6,
-        'period_quarter' => 2,
-    ]);
-
-    $this->actingAs($pjUser)
-        ->get(route('team-recap.weekly', ['week' => $claimWeek]))
-        ->assertInertia(fn ($page) => $page
-            ->has('segments', 1)
-            ->where('segments.0.project_id', $project->id)
-        );
-});
-
-// ── Evidence ──────────────────────────────────────────────────────────────
 
 it('stores team recap evidence for a PJ', function () {
     [$user, $employee, $team] = pjOfTeam();
@@ -358,507 +175,6 @@ it('exposes canManage true for a PJ and false for a member', function () {
 
 // ── Override ──────────────────────────────────────────────────────────────
 
-it('upserts a paraphrase override (updateOrCreate)', function () {
-    [$user, , $team] = pjOfTeam();
-    $plan = PerformancePlan::factory()->create([
-        'project_id' => Project::factory()->create(['team_id' => $team->id])->id,
-    ]);
-
-    $payload = [
-        'team_id' => $team->id,
-        'performance_plan_id' => $plan->id,
-        'period_type' => 'month',
-        'period_year' => 2026,
-        'period_month' => 6,
-        'obstacle' => 'parafrase pertama',
-    ];
-
-    $this->actingAs($user)->post(route('team-recap.override.store'), $payload)->assertRedirect();
-    $this->actingAs($user)->post(route('team-recap.override.store'), array_merge($payload, ['obstacle' => 'parafrase kedua']));
-
-    expect(RecapOverride::where('performance_plan_id', $plan->id)->count())->toBe(1);
-    expect(RecapOverride::where('performance_plan_id', $plan->id)->first()->obstacle)->toBe('parafrase kedua');
-});
-
-it('forbids overrides for a team the employee is not in', function () {
-    [$user] = memberOfTeam();
-    $otherTeam = Team::factory()->create();
-    $plan = PerformancePlan::factory()->create([
-        'project_id' => Project::factory()->create(['team_id' => $otherTeam->id])->id,
-    ]);
-
-    $this->actingAs($user)
-        ->post(route('team-recap.override.store'), [
-            'team_id' => $otherTeam->id,
-            'performance_plan_id' => $plan->id,
-            'period_type' => 'quarter',
-            'period_year' => 2026,
-            'period_quarter' => 2,
-            'obstacle' => 'x',
-        ])
-        ->assertForbidden();
-
-    $this->assertDatabaseMissing('recap_overrides', ['team_id' => $otherTeam->id]);
-});
-
-it('forbids a non-PJ member from paraphrasing', function () {
-    [$user, , $team] = memberOfTeam();
-    $plan = PerformancePlan::factory()->create([
-        'project_id' => Project::factory()->create(['team_id' => $team->id])->id,
-    ]);
-
-    $this->actingAs($user)
-        ->post(route('team-recap.override.store'), [
-            'team_id' => $team->id,
-            'performance_plan_id' => $plan->id,
-            'period_type' => 'month',
-            'period_year' => 2026,
-            'period_month' => 6,
-            'obstacle' => 'x',
-        ])
-        ->assertForbidden();
-
-    $this->assertDatabaseMissing('recap_overrides', ['performance_plan_id' => $plan->id]);
-});
-
-// ── Weekly override (storeOverride with period_type=week) ────────────────────
-
-it('PJ stores a weekly paraphrase with only week_start (year derived server-side)', function () {
-    [$user, , $team] = pjOfTeam();
-    $plan = PerformancePlan::factory()->create([
-        'project_id' => Project::factory()->create(['team_id' => $team->id])->id,
-    ]);
-
-    $this->actingAs($user)
-        ->post(route('team-recap.override.store'), [
-            'team_id' => $team->id,
-            'performance_plan_id' => $plan->id,
-            'period_type' => 'week',
-            'week_start' => '2026-06-01',
-            'obstacle' => 'kendala PJ',
-            'solution' => 'solusi PJ',
-        ])
-        ->assertRedirect();
-
-    $this->assertDatabaseHas('recap_overrides', [
-        'team_id' => $team->id,
-        'performance_plan_id' => $plan->id,
-        'period_type' => 'week',
-        'period_year' => 2026,
-        'obstacle' => 'kendala PJ',
-    ]);
-});
-
-it('non-PJ gets 403 on weekly storeOverride', function () {
-    [$user, , $team] = memberOfTeam();
-    $plan = PerformancePlan::factory()->create([
-        'project_id' => Project::factory()->create(['team_id' => $team->id])->id,
-    ]);
-
-    $this->actingAs($user)
-        ->post(route('team-recap.override.store'), [
-            'team_id' => $team->id,
-            'performance_plan_id' => $plan->id,
-            'period_type' => 'week',
-            'week_start' => '2026-06-01',
-            'obstacle' => 'x',
-        ])
-        ->assertForbidden();
-});
-
-// ── confirmOverride ───────────────────────────────────────────────────────────
-
-it('PJ can confirm a weekly override', function () {
-    [$user, $employee, $team] = pjOfTeam();
-    $plan = PerformancePlan::factory()->create([
-        'project_id' => Project::factory()->create(['team_id' => $team->id])->id,
-    ]);
-
-    $this->actingAs($user)
-        ->post(route('team-recap.override.confirm'), [
-            'team_id' => $team->id,
-            'performance_plan_id' => $plan->id,
-            'period_type' => 'week',
-            'period_year' => 2026,
-            'week_start' => '2026-06-01',
-            'confirmed' => true,
-        ])
-        ->assertRedirect();
-
-    $override = RecapOverride::where('performance_plan_id', $plan->id)->first();
-    expect($override)->not->toBeNull();
-    expect($override->confirmed_at)->not->toBeNull();
-    expect($override->confirmed_by)->toBe($employee->id);
-});
-
-it('confirming does not wipe existing paraphrase text', function () {
-    [$user, $employee, $team] = pjOfTeam();
-    $plan = PerformancePlan::factory()->create([
-        'project_id' => Project::factory()->create(['team_id' => $team->id])->id,
-    ]);
-
-    // Pre-existing paraphrase stored by PJ (period_month must be null to match
-    // the confirmOverride key which sends period_month = null for week-type)
-    RecapOverride::create([
-        'team_id' => $team->id,
-        'performance_plan_id' => $plan->id,
-        'period_type' => 'week',
-        'period_year' => 2026,
-        'period_month' => null,
-        'period_quarter' => null,
-        'week_start' => '2026-06-01',
-        'obstacle' => 'kendala sebelumnya',
-        'solution' => null,
-        'follow_up_plan' => null,
-        'confirmed_at' => null,
-        'confirmed_by' => null,
-        'created_by' => null,
-    ]);
-
-    $this->actingAs($user)
-        ->post(route('team-recap.override.confirm'), [
-            'team_id' => $team->id,
-            'performance_plan_id' => $plan->id,
-            'period_type' => 'week',
-            'period_year' => 2026,
-            'week_start' => '2026-06-01',
-            'confirmed' => true,
-        ]);
-
-    $override = RecapOverride::where('performance_plan_id', $plan->id)->first();
-    expect($override->obstacle)->toBe('kendala sebelumnya');
-    expect($override->confirmed_at)->not->toBeNull();
-});
-
-it('re-saving paraphrase does not clear confirmed_at', function () {
-    [$user, $employee, $team] = pjOfTeam();
-    $plan = PerformancePlan::factory()->create([
-        'project_id' => Project::factory()->create(['team_id' => $team->id])->id,
-    ]);
-
-    RecapOverride::create([
-        'team_id' => $team->id,
-        'performance_plan_id' => $plan->id,
-        'period_type' => 'week',
-        'period_year' => 2026,
-        'period_month' => null,
-        'period_quarter' => null,
-        'week_start' => '2026-06-01',
-        'obstacle' => 'lama',
-        'solution' => null,
-        'follow_up_plan' => null,
-        'confirmed_at' => now(),
-        'confirmed_by' => $employee->id,
-        'created_by' => null,
-    ]);
-
-    $this->actingAs($user)
-        ->post(route('team-recap.override.store'), [
-            'team_id' => $team->id,
-            'performance_plan_id' => $plan->id,
-            'period_type' => 'week',
-            'week_start' => '2026-06-01',
-            'obstacle' => 'diperbarui',
-        ]);
-
-    $override = RecapOverride::where('performance_plan_id', $plan->id)->first();
-    expect($override->obstacle)->toBe('diperbarui');
-    expect($override->confirmed_at)->not->toBeNull();
-    expect($override->confirmed_by)->toBe($employee->id);
-});
-
-it('non-PJ gets 403 on confirmOverride', function () {
-    [$user, , $team] = memberOfTeam();
-    $plan = PerformancePlan::factory()->create([
-        'project_id' => Project::factory()->create(['team_id' => $team->id])->id,
-    ]);
-
-    $this->actingAs($user)
-        ->post(route('team-recap.override.confirm'), [
-            'team_id' => $team->id,
-            'performance_plan_id' => $plan->id,
-            'period_type' => 'week',
-            'period_year' => 2026,
-            'week_start' => '2026-06-01',
-            'confirmed' => true,
-        ])
-        ->assertForbidden();
-});
-
-// ── confirmBulk ───────────────────────────────────────────────────────────────
-
-it('PJ bulk-confirms several plans for a week', function () {
-    [$user, $employee, $team] = pjOfTeam();
-
-    $plan1 = PerformancePlan::factory()->create([
-        'project_id' => Project::factory()->create(['team_id' => $team->id])->id,
-    ]);
-    $plan2 = PerformancePlan::factory()->create([
-        'project_id' => Project::factory()->create(['team_id' => $team->id])->id,
-    ]);
-
-    $this->actingAs($user)
-        ->post(route('team-recap.override.confirm-bulk'), [
-            'team_id' => $team->id,
-            'period_type' => 'week',
-            'period_year' => 2026,
-            'week_start' => '2026-06-01',
-            'performance_plan_ids' => [$plan1->id, $plan2->id],
-        ])
-        ->assertRedirect();
-
-    foreach ([$plan1->id, $plan2->id] as $planId) {
-        $override = RecapOverride::where('performance_plan_id', $planId)->first();
-        expect($override)->not->toBeNull();
-        expect($override->confirmed_at)->not->toBeNull();
-        expect($override->confirmed_by)->toBe($employee->id);
-    }
-});
-
-it('bulk confirm does NOT wipe an existing paraphrase on those rows', function () {
-    [$user, $employee, $team] = pjOfTeam();
-
-    $plan = PerformancePlan::factory()->create([
-        'project_id' => Project::factory()->create(['team_id' => $team->id])->id,
-    ]);
-
-    RecapOverride::create([
-        'team_id' => $team->id,
-        'performance_plan_id' => $plan->id,
-        'period_type' => 'week',
-        'period_year' => 2026,
-        'period_month' => null,
-        'period_quarter' => null,
-        'week_start' => '2026-06-01',
-        'obstacle' => 'kendala sudah ada',
-        'solution' => 'solusi sudah ada',
-        'follow_up_plan' => null,
-        'confirmed_at' => null,
-        'confirmed_by' => null,
-        'created_by' => null,
-    ]);
-
-    $this->actingAs($user)
-        ->post(route('team-recap.override.confirm-bulk'), [
-            'team_id' => $team->id,
-            'period_type' => 'week',
-            'period_year' => 2026,
-            'week_start' => '2026-06-01',
-            'performance_plan_ids' => [$plan->id],
-        ]);
-
-    $override = RecapOverride::where('performance_plan_id', $plan->id)->first();
-    expect($override->obstacle)->toBe('kendala sudah ada');
-    expect($override->solution)->toBe('solusi sudah ada');
-    expect($override->confirmed_at)->not->toBeNull();
-    expect($override->confirmed_by)->toBe($employee->id);
-});
-
-it('non-PJ gets 403 on confirm-bulk', function () {
-    [$user, , $team] = memberOfTeam();
-
-    $plan = PerformancePlan::factory()->create([
-        'project_id' => Project::factory()->create(['team_id' => $team->id])->id,
-    ]);
-
-    $this->actingAs($user)
-        ->post(route('team-recap.override.confirm-bulk'), [
-            'team_id' => $team->id,
-            'period_type' => 'week',
-            'period_year' => 2026,
-            'week_start' => '2026-06-01',
-            'performance_plan_ids' => [$plan->id],
-        ])
-        ->assertForbidden();
-
-    $this->assertDatabaseMissing('recap_overrides', ['performance_plan_id' => $plan->id]);
-});
-
-it('PJ can unconfirm by posting confirmed=false', function () {
-    [$user, $employee, $team] = pjOfTeam();
-    $plan = PerformancePlan::factory()->create([
-        'project_id' => Project::factory()->create(['team_id' => $team->id])->id,
-    ]);
-
-    RecapOverride::create([
-        'team_id' => $team->id,
-        'performance_plan_id' => $plan->id,
-        'period_type' => 'week',
-        'period_year' => 2026,
-        'period_month' => null,
-        'period_quarter' => null,
-        'week_start' => '2026-06-01',
-        'obstacle' => null,
-        'solution' => null,
-        'follow_up_plan' => null,
-        'confirmed_at' => now(),
-        'confirmed_by' => $employee->id,
-        'created_by' => null,
-    ]);
-
-    $this->actingAs($user)
-        ->post(route('team-recap.override.confirm'), [
-            'team_id' => $team->id,
-            'performance_plan_id' => $plan->id,
-            'period_type' => 'week',
-            'period_year' => 2026,
-            'week_start' => '2026-06-01',
-            'confirmed' => false,
-        ]);
-
-    $override = RecapOverride::where('performance_plan_id', $plan->id)->first();
-    expect($override->confirmed_at)->toBeNull();
-    expect($override->confirmed_by)->toBeNull();
-});
-
-// ── PIC delegation (storeOverride) ───────────────────────────────────────────
-
-/**
- * A team member who is the PIC for one plan but NOT a PJ and NOT the PIC for another.
- *
- * @return array{0: User, 1: Employee, 2: Team, 3: PerformancePlan, 4: PerformancePlan}
- */
-function picOfOnePlan(): array
-{
-    $user = staffUser();
-    $picEmployee = Employee::factory()->create(['user_id' => $user->id]);
-    $team = Team::factory()->create(); // no leader_id set — PIC is NOT the PJ
-    $picEmployee->teams()->attach($team->id, ['role' => 'member', 'is_primary' => true]);
-
-    // Plan owned by this PIC
-    $ownedPlan = PerformancePlan::factory()->create([
-        'project_id' => Project::factory()->create(['team_id' => $team->id])->id,
-        'pic_employee_id' => $picEmployee->id,
-    ]);
-
-    // Plan owned by someone else (another employee)
-    $otherPlan = PerformancePlan::factory()->create([
-        'project_id' => Project::factory()->create(['team_id' => $team->id])->id,
-        'pic_employee_id' => Employee::factory()->create()->id,
-    ]);
-
-    return [$user, $picEmployee, $team, $ownedPlan, $otherPlan];
-}
-
-it('PIC can store a paraphrase override for their own plan', function () {
-    [$user, $picEmployee, $team, $ownedPlan] = picOfOnePlan();
-
-    $this->actingAs($user)
-        ->post(route('team-recap.override.store'), [
-            'team_id' => $team->id,
-            'performance_plan_id' => $ownedPlan->id,
-            'period_type' => 'month',
-            'period_year' => 2026,
-            'period_month' => 6,
-            'obstacle' => 'kendala dari PIC',
-            'solution' => 'solusi dari PIC',
-        ])
-        ->assertRedirect();
-
-    $this->assertDatabaseHas('recap_overrides', [
-        'team_id' => $team->id,
-        'performance_plan_id' => $ownedPlan->id,
-        'obstacle' => 'kendala dari PIC',
-        'created_by' => $picEmployee->id,
-    ]);
-});
-
-it('PIC gets 403 storing an override for a plan they do not own', function () {
-    [$user, , $team, , $otherPlan] = picOfOnePlan();
-
-    $this->actingAs($user)
-        ->post(route('team-recap.override.store'), [
-            'team_id' => $team->id,
-            'performance_plan_id' => $otherPlan->id,
-            'period_type' => 'month',
-            'period_year' => 2026,
-            'period_month' => 6,
-            'obstacle' => 'x',
-        ])
-        ->assertForbidden();
-
-    $this->assertDatabaseMissing('recap_overrides', ['performance_plan_id' => $otherPlan->id]);
-});
-
-it('PIC gets 403 on confirmOverride (confirm is PJ-only)', function () {
-    [$user, , $team, $ownedPlan] = picOfOnePlan();
-
-    $this->actingAs($user)
-        ->post(route('team-recap.override.confirm'), [
-            'team_id' => $team->id,
-            'performance_plan_id' => $ownedPlan->id,
-            'period_type' => 'month',
-            'period_year' => 2026,
-            'period_month' => 6,
-            'confirmed' => true,
-        ])
-        ->assertForbidden();
-});
-
-it('PIC gets 403 on confirm-bulk (confirm is PJ-only)', function () {
-    [$user, , $team, $ownedPlan] = picOfOnePlan();
-
-    $this->actingAs($user)
-        ->post(route('team-recap.override.confirm-bulk'), [
-            'team_id' => $team->id,
-            'period_type' => 'month',
-            'period_year' => 2026,
-            'period_month' => 6,
-            'performance_plan_ids' => [$ownedPlan->id],
-        ])
-        ->assertForbidden();
-});
-
-it('PJ can still store an override for any plan regardless of PIC assignment', function () {
-    [$pjUser, , $team] = pjOfTeam();
-
-    // Plan with a different PIC
-    $plan = PerformancePlan::factory()->create([
-        'project_id' => Project::factory()->create(['team_id' => $team->id])->id,
-        'pic_employee_id' => Employee::factory()->create()->id,
-    ]);
-
-    $this->actingAs($pjUser)
-        ->post(route('team-recap.override.store'), [
-            'team_id' => $team->id,
-            'performance_plan_id' => $plan->id,
-            'period_type' => 'month',
-            'period_year' => 2026,
-            'period_month' => 6,
-            'obstacle' => 'parafrase PJ',
-        ])
-        ->assertRedirect();
-
-    $this->assertDatabaseHas('recap_overrides', [
-        'performance_plan_id' => $plan->id,
-        'obstacle' => 'parafrase PJ',
-    ]);
-});
-
-it('a plain member (not PIC, not PJ) gets 403 on storeOverride', function () {
-    [$user, , $team] = memberOfTeam();
-
-    $plan = PerformancePlan::factory()->create([
-        'project_id' => Project::factory()->create(['team_id' => $team->id])->id,
-        'pic_employee_id' => Employee::factory()->create()->id, // someone else is PIC
-    ]);
-
-    $this->actingAs($user)
-        ->post(route('team-recap.override.store'), [
-            'team_id' => $team->id,
-            'performance_plan_id' => $plan->id,
-            'period_type' => 'month',
-            'period_year' => 2026,
-            'period_month' => 6,
-            'obstacle' => 'x',
-        ])
-        ->assertForbidden();
-
-    $this->assertDatabaseMissing('recap_overrides', ['performance_plan_id' => $plan->id]);
-});
-
-// ── Head / admin office-wide view ────────────────────────────────────────────
-
 it('lets the head see every team in the recap selector', function () {
     Team::factory()->count(3)->create();
 
@@ -880,45 +196,6 @@ it('keeps a staff member limited to their own teams', function () {
 });
 
 // ── PJ uraian paraphrase ─────────────────────────────────────────────────────
-
-it('saves the PJ uraian paraphrase', function () {
-    [$user, , $team] = pjOfTeam();
-    $plan = PerformancePlan::factory()->create(['project_id' => null, 'team_id' => $team->id]);
-
-    $this->actingAs($user)->post(route('team-recap.override.store'), [
-        'team_id' => $team->id,
-        'performance_plan_id' => $plan->id,
-        'period_type' => 'month',
-        'period_year' => 2026,
-        'period_month' => 6,
-        'uraian' => 'Uraian ringkas PJ',
-    ])->assertRedirect();
-
-    expect(RecapOverride::firstOrFail()->uraian)->toBe('Uraian ringkas PJ');
-});
-
-// ── Excel export ─────────────────────────────────────────────────────────────
-
-it('exports the monthly recap for every team the head can see', function () {
-    $team = Team::factory()->create(['name' => 'A MTI']);
-    Team::factory()->create(['name' => 'B Umum']);
-    $member = Employee::factory()->create(['team_id' => $team->id]);
-    $project = Project::factory()->create(['team_id' => $team->id]);
-    $plan = PerformancePlan::factory()->create(['project_id' => null, 'team_id' => $team->id]);
-    ActivityClaim::factory()->saved()->create([
-        'employee_id' => $member->id,
-        'performance_plan_id' => $plan->id, 'project_id' => $project->id,
-        'period_year' => 2026, 'period_month' => 6, 'period_quarter' => 2, 'week_start' => '2026-06-01',
-    ]);
-
-    $this->actingAs(headUser())
-        ->getJson(route('team-recap.export', ['period_type' => 'month', 'year' => 2026, 'month' => 6]))
-        ->assertOk()
-        ->assertJsonCount(2, 'teams')
-        ->assertJsonPath('teams.0.team_name', 'A MTI')
-        ->assertJsonPath('teams.0.segments.0.project_id', $project->id)
-        ->assertJsonPath('teams.1.segments', []);
-});
 
 it('exports weekly evidence links grouped by type', function () {
     [$user, , $team] = memberOfTeam();
@@ -944,15 +221,15 @@ it('validates the export period', function () {
 
 // ── PJ lock before the meeting ───────────────────────────────────────────────
 
-it('lets the PJ lock a month and then blocks paraphrase and sign-off', function () {
+it('lets the PJ lock a quarter and then blocks paraphrase and sign-off', function () {
     [$user, , $team] = pjOfTeam();
     $plan = PerformancePlan::factory()->create(['project_id' => null, 'team_id' => $team->id]);
-    $period = ['team_id' => $team->id, 'period_type' => 'month', 'period_year' => 2026, 'period_month' => 6];
+    $period = ['team_id' => $team->id, 'period_type' => 'quarter', 'period_year' => 2026, 'period_quarter' => 2];
 
     $this->actingAs($user)->post(route('team-recap.lock'), [...$period, 'locked' => true])->assertRedirect();
 
     $this->actingAs($user)
-        ->get(route('team-recap.monthly', ['team' => $team->id, 'year' => 2026, 'month' => 6]))
+        ->get(route('team-recap.quarterly', ['team' => $team->id, 'year' => 2026, 'quarter' => 2]))
         ->assertInertia(fn ($page) => $page
             ->where('canManage', false)
             ->where('canLock', true)
@@ -976,102 +253,13 @@ it('lets the PJ lock a month and then blocks paraphrase and sign-off', function 
     expect(RecapOverride::count())->toBe(1);
 });
 
-it('blocks weekly evidence when the week is locked', function () {
-    [$user, , $team] = pjOfTeam();
-    $this->actingAs($user)->post(route('team-recap.lock'), [
-        'team_id' => $team->id, 'period_type' => 'week', 'period_year' => 2026, 'week_start' => '2026-06-01', 'locked' => true,
-    ]);
-
-    $this->actingAs($user)->post(route('team-recap.evidence.store'), [
-        'team_id' => $team->id, 'week_start' => '2026-06-01', 'type' => 'notula', 'url' => 'https://example.test/n',
-    ])->assertSessionHas('error');
-
-    expect(TeamRecapEvidence::count())->toBe(0);
-});
-
 it('does not let a non-PJ member lock a recap', function () {
     [$user, , $team] = memberOfTeam();
 
     $this->actingAs($user)->post(route('team-recap.lock'), [
-        'team_id' => $team->id, 'period_type' => 'month', 'period_year' => 2026, 'period_month' => 6, 'locked' => true,
+        'team_id' => $team->id, 'period_type' => 'quarter', 'period_year' => 2026, 'period_quarter' => 2, 'locked' => true,
     ])->assertForbidden();
 });
-
-it('sends member completeness with the weekly recap', function () {
-    [$user, $employee, $team] = pjOfTeam();
-
-    $this->actingAs($user)
-        ->get(route('team-recap.weekly', ['team' => $team->id, 'week' => '2026-06-01']))
-        ->assertInertia(fn ($page) => $page
-            ->has('members', 1)
-            ->where('members.0.employee_id', $employee->id)
-            ->where('members.0.status', 'no_activity')
-        );
-});
-
-// ── All-teams overview ───────────────────────────────────────────────────────
-
-it('gives the head one overview row per team with capaian, sign-off and lock', function () {
-    $team = Team::factory()->create(['name' => 'A MTI']);
-    Team::factory()->create(['name' => 'B Umum']);
-    $member = Employee::factory()->create(['team_id' => $team->id]);
-    $plan = PerformancePlan::factory()->create(['project_id' => null, 'team_id' => $team->id]);
-    ActivityClaim::factory()->saved()->create([
-        'employee_id' => $member->id, 'performance_plan_id' => $plan->id,
-        'target' => 4, 'realization' => 2, 'achievement' => 50,
-        'period_year' => 2026, 'period_month' => 6, 'period_quarter' => 2, 'week_start' => '2026-06-01',
-    ]);
-    RecapLock::create(['team_id' => $team->id, 'period_type' => 'month', 'period_year' => 2026, 'period_month' => 6]);
-
-    $this->actingAs(headUser())
-        ->get(route('team-recap.overview', ['period_type' => 'month', 'year' => 2026, 'month' => 6]))
-        ->assertInertia(fn ($page) => $page
-            ->component('Kinetik/RecapOverview')
-            ->where('teams.0.name', 'A MTI')
-            ->where('teams.0.rows', 1)
-            ->where('teams.0.avg_achievement', 50)
-            ->where('teams.0.locked', true)
-            ->where('teams.1.rows', 0)
-            ->where('teams.1.avg_achievement', null)
-            ->where('teams.1.locked', false)
-        );
-});
-
-it('adds member completeness to the weekly overview', function () {
-    [$user, , $team] = pjOfTeam();
-
-    $this->actingAs($user)
-        ->get(route('team-recap.overview', ['period_type' => 'week', 'week' => '2026-06-03']))
-        ->assertInertia(fn ($page) => $page
-            ->where('weekStart', '2026-06-01')
-            ->where('teams.0.id', $team->id)
-            ->where('teams.0.members_active', 0)
-        );
-});
-
-it('shows the head each team PJ and each project with its PIC', function () {
-    $pj = Employee::factory()->create(['display_name' => 'Hespri']);
-    $team = Team::factory()->create(['name' => 'MTI', 'leader_id' => $pj->id]);
-    $project = Project::factory()->create(['team_id' => $team->id, 'leader_id' => $pj->id, 'year' => 2026, 'name' => 'Kinetik']);
-    $project->members()->attach($pj->id, ['role' => 'leader']);
-    $plan = PerformancePlan::factory()->create(['project_id' => null, 'team_id' => $team->id]);
-    ActivityClaim::factory()->saved()->create([
-        'employee_id' => $pj->id, 'performance_plan_id' => $plan->id, 'project_id' => $project->id,
-        'achievement' => 80, 'period_year' => 2026, 'period_month' => 6, 'period_quarter' => 2, 'week_start' => '2026-06-01',
-    ]);
-
-    $this->actingAs(headUser())
-        ->get(route('team-recap.overview', ['period_type' => 'month', 'year' => 2026, 'month' => 6]))
-        ->assertInertia(fn ($page) => $page
-            ->where('teams.0.leader', 'Hespri')
-            ->where('teams.0.projects.0.name', 'Kinetik')
-            ->where('teams.0.projects.0.leader', 'Hespri')
-            ->where('teams.0.projects.0.members', 1)
-            ->where('teams.0.projects.0.rows', 1)
-        );
-});
-
-// ── Catatan Pimpinan (Review Bersama) ────────────────────────────────────────
 
 it('lets the head write, update and clear a note on a locked team period', function () {
     $team = Team::factory()->create();
@@ -1137,284 +325,6 @@ function weekOverride(Team $team, PerformancePlan $plan, string $week, array $te
     ]);
 }
 
-it('fills the empty monthly text from the weeks and keeps what the PJ wrote', function () {
-    [$user, , $team] = pjOfTeam();
-    $plan = PerformancePlan::factory()->create(['project_id' => null, 'team_id' => $team->id]);
-    weekOverride($team, $plan, '2026-06-01', ['obstacle' => 'Hujan', 'follow_up_plan' => 'Minggu 1']);
-    weekOverride($team, $plan, '2026-06-08', ['solution' => 'Tambah petugas', 'follow_up_plan' => 'Minggu 2']);
-    weekOverride($team, $plan, '2026-07-06', ['follow_up_plan' => 'Bulan lain']);
-    RecapOverride::create([
-        'team_id' => $team->id, 'performance_plan_id' => $plan->id, 'period_type' => 'month',
-        'period_year' => 2026, 'period_month' => 6, 'obstacle' => 'Tulisan PJ',
-    ]);
-
-    $this->actingAs($user)
-        ->post(route('team-recap.prefill'), ['team_id' => $team->id, 'period_type' => 'month', 'period_year' => 2026, 'period_month' => 6])
-        ->assertSessionHas('success');
-
-    $month = RecapOverride::where('period_type', 'month')->sole();
-    expect($month->follow_up_plan)->toBe("Minggu 1\nMinggu 2")
-        ->and($month->obstacle)->toBe('Tulisan PJ')
-        ->and($month->solution)->toBe('Tambah petugas');
-});
-
-it('fills the quarter from the months first, then from the weeks', function () {
-    [$user, , $team] = pjOfTeam();
-    $plan = PerformancePlan::factory()->create(['project_id' => null, 'team_id' => $team->id]);
-    RecapOverride::create([
-        'team_id' => $team->id, 'performance_plan_id' => $plan->id, 'period_type' => 'month',
-        'period_year' => 2026, 'period_month' => 4, 'obstacle' => 'Ringkasan April',
-    ]);
-    weekOverride($team, $plan, '2026-05-04', ['obstacle' => 'Minggu Mei', 'follow_up_plan' => 'Rapat evaluasi']);
-
-    $this->actingAs($user)
-        ->post(route('team-recap.prefill'), ['team_id' => $team->id, 'period_type' => 'quarter', 'period_year' => 2026, 'period_quarter' => 2]);
-
-    $quarter = RecapOverride::where('period_type', 'quarter')->sole();
-    expect($quarter->obstacle)->toBe('Ringkasan April')
-        ->and($quarter->follow_up_plan)->toBe('Rapat evaluasi');
-});
-
-it('blocks pre-fill on a locked month and for non-PJ members', function () {
-    [$user, , $team] = pjOfTeam();
-    $params = ['team_id' => $team->id, 'period_type' => 'month', 'period_year' => 2026, 'period_month' => 6];
-
-    $member = User::factory()->create();
-    Employee::factory()->create(['user_id' => $member->id, 'team_id' => $team->id]);
-    $this->actingAs($member)->post(route('team-recap.prefill'), $params)->assertForbidden();
-
-    RecapLock::create(['team_id' => $team->id, 'period_type' => 'month', 'period_year' => 2026, 'period_month' => 6]);
-    $this->actingAs($user)->post(route('team-recap.prefill'), $params)->assertSessionHas('error');
-});
-
-// ── Gabungkan / Pisahkan ─────────────────────────────────────────────────────
-
-function claimFor(Employee $employee, PerformancePlan $plan, Project $project, float $achievement): void
-{
-    ActivityClaim::factory()->saved()->create([
-        'employee_id' => $employee->id, 'performance_plan_id' => $plan->id, 'project_id' => $project->id,
-        'target' => 1, 'realization' => $achievement / 100, 'achievement' => $achievement,
-        'period_year' => 2026, 'period_month' => 6, 'period_quarter' => 2, 'week_start' => '2026-06-01',
-    ]);
-}
-
-it('merges rows of one project into one text and splits them again', function () {
-    [$user, $pj, $team] = pjOfTeam();
-    $project = Project::factory()->create(['team_id' => $team->id, 'year' => 2026]);
-    [$a, $b, $c] = PerformancePlan::factory()->count(3)->create(['project_id' => $project->id, 'team_id' => $team->id]);
-    claimFor($pj, $a, $project, 50);
-    claimFor($pj, $b, $project, 90);
-    claimFor($pj, $c, $project, 70);
-    // Legacy paraphrase of B without a Projek: moves to the Projek on merge.
-    RecapOverride::create([
-        'team_id' => $team->id, 'performance_plan_id' => $b->id, 'project_id' => null,
-        'period_type' => 'month', 'period_year' => 2026, 'period_month' => 6, 'solution' => 'Solusi B',
-    ]);
-    $period = ['team_id' => $team->id, 'period_type' => 'month', 'period_year' => 2026, 'period_month' => 6];
-
-    $this->actingAs($user)
-        ->post(route('team-recap.merge'), [...$period, 'project_id' => $project->id, 'performance_plan_ids' => [$c->id, $a->id]])
-        ->assertSessionHas('success');
-
-    $key = $c->id.':'.$project->id;
-    expect(RecapOverride::where('merge_key', $key)->count())->toBe(2);
-
-    $this->actingAs($user)->post(route('team-recap.override.store'), [
-        ...$period, 'performance_plan_id' => $c->id, 'project_id' => $project->id, 'uraian' => 'Uraian gabungan',
-    ]);
-
-    $rows = collect(app(RecapAggregator::class)->monthly($team, 2026, 6)[0]['rows']);
-    $lead = $rows->firstWhere('performance_plan_id', $c->id);
-    $member = $rows->firstWhere('performance_plan_id', $a->id);
-    expect($member['pj_uraian'])->toBe('Uraian gabungan')
-        ->and($member['merge_key'])->toBe($key)
-        ->and($member['achievement'])->toEqual(50)
-        ->and($rows->search(fn ($r) => $r === $member))->toBe($rows->search(fn ($r) => $r === $lead) + 1)
-        ->and($rows->firstWhere('performance_plan_id', $b->id)['pj_solution'])->toBe('Solusi B');
-
-    $this->actingAs($user)->post(route('team-recap.split'), [...$period, 'merge_key' => $key])->assertSessionHas('success');
-    expect(RecapOverride::whereNotNull('merge_key')->count())->toBe(0);
-});
-
-it('lets only the PJ merge, and not on a locked period', function () {
-    [$user, , $team] = pjOfTeam();
-    [$a, $b] = PerformancePlan::factory()->count(2)->create(['project_id' => null, 'team_id' => $team->id]);
-    $params = ['team_id' => $team->id, 'period_type' => 'month', 'period_year' => 2026, 'period_month' => 6, 'performance_plan_ids' => [$a->id, $b->id]];
-
-    $member = User::factory()->create();
-    Employee::factory()->create(['user_id' => $member->id, 'team_id' => $team->id]);
-    $this->actingAs($member)->post(route('team-recap.merge'), $params)->assertForbidden();
-
-    RecapLock::create(['team_id' => $team->id, 'period_type' => 'month', 'period_year' => 2026, 'period_month' => 6]);
-    $this->actingAs($user)->post(route('team-recap.merge'), $params)->assertSessionHas('error');
-    expect(RecapOverride::count())->toBe(0);
-});
-
-it('keeps fields the form did not send when saving a paraphrase', function () {
-    [$user, , $team] = pjOfTeam();
-    $plan = PerformancePlan::factory()->create(['project_id' => null, 'team_id' => $team->id]);
-    $period = ['team_id' => $team->id, 'performance_plan_id' => $plan->id, 'period_type' => 'month', 'period_year' => 2026, 'period_month' => 6];
-
-    $this->actingAs($user)->post(route('team-recap.override.store'), [...$period, 'obstacle' => 'Hujan']);
-    $this->actingAs($user)->post(route('team-recap.override.store'), [...$period, 'solution' => 'Tambah petugas']);
-
-    expect(RecapOverride::sole())->obstacle->toBe('Hujan')->solution->toBe('Tambah petugas');
-});
-
-// ── Member lines and PJ corrections ─────────────────────────────────────────
-
-it('lists member claims per row with the RK Ketua, and lets the PJ correct numbers', function () {
-    [$user, $pj, $team] = pjOfTeam();
-    $project = Project::factory()->create(['team_id' => $team->id, 'year' => 2026, 'leader_rk' => 'RK Ketua Metodologi']);
-    $plan = PerformancePlan::factory()->create(['project_id' => $project->id, 'team_id' => $team->id]);
-    $member = Employee::factory()->create(['display_name' => 'Sukma']);
-    $claim = ActivityClaim::factory()->saved()->create([
-        'employee_id' => $member->id, 'performance_plan_id' => $plan->id, 'project_id' => $project->id,
-        'target' => 4, 'realization' => 2, 'achievement' => 50, 'target_unit' => 'Dokumen',
-        'period_year' => 2026, 'period_month' => 6, 'period_quarter' => 2, 'week_start' => '2026-06-01', 'activity_date_start' => '2026-06-02',
-    ]);
-
-    $this->actingAs($user)->post(route('team-recap.claim-adjust', $claim), ['target' => 4, 'realization' => 3])->assertSessionHas('success');
-    expect($claim->fresh())->achievement->toEqual(75)->adjusted_by->toBe($pj->id);
-
-    $this->actingAs($user)->get(route('team-recap.weekly', ['team' => $team->id, 'week' => '2026-06-01']))
-        ->assertInertia(fn ($page) => $page
-            ->where('segments.0.leader_rk', 'RK Ketua Metodologi')
-            ->where('segments.0.rows.0.claims.0.name', 'Sukma')
-            ->where('segments.0.rows.0.claims.0.realization', 3)
-            ->where('segments.0.rows.0.claims.0.adjusted_by', $pj->display_name ?? $pj->name));
-});
-
-it('blocks PJ corrections for non-PJ users and locked periods', function () {
-    [$user, , $team] = pjOfTeam();
-    $plan = PerformancePlan::factory()->create(['project_id' => null, 'team_id' => $team->id]);
-    $claim = ActivityClaim::factory()->saved()->create(['performance_plan_id' => $plan->id, 'activity_date_start' => '2026-06-02', 'week_start' => '2026-06-01', 'period_year' => 2026, 'period_month' => 6]);
-
-    $member = User::factory()->create();
-    Employee::factory()->create(['user_id' => $member->id]);
-    $this->actingAs($member)->post(route('team-recap.claim-adjust', $claim), ['target' => 1, 'realization' => 1])->assertForbidden();
-
-    RecapLock::create(['team_id' => $team->id, 'period_type' => 'month', 'period_year' => 2026, 'period_month' => 6]);
-    $this->actingAs($user)->post(route('team-recap.claim-adjust', $claim), ['target' => 1, 'realization' => 1])->assertSessionHas('error');
-});
-
-function weeklyClaim(Team $team, Employee $member, string $uraian, array $extra = []): ActivityClaim
-{
-    $project = Project::firstOrCreate(['team_id' => $team->id, 'name' => 'Projek Uji'], ['year' => 2026]);
-    $plan = PerformancePlan::firstOrCreate(['team_id' => $team->id, 'project_id' => $project->id, 'description' => $extra['rk'] ?? 'RK Uji']);
-    $activity = KipActivity::factory()->create(['employee_id' => $member->id, 'description' => $uraian]);
-
-    return ActivityClaim::factory()->saved()->create([
-        'employee_id' => $member->id, 'kip_activity_id' => $activity->id, 'performance_plan_id' => $plan->id, 'project_id' => $project->id,
-        'target' => 4, 'realization' => 2, 'achievement' => 50, 'target_unit' => 'Dokumen', 'obstacle' => $extra['obstacle'] ?? null,
-        'period_year' => 2026, 'period_month' => 6, 'period_quarter' => 2, 'week_start' => '2026-06-08', 'activity_date_start' => '2026-06-09',
-    ]);
-}
-
-it('shows one weekly row per kegiatan with the member text, and saves a Projek card into Laporan Tersimpan', function () {
-    [$user, $pj, $team] = pjOfTeam();
-    $one = weeklyClaim($team, $pj, 'Rapat ISO', ['obstacle' => 'Hujan', 'rk' => 'RK A']);
-    $two = weeklyClaim($team, $pj, 'Audit ISO', ['rk' => 'RK B']);
-    $url = route('team-recap.weekly', ['team' => $team->id, 'week' => '2026-06-08']);
-
-    $this->actingAs($user)->get($url)->assertInertia(fn ($page) => $page
-        ->has('segments.0.rows', 2)
-        ->where('segments.0.rows.0.claim_ids', [$one->id])
-        ->where('segments.0.rows.0.obstacle', 'Hujan')
-        ->where('segments.0.rows.0.saved', false)
-        ->where('segments.0.rows.1.claims.0.rk_description', 'RK B'));
-
-    $payload = [
-        'team_id' => $team->id, 'week_start' => '2026-06-08',
-        'rows' => [
-            ['claim_ids' => [$one->id], 'uraian' => 'Rapat ISO dilaksanakan', 'obstacle' => 'Hujan', 'solution' => 'Ruang cadangan', 'follow_up_plan' => null],
-            ['claim_ids' => [$two->id], 'uraian' => null, 'obstacle' => null, 'solution' => null, 'follow_up_plan' => null],
-        ],
-        'claims' => [['id' => $one->id, 'target' => 4, 'realization' => 4, 'target_unit' => 'Laporan']],
-    ];
-    $this->actingAs($user)->post(route('team-recap.weekly-project'), $payload)->assertSessionHas('success');
-
-    expect($one->fresh())->achievement->toEqual(100)->target_unit->toBe('Laporan')->adjusted_by->toBe($pj->id)
-        ->and(WeeklyRecapRow::count())->toBe(2)
-        ->and(WeeklyRecapRow::whereNotNull('saved_at')->count())->toBe(2);
-
-    // The per-RK text that monthly, quarterly and the export read is derived from the rows.
-    expect(RecapOverride::where('performance_plan_id', $one->performance_plan_id)->sole())
-        ->uraian->toBe('Rapat ISO dilaksanakan')->solution->toBe('Ruang cadangan');
-
-    $this->actingAs($user)->get($url)->assertInertia(fn ($page) => $page
-        ->where('segments.0.rows.0.saved', true)
-        ->where('segments.0.rows.0.pj_uraian', 'Rapat ISO dilaksanakan'));
-
-    // The weeks before are listed under Laporan Tersimpan.
-    $this->actingAs($user)->get(route('team-recap.weekly', ['team' => $team->id, 'week' => '2026-06-15']))
-        ->assertInertia(fn ($page) => $page->has('previousWeeks', 4)->where('previousWeeks.0.start', '2026-06-08')->where('previousWeeks.0.segments.0.rows.0.pj_uraian', 'Rapat ISO dilaksanakan'));
-
-    RecapLock::create(['team_id' => $team->id, 'period_type' => 'month', 'period_year' => 2026, 'period_month' => 6]);
-    $this->actingAs($user)->post(route('team-recap.weekly-project'), $payload)->assertSessionHas('error');
-
-    $member = User::factory()->create();
-    Employee::factory()->create(['user_id' => $member->id]);
-    $this->actingAs($member)->post(route('team-recap.weekly-project'), [...$payload, 'rows' => [], 'claims' => []])->assertForbidden();
-});
-
-it('merges kegiatan into one row, keeps the text, and splits them again', function () {
-    [$user, $pj, $team] = pjOfTeam();
-    $one = weeklyClaim($team, $pj, 'Rapat ISO');
-    $two = weeklyClaim($team, $pj, 'Audit ISO');
-    $three = weeklyClaim($team, $pj, 'Review ISO');
-    $period = ['team_id' => $team->id, 'week_start' => '2026-06-08'];
-    $url = route('team-recap.weekly', ['team' => $team->id, 'week' => '2026-06-08']);
-
-    $this->actingAs($user)->post(route('team-recap.weekly-project'), [...$period, 'rows' => [['claim_ids' => [$one->id], 'uraian' => 'Teks pertama']]]);
-    $this->actingAs($user)->post(route('team-recap.weekly-rows.merge'), [...$period, 'claim_ids' => [$one->id, $two->id]])->assertSessionHas('success');
-
-    $this->actingAs($user)->get($url)->assertInertia(fn ($page) => $page
-        ->has('segments.0.rows', 2)
-        ->where('segments.0.rows.0.merged', true)
-        ->where('segments.0.rows.0.claim_ids', [$one->id, $two->id])
-        ->where('segments.0.rows.0.pj_uraian', 'Teks pertama')
-        ->where('segments.0.rows.1.claim_ids', [$three->id]));
-
-    $row = WeeklyRecapRow::sole();
-    $this->actingAs($user)->post(route('team-recap.weekly-rows.split'), [...$period, 'row_id' => $row->id])->assertSessionHas('success');
-    $this->actingAs($user)->get($url)->assertInertia(fn ($page) => $page->has('segments.0.rows', 3)->where('segments.0.rows.0.merged', false));
-
-    // A merge needs two kegiatan of one Projek, and a member cannot merge.
-    $this->actingAs($user)->post(route('team-recap.weekly-rows.merge'), [...$period, 'claim_ids' => [$one->id]])->assertSessionHasErrors('claim_ids');
-    $member = User::factory()->create();
-    Employee::factory()->create(['user_id' => $member->id]);
-    $this->actingAs($member)->post(route('team-recap.weekly-rows.merge'), [...$period, 'claim_ids' => [$one->id, $two->id]])->assertForbidden();
-});
-
-// ── Weekly sections and Ringkasan per Projek ────────────────────────────────
-
-it('shows the weeks of a month and saves one summary per Projek', function () {
-    [$user, $pj, $team] = pjOfTeam();
-    $project = Project::factory()->create(['team_id' => $team->id, 'year' => 2026]);
-    $plan = PerformancePlan::factory()->create(['project_id' => $project->id, 'team_id' => $team->id]);
-    ActivityClaim::factory()->saved()->create([
-        'employee_id' => $pj->id, 'performance_plan_id' => $plan->id, 'project_id' => $project->id,
-        'period_year' => 2026, 'period_month' => 6, 'period_quarter' => 2, 'week_start' => '2026-06-08', 'activity_date_start' => '2026-06-09',
-    ]);
-    $period = ['team_id' => $team->id, 'period_type' => 'month', 'period_year' => 2026, 'period_month' => 6];
-
-    $this->actingAs($user)->post(route('team-recap.summary'), [...$period, 'project_id' => $project->id, 'body' => 'Sakernas berjalan lancar'])->assertSessionHas('success');
-    $this->actingAs($user)->post(route('team-recap.summary'), [...$period, 'project_id' => $project->id, 'body' => 'Sakernas selesai'])->assertSessionHas('success');
-    expect(RecapSummary::count())->toBe(1);
-
-    // June 2026: weeks starting 1, 8, 15, 22, 29 June.
-    $this->actingAs($user)->get(route('team-recap.monthly', ['team' => $team->id, 'year' => 2026, 'month' => 6]))
-        ->assertInertia(fn ($page) => $page
-            ->has('sections', 5)
-            ->where('sections.0.start', '2026-06-01')
-            ->where('sections.1.segments.0.project_id', $project->id)
-            ->where("summaries.{$project->id}.body", 'Sakernas selesai'));
-
-    $this->actingAs($user)->post(route('team-recap.summary'), [...$period, 'project_id' => $project->id, 'body' => '']);
-    expect(RecapSummary::count())->toBe(0);
-});
-
 it('shows the months of a quarter and keeps summaries PJ-only and unlocked', function () {
     [$user, , $team] = pjOfTeam();
     $period = ['team_id' => $team->id, 'period_type' => 'quarter', 'period_year' => 2026, 'period_quarter' => 2, 'body' => 'x'];
@@ -1428,4 +338,250 @@ it('shows the months of a quarter and keeps summaries PJ-only and unlocked', fun
 
     RecapLock::create(['team_id' => $team->id, 'period_type' => 'quarter', 'period_year' => 2026, 'period_quarter' => 2]);
     $this->actingAs($user)->post(route('team-recap.summary'), $period)->assertSessionHas('error');
+});
+
+// ── Per-RK paraphrase, target and capaian (week, month) ─────────────────────
+
+function rkPayload(Team $team, PerformancePlan $plan, array $extra = []): array
+{
+    return ['team_id' => $team->id, 'performance_plan_id' => $plan->id, 'period_type' => 'week', 'period_start' => '2026-10-14', ...$extra];
+}
+
+it('lets the PJ save the paraphrase, target, satuan and capaian of an RK for a week', function () {
+    [$user, , $team] = pjOfTeam();
+    $plan = PerformancePlan::factory()->create(['project_id' => null, 'team_id' => $team->id]);
+
+    $this->actingAs($user)
+        ->post(route('team-recap.rk.store'), rkPayload($team, $plan, ['paraphrase' => 'Tim menyelesaikan skema.', 'target' => 10, 'target_unit' => 'tabel', 'capaian' => 8]))
+        ->assertSessionHas('success');
+
+    $recap = RkRecap::sole();
+    expect($recap->period_start->toDateString())->toBe('2026-10-12')
+        ->and($recap->paraphrase)->toBe('Tim menyelesaikan skema.')
+        ->and($recap->target)->toBe('10.00')->and($recap->capaian)->toBe('8.00')->and($recap->target_unit)->toBe('tabel')
+        ->and($recap->isLocked())->toBeFalse();
+
+    // Saving again updates the same row.
+    $this->actingAs($user)->post(route('team-recap.rk.store'), rkPayload($team, $plan, ['paraphrase' => 'Revisi', 'target' => 10, 'capaian' => 9]));
+    expect(RkRecap::count())->toBe(1)->and(RkRecap::sole()->paraphrase)->toBe('Revisi');
+});
+
+it('validates the RK numbers and keeps them numeric', function () {
+    [$user, , $team] = pjOfTeam();
+    $plan = PerformancePlan::factory()->create(['project_id' => null, 'team_id' => $team->id]);
+
+    foreach ([['target' => 'banyak'], ['capaian' => 'sembilan'], ['capaian' => -2], ['period_type' => 'quarter']] as $bad) {
+        $this->actingAs($user)->post(route('team-recap.rk.store'), rkPayload($team, $plan, $bad))->assertSessionHasErrors(array_key_first($bad));
+    }
+    expect(RkRecap::count())->toBe(0);
+});
+
+it('locks an RK with Simpan dan Kunci, blocks edits, and opens it again', function () {
+    [$user, $pj, $team] = pjOfTeam();
+    $plan = PerformancePlan::factory()->create(['project_id' => null, 'team_id' => $team->id]);
+
+    $this->actingAs($user)->post(route('team-recap.rk.store'), rkPayload($team, $plan, ['paraphrase' => 'Final', 'lock' => true]))->assertSessionHas('success');
+    expect(RkRecap::sole())->locked_at->not->toBeNull()->locked_by->toBe($pj->id);
+
+    $this->actingAs($user)->post(route('team-recap.rk.store'), rkPayload($team, $plan, ['paraphrase' => 'Ubah']))->assertSessionHas('error');
+    expect(RkRecap::sole()->paraphrase)->toBe('Final');
+
+    $this->actingAs($user)->post(route('team-recap.rk.unlock'), rkPayload($team, $plan))->assertSessionHas('success');
+    expect(RkRecap::sole()->isLocked())->toBeFalse();
+    $this->actingAs($user)->post(route('team-recap.rk.store'), rkPayload($team, $plan, ['paraphrase' => 'Ubah']))->assertSessionHas('success');
+});
+
+it('lets the RK PIC write but not a plain member or a stranger', function () {
+    [$memberUser, $member, $team] = memberOfTeam();
+    $plan = PerformancePlan::factory()->create(['project_id' => null, 'team_id' => $team->id]);
+
+    $this->actingAs($memberUser)->post(route('team-recap.rk.store'), rkPayload($team, $plan, ['paraphrase' => 'x']))->assertForbidden();
+
+    $plan->update(['pic_employee_id' => $member->id]);
+    $this->actingAs($memberUser)->post(route('team-recap.rk.store'), rkPayload($team, $plan, ['paraphrase' => 'x']))->assertSessionHas('success');
+
+    $otherPlan = PerformancePlan::factory()->create(['project_id' => null, 'team_id' => Team::factory()->create()->id]);
+    $this->actingAs($memberUser)->post(route('team-recap.rk.store'), rkPayload($team, $otherPlan))->assertStatus(422);
+});
+
+function recapItem(Team $team, Employee $employee, PerformancePlan $plan, array $extra = []): PlanItem
+{
+    return PlanItem::create([
+        'team_id' => $team->id, 'employee_id' => $employee->id, 'performance_plan_id' => $plan->id,
+        'description' => 'Entri data', 'date_start' => '2026-10-13', 'date_end' => '2026-10-14', ...$extra,
+    ]);
+}
+
+it('shows the weekly panel of an RK with the members entries and the PJ recap', function () {
+    [$user, $pj, $team] = pjOfTeam();
+    $andi = Employee::factory()->create(['display_name' => 'Andi']);
+    $andi->teams()->attach($team->id, ['role' => 'member', 'is_primary' => true]);
+    $plan = PerformancePlan::factory()->create(['project_id' => null, 'team_id' => $team->id, 'description' => 'RK Inovasi']);
+    recapItem($team, $andi, $plan, ['capaian_note' => 'Skema selesai. Migrasi jalan.', 'target' => 4, 'capaian' => 3, 'target_unit' => 'tabel']);
+    recapItem($team, $andi, $plan, ['description' => 'Rapat', 'target' => 1, 'capaian' => 1, 'target_unit' => 'tabel']);
+    recapItem($team, $andi, $plan, ['description' => 'Batal', 'status' => 'cancelled']);
+    recapItem($team, $pj, $plan, ['date_start' => '2026-09-01', 'date_end' => '2026-09-02']); // another week
+    RkRecap::create(['team_id' => $team->id, 'performance_plan_id' => $plan->id, 'period_type' => 'week', 'period_start' => '2026-10-12', 'paraphrase' => 'Ringkas']);
+
+    $this->actingAs($user)->get(route('team-recap.weekly', ['week' => '2026-10-15']))
+        ->assertInertia(fn ($page) => $page
+            ->component('Kinetik/TeamWeeklyRecap')
+            ->where('weekStart', '2026-10-12')
+            ->where('canManage', true)
+            ->has('panels', 1)
+            ->where('panels.0.rk_description', 'RK Inovasi')
+            ->where('panels.0.entry_count', 2)
+            ->where('panels.0.recap.paraphrase', 'Ringkas')
+            ->has('panels.0.entries', 1)
+            ->where('panels.0.entries.0.name', 'Andi')
+            ->where('panels.0.entries.0.lines', ['Skema selesai.', 'Migrasi jalan.', 'Rapat'])
+            ->where('panels.0.entries.0.target', 5)
+            ->where('panels.0.entries.0.capaian', 4));
+});
+
+it('opens the weekly recap on the week of the latest plan item', function () {
+    [$user, $pj, $team] = pjOfTeam();
+    $plan = PerformancePlan::factory()->create(['project_id' => null, 'team_id' => $team->id]);
+    recapItem($team, $pj, $plan, ['date_start' => '2026-08-04', 'date_end' => '2026-08-05']);
+    recapItem($team, $pj, $plan, ['date_start' => '2026-09-16', 'date_end' => '2026-09-16']);
+
+    // The weekly page opens on the months of the year of the latest plan item.
+    $this->actingAs($user)->get(route('team-recap.weekly'))->assertInertia(fn ($page) => $page->where('view', 'months')->where('year', 2026));
+    // The monthly page opens on the list of months, in the year of the latest plan item.
+    $this->actingAs($user)->get(route('team-recap.monthly'))->assertInertia(fn ($page) => $page->where('view', 'list')->where('year', 2026)->where('month', null));
+    $this->actingAs($user)->get(route('team-recap.quarterly'))->assertInertia(fn ($page) => $page->where('view', 'list')->where('year', 2026));
+});
+
+it('shows the weekly paraphrases of the month as context on the monthly panel', function () {
+    [$user, , $team] = pjOfTeam();
+    $plan = PerformancePlan::factory()->create(['project_id' => null, 'team_id' => $team->id]);
+    foreach (['2026-10-05' => 'Minggu satu', '2026-10-12' => 'Minggu dua', '2026-09-28' => 'Bulan lalu'] as $start => $text) {
+        RkRecap::create(['team_id' => $team->id, 'performance_plan_id' => $plan->id, 'period_type' => 'week', 'period_start' => $start, 'paraphrase' => $text]);
+    }
+
+    $this->actingAs($user)->get(route('team-recap.monthly', ['year' => 2026, 'month' => 10]))
+        ->assertInertia(fn ($page) => $page
+            ->has('panels.0.weeks', 2)
+            ->where('panels.0.weeks.0.paraphrase', 'Minggu satu')
+            ->where('panels.0.weeks.1.paraphrase', 'Minggu dua'));
+});
+
+it('reads the quarterly recap from plan items and the PJ month numbers', function () {
+    [$user, $pj, $team] = pjOfTeam();
+    $plan = PerformancePlan::factory()->create(['project_id' => null, 'team_id' => $team->id, 'description' => 'RK Triwulan']);
+    $other = PerformancePlan::factory()->create(['project_id' => null, 'team_id' => $team->id, 'description' => 'RK Lain']);
+    recapItem($team, $pj, $plan, ['date_start' => '2026-10-05', 'date_end' => '2026-10-05', 'target' => 10, 'capaian' => 5, 'target_unit' => 'berkas']);
+    recapItem($team, $pj, $plan, ['date_start' => '2026-11-03', 'date_end' => '2026-11-03', 'target' => 10, 'capaian' => 10]);
+    recapItem($team, $pj, $other, ['date_start' => '2026-10-05', 'date_end' => '2026-10-05', 'target' => 4, 'capaian' => 4]);
+    RkRecap::create(['team_id' => $team->id, 'performance_plan_id' => $other->id, 'period_type' => 'month', 'period_start' => '2026-10-01', 'target' => 8, 'capaian' => 2]);
+
+    $this->actingAs($user)->get(route('team-recap.quarterly', ['year' => 2026, 'quarter' => 4]))
+        ->assertInertia(function ($page) {
+            $rows = collect($page->toArray()['props']['segments'])->flatMap(fn ($s) => $s['rows'])->keyBy('rk_description');
+
+            expect($rows['RK Triwulan'])->target->toEqual(20)->realization->toEqual(15)->achievement->toEqual(75)->target_unit->toBe('berkas')
+                // The PJ month numbers win over the members' sums.
+                ->and($rows['RK Lain'])->target->toEqual(8)->realization->toEqual(2)->achievement->toEqual(25);
+        });
+});
+
+it('reports how many plan items of each member carry a capaian', function () {
+    [$user, $pj, $team] = pjOfTeam();
+    $andi = Employee::factory()->create(['display_name' => 'Andi']);
+    $andi->teams()->attach($team->id, ['role' => 'member', 'is_primary' => true]);
+    $plan = PerformancePlan::factory()->create(['project_id' => null, 'team_id' => $team->id]);
+    recapItem($team, $andi, $plan, ['capaian' => 1]);
+    recapItem($team, $andi, $plan);
+
+    $this->actingAs($user)->get(route('team-recap.weekly', ['week' => '2026-10-13']))
+        ->assertInertia(function ($page) {
+            $members = collect($page->toArray()['props']['members'])->keyBy('name');
+
+            expect($members['Andi'])->total->toBe(2)->saved->toBe(1)->status->toBe('partial')
+                ->and($members->first(fn ($m) => $m['name'] !== 'Andi'))->status->toBe('no_activity');
+        });
+});
+
+it('exports the weekly recap rows from plan items', function () {
+    [$user, $pj, $team] = pjOfTeam();
+    $plan = PerformancePlan::factory()->create(['project_id' => null, 'team_id' => $team->id, 'description' => 'RK Ekspor']);
+    recapItem($team, $pj, $plan, ['target' => 2, 'capaian' => 1]);
+
+    $this->actingAs($user)->getJson(route('team-recap.export', ['period_type' => 'week', 'week' => '2026-10-14']))
+        ->assertOk()
+        ->assertJsonPath('teams.0.segments.0.rows.0.rk_description', 'RK Ekspor')
+        ->assertJsonPath('teams.0.segments.0.rows.0.achievement', 50);
+});
+
+it('lists the months of the year with their counts and opens one month on click', function () {
+    [$user, $pj, $team] = pjOfTeam();
+    $plan = PerformancePlan::factory()->create(['project_id' => null, 'team_id' => $team->id]);
+    recapItem($team, $pj, $plan, ['date_start' => '2026-09-16', 'date_end' => '2026-09-16']);
+    recapItem($team, $pj, $plan, ['date_start' => '2026-09-18', 'date_end' => '2026-09-18']);
+    recapItem($team, $pj, $plan, ['date_start' => '2026-10-05', 'date_end' => '2026-10-05']);
+    RkRecap::create(['team_id' => $team->id, 'performance_plan_id' => $plan->id, 'period_type' => 'month', 'period_start' => '2026-09-01', 'paraphrase' => 'Ringkasan', 'locked_at' => now()]);
+
+    $this->actingAs($user)->get(route('team-recap.monthly', ['year' => 2026]))->assertInertia(fn ($page) => $page
+        ->where('view', 'list')
+        ->where('panels', [])
+        ->where('months.8.label', 'September')->where('months.8.activities', 2)->where('months.8.written', 1)->where('months.8.locked', 1)
+        ->where('months.9.activities', 1)
+        ->where('months.0.activities', 0));
+
+    $this->actingAs($user)->get(route('team-recap.monthly', ['year' => 2026, 'month' => 9]))->assertInertia(fn ($page) => $page
+        ->where('view', 'detail')->where('month', 9)->where('months', []));
+});
+
+it('walks the weekly recap from the months to the weeks of a month to one week', function () {
+    [$user, $pj, $team] = pjOfTeam();
+    $plan = PerformancePlan::factory()->create(['project_id' => null, 'team_id' => $team->id]);
+    recapItem($team, $pj, $plan, ['date_start' => '2026-09-16', 'date_end' => '2026-09-16']);
+    recapItem($team, $pj, $plan, ['date_start' => '2026-09-17', 'date_end' => '2026-09-17']);
+    recapItem($team, $pj, $plan, ['date_start' => '2026-09-23', 'date_end' => '2026-09-23']);
+    RkRecap::create(['team_id' => $team->id, 'performance_plan_id' => $plan->id, 'period_type' => 'week', 'period_start' => '2026-09-14', 'paraphrase' => 'Ringkasan minggu']);
+
+    $this->actingAs($user)->get(route('team-recap.weekly', ['year' => 2026]))->assertInertia(fn ($page) => $page
+        ->where('view', 'months')->where('periods.8.activities', 3));
+
+    $this->actingAs($user)->get(route('team-recap.weekly', ['year' => 2026, 'month' => 9]))->assertInertia(fn ($page) => $page
+        ->where('view', 'weeks')->where('month', 9)
+        ->where('periods', fn ($weeks) => collect($weeks)->firstWhere('key', '2026-09-14')['activities'] === 2
+            && collect($weeks)->firstWhere('key', '2026-09-14')['written'] === 1
+            && collect($weeks)->firstWhere('key', '2026-09-21')['activities'] === 1
+            && collect($weeks)->first()['key'] === '2026-08-31'));
+
+    $this->actingAs($user)->get(route('team-recap.weekly', ['week' => '2026-09-16']))->assertInertia(fn ($page) => $page
+        ->where('view', 'detail')->where('weekStart', '2026-09-14')->where('periods', [])
+        ->where('plans', fn ($plans) => count($plans) === 2
+            && collect($plans)->pluck('description')->every(fn ($d) => is_string($d))
+            && array_key_exists('employee_name', $plans[0])));
+});
+
+it('shows the PJ the plans of every member of the week, read only, and none from other weeks', function () {
+    [$user, $pj, $team] = pjOfTeam();
+    $other = Employee::factory()->create(['display_name' => 'Andi']);
+    $other->teams()->attach($team->id, ['role' => 'member', 'is_primary' => true]);
+    $plan = PerformancePlan::factory()->create(['project_id' => null, 'team_id' => $team->id]);
+    recapItem($team, $other, $plan, ['description' => 'Rencana Andi', 'date_start' => '2026-09-15', 'date_end' => '2026-09-16']);
+    recapItem($team, $other, $plan, ['description' => 'Minggu lain', 'date_start' => '2026-09-01', 'date_end' => '2026-09-02']);
+    recapItem($team, $other, $plan, ['description' => 'Batal', 'date_start' => '2026-09-15', 'date_end' => '2026-09-15', 'status' => 'cancelled']);
+
+    $this->actingAs($user)->get(route('team-recap.weekly', ['week' => '2026-09-14']))->assertInertia(fn ($page) => $page
+        ->where('plans', fn ($plans) => count($plans) === 1 && $plans[0]['employee_name'] === 'Andi' && $plans[0]['description'] === 'Rencana Andi'));
+});
+
+it('lists the four quarters with their counts and opens one on click', function () {
+    [$user, $pj, $team] = pjOfTeam();
+    $plan = PerformancePlan::factory()->create(['project_id' => null, 'team_id' => $team->id]);
+    recapItem($team, $pj, $plan, ['date_start' => '2026-09-16', 'date_end' => '2026-09-16']);
+    recapItem($team, $pj, $plan, ['date_start' => '2026-10-05', 'date_end' => '2026-10-05']);
+    RkRecap::create(['team_id' => $team->id, 'performance_plan_id' => $plan->id, 'period_type' => 'month', 'period_start' => '2026-09-01', 'paraphrase' => 'Ringkasan']);
+
+    $this->actingAs($user)->get(route('team-recap.quarterly', ['year' => 2026]))->assertInertia(fn ($page) => $page
+        ->where('view', 'list')->where('segments', [])
+        ->where('periods.2.label', 'Triwulan 3')->where('periods.2.activities', 1)->where('periods.2.written', 1)
+        ->where('periods.3.activities', 1)->where('periods.0.activities', 0));
+
+    $this->actingAs($user)->get(route('team-recap.quarterly', ['year' => 2026, 'quarter' => 3]))->assertInertia(fn ($page) => $page
+        ->where('view', 'detail')->where('quarter', 3)->where('periods', []));
 });

@@ -77,3 +77,14 @@ A recording of a walkthrough of kipApp (screen share, 11 minutes, 2026-10-11). T
 - Pint (`vendor/bin/pint --test`) runs in CI over the whole repo. Run it before you push.
 - Deploy: `./deploy.sh` builds the zip from the working tree and injects `.env.production` as `.env`. Upload it, open the setup link, then run `migrate-prod.sh`. This release adds the migration for `plan_items.kip_sent_at`. Run the migration right after the upload.
 - State at this handoff: 580 PHP tests, 92 vitest tests, `vue-tsc` clean.
+
+## Rekap Mingguan rewrite (2026-10-17)
+
+Branch `feature/rekap-mingguan-rewrite`. Nobody uses the app yet, so the claim flow was removed instead of kept beside the new one.
+
+- **Member page.** `/rekap-mingguan` (`weekly.index`, `MemberWeekController`, `BuildMemberWeekAction`, `Pages/Kinetik/RekapMingguan.vue`) is the only member page. It shows the signed-in member's `plan_items` for last week and this week. A PJ sees only their own rows. `/rencana-minggu` redirects to it. The PJ's weekly focus is shown to the member there; the PJ page that set it is gone (see status file).
+- **plan_items** gained `capaian` (decimal), `capaian_note` (uraian, sent to kipApp as `capaian`), `evidence_url` (`datadukung`), `progress` (`progres`), `time_start`, `time_end`. Target and capaian are numbers. `PlanItemController@result` saves a result in Kinetik only; "Tandai selesai" is what writes to kipApp.
+- **First sync.** `ConnectKipAccountAction` dispatches `SyncMyActivitiesJob` after the response (best effort, errors only reported). The sync logic is in `SyncMemberActivitiesAction`, shared with the "Sinkronkan data saya" button.
+- **Team recap.** New table `rk_recaps` (team, RK, `period_type` week or month, `period_start`, paraphrase, target, satuan, capaian, `locked_at`, `locked_by`). `RecapAggregator` now reads `plan_items` and `rk_recaps`. Weekly and monthly pages show one RK panel at a time (`RkRecapPanel.vue`). The quarterly (FRA) page keeps `recap_overrides` and `recap_summaries` for its text, and takes its numbers from the monthly `rk_recaps`, else from the members' plan items. Locks (`recap_locks`) now apply to quarters only; weeks and months lock per RK.
+- **Removed.** `activity_claims`, `weekly_recap_rows`, `weekly_recap_row_claims`, `weekly_team_notes` (migration `2026_10_18_000200_drop_claim_tables`), `kip_activities.is_claimed`, the merge, prefill and per-claim correction endpoints and their components. The dashboard reads `plan_items` (capaian x 100 / target) instead of claims.
+- **Popups.** Add and edit of IKU, teams and RK, and add of employees, run in popups from the index pages (`FormDialog`).

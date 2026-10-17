@@ -20,12 +20,14 @@ class CompletePlanItemAction
     /**
      * @throws RuntimeException with a message for the user
      */
-    public function execute(PlanItem $plan, ?string $capaian, ?string $evidenceUrl): void
+    public function execute(PlanItem $plan, ?string $note, ?string $evidenceUrl, ?float $capaian = null): void
     {
         if ($plan->kip_external_id === null && ! $this->push->execute($plan)) {
             throw new RuntimeException($plan->fresh()->push_error ?? 'Kegiatan belum bisa dikirim ke kipApp.');
         }
 
+        $note ??= $plan->capaian_note;
+        $evidenceUrl ??= $plan->evidence_url;
         $user = $plan->employee?->user ?? throw new RuntimeException('Pegawai belum punya akun.');
 
         try {
@@ -43,17 +45,26 @@ class CompletePlanItemAction
                 'rencanakinerja' => (string) $row['rencanakinerja'],
                 'kegiatan' => (string) $row['kegiatan'],
                 'tanggal' => (string) $row['tanggal'],
-                'tanggalselesai' => (string) ($row['tanggalselesai'] ?? $row['tanggal']),
-                'jammulai' => $row['jammulai'] ?? '08:00',
-                'jamselesai' => $row['jamselesai'] ?? '16:00',
+                // KIP_NULL_TIMES on: pass the row's own null back. Off: fill what is missing (today).
+                'tanggalselesai' => config('kinetik.kip.null_times') ? ($row['tanggalselesai'] ?? null) : (string) ($row['tanggalselesai'] ?? $row['tanggal']),
+                'jammulai' => $row['jammulai'] ?? (config('kinetik.kip.null_times') ? null : '08:00'),
+                'jamselesai' => $row['jamselesai'] ?? (config('kinetik.kip.null_times') ? null : '16:00'),
                 'progres' => 100,
-                'capaian' => $capaian ?? (string) ($row['capaian'] ?? ''),
+                'capaian' => $note ?? (string) ($row['capaian'] ?? ''),
                 'datadukung' => $evidenceUrl ?? (string) ($row['datadukung'] ?? ''),
+                'iscapaianskp' => $plan->is_capaian_skp ? 1 : 0,
             ]);
         } catch (KipApiException $e) {
             throw new RuntimeException('kipApp menolak perubahan: '.$e->getMessage());
         }
 
-        $plan->update(['status' => 'done', 'kip_synced_at' => now()]);
+        $plan->update([
+            'status' => 'done',
+            'progress' => 100,
+            'capaian' => $capaian ?? $plan->capaian,
+            'capaian_note' => $note,
+            'evidence_url' => $evidenceUrl,
+            'kip_synced_at' => now(),
+        ]);
     }
 }

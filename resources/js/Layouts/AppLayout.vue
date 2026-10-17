@@ -1,8 +1,8 @@
 <script setup lang="ts">
 import { Link, router, usePage } from '@inertiajs/vue3';
 import { computed, onMounted, onUnmounted, ref, type Component } from 'vue';
-import { CalendarClock,
-    Award, BookOpen, CalendarCheck, CalendarDays, CalendarRange, ClipboardCheck, FileChartColumn, FileSpreadsheet, FileText, FolderKanban,
+import {
+    Award, BookOpen, CalendarCheck, CalendarDays, CalendarRange, ClipboardCheck, FileChartColumn, FileSpreadsheet, FolderKanban,
     House, LayoutGrid, LayoutList, ListChecks, ListTodo, LogOut, Menu, PanelLeftClose, PanelLeftOpen, Target, UserRound, Users, X, Zap,
 } from 'lucide-vue-next';
 import { useSidebarStore } from '@/stores/sidebar';
@@ -41,11 +41,10 @@ const navSections = computed<NavSection[]>(() => {
             ],
         },
         {
-            // Personal claim tools; the head only reads, so they stay hidden for the head.
+            // Personal tools; the head only reads, so they stay hidden for the head.
             title: 'Kegiatan',
             items: [
-                { label: 'Rencana Minggu Ini', href: route('weekly-plan.index'), active: is('weekly-plan.*'), icon: CalendarClock, show: hasEmployee.value || isHead.value || isAdmin.value },
-                { label: 'Rekap Mingguan', href: route('weekly.index'), active: is('weekly.*'), icon: CalendarCheck, show: hasEmployee.value && !isHead.value },
+                { label: 'Rekap Mingguan', href: route('weekly.index'), active: is('weekly.index'), icon: CalendarCheck, show: hasEmployee.value && !isHead.value },
                 { label: isAdmin.value ? 'Kegiatan kipApp' : 'Kegiatan Saya', href: route('kip-activities.index'), active: is('kip-activities.*'), icon: ListChecks, show: isAdmin.value || (hasEmployee.value && !isHead.value) },
                 { label: 'Angka Kredit Saya', href: route('credit.mine'), active: is('credit.mine'), icon: Award, show: hasEmployee.value },
             ],
@@ -60,13 +59,6 @@ const navSections = computed<NavSection[]>(() => {
                 { label: 'Kertas Kerja FRA', href: route('fra.index'), active: is('fra.*'), icon: FileSpreadsheet, show: canViewPlanCompliance.value },
                 { label: 'Kepatuhan Rencana', href: route('plan-compliance.index'), active: is('plan-compliance.*'), icon: ClipboardCheck, show: canViewPlanCompliance.value },
                 { label: 'Angka Kredit Tim', href: route('credit.team'), active: is('credit.team'), icon: Award, show: canViewTeamCredits.value },
-            ],
-        },
-        {
-            title: 'Laporan',
-            items: [
-                { label: 'Laporan Pegawai', href: route('laporan.pegawai'), active: is('laporan.*'), icon: FileText, show: isAdmin.value || isHead.value },
-                { label: 'Input Kinerja', href: route('performance.index'), active: is('performance.*'), icon: ClipboardCheck, show: isHead.value },
             ],
         },
         {
