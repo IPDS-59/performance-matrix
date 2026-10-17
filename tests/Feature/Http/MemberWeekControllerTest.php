@@ -60,10 +60,10 @@ it('offers only the member own RK once they are synced', function () {
     [$user, $me, , $team, $rk] = weekSetup();
     PerformancePlan::factory()->create(['project_id' => null, 'team_id' => $team->id, 'description' => 'RK Orang Lain']);
 
-    $this->actingAs($user)->get(route('weekly.index'))->assertInertia(fn ($p) => $p->has('rkOptions', 2)->where('rkSynced', false));
+    $this->actingAs($user)->get(route('weekly.index', ['week' => '2026-10-15']))->assertInertia(fn ($p) => $p->has('rkOptions', 2)->where('rkSynced', false));
 
     EmployeeRk::create(['employee_id' => $me->id, 'kip_rk_id' => 'r1', 'name' => 'rk  inovasi', 'year' => now()->year]);
-    $this->actingAs($user)->get(route('weekly.index'))->assertInertia(fn ($p) => $p->has('rkOptions', 1)->where('rkOptions.0.description', 'RK Inovasi')->where('rkSynced', true));
+    $this->actingAs($user)->get(route('weekly.index', ['week' => '2026-10-15']))->assertInertia(fn ($p) => $p->has('rkOptions', 1)->where('rkOptions.0.description', 'RK Inovasi')->where('rkSynced', true));
 });
 
 it('sends the old plan page to the new one and keeps the week', function () {
@@ -74,4 +74,20 @@ it('sends the old plan page to the new one and keeps the week', function () {
 it('works for an account without an employee record', function () {
     $this->actingAs(User::factory()->create())->get(route('weekly.index'))
         ->assertOk()->assertInertia(fn ($p) => $p->where('employee', null)->missing('thisWeek'));
+});
+
+it('walks the member from the months to the weeks of a month to one week, with only their own counts', function () {
+    [$user, $me, $colleague, $team, $rk] = weekSetup();
+    weekItem($me, $team, $rk, 'Punya saya satu', '2026-10-13', '2026-10-14', ['capaian' => 2]);
+    weekItem($me, $team, $rk, 'Punya saya dua', '2026-10-20', '2026-10-21');
+    weekItem($colleague, $team, $rk, 'Punya rekan', '2026-10-13', '2026-10-14');
+
+    $this->actingAs($user)->get(route('weekly.index', ['year' => 2026]))->assertInertia(fn ($p) => $p
+        ->where('view', 'months')->where('periods.9.activities', 2)->where('periods.9.written', 1)->where('periods.0.activities', 0));
+
+    $this->actingAs($user)->get(route('weekly.index', ['year' => 2026, 'month' => 10]))->assertInertia(fn ($p) => $p
+        ->where('view', 'weeks')->where('periods', fn ($weeks) => collect($weeks)->firstWhere('key', '2026-10-12')['activities'] === 1
+            && collect($weeks)->firstWhere('key', '2026-10-19')['activities'] === 1));
+
+    $this->actingAs($user)->get(route('weekly.index', ['week' => '2026-10-13']))->assertInertia(fn ($p) => $p->where('view', 'detail')->where('periods', []));
 });

@@ -646,6 +646,10 @@ export interface PlanRkOption {
 
 export interface MemberWeekProps {
     employee: { id: number; name: string } | null;
+    view: 'months' | 'weeks' | 'detail';
+    periods: PeriodRow[];
+    year: number;
+    month: number | null;
     /** The "Kirim ke atasan" buttons are shown only when the setting is on. */
     canSendToAtasan: boolean;
     /** The SKP year (kinetik.kip.tahun): dates of a kegiatan must stay in one quarter of it. */

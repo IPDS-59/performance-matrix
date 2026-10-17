@@ -4,6 +4,7 @@ import { Head, router } from '@inertiajs/vue3';
 import { computed, ref } from 'vue';
 import { ChevronLeft, ChevronRight, Plus, Search } from 'lucide-vue-next';
 import type { MemberWeekProps, PlanItemRow } from '@/types';
+import RecapPeriodTable from '@/Components/Kinetik/RecapPeriodTable.vue';
 import ConfirmDialog from '@/Components/ConfirmDialog.vue';
 import { Button } from '@/Components/ui/button';
 import { Input } from '@/Components/ui/input';
@@ -39,6 +40,14 @@ function add() { editing.value = null; copying.value = null; formOpen.value = tr
 function edit(item: PlanItemRow) { detailId.value = null; editing.value = item; copying.value = null; formOpen.value = true; }
 function copy(item: PlanItemRow) { detailId.value = null; editing.value = null; copying.value = item; formOpen.value = true; }
 function go(week?: string) { if (week) router.get(route('weekly.index'), { week }, { preserveState: false }); }
+
+const MONTHS = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
+const monthName = computed(() => `${MONTHS[(props.month ?? 1) - 1]} ${props.year}`);
+const to = (query: Record<string, string | number>) => router.get(route('weekly.index'), query, { preserveState: false });
+const openMonth = (m: number | string) => to({ year: props.year, month: m });
+const toMonths = () => to({ year: props.year });
+const toWeeks = () => to({ year: props.year, month: props.month ?? 1 });
+const shiftYear = (delta: number) => to({ year: props.year + delta });
 </script>
 
 <template>
@@ -50,16 +59,33 @@ function go(week?: string) { if (week) router.get(route('weekly.index'), { week 
             Akun Anda belum terhubung ke data pegawai.
         </div>
 
+        <template v-else-if="view !== 'detail'">
+            <div class="mb-4 flex flex-wrap items-center gap-3 rounded-lg border bg-white p-3">
+                <template v-if="view === 'months'">
+                    <div class="flex items-center rounded-md border">
+                        <Button variant="ghost" size="icon" class="h-9 w-9" aria-label="Tahun sebelumnya" @click="shiftYear(-1)"><ChevronLeft class="h-4 w-4" /></Button>
+                        <span class="min-w-24 px-2 text-center text-sm font-semibold tabular-nums">{{ year }}</span>
+                        <Button variant="ghost" size="icon" class="h-9 w-9" aria-label="Tahun berikutnya" @click="shiftYear(1)"><ChevronRight class="h-4 w-4" /></Button>
+                    </div>
+                    <p class="text-sm text-gray-600">Pilih bulan, lalu pilih minggunya.</p>
+                </template>
+                <template v-else>
+                    <Button variant="ghost" size="sm" @click="toMonths"><ChevronLeft class="mr-1 h-4 w-4" aria-hidden="true" /> Semua bulan {{ year }}</Button>
+                    <h2 class="text-lg font-semibold">{{ monthName }}</h2>
+                </template>
+            </div>
+            <RecapPeriodTable :rows="periods" :period-label="view === 'months' ? 'Bulan' : 'Minggu'" written-label="Capaian terisi" locked-label="Terkirim ke atasan" done-status="Terkirim" @open="(k) => (view === 'months' ? openMonth(k) : go(String(k)))" />
+        </template>
+
         <template v-else>
+            <div class="mb-3 flex flex-wrap items-center gap-2">
+                <Button variant="ghost" size="sm" class="-ml-2" @click="toWeeks"><ChevronLeft class="mr-1 h-4 w-4" aria-hidden="true" /> Minggu di {{ monthName }}</Button>
+                <h2 class="text-lg font-semibold tabular-nums">{{ range(weekStart, weekEnd) }}</h2>
+            </div>
             <div class="mb-4 flex flex-wrap items-center gap-3">
                 <div class="relative w-full max-w-xs">
                     <Search class="pointer-events-none absolute left-3 top-2.5 h-4 w-4 text-gray-500" aria-hidden="true" />
                     <Input v-model="query" class="pl-9" placeholder="Cari kegiatan atau RK" aria-label="Cari kegiatan" />
-                </div>
-                <div class="flex items-center rounded-md border bg-white">
-                    <Button variant="ghost" size="icon" class="h-9 w-9" aria-label="Minggu sebelumnya" @click="go(prevWeek)"><ChevronLeft class="h-4 w-4" /></Button>
-                    <span class="min-w-[13rem] px-2 text-center text-sm font-medium tabular-nums">{{ range(weekStart, weekEnd) }}</span>
-                    <Button variant="ghost" size="icon" class="h-9 w-9" aria-label="Minggu berikutnya" @click="go(nextWeek)"><ChevronRight class="h-4 w-4" /></Button>
                 </div>
                 <SyncMyActivitiesButton />
                 <template v-if="canSendToAtasan">
