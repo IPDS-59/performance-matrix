@@ -2,7 +2,7 @@
 import { Link, router, usePage } from '@inertiajs/vue3';
 import { computed, onMounted, onUnmounted, ref, type Component } from 'vue';
 import {
-    Award, BookOpen, CalendarCheck, CalendarDays, CalendarRange, ClipboardCheck, FileChartColumn, FileSpreadsheet, FileText, FolderKanban,
+    Award, BookOpen, CalendarCheck, CalendarDays, CalendarRange, ClipboardCheck, FileChartColumn, FileSpreadsheet, FolderKanban,
     House, LayoutGrid, LayoutList, ListChecks, ListTodo, LogOut, Menu, PanelLeftClose, PanelLeftOpen, Target, UserRound, Users, X, Zap,
 } from 'lucide-vue-next';
 import { useSidebarStore } from '@/stores/sidebar';
@@ -59,13 +59,6 @@ const navSections = computed<NavSection[]>(() => {
                 { label: 'Kertas Kerja FRA', href: route('fra.index'), active: is('fra.*'), icon: FileSpreadsheet, show: canViewPlanCompliance.value },
                 { label: 'Kepatuhan Rencana', href: route('plan-compliance.index'), active: is('plan-compliance.*'), icon: ClipboardCheck, show: canViewPlanCompliance.value },
                 { label: 'Angka Kredit Tim', href: route('credit.team'), active: is('credit.team'), icon: Award, show: canViewTeamCredits.value },
-            ],
-        },
-        {
-            title: 'Laporan',
-            items: [
-                { label: 'Laporan Pegawai', href: route('laporan.pegawai'), active: is('laporan.*'), icon: FileText, show: isAdmin.value || isHead.value },
-                { label: 'Input Kinerja', href: route('performance.index'), active: is('performance.*'), icon: ClipboardCheck, show: isHead.value },
             ],
         },
         {

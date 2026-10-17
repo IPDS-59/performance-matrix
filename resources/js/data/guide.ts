@@ -394,10 +394,9 @@ export const GUIDE_FLOWS: GuideFlow[] = [
                 shot: SHOTS.pimpinanAngkaKredit,
             },
             {
-                title: 'Lihat laporan dan data master',
-                where: 'Menu Laporan dan Data Master',
-                route: 'laporan.pegawai',
-                body: ['Laporan Pegawai, Proyek, IKU dan Rencana Kinerja dapat dibaca untuk semua tim.'],
+                title: 'Lihat data master',
+                where: 'Menu Data Master',
+                body: ['Proyek, IKU dan Rencana Kinerja dapat dibaca untuk semua tim.'],
             },
         ],
     },
