@@ -8,10 +8,12 @@ defineProps<{
     teams: TeamOption[];
     selectedTeamId: number | null;
     periodLabel: string;
-    prevLabel: string;
-    nextLabel: string;
+    prevLabel?: string;
+    nextLabel?: string;
     attentionTotal?: number;
     exporting: boolean;
+    /** Hide the previous and next buttons (the period is chosen elsewhere). */
+    hidePeriodNav?: boolean;
 }>();
 
 const attentionOnly = defineModel<boolean>('attentionOnly', { default: false });
@@ -40,7 +42,7 @@ const emit = defineEmits<{
                 </SelectContent>
             </Select>
 
-            <div class="flex items-center justify-between rounded-md border bg-gray-50/60 lg:justify-center">
+            <div v-if="!hidePeriodNav" class="flex items-center justify-between rounded-md border bg-gray-50/60 lg:justify-center">
                 <Button variant="ghost" size="icon" class="h-9 w-9" :aria-label="prevLabel" :title="prevLabel" @click="emit('prev')">
                     <ChevronLeft class="h-4 w-4" />
                 </Button>

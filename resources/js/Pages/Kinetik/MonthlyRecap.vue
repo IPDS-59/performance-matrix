@@ -39,10 +39,6 @@ const backToList = () => router.get(route('team-recap.monthly'), { team: props.s
 const shiftYear = (delta: number) => router.get(route('team-recap.monthly'), { team: props.selectedTeamId ?? undefined, year: props.year + delta }, { preserveState: false });
 const status = (m: MonthRow) => (m.locked > 0 && m.locked >= m.written && m.written > 0 ? 'Terkunci' : m.written > 0 ? 'Sedang ditulis' : m.activities > 0 ? 'Belum ditulis' : 'Belum ada kegiatan');
 
-function shiftMonth(delta: number) {
-    const d = new Date(props.year, (props.month ?? 1) - 1 + delta, 1);
-    navigate({ year: d.getFullYear(), month: d.getMonth() + 1 });
-}
 
 const selected = ref<number | null>(props.panels[0]?.performance_plan_id ?? null);
 const panel = computed(() => props.panels.find(p => p.performance_plan_id === selected.value) ?? props.panels[0] ?? null);
@@ -89,17 +85,17 @@ const canEdit = computed(() => props.canManage || (panel.value !== null && props
             </template>
 
             <template v-else>
-            <Button variant="ghost" size="sm" class="mb-2 -ml-2" @click="backToList"><ChevronLeft class="mr-1 h-4 w-4" aria-hidden="true" /> Semua bulan {{ year }}</Button>
+            <div class="mb-3 flex flex-wrap items-center gap-2">
+                <Button variant="ghost" size="sm" class="-ml-2" @click="backToList"><ChevronLeft class="mr-1 h-4 w-4" aria-hidden="true" /> Semua bulan {{ year }}</Button>
+                <h2 class="text-lg font-semibold tabular-nums">{{ monthLabel }}</h2>
+            </div>
             <RecapToolbar
                 :teams="teams"
                 :selected-team-id="selectedTeamId"
                 :period-label="monthLabel"
-                prev-label="Bulan sebelumnya"
-                next-label="Bulan berikutnya"
                 :exporting="exporting"
+                hide-period-nav
                 @change-team="navigate({ team: $event })"
-                @prev="shiftMonth(-1)"
-                @next="shiftMonth(1)"
                 @export="download({ period_type: 'month', year, month: month ?? 1 }, `Rapat Bulanan ${monthLabel}.xlsx`)"
             />
 
