@@ -162,7 +162,8 @@ export const GUIDE_FLOWS: GuideFlow[] = [
                 where: 'Menu Kegiatan → Rekap Mingguan',
                 route: 'weekly.index',
                 body: [
-                    'Satu halaman untuk merencanakan dan memantau. Isinya hanya kegiatan Anda sendiri: tabel "Capaian minggu lalu" dan tabel "Rencana minggu ini". Gunakan ‹ dan › untuk pindah minggu, dan kolom cari untuk menyaring.',
+                    'Halaman ini dibuka dengan daftar bulan. Tiap baris menunjukkan jumlah kegiatan, berapa yang capaiannya sudah terisi, dan berapa yang sudah terkirim ke atasan. Pilih satu bulan untuk melihat minggu-minggunya, lalu pilih satu minggu. Baris dengan label "Sekarang" adalah bulan atau minggu berjalan. Tombol "Semua bulan" dan "Minggu di …" membawa Anda kembali satu langkah.',
+                    'Di dalam sebuah minggu ada dua tabel dan hanya kegiatan Anda sendiri: "Capaian minggu lalu" dan "Rencana minggu ini". Kolom cari menyaring tabelnya.',
                     'Jika PJ mengisi fokus untuk Anda, fokus itu tampil di atas tabel.',
                     'Tekan "Sinkronkan data saya" untuk menarik RK dan kegiatan Anda dari kipApp. Sinkronisasi pertama berjalan otomatis setelah Anda menghubungkan akun SSO. Jika daftar RK kosong, tekan tombol ini.',
                 ],
@@ -250,14 +251,24 @@ export const GUIDE_FLOWS: GuideFlow[] = [
                 where: 'Menu Rekap Tim → Mingguan',
                 route: 'team-recap.weekly',
                 body: [
-                    'Pilih tim dan minggu, lalu pilih satu RK dari daftar (bisa dicari). Daftar menandai RK yang sudah ditulis atau terkunci.',
-                    'Bagian "Kelengkapan anggota" menunjukkan siapa yang belum mengisi capaian di Rekap Mingguan. Ingatkan mereka sebelum rapat.',
+                    'Halaman ini dibuka dengan daftar bulan untuk tim yang dipilih. Pilih satu bulan, lalu satu minggu. Tiap baris menunjukkan jumlah kegiatan, berapa RK yang parafrasenya sudah ditulis, berapa yang terkunci, dan statusnya. Pemilih tim dan tahun ada di atas daftar.',
+                    'Di dalam sebuah minggu, bagian "Kelengkapan anggota" menunjukkan siapa yang belum mengisi capaian di Rekap Mingguan. Ingatkan mereka sebelum rapat.',
+                ],
+            },
+            {
+                title: 'Lihat rencana minggu ini dari anggota',
+                where: 'Menu Rekap Tim → Mingguan → pilih bulan dan minggu',
+                body: [
+                    'Di bagian atas sebuah minggu ada tabel "Rencana minggu ini": kegiatan semua anggota tim pada minggu itu, dengan anggota, RK, target dan status. Kolom cari dan pemilih anggota menyaring tabelnya.',
+                    'Klik satu baris untuk membuka semua isinya (target, capaian, uraian, bukti dukung dan status). Tampilan ini hanya baca. Anggota mengubah kegiatannya di Rekap Mingguan mereka sendiri.',
+                    'Untuk membahas capaian minggu lalu, kembali ke daftar minggu dan buka minggu sebelumnya.',
                 ],
             },
             {
                 title: 'Baca kontribusi anggota dan tulis parafrase',
                 body: [
-                    'Di kiri ada kegiatan anggota untuk RK itu, satu baris per anggota. Klik nama untuk membukanya. Kolom cari dan "Belum dibaca saja" membantu menelusuri tim yang besar; "Dibaca n/m" menghitung yang sudah Anda buka. Filter "Lihat" menampilkan satu anggota saja.',
+                    'Tiap RK tampil sebagai kartu ringkas: parafrase PJ, target RK, capaian RK, status kunci, dan tabel pendek anggota yang mengerjakannya. Tekan "Isi parafrase" (atau "Ubah parafrase") untuk membuka popup. Mengklik nama anggota di tabel juga membuka popup itu untuk anggota tersebut.',
+                    'Di kiri popup ada kegiatan anggota untuk RK itu, satu baris per anggota. Klik nama untuk membukanya. Kolom cari dan "Belum dibaca saja" membantu menelusuri tim yang besar; "Dibaca n/m" menghitung yang sudah Anda buka. Filter "Lihat" menampilkan satu anggota saja.',
                     'Di kanan ada kotak Parafrase PJ yang kosong. Tulis sendiri, atau tekan "Sisipkan" pada satu kalimat anggota untuk mengambilnya. Kinetik tidak mengisi otomatis dari semua anggota.',
                     'Target dan capaian setiap anggota berasal dari Rekap Mingguan mereka dan tidak dapat diubah di sini.',
                 ],
@@ -265,8 +276,8 @@ export const GUIDE_FLOWS: GuideFlow[] = [
             {
                 title: 'Isi target, satuan dan capaian RK, lalu simpan atau kunci',
                 body: [
-                    'Isi satu Target (angka), satu Satuan dan satu Capaian (angka) untuk seluruh RK. Persentase capaian dihitung otomatis.',
-                    '"Simpan" menyimpan tanpa mengunci. "Simpan dan kunci" menyimpan lalu mengunci RK itu, sehingga tidak berubah lagi. "Buka kunci" membukanya kembali.',
+                    'Masih di popup yang sama, isi satu Target (angka), satu Satuan dan satu Capaian (angka) untuk seluruh RK. Persentase capaian dihitung otomatis.',
+                    '"Simpan" menyimpan tanpa mengunci dan menutup popup; hasilnya langsung tampil di kartu RK. "Simpan dan kunci" menyimpan lalu mengunci RK itu, sehingga tidak berubah lagi. "Buka kunci" membukanya kembali.',
                     'PJ dan PIC RK dapat menulis. Anggota lain hanya membaca.',
                 ],
                 tip: 'Kunci tiap RK setelah rapat selesai. Tekan "Buka kunci" jika masih ada koreksi.',
@@ -280,8 +291,8 @@ export const GUIDE_FLOWS: GuideFlow[] = [
                 where: 'Menu Rekap Tim → Bulanan / Triwulanan (FRA)',
                 route: 'team-recap.monthly',
                 body: [
-                    'Halaman bulanan memakai panel yang sama dengan mingguan, per RK dan per bulan. Parafrase mingguan bulan itu tampil di kiri sebagai bahan, lengkap dengan tombol "Sisipkan".',
-                    'Halaman triwulanan (FRA) menampilkan satu baris per RK dengan target dan capaian dari rekap bulanan. Jika bulanan belum diisi, angkanya dijumlahkan dari kegiatan anggota.',
+                    'Halaman bulanan dibuka dengan daftar Januari sampai Desember. Pilih satu bulan untuk membuka rekapnya; tombol "Semua bulan" membawa Anda kembali ke daftar. Rekap sebuah bulan memakai kartu dan popup yang sama dengan mingguan, per RK. Parafrase mingguan bulan itu tampil di popup sebagai bahan, lengkap dengan tombol "Sisipkan".',
+                    'Halaman triwulanan (FRA) dibuka dengan empat triwulan dalam setahun. Pilih satu untuk membuka rekapnya. Di dalamnya ada satu baris per RK dengan target dan capaian dari rekap bulanan. Jika bulanan belum diisi, angkanya dijumlahkan dari kegiatan anggota.',
                     'Buka panel sebuah baris untuk menulis uraian, permasalahan, solusi dan RTL. Isi juga link bukti tindak lanjut, PIC dan batas waktu.',
                     'Konfirmasi setiap baris. "Konfirmasi semua capaian 100%" mengonfirmasi semua baris yang sudah 100% sekaligus. Kunci triwulan setelah rapat selesai; tombolnya ada di bagian atas halaman.',
                 ],
