@@ -19,6 +19,7 @@ class MemberWeekController extends Controller
         return Inertia::render('Kinetik/RekapMingguan', [
             'employee' => $employee ? ['id' => $employee->id, 'name' => $employee->display_name ?? $employee->name] : null,
             'canSendToAtasan' => (bool) config('kinetik.kip.send_to_atasan'),
+            'skpYear' => (int) config('kinetik.kip.tahun'),
             ...($employee ? $week->execute($employee, $anchor) : []),
         ]);
     }

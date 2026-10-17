@@ -519,6 +519,26 @@ export interface PlanItemRow {
     in_kipapp: boolean;
     /** Sent to the atasan in kipApp ("Kirim ke atasan"). */
     sent: boolean;
+    /** Date (YYYY-MM-DD) it was sent, else null. */
+    sent_at: string | null;
+    /** kipApp "Masukan ke capaian SKP". */
+    is_capaian_skp: boolean;
+    /** False until the start date: kipApp takes no future date, so it cannot be pushed yet. */
+    startable: boolean;
+    /** What the settings and the SKP status allow for a kegiatan that is already in kipApp. */
+    can_edit: boolean;
+    can_delete: boolean;
+    can_send: boolean;
+    /** Short reason when the quarter SKP is locked in kipApp. */
+    lock_reason: string | null;
+}
+
+/** One row of the kipApp presensi list ("List Aktivitas"). */
+export interface PresensiRow {
+    id: string;
+    /** YYYY-MM-DD */
+    date: string;
+    description: string;
 }
 
 export interface FraQuarter {
@@ -628,6 +648,8 @@ export interface MemberWeekProps {
     employee: { id: number; name: string } | null;
     /** The "Kirim ke atasan" buttons are shown only when the setting is on. */
     canSendToAtasan: boolean;
+    /** The SKP year (kinetik.kip.tahun): dates of a kegiatan must stay in one quarter of it. */
+    skpYear: number;
     weekStart?: string;
     weekEnd?: string;
     lastWeekStart?: string;
