@@ -10,6 +10,7 @@ use Illuminate\Support\Facades\Http;
 
 function planSetup(): array
 {
+    config(['kinetik.kip.tahun' => 2026]);
     $pjUser = staffUser();
     $pj = Employee::factory()->create(['user_id' => $pjUser->id, 'display_name' => 'Sukma']);
     $team = Team::factory()->create(['leader_id' => $pj->id]);
@@ -33,8 +34,8 @@ it('lets a member plan for themselves and the PJ plan for a member, with a notic
     $this->actingAs($memberUser)->post(route('plan-items.store'), planPayload($team, $rk))->assertSessionHas('success');
     expect(PlanItem::sole())->employee_id->toBe($member->id)->source->toBe('member')->status->toBe('planned');
 
-    $this->actingAs($pjUser)->post(route('plan-items.store'), planPayload($team, $rk, ['employee_id' => $member->id, 'description' => 'Rapat ISO']))->assertSessionHas('success');
-    expect(PlanItem::where('description', 'Rapat ISO')->first())->source->toBe('pj')
+    $this->actingAs($pjUser)->post(route('plan-items.store'), planPayload($team, $rk, ['employee_id' => $member->id, 'description' => 'Rapat koordinasi ISO']))->assertSessionHas('success');
+    expect(PlanItem::where('description', 'Rapat koordinasi ISO')->first())->source->toBe('pj')
         ->and($memberUser->notifications)->toHaveCount(1)
         ->and($memberUser->notifications->first()->data['message'])->toContain('Sukma ditambahkan rencana untuk Anda');
 });
@@ -66,8 +67,8 @@ it('edits and cancels only plans still in the planned state', function () {
     [$pjUser, $team, $member, $memberUser, $rk] = planSetup();
     $item = PlanItem::create(['team_id' => $team->id, 'employee_id' => $member->id, 'performance_plan_id' => $rk->id, 'description' => 'Awal', 'date_start' => '2026-10-05', 'date_end' => '2026-10-05', 'created_by' => $member->id]);
 
-    $this->actingAs($memberUser)->patch(route('plan-items.update', $item), planPayload($team, $rk, ['description' => 'Diubah']))->assertSessionHas('success');
-    expect($item->fresh()->description)->toBe('Diubah');
+    $this->actingAs($memberUser)->patch(route('plan-items.update', $item), planPayload($team, $rk, ['description' => 'Deskripsi diubah']))->assertSessionHas('success');
+    expect($item->fresh()->description)->toBe('Deskripsi diubah');
 
     $this->actingAs($memberUser)->patch(route('plan-items.update', $item), planPayload($team, $rk, ['date_end' => '2026-10-01']))->assertSessionHasErrors('date_end');
 
@@ -97,14 +98,16 @@ it('validates the date order and the clock time of a jam kegiatan', function () 
     [, $team, , $memberUser, $rk] = planSetup();
 
     $this->actingAs($memberUser)->post(route('plan-items.store'), planPayload($team, $rk, ['date_end' => '2026-10-01']))->assertSessionHasErrors('date_end');
-    // A jam kegiatan is one day, and the end must come after the start.
+    // The end must come after the start. A range with times is allowed (the two checkboxes are independent).
     $timed = ['date_start' => '2026-10-05', 'date_end' => '2026-10-05', 'time_start' => '09:00', 'time_end' => '11:30'];
-    $this->actingAs($memberUser)->post(route('plan-items.store'), planPayload($team, $rk, [...$timed, 'date_end' => '2026-10-06']))->assertSessionHasErrors('date_end');
     $this->actingAs($memberUser)->post(route('plan-items.store'), planPayload($team, $rk, [...$timed, 'time_end' => '08:00']))->assertSessionHasErrors('time_end');
     $this->actingAs($memberUser)->post(route('plan-items.store'), planPayload($team, $rk, [...$timed, 'time_end' => null]))->assertSessionHasErrors('time_end');
 
     $this->actingAs($memberUser)->post(route('plan-items.store'), planPayload($team, $rk, $timed))->assertSessionHasNoErrors();
     expect(PlanItem::sole())->time_start->toStartWith('09:00')->time_end->toStartWith('11:30');
+
+    $this->actingAs($memberUser)->post(route('plan-items.store'), planPayload($team, $rk, [...$timed, 'date_end' => '2026-10-06']))->assertSessionHasNoErrors();
+    expect(PlanItem::where('date_end', '2026-10-06')->first())->time_start->toStartWith('09:00');
 });
 
 it('saves the result of a kegiatan locally, for the owner or the PJ only', function () {

@@ -45,12 +45,14 @@ class CompletePlanItemAction
                 'rencanakinerja' => (string) $row['rencanakinerja'],
                 'kegiatan' => (string) $row['kegiatan'],
                 'tanggal' => (string) $row['tanggal'],
-                'tanggalselesai' => (string) ($row['tanggalselesai'] ?? $row['tanggal']),
-                'jammulai' => $row['jammulai'] ?? '08:00',
-                'jamselesai' => $row['jamselesai'] ?? '16:00',
+                // KIP_NULL_TIMES on: pass the row's own null back. Off: fill what is missing (today).
+                'tanggalselesai' => config('kinetik.kip.null_times') ? ($row['tanggalselesai'] ?? null) : (string) ($row['tanggalselesai'] ?? $row['tanggal']),
+                'jammulai' => $row['jammulai'] ?? (config('kinetik.kip.null_times') ? null : '08:00'),
+                'jamselesai' => $row['jamselesai'] ?? (config('kinetik.kip.null_times') ? null : '16:00'),
                 'progres' => 100,
                 'capaian' => $note ?? (string) ($row['capaian'] ?? ''),
                 'datadukung' => $evidenceUrl ?? (string) ($row['datadukung'] ?? ''),
+                'iscapaianskp' => $plan->is_capaian_skp ? 1 : 0,
             ]);
         } catch (KipApiException $e) {
             throw new RuntimeException('kipApp menolak perubahan: '.$e->getMessage());

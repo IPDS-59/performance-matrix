@@ -8,6 +8,7 @@ use App\Models\PerformancePlan;
 use App\Models\PlanItem;
 use App\Models\Project;
 use App\Models\WeeklyFocus;
+use App\Services\Kinetik\PlanItemAccess;
 use Carbon\Carbon;
 
 /**
@@ -16,7 +17,7 @@ use Carbon\Carbon;
  */
 class BuildMemberWeekAction
 {
-    public function __construct(private readonly LinkPlansToProjectsAction $links) {}
+    public function __construct(private readonly LinkPlansToProjectsAction $links, private readonly PlanItemAccess $access) {}
 
     /** @return array<string, mixed> */
     public function execute(Employee $employee, Carbon $anchor): array
@@ -71,6 +72,14 @@ class BuildMemberWeekAction
                 'push_error' => $p->status === 'planned' ? $p->push_error : null,
                 'in_kipapp' => $p->kip_external_id !== null,
                 'sent' => $p->kip_sent_at !== null,
+                'sent_at' => $p->kip_sent_at?->toDateString(),
+                'is_capaian_skp' => (bool) $p->is_capaian_skp,
+                // What the member may still do, from the settings and the SKP status (PlanItemAccess).
+                'startable' => $this->access->hasStarted($p),
+                'can_edit' => $this->access->canEdit($p),
+                'can_delete' => $this->access->canDelete($p),
+                'can_send' => $this->access->canSend($p),
+                'lock_reason' => $this->access->lockReason($p),
             ])
             ->values()
             ->all();

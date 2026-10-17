@@ -39,6 +39,16 @@ return [
         // tested live. Keep it off until one test on a throwaway kegiatan has passed.
         'send_to_atasan' => (bool) env('KIP_SEND_TO_ATASAN', false),
 
+        // Item 2 of docs/plans/2026-10-17-kipapp-entry-flow.md. On: a one-day kegiatan is pushed with
+        // tanggalselesai null and a kegiatan without a clock time with jammulai/jamselesai null, like kipApp's
+        // own form. Off: tanggalselesai is always sent and the times default to 08:00 and 16:00 (today).
+        // Never tested live: check once that PUT /kegiatan accepts null times before turning it on.
+        'null_times' => (bool) env('KIP_NULL_TIMES', false),
+        // Items 7 and 8. On: a kegiatan already in kipApp (not sent) can be edited and deleted from Kinetik
+        // (PUT and DELETE /kegiatan), and a sent one can change "Masukan ke capaian SKP". Off: edit and
+        // cancel stay possible only while the kegiatan is not in kipApp yet (today). Never tested live.
+        'edit_after_push' => (bool) env('KIP_EDIT_AFTER_PUSH', false),
+
         // Login accounts for synced employees. kipApp does not expose employee
         // emails, so they are derived as firstname@<domain> (same pattern as
         // UserSeeder; second name appended on collision). Password "password".

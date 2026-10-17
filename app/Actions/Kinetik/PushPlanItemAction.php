@@ -4,6 +4,7 @@ namespace App\Actions\Kinetik;
 
 use App\Kinetik\Exceptions\KipApiException;
 use App\Kinetik\Sources\ApiKipWriter;
+use App\Models\MemberSkpStatus;
 use App\Models\PerformancePlan;
 use App\Models\PlanItem;
 use App\Models\User;
@@ -45,13 +46,8 @@ class PushPlanItemAction
                     'rkid' => (string) $rk['rkid'],
                     'rencanakinerja' => (string) $rk['rencanakinerja'],
                     'kegiatan' => $plan->description,
-                    'tanggal' => Carbon::parse($plan->date_start)->toDateString(),
-                    'tanggalselesai' => Carbon::parse($plan->date_end)->toDateString(),
-                    'progres' => (int) $plan->progress,
-                    'jammulai' => $plan->time_start ? substr((string) $plan->time_start, 0, 5) : null,
-                    'jamselesai' => $plan->time_end ? substr((string) $plan->time_end, 0, 5) : null,
-                    'capaian' => (string) $plan->capaian_note,
-                    'datadukung' => (string) $plan->evidence_url,
+                    ...$plan->kipFields(),
+                    'parentid' => $plan->parent_id ? PlanItem::whereKey($plan->parent_id)->value('kip_external_id') : null,
                 ]),
                 'kip_skp_id' => $skpId,
                 'kip_rk_id' => (string) $rk['rkid'],
@@ -81,6 +77,8 @@ class PushPlanItemAction
         if ($skp === null) {
             throw new RuntimeException("SKP triwulan {$date->quarter} belum dibuat di kipApp. Buat SKP triwulan dulu.");
         }
+
+        MemberSkpStatus::remember($plan->employee_id, $date->year, $date->quarter, $skp['statusskpid'] ?? null, $skp['statusskp'] ?? null);
 
         $rk = $this->matchRk($writer->rks((string) $skp['id']), $plan->performancePlan);
         if ($rk === null) {
