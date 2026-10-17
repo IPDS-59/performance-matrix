@@ -45,11 +45,33 @@ class TeamRecapController extends Controller
         $teams = $this->teamsFor($request);
         $team = $this->selectedTeam($request, $teams, $employee);
 
-        $defaultWeek = $team ? $this->aggregator->defaultWeekStart($team) : null;
-        $anchor = $request->query('week')
-            ? Carbon::parse($request->query('week'))
-            : ($defaultWeek ? Carbon::parse($defaultWeek) : now());
-        $monday = $anchor->copy()->startOfWeek(Carbon::MONDAY);
+        // The page opens on the months of a year, then the weeks of the chosen month, then one week.
+        if ($request->query('week') === null) {
+            $year = $request->query('year') !== null
+                ? (int) $request->query('year')
+                : (($team ? $this->aggregator->latestPeriod($team) : null) ?? now())->year;
+            $month = $request->query('month') !== null ? (int) $request->query('month') : null;
+
+            return Inertia::render('Kinetik/TeamWeeklyRecap', [
+                'teams' => $this->teamOptions($teams),
+                'selectedTeamId' => $team?->id,
+                'view' => $month === null ? 'months' : 'weeks',
+                'periods' => $team ? ($month === null ? $this->monthRows($team, $year) : $this->weekRows($team, $year, $month)) : [],
+                'year' => $year,
+                'month' => $month,
+                'panels' => [],
+                'evidences' => [],
+                'weekStart' => '',
+                'weekEnd' => '',
+                'prevWeek' => '',
+                'nextWeek' => '',
+                'canManage' => $team !== null && $employee !== null && $this->isPj($employee, $team->id),
+                'currentEmployeeId' => $employee?->id,
+                'members' => [],
+            ]);
+        }
+
+        $monday = Carbon::parse($request->query('week'))->startOfWeek(Carbon::MONDAY);
         $weekStart = $monday->toDateString();
 
         $evidences = $team
@@ -63,6 +85,10 @@ class TeamRecapController extends Controller
         return Inertia::render('Kinetik/TeamWeeklyRecap', [
             'teams' => $this->teamOptions($teams),
             'selectedTeamId' => $team?->id,
+            'view' => 'detail',
+            'periods' => [],
+            'year' => $monday->year,
+            'month' => $monday->month,
             'panels' => $team ? $this->aggregator->panels($team, 'week', $monday) : [],
             'evidences' => $evidences,
             'weekStart' => $weekStart,
@@ -121,7 +147,7 @@ class TeamRecapController extends Controller
      * One row per month of the year: how many kegiatan the members planned, how many RK have a
      * paraphrase, and how many are locked.
      *
-     * @return list<array{month: int, label: string, activities: int, written: int, locked: int}>
+     * @return list<array{month: int, key: int, current: bool, label: string, activities: int, written: int, locked: int}>
      */
     private function monthRows(Team $team, int $year): array
     {
@@ -137,10 +163,47 @@ class TeamRecapController extends Controller
 
         return collect(range(1, 12))->map(fn (int $m) => [
             'month' => $m,
+            'key' => $m,
+            'current' => $year === now()->year && $m === now()->month,
             'label' => Carbon::create($year, $m, 1)->locale('id')->translatedFormat('F'),
             'activities' => (int) ($activities[$m] ?? 0),
             'written' => ($recaps[$m] ?? collect())->filter(fn ($r) => filled($r->paraphrase))->count(),
             'locked' => ($recaps[$m] ?? collect())->filter(fn ($r) => $r->locked_at !== null)->count(),
+        ])->all();
+    }
+
+    /**
+     * The weeks (Monday to Sunday) that touch a month, with the same counts as monthRows().
+     *
+     * @return list<array{key: string, label: string, current: bool, activities: int, written: int, locked: int}>
+     */
+    private function weekRows(Team $team, int $year, int $month): array
+    {
+        $first = Carbon::create($year, $month, 1)->startOfWeek(Carbon::MONDAY);
+        $last = Carbon::create($year, $month, 1)->endOfMonth();
+        $starts = [];
+        for ($d = $first->copy(); $d->lte($last); $d->addWeek()) {
+            $starts[] = $d->toDateString();
+        }
+
+        $items = PlanItem::where('team_id', $team->id)->where('status', '!=', 'cancelled')
+            ->whereDate('date_start', '>=', $starts[0])->whereDate('date_start', '<=', Carbon::parse(end($starts))->endOfWeek(Carbon::SUNDAY)->toDateString())
+            ->pluck('date_start')
+            ->countBy(fn ($d) => Carbon::parse($d)->startOfWeek(Carbon::MONDAY)->toDateString());
+
+        $recaps = RkRecap::where('team_id', $team->id)->where('period_type', 'week')->whereIn('period_start', $starts)
+            ->get(['period_start', 'paraphrase', 'locked_at'])
+            ->groupBy(fn ($r) => Carbon::parse($r->period_start)->toDateString());
+
+        $thisWeek = now()->startOfWeek(Carbon::MONDAY)->toDateString();
+
+        return collect($starts)->map(fn (string $start) => [
+            'key' => $start,
+            'label' => Carbon::parse($start)->locale('id')->translatedFormat('j M').' – '.Carbon::parse($start)->endOfWeek(Carbon::SUNDAY)->locale('id')->translatedFormat('j M Y'),
+            'current' => $start === $thisWeek,
+            'activities' => (int) ($items[$start] ?? 0),
+            'written' => ($recaps[$start] ?? collect())->filter(fn ($r) => filled($r->paraphrase))->count(),
+            'locked' => ($recaps[$start] ?? collect())->filter(fn ($r) => $r->locked_at !== null)->count(),
         ])->all();
     }
 

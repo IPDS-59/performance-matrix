@@ -5,18 +5,18 @@ import RkPicker from '@/Components/Kinetik/RkPicker.vue';
 import RkRecapPanel from '@/Components/Kinetik/RkRecapPanel.vue';
 import { Head, router } from '@inertiajs/vue3';
 import { computed, ref } from 'vue';
-import type { MonthRow, RkPanel, TeamOption } from '@/types';
+import type { PeriodRow, RkPanel, TeamOption } from '@/types';
 import { ChevronLeft, ChevronRight } from 'lucide-vue-next';
 import { Button } from '@/Components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/Components/ui/select';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/Components/ui/table';
+import RecapPeriodTable from '@/Components/Kinetik/RecapPeriodTable.vue';
 import { useRecapExport } from '@/composables/useRecapExport';
 
 const props = defineProps<{
     teams: TeamOption[];
     selectedTeamId: number | null;
     view: 'list' | 'detail';
-    months: MonthRow[];
+    months: PeriodRow[];
     panels: RkPanel[];
     year: number;
     month: number | null;
@@ -34,10 +34,9 @@ function navigate(params: Record<string, string | number>) {
     router.get(route('team-recap.monthly'), { team: props.selectedTeamId ?? undefined, year: props.year, month: props.month ?? undefined, ...params }, { preserveState: false });
 }
 
-const openMonth = (m: number) => navigate({ month: m });
+const openMonth = (m: number | string) => navigate({ month: m });
 const backToList = () => router.get(route('team-recap.monthly'), { team: props.selectedTeamId ?? undefined, year: props.year }, { preserveState: false });
 const shiftYear = (delta: number) => router.get(route('team-recap.monthly'), { team: props.selectedTeamId ?? undefined, year: props.year + delta }, { preserveState: false });
-const status = (m: MonthRow) => (m.locked > 0 && m.locked >= m.written && m.written > 0 ? 'Terkunci' : m.written > 0 ? 'Sedang ditulis' : m.activities > 0 ? 'Belum ditulis' : 'Belum ada kegiatan');
 
 
 const selected = ref<number | null>(props.panels[0]?.performance_plan_id ?? null);
@@ -68,20 +67,7 @@ const canEdit = computed(() => props.canManage || (panel.value !== null && props
                     </div>
                     <p class="text-sm text-gray-600">Pilih bulan untuk membuka rekapnya.</p>
                 </div>
-                <div v-if="selectedTeamId" class="rounded-lg border bg-white">
-                    <Table>
-                        <TableHeader><TableRow><TableHead>Bulan</TableHead><TableHead>Kegiatan</TableHead><TableHead>RK sudah ditulis</TableHead><TableHead>Terkunci</TableHead><TableHead>Status</TableHead></TableRow></TableHeader>
-                        <TableBody>
-                            <TableRow v-for="m in months" :key="m.month" class="cursor-pointer" tabindex="0" :aria-label="`Buka rekap ${m.label} ${year}`" @click="openMonth(m.month)" @keydown.enter="openMonth(m.month)">
-                                <TableCell class="font-medium">{{ m.label }}</TableCell>
-                                <TableCell class="tabular-nums">{{ m.activities }}</TableCell>
-                                <TableCell class="tabular-nums">{{ m.written }}</TableCell>
-                                <TableCell class="tabular-nums">{{ m.locked }}</TableCell>
-                                <TableCell><span :class="['rounded-full px-2 py-0.5 text-xs font-medium', status(m) === 'Terkunci' ? 'bg-emerald-100 text-emerald-900' : status(m) === 'Sedang ditulis' ? 'bg-blue-50 text-blue-800' : status(m) === 'Belum ditulis' ? 'bg-amber-50 text-amber-800' : 'bg-gray-100 text-gray-700']">{{ status(m) }}</span></TableCell>
-                            </TableRow>
-                        </TableBody>
-                    </Table>
-                </div>
+                <RecapPeriodTable v-if="selectedTeamId" :rows="months" period-label="Bulan" @open="openMonth" />
             </template>
 
             <template v-else>

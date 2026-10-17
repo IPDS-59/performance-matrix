@@ -644,11 +644,14 @@ export interface MemberWeekProps {
     rkSynced?: boolean;
 }
 
-/** One month of the monthly recap list. */
-export interface MonthRow {
-    month: number;
+
+/** One row of a period list (a month or a week of the recap). */
+export interface PeriodRow {
+    key: number | string;
     label: string;
     activities: number;
     written: number;
     locked: number;
+    /** True for the month or week that contains today. */
+    current: boolean;
 }
