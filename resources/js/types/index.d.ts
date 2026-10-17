@@ -677,3 +677,22 @@ export interface PeriodRow {
     /** True for the month or week that contains today. */
     current: boolean;
 }
+
+/** A member's plan item for one week, as the PJ sees it (read only). */
+export interface TeamWeekPlan {
+    id: number;
+    employee_id: number;
+    employee_name: string;
+    description: string;
+    rk_name: string | null;
+    date_start: string;
+    date_end: string;
+    target: number | null;
+    target_unit: string | null;
+    capaian: number | null;
+    capaian_note: string | null;
+    evidence_url: string | null;
+    status: 'planned' | 'pushed' | 'in_progress' | 'done' | 'cancelled';
+    in_kipapp: boolean;
+    sent: boolean;
+}

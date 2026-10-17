@@ -551,7 +551,23 @@ it('walks the weekly recap from the months to the weeks of a month to one week',
             && collect($weeks)->first()['key'] === '2026-08-31'));
 
     $this->actingAs($user)->get(route('team-recap.weekly', ['week' => '2026-09-16']))->assertInertia(fn ($page) => $page
-        ->where('view', 'detail')->where('weekStart', '2026-09-14')->where('periods', []));
+        ->where('view', 'detail')->where('weekStart', '2026-09-14')->where('periods', [])
+        ->where('plans', fn ($plans) => count($plans) === 2
+            && collect($plans)->pluck('description')->every(fn ($d) => is_string($d))
+            && array_key_exists('employee_name', $plans[0])));
+});
+
+it('shows the PJ the plans of every member of the week, read only, and none from other weeks', function () {
+    [$user, $pj, $team] = pjOfTeam();
+    $other = Employee::factory()->create(['display_name' => 'Andi']);
+    $other->teams()->attach($team->id, ['role' => 'member', 'is_primary' => true]);
+    $plan = PerformancePlan::factory()->create(['project_id' => null, 'team_id' => $team->id]);
+    recapItem($team, $other, $plan, ['description' => 'Rencana Andi', 'date_start' => '2026-09-15', 'date_end' => '2026-09-16']);
+    recapItem($team, $other, $plan, ['description' => 'Minggu lain', 'date_start' => '2026-09-01', 'date_end' => '2026-09-02']);
+    recapItem($team, $other, $plan, ['description' => 'Batal', 'date_start' => '2026-09-15', 'date_end' => '2026-09-15', 'status' => 'cancelled']);
+
+    $this->actingAs($user)->get(route('team-recap.weekly', ['week' => '2026-09-14']))->assertInertia(fn ($page) => $page
+        ->where('plans', fn ($plans) => count($plans) === 1 && $plans[0]['employee_name'] === 'Andi' && $plans[0]['description'] === 'Rencana Andi'));
 });
 
 it('lists the four quarters with their counts and opens one on click', function () {

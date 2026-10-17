@@ -68,6 +68,7 @@ class TeamRecapController extends Controller
                 'canManage' => $team !== null && $employee !== null && $this->isPj($employee, $team->id),
                 'currentEmployeeId' => $employee?->id,
                 'members' => [],
+                'plans' => [],
             ]);
         }
 
@@ -98,7 +99,40 @@ class TeamRecapController extends Controller
             'canManage' => $team !== null && $employee !== null && $this->isPj($employee, $team->id),
             'currentEmployeeId' => $employee?->id,
             'members' => $team ? $this->aggregator->memberCompleteness($team, $weekStart) : [],
+            'plans' => $team ? $this->weekPlans($team, $monday) : [],
         ]);
+    }
+
+    /**
+     * What each member plans or did this week, read only, for the PJ's weekly meeting.
+     *
+     * @return list<array<string, mixed>>
+     */
+    private function weekPlans(Team $team, Carbon $monday): array
+    {
+        return PlanItem::where('team_id', $team->id)
+            ->duringWeek($monday->toDateString(), $monday->copy()->endOfWeek(Carbon::SUNDAY)->toDateString())
+            ->with(['employee:id,name,display_name', 'performancePlan:id,description'])
+            ->orderBy('date_start')
+            ->get()
+            ->sortBy(fn (PlanItem $p) => $p->employee?->display_name ?? $p->employee?->name)
+            ->map(fn (PlanItem $p) => [
+                'id' => $p->id,
+                'employee_id' => $p->employee_id,
+                'employee_name' => $p->employee?->display_name ?? $p->employee?->name ?? '-',
+                'description' => $p->description,
+                'rk_name' => $p->performancePlan?->description,
+                'date_start' => Carbon::parse($p->date_start)->toDateString(),
+                'date_end' => Carbon::parse($p->date_end)->toDateString(),
+                'target' => $p->target !== null ? (float) $p->target : null,
+                'target_unit' => $p->target_unit,
+                'capaian' => $p->capaian !== null ? (float) $p->capaian : null,
+                'capaian_note' => $p->capaian_note,
+                'evidence_url' => $p->evidence_url,
+                'status' => $p->status,
+                'in_kipapp' => $p->kip_external_id !== null,
+                'sent' => $p->kip_sent_at !== null,
+            ])->values()->all();
     }
 
     // ── Team monthly recap ───────────────────────────────────────────────────

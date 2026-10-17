@@ -6,7 +6,8 @@ import RkPicker from '@/Components/Kinetik/RkPicker.vue';
 import RkRecapPanel from '@/Components/Kinetik/RkRecapPanel.vue';
 import { Head, router } from '@inertiajs/vue3';
 import { computed, ref } from 'vue';
-import type { MemberCompleteness, PeriodRow, RkPanel, TeamOption, TeamRecapEvidence } from '@/types';
+import type { MemberCompleteness, PeriodRow, RkPanel, TeamOption, TeamRecapEvidence, TeamWeekPlan } from '@/types';
+import TeamWeekPlans from '@/Components/Kinetik/TeamWeekPlans.vue';
 import RecapPeriodTable from '@/Components/Kinetik/RecapPeriodTable.vue';
 import { ChevronLeft, ChevronRight } from 'lucide-vue-next';
 import { Button } from '@/Components/ui/button';
@@ -35,6 +36,7 @@ const props = defineProps<{
     canManage: boolean;
     currentEmployeeId: number | null;
     members: MemberCompleteness[];
+    plans: TeamWeekPlan[];
 }>();
 
 const { formatWeekRange } = useDateFormat();
@@ -107,6 +109,8 @@ const canEdit = computed(() => props.canManage || (panel.value !== null && props
                 @change-team="navigate({ team: $event })"
                 @export="download({ period_type: 'week', week: weekStart }, `Rapat Mingguan ${weekStart}.xlsx`)"
             />
+
+            <TeamWeekPlans v-if="selectedTeamId" :plans="plans" />
 
             <MemberCompletenessCard v-if="selectedTeamId" :members="members" />
 
