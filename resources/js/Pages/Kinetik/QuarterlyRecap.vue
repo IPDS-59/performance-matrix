@@ -9,7 +9,9 @@ import MeetingChecklist from '@/Components/Kinetik/MeetingChecklist.vue';
 import { periodChecklist } from '@/composables/useMeetingChecklist';
 import { Head, router } from '@inertiajs/vue3';
 import { computed, ref } from 'vue';
-import type { RecapSection, RecapSegment, RecapRow, RecapSummaryText, TeamOption, RecapLockState } from '@/types';
+import type { PeriodRow, RecapSection, RecapSegment, RecapRow, RecapSummaryText, TeamOption, RecapLockState } from '@/types';
+import RecapPeriodTable from '@/Components/Kinetik/RecapPeriodTable.vue';
+import { ChevronLeft } from 'lucide-vue-next';
 import { Button } from '@/Components/ui/button';
 import { Input } from '@/Components/ui/input';
 import { Label } from '@/Components/ui/label';
@@ -23,6 +25,8 @@ import InputError from '@/Components/InputError.vue';
 const props = defineProps<{
     teams: TeamOption[];
     selectedTeamId: number | null;
+    view: 'list' | 'detail';
+    periods: PeriodRow[];
     segments: RecapSegment[];
     year: number;
     quarter: number;
@@ -52,13 +56,10 @@ function navigate(params: Record<string, string | number>) {
     }, { preserveState: false });
 }
 
-function shiftQuarter(delta: number) {
-    let q = props.quarter + delta;
-    let y = props.year;
-    if (q < 1) { q = 4; y -= 1; }
-    if (q > 4) { q = 1; y += 1; }
-    navigate({ year: y, quarter: q });
-}
+const openQuarter = (q: number | string) => navigate({ quarter: q });
+const backToList = () => router.get(route('team-recap.quarterly'), { team: props.selectedTeamId ?? undefined, year: props.year }, { preserveState: false });
+const shiftYear = (delta: number) => router.get(route('team-recap.quarterly'), { team: props.selectedTeamId ?? undefined, year: props.year + delta }, { preserveState: false });
+
 
 // ── Achievement color ──────────────────────────────────────────────────────
 
@@ -229,19 +230,36 @@ function saveParaphrase(row: RecapRow) {
             Anda belum tergabung dalam tim mana pun.
         </div>
 
+        <template v-else-if="view === 'list'">
+            <div class="mb-4 flex flex-wrap items-center gap-3 rounded-lg border bg-white p-3">
+                <Select :model-value="selectedTeamId != null ? String(selectedTeamId) : undefined" @update:model-value="(v) => router.get(route('team-recap.quarterly'), { team: Number(v), year }, { preserveState: false })">
+                    <SelectTrigger class="w-full sm:w-auto sm:min-w-[16rem]" aria-label="Pilih tim"><SelectValue placeholder="Pilih tim" /></SelectTrigger>
+                    <SelectContent><SelectItem v-for="t in teams" :key="t.id" :value="String(t.id)">{{ t.name }}</SelectItem></SelectContent>
+                </Select>
+                <div class="flex items-center rounded-md border">
+                    <Button variant="ghost" size="icon" class="h-9 w-9" aria-label="Tahun sebelumnya" @click="shiftYear(-1)"><ChevronLeft class="h-4 w-4" /></Button>
+                    <span class="min-w-24 px-2 text-center text-sm font-semibold tabular-nums">{{ year }}</span>
+                    <Button variant="ghost" size="icon" class="h-9 w-9" aria-label="Tahun berikutnya" @click="shiftYear(1)"><ChevronRight class="h-4 w-4" /></Button>
+                </div>
+                <p class="text-sm text-gray-600">Pilih triwulan untuk membuka rekapnya.</p>
+            </div>
+            <RecapPeriodTable v-if="selectedTeamId" :rows="periods" period-label="Triwulan" @open="openQuarter" />
+        </template>
+
         <template v-else>
+            <div class="mb-3 flex flex-wrap items-center gap-2">
+                <Button variant="ghost" size="sm" class="-ml-2" @click="backToList"><ChevronLeft class="mr-1 h-4 w-4" aria-hidden="true" /> Semua triwulan {{ year }}</Button>
+                <h2 class="text-lg font-semibold tabular-nums">{{ quarterLabel }}</h2>
+            </div>
             <RecapToolbar
                 v-model:attention-only="attentionOnly"
                 :teams="teams"
                 :selected-team-id="selectedTeamId"
                 :period-label="quarterLabel"
-                prev-label="Triwulan sebelumnya"
-                next-label="Triwulan berikutnya"
+                hide-period-nav
                 :attention-total="segments.reduce((sum, seg) => sum + attentionCount(seg), 0)"
                 :exporting="exporting"
                 @change-team="navigate({ team: $event })"
-                @prev="shiftQuarter(-1)"
-                @next="shiftQuarter(1)"
                 @export="download({ period_type: 'quarter', year, quarter }, `FRA ${quarterLabel}.xlsx`)"
             >
                 <template #actions>

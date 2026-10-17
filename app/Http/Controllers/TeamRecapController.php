@@ -207,6 +207,39 @@ class TeamRecapController extends Controller
         ])->all();
     }
 
+    /**
+     * The four quarters of a year: kegiatan planned, month RK paraphrases written, and whether the
+     * quarter recap is locked.
+     *
+     * @return list<array{key: int, label: string, current: bool, activities: int, written: int, locked: int}>
+     */
+    private function quarterRows(Team $team, int $year): array
+    {
+        $items = PlanItem::where('team_id', $team->id)->where('status', '!=', 'cancelled')
+            ->whereDate('date_start', '>=', "{$year}-01-01")->whereDate('date_start', '<=', "{$year}-12-31")
+            ->pluck('date_start')
+            ->countBy(fn ($d) => (int) Carbon::parse($d)->quarter);
+
+        $recaps = RkRecap::where('team_id', $team->id)->where('period_type', 'month')
+            ->whereDate('period_start', '>=', "{$year}-01-01")->whereDate('period_start', '<=', "{$year}-12-31")
+            ->get(['period_start', 'paraphrase'])
+            ->filter(fn ($r) => filled($r->paraphrase))
+            ->countBy(fn ($r) => (int) Carbon::parse($r->period_start)->quarter);
+
+        return collect([1, 2, 3, 4])->map(function (int $q) use ($team, $year, $items, $recaps) {
+            $written = (int) ($recaps[$q] ?? 0);
+
+            return [
+                'key' => $q,
+                'label' => "Triwulan {$q}",
+                'current' => $year === now()->year && $q === now()->quarter,
+                'activities' => (int) ($items[$q] ?? 0),
+                'written' => $written,
+                'locked' => RecapLock::forPeriod($team->id, 'quarter', $year, null, $q, null) ? max($written, 1) : 0,
+            ];
+        })->all();
+    }
+
     // ── Team quarterly recap (FRA) ───────────────────────────────────────────
 
     public function quarterly(Request $request): Response
@@ -215,23 +248,39 @@ class TeamRecapController extends Controller
         $teams = $this->teamsFor($request);
         $team = $this->selectedTeam($request, $teams, $employee);
 
-        $hasYearParam = $request->query('year') !== null;
-        $hasQuarterParam = $request->query('quarter') !== null;
+        $year = $request->query('year') !== null
+            ? (int) $request->query('year')
+            : (($team ? $this->aggregator->latestPeriod($team) : null) ?? now())->year;
 
-        if (! $hasYearParam && ! $hasQuarterParam && $team) {
-            $latest = $this->aggregator->latestPeriod($team) ?? now();
-            $year = $latest->year;
-            $quarter = $latest->quarter;
-        } else {
-            $year = (int) $request->query('year', now()->year);
-            $quarter = (int) $request->query('quarter', (int) intdiv(now()->month - 1, 3) + 1);
+        // No quarter in the address: show the four quarters of the year. One opens its detail.
+        if ($request->query('quarter') === null) {
+            return Inertia::render('Kinetik/QuarterlyRecap', [
+                'teams' => $this->teamOptions($teams),
+                'selectedTeamId' => $team?->id,
+                'view' => 'list',
+                'periods' => $team ? $this->quarterRows($team, $year) : [],
+                'segments' => [],
+                'sections' => [],
+                'summaries' => (object) [],
+                'year' => $year,
+                'quarter' => 1,
+                'pics' => [],
+                'canManage' => false,
+                'canLock' => false,
+                'lock' => null,
+                'currentEmployeeId' => $employee?->id,
+            ]);
         }
+
+        $quarter = (int) $request->query('quarter');
 
         $segments = $team ? $this->aggregator->quarterly($team, $year, $quarter) : [];
 
         return Inertia::render('Kinetik/QuarterlyRecap', [
             'teams' => $this->teamOptions($teams),
             'selectedTeamId' => $team?->id,
+            'view' => 'detail',
+            'periods' => [],
             'segments' => $segments,
             'sections' => $team ? $this->monthSections($team, $year, $quarter) : [],
             'summaries' => $team ? $this->summaries($team, 'quarter', $year, quarter: $quarter) : (object) [],
