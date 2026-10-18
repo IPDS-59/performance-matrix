@@ -30,6 +30,8 @@ function fakeCascade(): void
             ['ikiid' => '0', 'rkid' => '99999999', 'iki' => 'Jumlah inovasi sebanyak 5 Inovasi'],
             ['ikiid' => '1', 'rkid' => '13962139', 'iki' => 'Persentase Dukungan Metodologi: 100%'],
         ], 200),
+        // SKP status map. Last, because this pattern also matches skp/rk and skp/iki.
+        'kipapp.bps.go.id/api/v1/skp*' => Http::response([], 200),
     ]);
 }
 
