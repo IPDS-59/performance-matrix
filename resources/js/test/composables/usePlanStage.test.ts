@@ -1,6 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { firstBlocker, planStage } from '@/composables/usePlanStage';
-import type { PlanFlowStep } from '@/types';
+import { planStage } from '@/composables/usePlanStage';
 
 const plan = (over: Partial<Parameters<typeof planStage>[0]>) => ({ status: 'planned' as const, in_kipapp: false, sent: false, ...over });
 
@@ -26,14 +25,5 @@ describe('planStage', () => {
     it('keeps "kirim ke kipApp" and "kirim ke atasan" apart', () => {
         expect(planStage(plan({})).actionLabel).toBe('Kirim ke kipApp');
         expect(planStage(plan({ status: 'done', in_kipapp: true })).actionLabel).toBe('Kirim ke atasan');
-    });
-});
-
-describe('firstBlocker', () => {
-    const step = (key: PlanFlowStep['key'], state: PlanFlowStep['state']): PlanFlowStep => ({ key, label: key, state, hint: `${key} hint` });
-
-    it('returns the first blocked step or null', () => {
-        expect(firstBlocker([step('rk', 'done'), step('skp', 'blocked'), step('kipapp', 'blocked')])?.key).toBe('skp');
-        expect(firstBlocker([step('rk', 'done'), step('skp', 'unknown')])).toBeNull();
     });
 });

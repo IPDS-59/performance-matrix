@@ -15,6 +15,7 @@ class KipTokenInfo
         public readonly ?string $nip,
         public readonly ?string $email,
         public readonly ?Carbon $expiresAt,
+        public readonly bool $isUnitAdmin = false,
     ) {}
 
     public static function fromToken(string $token): self
@@ -36,7 +37,21 @@ class KipTokenInfo
             $payload['nip'] ?? null,
             $payload['email'] ?? null,
             $expiresAt,
+            self::isAdminOfOurUnit($payload['roles'] ?? null),
         );
+    }
+
+    /**
+     * kipApp lists the roles of the account in the payload. Index 3 is the unit
+     * kerja admin, and it only helps us when it is the office we sync.
+     */
+    private static function isAdminOfOurUnit(mixed $roles): bool
+    {
+        $admin = is_array($roles) ? ($roles[3] ?? $roles['3'] ?? null) : null;
+
+        return is_array($admin)
+            && (string) ($admin['wilayahid'] ?? '') === (string) config('kinetik.kip.wilayah_id')
+            && (string) ($admin['unitkerjaid'] ?? '') === (string) config('kinetik.kip.unitkerja_id');
     }
 
     /**

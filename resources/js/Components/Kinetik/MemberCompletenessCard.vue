@@ -33,7 +33,7 @@ const open = ref(owing.value > 0);
             <span class="min-w-0">
                 <span class="block text-sm font-semibold text-gray-800">Kelengkapan anggota</span>
                 <span class="block text-xs text-gray-500">
-                    <span class="tabular-nums">{{ completeCount }} dari {{ withActivity.length }}</span> anggota dengan kegiatan kipApp sudah menyimpan semua klaimnya.
+                    <span class="tabular-nums">{{ completeCount }} dari {{ withActivity.length }}</span> anggota yang punya kegiatan sudah mengisi capaian semua kegiatannya.
                     <template v-if="owing"> {{ owing }} belum lengkap.</template>
                 </span>
             </span>

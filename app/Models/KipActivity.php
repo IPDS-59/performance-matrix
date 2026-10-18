@@ -6,7 +6,6 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class KipActivity extends Model
 {
@@ -31,7 +30,6 @@ class KipActivity extends Model
         'sent_at',
         'raw_payload',
         'fetched_at',
-        'is_claimed',
         'reserved_1',
         'reserved_2',
         'reserved_3',
@@ -39,7 +37,6 @@ class KipActivity extends Model
 
     protected $casts = [
         'raw_payload' => 'array',
-        'is_claimed' => 'boolean',
         'fetched_at' => 'datetime',
         'activity_date_start' => 'date',
         'activity_date_end' => 'date',
@@ -63,13 +60,5 @@ class KipActivity extends Model
         return $query->whereDate('activity_date_start', '<=', $weekEnd)
             ->where(fn (Builder $q) => $q->whereDate('activity_date_start', '>=', $weekStart)
                 ->orWhereDate('activity_date_end', '>=', $weekStart));
-    }
-
-    /**
-     * One claim per week the activity covers (a monthly task is claimed weekly).
-     */
-    public function claims(): HasMany
-    {
-        return $this->hasMany(ActivityClaim::class);
     }
 }

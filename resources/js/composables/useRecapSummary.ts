@@ -4,12 +4,12 @@ export const NO_PROJECT_KEY = 'none';
 
 export const projectKey = (projectId: number | null | undefined): string => (projectId == null ? NO_PROJECT_KEY : String(projectId));
 
-/** Members write "-" when there is nothing to report. */
-const said = (v: string | null | undefined) => (v && v.trim() !== '-' ? v.trim() : null);
+/** "-" means there is nothing to report. */
+export const said = (v: string | null | undefined) => (v && v.trim() !== '-' ? v.trim() : null);
 
 /** What a row says: the PJ's uraian, else the members' uraian. */
 function rowText(row: RecapRow): string {
-    const members = (row.claims ?? []).map(c => c.uraian).filter((u): u is string => !!u);
+    const members = (row.uraian_aggregated ?? '').split('\n').filter(Boolean);
     return row.pj_uraian?.trim() || [...new Set(members)].join('; ') || row.rk_description;
 }
 

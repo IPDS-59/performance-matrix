@@ -1,13 +1,16 @@
 <script setup lang="ts">
 import AppLayout from '@/Layouts/AppLayout.vue';
 import { Head, Link, router } from '@inertiajs/vue3';
-import type { Employee } from '@/types';
+import type { Employee, Team } from '@/types';
+import EmployeeCreateDialog from '@/Components/Employees/EmployeeCreateDialog.vue';
 import { Button } from '@/Components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/Components/ui/table';
 import ConfirmDialog from '@/Components/ConfirmDialog.vue';
 import { ref } from 'vue';
 
-defineProps<{ employees: Employee[] }>();
+defineProps<{ employees: Employee[]; teams: Team[] }>();
+
+const createOpen = ref(false);
 
 const confirmOpen = ref(false);
 const pendingId = ref<number | null>(null);
@@ -32,9 +35,7 @@ function executeDelete() {
         <template #title>Data Pegawai</template>
 
         <div class="mb-4 flex justify-end">
-            <Button as-child>
-                <Link :href="route('employees.create')">Tambah Pegawai</Link>
-            </Button>
+            <Button @click="createOpen = true">Tambah Pegawai</Button>
         </div>
 
         <div class="rounded-md border bg-white">
@@ -82,6 +83,8 @@ function executeDelete() {
                 </TableBody>
             </Table>
         </div>
+
+        <EmployeeCreateDialog v-model:open="createOpen" :teams="teams" />
 
         <ConfirmDialog
             v-model:open="confirmOpen"

@@ -2,6 +2,7 @@
 
 namespace App\Http\Middleware;
 
+use App\Http\Controllers\Admin\ImpersonationController;
 use Closure;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -13,7 +14,8 @@ class EnsureKipConnected
     {
         $user = $request->user();
 
-        if ($user && ! $request->routeIs('kip.connect*', 'kip.otp*', 'logout') && $user->needsKipConnection()) {
+        // An admin looking at the app as someone else must see their screens, connected or not.
+        if ($user && ! $request->session()->has(ImpersonationController::SESSION_KEY) && ! $request->routeIs('kip.connect*', 'kip.otp*', 'logout') && $user->needsKipConnection()) {
             return redirect()->route('kip.connect');
         }
 

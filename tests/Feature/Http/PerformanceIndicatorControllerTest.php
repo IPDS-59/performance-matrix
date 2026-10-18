@@ -30,19 +30,33 @@ it('filters iku by year and team', function () {
         ->assertInertia(fn ($page) => $page->component('PerformanceIndicators/Index')->has('indicators', 1));
 });
 
-it('renders iku create form for admin', function () {
+it('gives the iku popup the teams it may pick', function () {
+    $team = Team::factory()->create(['is_active' => true]);
+    Team::factory()->create(['is_active' => false]);
+
     $this->withoutVite()->actingAs(adminUser())
-        ->get(route('performance-indicators.create'))
-        ->assertInertia(fn ($page) => $page->component('PerformanceIndicators/Create')->has('teams'));
+        ->get(route('performance-indicators.index'))
+        ->assertInertia(fn ($page) => $page->where('manager', true)->has('formTeams', 1)->where('formTeams.0.id', $team->id));
 });
 
-it('denies iku create for staff with no led team', function () {
+it('offers a PJ only the teams they lead in the iku popup', function () {
+    $user = staffUser();
+    $employee = Employee::factory()->create(['user_id' => $user->id]);
+    $led = Team::factory()->create(['leader_id' => $employee->id, 'is_active' => true]);
+    Team::factory()->create(['is_active' => true]);
+
+    $this->withoutVite()->actingAs($user)
+        ->get(route('performance-indicators.index'))
+        ->assertInertia(fn ($page) => $page->where('manager', false)->has('formTeams', 1)->where('formTeams.0.id', $led->id));
+});
+
+it('denies iku store for staff with no led team', function () {
     $user = staffUser();
     $team = Team::factory()->create();
     Employee::factory()->create(['user_id' => $user->id, 'team_id' => $team->id]);
 
     $this->actingAs($user)
-        ->get(route('performance-indicators.create'))
+        ->post(route('performance-indicators.store'), ['team_id' => $team->id, 'year' => 2026, 'name' => 'X'])
         ->assertForbidden();
 });
 
@@ -187,14 +201,14 @@ it('team lead gets 403 when deleting iku for another team', function () {
         ->assertForbidden();
 });
 
-it('staff member gets 403 on iku edit', function () {
+it('staff member gets 403 on iku update', function () {
     $user = staffUser();
     $team = Team::factory()->create(['is_active' => true]);
     Employee::factory()->create(['user_id' => $user->id, 'team_id' => $team->id]);
     $indicator = PerformanceIndicator::factory()->create(['team_id' => $team->id]);
 
     $this->actingAs($user)
-        ->get(route('performance-indicators.edit', $indicator))
+        ->put(route('performance-indicators.update', $indicator), ['year' => 2026, 'name' => 'X'])
         ->assertForbidden();
 });
 

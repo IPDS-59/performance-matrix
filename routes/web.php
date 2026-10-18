@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Admin\ImpersonationController;
 use App\Http\Controllers\CreditController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\EmployeeController;
@@ -8,8 +9,10 @@ use App\Http\Controllers\FraController;
 use App\Http\Controllers\GuideController;
 use App\Http\Controllers\KipActivityController;
 use App\Http\Controllers\KipIntegrationController;
+use App\Http\Controllers\MemberWeekController;
 use App\Http\Controllers\MyActivitySyncController;
 use App\Http\Controllers\NotificationController;
+use App\Http\Controllers\OrganizationController;
 use App\Http\Controllers\PerformanceApprovalController;
 use App\Http\Controllers\PerformanceController;
 use App\Http\Controllers\PerformanceIndicatorController;
@@ -25,10 +28,10 @@ use App\Http\Controllers\ReportResubmitController;
 use App\Http\Controllers\TeamController;
 use App\Http\Controllers\TeamMemberController;
 use App\Http\Controllers\TeamRecapController;
-use App\Http\Controllers\WeeklyActivityController;
 use App\Http\Controllers\WeeklyPlanController;
 use App\Http\Controllers\WorkItemController;
 use App\Http\Controllers\WorkItemDetailController;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
@@ -43,14 +46,14 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/matrix', [DashboardController::class, 'matrix'])->name('matrix');
 
     // Admin CRUD
-    Route::resource('teams', TeamController::class)->except(['show']);
+    Route::resource('teams', TeamController::class)->except(['show', 'create', 'edit']);
     Route::get('/teams/{team}/members', [TeamMemberController::class, 'edit'])->name('teams.members.edit');
     Route::put('/teams/{team}/members', [TeamMemberController::class, 'update'])->name('teams.members.update');
-    Route::resource('employees', EmployeeController::class)->except(['show']);
+    Route::resource('employees', EmployeeController::class)->except(['show', 'create']);
     Route::resource('projects', ProjectController::class)->except(['show']);
     Route::post('/projects/{project}/copy', [ProjectController::class, 'copy'])->name('projects.copy');
-    Route::resource('performance-indicators', PerformanceIndicatorController::class)->except(['show']);
-    Route::resource('performance-plans', PerformancePlanController::class)->except(['show']);
+    Route::resource('performance-indicators', PerformanceIndicatorController::class)->except(['show', 'create', 'edit']);
+    Route::resource('performance-plans', PerformancePlanController::class)->except(['show', 'create', 'edit']);
 
     // Work items (nested under project for create, standalone for update/delete)
     Route::post('/projects/{project}/work-items', [WorkItemController::class, 'store'])->name('work-items.store');
@@ -65,6 +68,11 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('/employees/{employee}/educations', [EmployeeController::class, 'storeEducation'])->name('employees.educations.store');
     Route::put('/employees/{employee}/educations/{education}', [EmployeeController::class, 'updateEducation'])->name('employees.educations.update');
     Route::delete('/employees/{employee}/educations/{education}', [EmployeeController::class, 'destroyEducation'])->name('employees.educations.destroy');
+
+    // Admin: look at the app as another user (read only)
+    Route::get('/admin/lihat-sebagai', [ImpersonationController::class, 'index'])->name('admin.impersonate');
+    Route::post('/admin/lihat-sebagai/keluar', [ImpersonationController::class, 'stop'])->name('admin.impersonate.stop');
+    Route::post('/admin/lihat-sebagai/{user}', [ImpersonationController::class, 'start'])->name('admin.impersonate.start');
 
     // Reports
     Route::get('/laporan/pegawai', [EmployeeReportController::class, 'index'])->name('laporan.pegawai');
@@ -101,7 +109,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/kegiatan-kipapp', [KipActivityController::class, 'index'])->name('kip-activities.index');
 
     // Weekly activity scrapper / recap
-    Route::get('/rencana-minggu', [WeeklyPlanController::class, 'index'])->name('weekly-plan.index');
+    // The old plan page; old links and notifications still land on the new one.
+    Route::get('/rencana-minggu', fn (Request $request) => redirect()->route('weekly.index', $request->only('week')))->name('weekly-plan.index');
+    Route::get('/struktur-organisasi', [OrganizationController::class, 'index'])->name('organization.index');
     Route::get('/fra', [FraController::class, 'index'])->name('fra.index');
     Route::patch('/fra/{indicator}/triwulan/{quarter}', [FraController::class, 'updateValues'])->name('fra.values');
     Route::patch('/fra/{indicator}/pemilik', [FraController::class, 'updateOwner'])->name('fra.owner');
@@ -112,12 +122,14 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('/rencana-minggu/item/{planItem}/kirim', [PlanItemController::class, 'push'])->name('plan-items.push');
     Route::post('/rencana-minggu/item/{planItem}/kirim-atasan', [PlanItemController::class, 'send'])->name('plan-items.send');
     Route::post('/rencana-minggu/item/{planItem}/batal-kirim', [PlanItemController::class, 'unsend'])->name('plan-items.unsend');
+    Route::post('/rencana-minggu/kirim-atasan', [PlanItemController::class, 'sendMany'])->name('plan-items.send-many');
+    Route::post('/rencana-minggu/batal-kirim', [PlanItemController::class, 'unsendMany'])->name('plan-items.unsend-many');
+    Route::get('/rencana-minggu/presensi', [PlanItemController::class, 'presensi'])->name('plan-items.presensi');
+    Route::patch('/rencana-minggu/item/{planItem}/capaian', [PlanItemController::class, 'result'])->name('plan-items.result');
     Route::post('/rencana-minggu/item/{planItem}/selesai', [PlanItemController::class, 'complete'])->name('plan-items.complete');
     Route::patch('/rencana-minggu/item/{planItem}/evaluasi', [PlanItemController::class, 'evaluate'])->name('plan-items.evaluate');
     Route::delete('/rencana-minggu/item/{planItem}', [PlanItemController::class, 'destroy'])->name('plan-items.destroy');
-    Route::get('/rekap-mingguan', [WeeklyActivityController::class, 'index'])->name('weekly.index');
-    Route::post('/rekap-mingguan/claim', [WeeklyActivityController::class, 'storeClaim'])->name('weekly.claim');
-    Route::post('/rekap-mingguan/claim-bulk', [WeeklyActivityController::class, 'storeClaimsBulk'])->name('weekly.claim-bulk');
+    Route::get('/rekap-mingguan', [MemberWeekController::class, 'index'])->name('weekly.index');
 
     // Team recaps (weekly / monthly / quarterly FRA)
     Route::get('/rekap-tim', [TeamRecapController::class, 'weekly'])->name('team-recap.weekly');
@@ -127,17 +139,11 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/rekap-semua-tim', [TeamRecapController::class, 'overview'])->name('team-recap.overview');
     Route::post('/rekap-semua-tim/catatan', [TeamRecapController::class, 'storeLeadershipNote'])->name('team-recap.leadership-note');
     Route::get('/rekap-tim/export', [TeamRecapController::class, 'export'])->name('team-recap.export');
-    Route::post('/rekap-tim/weekly-note', [TeamRecapController::class, 'storeWeeklyNote'])->name('team-recap.weekly-note.store');
     Route::post('/rekap-tim/evidence', [TeamRecapController::class, 'storeEvidence'])->name('team-recap.evidence.store');
     Route::delete('/rekap-tim/evidence/{evidence}', [TeamRecapController::class, 'destroyEvidence'])->name('team-recap.evidence.destroy');
+    Route::post('/rekap-tim/rk', [TeamRecapController::class, 'storeRk'])->name('team-recap.rk.store');
+    Route::post('/rekap-tim/rk/buka', [TeamRecapController::class, 'unlockRk'])->name('team-recap.rk.unlock');
     Route::post('/rekap-tim/override', [TeamRecapController::class, 'storeOverride'])->name('team-recap.override.store');
-    Route::post('/rekap-tim/prefill', [TeamRecapController::class, 'prefill'])->name('team-recap.prefill');
-    Route::post('/rekap-tim/merge', [TeamRecapController::class, 'mergeRows'])->name('team-recap.merge');
-    Route::post('/rekap-tim/split', [TeamRecapController::class, 'splitRows'])->name('team-recap.split');
-    Route::post('/rekap-tim/projek', [TeamRecapController::class, 'saveWeeklyProject'])->name('team-recap.weekly-project');
-    Route::post('/rekap-tim/baris/gabung', [TeamRecapController::class, 'mergeWeeklyRows'])->name('team-recap.weekly-rows.merge');
-    Route::post('/rekap-tim/baris/pisah', [TeamRecapController::class, 'splitWeeklyRow'])->name('team-recap.weekly-rows.split');
-    Route::post('/rekap-tim/klaim/{claim}/angka', [TeamRecapController::class, 'adjustClaim'])->name('team-recap.claim-adjust');
     Route::post('/rekap-tim/ringkasan', [TeamRecapController::class, 'storeSummary'])->name('team-recap.summary');
     Route::post('/rekap-tim/override/confirm', [TeamRecapController::class, 'confirmOverride'])->name('team-recap.override.confirm');
     Route::post('/rekap-tim/override/confirm-bulk', [TeamRecapController::class, 'confirmBulk'])->name('team-recap.override.confirm-bulk');
