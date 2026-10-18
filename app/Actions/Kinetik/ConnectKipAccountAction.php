@@ -3,6 +3,8 @@
 namespace App\Actions\Kinetik;
 
 use App\Jobs\SyncMyActivitiesJob;
+use App\Kinetik\KipTokenInfo;
+use App\Models\KipCredential;
 use App\Models\MemberKipCredential;
 use App\Models\User;
 use App\Services\Kinetik\KipLoginClient;
@@ -42,11 +44,39 @@ class ConnectKipAccountAction
     {
         $user->forceFill(['password' => $password])->save();
 
+        $this->adoptAsAdminToken($user, $result);
+
         if (MemberKipCredential::keyIsConfigured()) {
             MemberKipCredential::remember($user, $password, $result->token, $result->expiresAt);
             // First sync of the member's own RK and kegiatan, after the response.
             SyncMyActivitiesJob::dispatchAfterResponse($user->id);
         }
+    }
+
+    /**
+     * Someone who is a unit kerja admin in kipApp (not in Kinetik) also feeds the
+     * shared sync token, but only when there is none or the stored one has
+     * expired. A valid token stays.
+     */
+    private function adoptAsAdminToken(User $user, KipLoginResult $result): void
+    {
+        $info = KipTokenInfo::fromToken($result->token);
+        if (! $info->isUnitAdmin) {
+            return;
+        }
+
+        $current = KipCredential::current();
+        if ($current !== null && ! $current->isExpired()) {
+            return;
+        }
+
+        KipCredential::create([
+            'token' => $result->token,
+            'account_nip' => $info->nip,
+            'account_name' => $info->email,
+            'expires_at' => $result->expiresAt,
+            'updated_by' => $user->id,
+        ]);
     }
 
     /** True while staff may still first-login with the default password. */

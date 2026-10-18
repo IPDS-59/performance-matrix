@@ -6,6 +6,7 @@ use App\Kinetik\Contracts\KipActivitySource;
 use App\Kinetik\Sources\MockKipActivitySource;
 use App\Models\Employee;
 use App\Models\KipActivity;
+use App\Models\KipCredential;
 use App\Models\MemberKipCredential;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -36,9 +37,13 @@ class KipSsoLoginTest extends TestCase
         return $user;
     }
 
-    private function fakeSso(string $outcome): void
+    private function fakeSso(string $outcome, bool $unitAdmin = false): void
     {
-        $jwt = 'h.'.rtrim(strtr(base64_encode(json_encode(['exp' => time() + 86400])), '+/', '-_'), '=').'.s';
+        $payload = ['exp' => time() + 86400, 'nip' => '340060924', 'email' => 'sukma@bps.go.id'];
+        if ($unitAdmin) {
+            $payload['roles'] = ['0' => ['wilayahid' => '7200_11', 'unitkerjaid' => '42'], '3' => ['wilayahid' => '7200_11', 'unitkerjaid' => '100']];
+        }
+        $jwt = 'h.'.rtrim(strtr(base64_encode(json_encode($payload)), '+/', '-_'), '=').'.s';
 
         Http::fake([
             '*/login' => Http::response('<form id="kc-form-login" action="'.self::SSO_FORM.'">', 200),
@@ -297,5 +302,51 @@ class KipSsoLoginTest extends TestCase
         $this->assertAuthenticatedAs($user);
         $this->get('/dashboard')->assertOk();
         Http::assertNothingSent();
+    }
+
+    public function test_a_kipapp_unit_admin_stores_the_shared_sync_token_only_when_none_is_valid(): void
+    {
+        config(['kinetik.kip.wilayah_id' => '7200_11', 'kinetik.kip.unitkerja_id' => '100']);
+        $this->fakeSso('ok', unitAdmin: true);
+        $user = $this->staff();
+
+        $this->post('/login', ['email' => 'sukma', 'password' => 'sso-secret']);
+        $this->assertSame(1, KipCredential::count());
+        $this->assertSame($user->id, KipCredential::current()->updated_by);
+        $this->assertSame('340060924', KipCredential::current()->account_nip);
+        $this->assertFalse($user->fresh()->hasRole('admin'));
+
+        // A valid token stays.
+        $this->post('/logout');
+        $this->post('/login', ['email' => 'sukma', 'password' => 'sso-secret']);
+        $this->assertSame(1, KipCredential::count());
+
+        // An expired one is replaced.
+        KipCredential::current()->update(['expires_at' => now()->subHour()]);
+        $this->post('/logout');
+        $this->post('/login', ['email' => 'sukma', 'password' => 'sso-secret']);
+        $this->assertSame(2, KipCredential::count());
+        $this->assertFalse(KipCredential::current()->isExpired());
+    }
+
+    public function test_a_unit_admin_of_another_office_never_touches_the_shared_sync_token(): void
+    {
+        config(['kinetik.kip.wilayah_id' => '7200_11', 'kinetik.kip.unitkerja_id' => '999']);
+        $this->fakeSso('ok', unitAdmin: true);
+        $this->staff();
+
+        $this->post('/login', ['email' => 'sukma', 'password' => 'sso-secret']);
+
+        $this->assertSame(0, KipCredential::count());
+    }
+
+    public function test_a_plain_member_never_touches_the_shared_sync_token(): void
+    {
+        $this->fakeSso('ok');
+        $this->staff();
+
+        $this->post('/login', ['email' => 'sukma', 'password' => 'sso-secret']);
+
+        $this->assertSame(0, KipCredential::count());
     }
 }
