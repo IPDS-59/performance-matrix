@@ -711,3 +711,27 @@ export interface AttentionGroup {
     samples: string[];
     route: string;
 }
+
+export interface OrgPerson {
+    id: number;
+    name: string;
+    position: string | null;
+}
+
+export interface OrgTeam {
+    id: number;
+    name: string;
+    leader: (OrgPerson & { role: 'leader' }) | null;
+    members: (OrgPerson & { role: 'member' })[];
+}
+
+export interface OrgTreeData {
+    satker: string;
+    head: OrgPerson | null;
+    employee_count: number;
+    teams: OrgTeam[];
+}
+
+export interface OrganizationProps {
+    tree: OrgTreeData;
+}

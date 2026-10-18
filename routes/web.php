@@ -12,6 +12,7 @@ use App\Http\Controllers\KipIntegrationController;
 use App\Http\Controllers\MemberWeekController;
 use App\Http\Controllers\MyActivitySyncController;
 use App\Http\Controllers\NotificationController;
+use App\Http\Controllers\OrganizationController;
 use App\Http\Controllers\PerformanceApprovalController;
 use App\Http\Controllers\PerformanceController;
 use App\Http\Controllers\PerformanceIndicatorController;
@@ -110,6 +111,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     // Weekly activity scrapper / recap
     // The old plan page; old links and notifications still land on the new one.
     Route::get('/rencana-minggu', fn (Request $request) => redirect()->route('weekly.index', $request->only('week')))->name('weekly-plan.index');
+    Route::get('/struktur-organisasi', [OrganizationController::class, 'index'])->name('organization.index');
     Route::get('/fra', [FraController::class, 'index'])->name('fra.index');
     Route::patch('/fra/{indicator}/triwulan/{quarter}', [FraController::class, 'updateValues'])->name('fra.values');
     Route::patch('/fra/{indicator}/pemilik', [FraController::class, 'updateOwner'])->name('fra.owner');
