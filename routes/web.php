@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Admin\ImpersonationController;
 use App\Http\Controllers\CreditController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\EmployeeController;
@@ -66,6 +67,11 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('/employees/{employee}/educations', [EmployeeController::class, 'storeEducation'])->name('employees.educations.store');
     Route::put('/employees/{employee}/educations/{education}', [EmployeeController::class, 'updateEducation'])->name('employees.educations.update');
     Route::delete('/employees/{employee}/educations/{education}', [EmployeeController::class, 'destroyEducation'])->name('employees.educations.destroy');
+
+    // Admin: look at the app as another user (read only)
+    Route::get('/admin/lihat-sebagai', [ImpersonationController::class, 'index'])->name('admin.impersonate');
+    Route::post('/admin/lihat-sebagai/keluar', [ImpersonationController::class, 'stop'])->name('admin.impersonate.stop');
+    Route::post('/admin/lihat-sebagai/{user}', [ImpersonationController::class, 'start'])->name('admin.impersonate.start');
 
     // Reports
     Route::get('/laporan/pegawai', [EmployeeReportController::class, 'index'])->name('laporan.pegawai');

@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Middleware\BlockWritesWhileImpersonating;
 use App\Http\Middleware\CheckKipTokenExpiry;
 use App\Http\Middleware\EnsureKipConnected;
 use App\Http\Middleware\HandleInertiaRequests;
@@ -19,6 +20,7 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->web(append: [
             HandleInertiaRequests::class,
+            BlockWritesWhileImpersonating::class,
             AddLinkHeadersForPreloadedAssets::class,
             CheckKipTokenExpiry::class,
             EnsureKipConnected::class,

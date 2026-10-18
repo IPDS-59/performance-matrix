@@ -2,7 +2,7 @@
 import { Link, router, usePage } from '@inertiajs/vue3';
 import { computed, onMounted, onUnmounted, ref, type Component } from 'vue';
 import {
-    Award, BookOpen, CalendarCheck, CalendarDays, CalendarRange, ClipboardCheck, FileChartColumn, FileSpreadsheet, FolderKanban,
+    Award, BookOpen, CalendarCheck, CalendarDays, CalendarRange, ClipboardCheck, Eye, FileChartColumn, FileSpreadsheet, FolderKanban,
     House, LayoutGrid, LayoutList, ListChecks, ListTodo, LogOut, Menu, PanelLeftClose, PanelLeftOpen, Target, UserRound, Users, X, Zap,
 } from 'lucide-vue-next';
 import { useSidebarStore } from '@/stores/sidebar';
@@ -15,6 +15,7 @@ import {
 const page = usePage();
 const sidebar = useSidebarStore();
 
+const impersonating = computed(() => (page.props.impersonating ?? null) as { name: string; role: string } | null);
 const user = computed(() => page.props.auth.user as { name: string; email: string; role: string; position?: string | null });
 const isAdmin = computed(() => user.value.role === 'admin');
 const isHead = computed(() => user.value.role === 'head');
@@ -69,6 +70,7 @@ const navSections = computed<NavSection[]>(() => {
                 { label: 'Proyek', href: route('projects.index'), active: is('projects.*'), icon: FolderKanban, show: canViewProjects.value },
                 { label: 'IKU', href: route('performance-indicators.index'), active: is('performance-indicators.*'), icon: Target, show: canViewIndicators.value },
                 { label: 'Rencana Kinerja (RK)', href: route('performance-plans.index'), active: is('performance-plans.*'), icon: ListTodo, show: canViewPlans.value },
+                { label: 'Lihat sebagai', href: route('admin.impersonate'), active: is('admin.impersonate*'), icon: Eye, show: isAdmin.value && !impersonating.value },
                 { label: 'Integrasi kipApp', href: route('kip-integration.index'), active: is('kip-integration.*'), icon: Zap, show: isAdmin.value },
             ],
         },
@@ -399,6 +401,10 @@ onUnmounted(() => {
             </Notivue>
 
             <!-- Page content -->
+            <div v-if="impersonating" class="flex flex-wrap items-center gap-3 border-b border-amber-300 bg-amber-100 px-4 py-2 text-sm text-amber-950" role="status">
+                <span>Anda melihat sebagai <strong>{{ impersonating.name }}</strong>. Mode hanya lihat: perubahan dinonaktifkan.</span>
+                <button type="button" class="ml-auto rounded-md border border-amber-400 bg-white px-3 py-1 font-medium hover:bg-amber-50" @click="router.post(route('admin.impersonate.stop'))">Kembali ke admin</button>
+            </div>
             <main class="flex-1 overflow-auto p-4 sm:p-6 print:overflow-visible print:p-0">
                 <slot />
             </main>
