@@ -28,7 +28,7 @@ const submit = () => {
             <h2 class="text-2xl font-bold text-gray-900">Hubungkan akun SSO BPS</h2>
             <p class="mt-1 text-sm text-gray-600">
                 Mulai sekarang Anda masuk dengan kata sandi SSO BPS. Masukkan kata sandi tersebut satu kali agar Kinetik dapat terhubung ke kipApp atas nama Anda.
-                Kata sandi disimpan terenkripsi sesuai MoU dan tidak pernah ditampilkan kembali.
+                Kata sandi disimpan terenkripsi dan tidak pernah ditampilkan kembali.
             </p>
             <p v-if="deadline" class="mt-2 text-sm text-gray-600">
                 Kata sandi bawaan hanya berlaku sampai {{ formatDate(deadline) }}.

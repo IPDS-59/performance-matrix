@@ -87,8 +87,8 @@ const percent = computed(() => achievementPercent(form.capaian === '' ? null : N
                 {{ panel.rk_description }}
                 <span class="font-normal text-gray-600">{{ panel.project_name ? `${panel.project_name} · ` : '' }}{{ panel.entry_count }} kegiatan dari {{ panel.entries.length }} anggota</span>
             </h2>
-            <Button class="ml-auto" size="sm" :variant="panel.recap?.paraphrase ? 'outline' : 'default'" @click="dialogOpen = true">
-                {{ locked ? 'Lihat parafrase' : panel.recap?.paraphrase ? 'Ubah parafrase' : 'Isi parafrase' }}
+            <Button class="ml-auto" size="sm" :variant="panel.recap?.paraphrase || !canEdit ? 'outline' : 'default'" @click="dialogOpen = true">
+                {{ locked || !canEdit ? 'Lihat parafrase' : panel.recap?.paraphrase ? 'Ubah parafrase' : 'Isi parafrase' }}
             </Button>
         </div>
 
@@ -97,7 +97,7 @@ const percent = computed(() => achievementPercent(form.capaian === '' ? null : N
             <div>
                 <div class="text-xs font-semibold uppercase tracking-wide text-gray-600">Parafrase PJ</div>
                 <p v-if="panel.recap?.paraphrase" class="mt-1 whitespace-pre-line text-gray-900">{{ panel.recap.paraphrase }}</p>
-                <p v-else class="mt-1 text-gray-600">Belum ada parafrase. Tekan “Isi parafrase”.</p>
+                <p v-else class="mt-1 text-gray-600">{{ canEdit ? 'Belum ada parafrase. Tekan “Isi parafrase”.' : 'Belum ada parafrase. PJ tim atau PIC RK yang mengisinya.' }}</p>
             </div>
             <dl class="grid grid-cols-[auto_auto] gap-x-4 gap-y-0.5 tabular-nums sm:text-right">
                 <dt class="text-gray-600">Target RK</dt><dd>{{ withUnit(panel.recap?.target ?? null, panel.recap?.target_unit ?? panel.default_unit ?? null) }}</dd>
@@ -126,8 +126,8 @@ const percent = computed(() => achievementPercent(form.capaian === '' ? null : N
                     <DialogTitle>Parafrase: {{ panel.rk_description }}</DialogTitle>
                     <DialogDescription>Baca kontribusi anggota di kiri, lalu tulis parafrase di kanan. Tidak ada isi otomatis.</DialogDescription>
                 </DialogHeader>
-                <div class="grid overflow-hidden rounded-lg border lg:grid-cols-[1.05fr_1fr]">
-                    <div class="border-b bg-gray-50/60 p-4 lg:border-b-0 lg:border-r">
+                <div class="grid overflow-hidden rounded-lg border lg:grid-cols-[minmax(0,1.05fr)_minmax(0,1fr)]">
+                    <div class="min-w-0 border-b bg-gray-50/60 p-4 lg:border-b-0 lg:border-r">
                         <div class="mb-2 flex items-center justify-between text-xs font-semibold uppercase tracking-wide text-gray-600">
                             <span>Kontribusi anggota</span><span class="tabular-nums">Dibaca {{ readCount }}/{{ panel.entries.length }}</span>
                         </div>
@@ -179,7 +179,7 @@ const percent = computed(() => achievementPercent(form.capaian === '' ? null : N
                         <p v-if="!shown.length" class="py-6 text-center text-sm text-gray-600">{{ panel.entries.length ? 'Tidak ada anggota yang cocok.' : 'Belum ada kegiatan anggota untuk RK ini.' }}</p>
                     </div>
 
-                    <form class="space-y-3 p-4" @submit.prevent="save(false)">
+                    <form class="min-w-0 space-y-3 p-4" @submit.prevent="save(false)">
                         <div class="text-xs font-semibold uppercase tracking-wide text-gray-600">Parafrase PJ</div>
                         <Textarea v-model="form.paraphrase" :rows="6" :disabled="!editable" placeholder="Tulis parafrase sendiri. Pakai “Sisipkan” di kiri untuk mengambil satu kalimat." />
                         <InputError :message="form.errors.paraphrase" />

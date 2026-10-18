@@ -27,7 +27,7 @@ class ImpersonationController extends Controller
         $leaderIds = Team::query()->pluck('leader_id')->filter()->unique();
 
         $users = User::query()->with('employee:id,user_id,name,display_name')
-            ->where(fn ($q) => $q->where('role', 'head')->orWhereHas('employee'))
+            ->where(fn ($q) => $q->where('role', 'head')->orWhereHas('employee', fn ($e) => $e->where('is_active', true)))
             ->orderBy('name')->get()
             ->reject(fn (User $u) => $u->hasRole('admin') || $u->id === $request->user()->id)
             ->map(fn (User $u) => [

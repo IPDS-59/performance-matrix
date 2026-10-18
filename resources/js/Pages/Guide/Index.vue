@@ -40,7 +40,7 @@ function print() {
                         </div>
                         <div>
                             <h2 class="text-xl font-semibold text-gray-900 print:text-2xl">Buku Pedoman Kinetik</h2>
-                            <p class="mt-1 text-sm text-gray-600">Kinerja Terintegrasi, BPS Provinsi Sulawesi Tengah. Alur kerja untuk setiap pengguna.</p>
+                            <p class="mt-1 text-sm text-gray-600">Kinerja Statistik Terintegrasi, BPS Provinsi Sulawesi Tengah. Alur kerja untuk setiap pengguna.</p>
                         </div>
                     </div>
                     <Button variant="outline" size="sm" class="print:hidden" @click="print">
