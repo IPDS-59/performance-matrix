@@ -9,6 +9,7 @@ use App\Models\Team;
 use Illuminate\Support\Facades\Http;
 
 beforeEach(function () {
+    Http::preventStrayRequests();
     config([
         'kinetik.kip.base_url' => 'https://kipapp.bps.go.id/api',
         'kinetik.kip.token' => 'test-token-abc',
@@ -92,6 +93,7 @@ it('deduplicates RK by (team_id, description) when two employees have the same p
             ->push([['rkid' => '13962139', 'rencanakinerja' => 'Terlaksananya Dukungan Metodologi', 'timkerjaid' => '106453']], 200)
             ->push([['rkid' => '13999999', 'rencanakinerja' => 'Terlaksananya Dukungan Metodologi', 'timkerjaid' => '106453']], 200),
         'kipapp.bps.go.id/api/v1/skp/iki*' => Http::response([], 200),
+        'kipapp.bps.go.id/api/v1/skp*' => Http::response([], 200),
     ]);
 
     $summary = (new SyncKipPlansAction)->execute(
