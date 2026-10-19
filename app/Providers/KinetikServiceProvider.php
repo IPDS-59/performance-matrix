@@ -8,14 +8,17 @@ use App\Kinetik\Contracts\KipAuthenticator;
 use App\Kinetik\Contracts\KipStructureSource;
 use App\Kinetik\Contracts\SkpApproval;
 use App\Kinetik\Contracts\SkpFlow;
+use App\Kinetik\Contracts\SkpRating;
 use App\Kinetik\Sources\ApiKipActivitySource;
 use App\Kinetik\Sources\ApiKipStructureSource;
 use App\Kinetik\Sources\MockKipActivitySource;
 use App\Kinetik\Sources\MockKipStructureSource;
 use App\Services\Kinetik\ApiSkpApproval;
 use App\Services\Kinetik\ApiSkpFlow;
+use App\Services\Kinetik\ApiSkpRating;
 use App\Services\Kinetik\MockSkpApproval;
 use App\Services\Kinetik\MockSkpFlow;
+use App\Services\Kinetik\MockSkpRating;
 use Illuminate\Support\ServiceProvider;
 
 class KinetikServiceProvider extends ServiceProvider
@@ -39,6 +42,10 @@ class KinetikServiceProvider extends ServiceProvider
         $this->app->bind(SkpApproval::class, fn () => config('kinetik.kip.source') === 'mock'
             ? $this->app->make(MockSkpApproval::class)
             : $this->app->make(ApiSkpApproval::class));
+
+        $this->app->bind(SkpRating::class, fn () => config('kinetik.kip.source') === 'mock'
+            ? $this->app->make(MockSkpRating::class)
+            : $this->app->make(ApiSkpRating::class));
 
         $this->app->bind(KipStructureSource::class, function () {
             if (config('kinetik.kip.source') === 'mock') {

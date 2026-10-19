@@ -126,6 +126,39 @@ class ApiKipWriter
         return $this->rks((string) $skp['id']);
     }
 
+    /**
+     * The RK of a quarter SKP with the atasan's rating so far (GET /skp/penilaian/rk/periodik): rkid,
+     * rencanakinerja, nilaiumpanbalik, levelumpanbalik, umpanbalik. Read from kipApp's own page, tested live
+     * on a rated SKP only.
+     *
+     * @return list<array<string, mixed>>
+     */
+    public function ratingRks(string $skpId): array
+    {
+        return $this->rows($this->get('v1/skp/penilaian/rk/periodik', ['skpid' => $skpId]), 'penilaian rk');
+    }
+
+    /** The seven behaviours with the atasan's rating so far (GET /perilaku). @return list<array<string, mixed>> */
+    public function perilaku(string $skpId): array
+    {
+        return $this->rows($this->get('v1/perilaku', ['skpid' => $skpId]), 'perilaku');
+    }
+
+    /** Save the atasan's feedback on one RK (POST /skp/rk/umpanbalik), read from kipApp's own form. */
+    public function rateRk(string $rkId, int $nilai, int $level, ?string $komentar): void
+    {
+        $this->send('post', 'v1/skp/rk/umpanbalik', ['id' => $rkId, 'nilaiumpanbalik' => $nilai, 'levelumpanbalik' => $level, 'umpanbalik' => $komentar], 'nilai RK');
+    }
+
+    /** Save the atasan's feedback on one behaviour (PUT /perilaku), read from kipApp's own form. */
+    public function ratePerilaku(string $skpId, int $jenisPerilakuId, int $nilai, int $level, ?string $komentar, ?string $ekspektasiKhusus = null): void
+    {
+        $this->send('put', 'v1/perilaku', [
+            'skpid' => $skpId, 'jenisperilakuid' => $jenisPerilakuId, 'nilaiumpanbalik' => $nilai,
+            'levelumpanbalik' => $level, 'umpanbalik' => $komentar, 'ekspektasikhusus' => $ekspektasiKhusus,
+        ], 'nilai perilaku');
+    }
+
     /** One SKP by its id (the header kipApp shows), or null. @return array<string, mixed>|null */
     public function skpById(string $skpId): ?array
     {

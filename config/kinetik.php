@@ -50,6 +50,11 @@ return [
         // verified live (2026-10-08 and 2026-10-19).
         'edit_after_push' => (bool) env('KIP_EDIT_AFTER_PUSH', false),
 
+        // The atasan rates a quarter SKP inside Kinetik (Nilai SKP page): feedback per RK and per behaviour, then
+        // "selesai menilai" (flag 7). The calls are read from kipApp's own code and never run live, because a test
+        // would rate a real person's official SKP. Keep it off until the first rating is done together with the atasan.
+        'atasan_rating' => (bool) env('KIP_ATASAN_RATING', false),
+
         // Login accounts for synced employees. kipApp does not expose employee
         // emails, so they are derived as firstname@<domain> (same pattern as
         // UserSeeder; second name appended on collision). Password "password".

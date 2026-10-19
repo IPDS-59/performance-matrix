@@ -27,6 +27,7 @@ use App\Http\Controllers\ReportAttachmentController;
 use App\Http\Controllers\ReportResubmitController;
 use App\Http\Controllers\SkpApprovalController;
 use App\Http\Controllers\SkpController;
+use App\Http\Controllers\SkpRatingController;
 use App\Http\Controllers\TeamController;
 use App\Http\Controllers\TeamMemberController;
 use App\Http\Controllers\TeamRecapController;
@@ -158,6 +159,10 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/persetujuan-skp', [SkpApprovalController::class, 'index'])->name('skp.approvals');
     Route::post('/persetujuan-skp/{skpStatus}/tetapkan', [SkpApprovalController::class, 'approve'])->name('skp.approve');
     Route::post('/persetujuan-skp/{skpStatus}/kembalikan', [SkpApprovalController::class, 'sendBack'])->name('skp.sendback');
+    Route::get('/persetujuan-skp/{skpStatus}/nilai', [SkpRatingController::class, 'show'])->name('skp.rate');
+    Route::put('/persetujuan-skp/{skpStatus}/nilai/rk', [SkpRatingController::class, 'saveRk'])->name('skp.rate.rk');
+    Route::put('/persetujuan-skp/{skpStatus}/nilai/perilaku', [SkpRatingController::class, 'savePerilaku'])->name('skp.rate.perilaku');
+    Route::post('/persetujuan-skp/{skpStatus}/nilai/selesai', [SkpRatingController::class, 'finish'])->name('skp.rate.finish');
     Route::post('/skp-saya/triwulan/{quarter}', [SkpController::class, 'createQuarter'])->name('skp.quarter.create');
     Route::put('/skp-saya/triwulan/{quarter}/rk', [SkpController::class, 'addRks'])->name('skp.quarter.rks');
     Route::post('/skp-saya/kirim', [SkpController::class, 'submit'])->name('skp.submit');

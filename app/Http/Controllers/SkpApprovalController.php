@@ -8,6 +8,7 @@ use App\Models\Employee;
 use App\Models\SkpStatus;
 use App\Models\User;
 use App\Notifications\KinetikNotification;
+use App\Services\Kinetik\SkpEvidence;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -16,11 +17,11 @@ use RuntimeException;
 
 /**
  * "Persetujuan SKP": the atasan sees the SKP that wait for them and sets (yearly) or sends back. The work is
- * done with the atasan's own kipApp token. Rating a quarter SKP stays in kipApp, it needs a score per RK.
+ * done with the atasan's own kipApp token. Rating a quarter SKP is in kipApp unless `kinetik.kip.atasan_rating` turns on the Nilai SKP page.
  */
 class SkpApprovalController extends Controller
 {
-    public function __construct(private readonly SkpApproval $approval) {}
+    public function __construct(private readonly SkpApproval $approval, private readonly SkpEvidence $evidence) {}
 
     /** The menu and the page are for the head, an admin, and anyone who is the atasan of a stored SKP. */
     public static function canApprove(?User $user): bool
@@ -65,9 +66,11 @@ class SkpApprovalController extends Controller
                 'atasan' => $s->atasan_name,
                 'since' => $s->status_changed_at?->toDateString(),
                 'mine' => $mine !== null && $s->atasan_pegawai_id === $mine,
+                'evidence' => $this->evidence->forQuarter($s),
             ])->values(),
             'loadError' => $error,
             'canActAsAtasan' => $mine !== null,
+            'ratingEnabled' => (bool) config('kinetik.kip.atasan_rating'),
         ]);
     }
 

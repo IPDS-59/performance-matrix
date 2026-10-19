@@ -51,7 +51,7 @@ class ApiSkpApproval implements SkpApproval
     }
 
     /** The atasan must be this SKP's atasan and the SKP must still wait, as kipApp has it right now. */
-    private function checked(User $atasan, SkpStatus $skp): ApiKipWriter
+    public function checked(User $atasan, SkpStatus $skp): ApiKipWriter
     {
         $mine = $this->pegawaiId($atasan);
         if ($mine === null || $skp->atasan_pegawai_id !== $mine) {
@@ -71,7 +71,7 @@ class ApiSkpApproval implements SkpApproval
         return $writer;
     }
 
-    private function refresh(ApiKipWriter $writer, SkpStatus $skp): void
+    public function refresh(ApiKipWriter $writer, SkpStatus $skp): void
     {
         if (($now = $writer->skpById($skp->kip_skp_id)) !== null) {
             SkpStatus::remember($skp->employee_id, $skp->tahun, $skp->kind, $skp->quarter, $now);
