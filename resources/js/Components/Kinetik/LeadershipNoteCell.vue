@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { router } from '@inertiajs/vue3';
 import { ref } from 'vue';
-import { Button } from '@/Components/ui/button';
+import FormDialog from '@/Components/FormDialog.vue';
 import { Textarea } from '@/Components/ui/textarea';
 import { MessageSquarePlus, Pencil } from 'lucide-vue-next';
 
@@ -34,23 +34,18 @@ function save() {
 </script>
 
 <template>
-    <form v-if="editing" class="space-y-1.5" @submit.prevent="save">
-        <Textarea
-            v-model="draft"
-            rows="3"
-            maxlength="2000"
-            class="min-w-[14rem] text-sm"
-            :aria-label="`Catatan pimpinan untuk ${subject}`"
-            autofocus
-            @keydown.esc="editing = false"
-        />
-        <div class="flex gap-1.5">
-            <Button type="submit" size="sm" class="h-7 px-2.5 text-xs" :disabled="saving">{{ saving ? 'Menyimpan…' : 'Simpan' }}</Button>
-            <Button type="button" size="sm" variant="ghost" class="h-7 px-2.5 text-xs" @click="editing = false">Batal</Button>
-        </div>
-    </form>
+    <FormDialog
+        :open="editing"
+        title="Catatan pimpinan"
+        :description="subject"
+        :processing="saving"
+        @update:open="(v: boolean) => (editing = v)"
+        @submit="save"
+    >
+        <Textarea v-model="draft" rows="5" maxlength="2000" class="text-sm" :aria-label="`Catatan pimpinan untuk ${subject}`" />
+    </FormDialog>
 
-    <div v-else-if="note" class="group flex items-start gap-1.5">
+    <div v-if="note" class="group flex items-start gap-1.5">
         <p class="whitespace-pre-line text-sm leading-snug text-gray-800">{{ note }}</p>
         <button
             v-if="canWrite"

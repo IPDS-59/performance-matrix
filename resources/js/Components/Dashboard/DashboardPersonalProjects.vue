@@ -68,8 +68,7 @@ const projectsByTeam = computed(() => {
                                 </span>
                             </div>
                             <Progress :model-value="projectAvg(project)" class="mt-2 h-2" :indicator-class="progressVariant(projectAvg(project))" />
-                            <p class="mt-2 text-xs text-gray-400">1 kegiatan diklaim</p>
-                        </CardContent>
+                                                    </CardContent>
                     </Card>
                 </div>
             </div>

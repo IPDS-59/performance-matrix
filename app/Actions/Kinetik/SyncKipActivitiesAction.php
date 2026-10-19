@@ -84,6 +84,7 @@ class SyncKipActivitiesAction
         }
 
         $this->links->execute();
+        app(ImportKipActivitiesAsPlanItemsAction::class)->execute($employees->pluck('id'));
         app(ReconcilePlanItemsAction::class)->execute($employees->pluck('id'));
 
         return $count;

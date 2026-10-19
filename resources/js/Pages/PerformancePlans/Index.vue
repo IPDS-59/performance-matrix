@@ -1,7 +1,9 @@
 <script setup lang="ts">
 import AppLayout from '@/Layouts/AppLayout.vue';
-import { Head, Link, router } from '@inertiajs/vue3';
-import type { PerformancePlan } from '@/types';
+import { Head, router } from '@inertiajs/vue3';
+import type { Employee, PerformancePlan } from '@/types';
+import type { ProjectChoice } from '@/types/crud';
+import PlanFormDialog from '@/Components/PerformancePlans/PlanFormDialog.vue';
 import { Button } from '@/Components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/Components/ui/table';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/Components/ui/select';
@@ -20,7 +22,14 @@ const props = defineProps<{
     projects: ProjectOption[];
     projectId: number;
     canCreate: boolean;
+    formProjects: ProjectChoice[];
+    employees: Employee[];
+    manager: boolean;
 }>();
+
+const formOpen = ref(false);
+const editing = ref<PerformancePlan | null>(null);
+function openForm(plan: PerformancePlan | null) { editing.value = plan; formOpen.value = true; }
 
 const projectId = ref(props.projectId ? String(props.projectId) : 'all');
 
@@ -72,9 +81,7 @@ const periodTypeLabel: Record<string, string> = {
                 </Select>
             </div>
             <div class="ml-auto" v-if="canCreate">
-                <Button as-child>
-                    <Link :href="route('performance-plans.create')">Tambah RK</Link>
-                </Button>
+                <Button @click="openForm(null)">Tambah RK</Button>
             </div>
         </div>
 
@@ -108,9 +115,7 @@ const periodTypeLabel: Record<string, string> = {
                         <TableCell>{{ plan.pic?.display_name || plan.pic?.name || '—' }}</TableCell>
                         <TableCell class="text-right">
                             <div v-if="plan.can_update || plan.can_delete" class="inline-flex gap-2">
-                                <Button v-if="plan.can_update" variant="outline" size="sm" as-child>
-                                    <Link :href="route('performance-plans.edit', plan.id)">Edit</Link>
-                                </Button>
+                                <Button v-if="plan.can_update" variant="outline" size="sm" @click="openForm(plan)">Edit</Button>
                                 <Button v-if="plan.can_delete" variant="destructive" size="sm" @click="confirmDelete(plan.id, plan.description)">
                                     Hapus
                                 </Button>
@@ -121,6 +126,8 @@ const periodTypeLabel: Record<string, string> = {
                 </TableBody>
             </Table>
         </div>
+
+        <PlanFormDialog v-model:open="formOpen" :item="editing" :projects="formProjects" :employees="employees" :manager="manager" />
 
         <ConfirmDialog
             v-model:open="confirmOpen"

@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import AttentionPanel from '@/Components/Kinetik/AttentionPanel.vue';
+import type { AttentionGroup } from '@/types';
 import AppLayout from '@/Layouts/AppLayout.vue';
 import { Head, Link, router } from '@inertiajs/vue3';
 import { computed, ref } from 'vue';
@@ -22,6 +24,7 @@ const props = defineProps<{
     weekEnd: string;
     teams: OverviewTeam[];
     canWriteNotes: boolean;
+    attention: AttentionGroup[];
 }>();
 
 const MONTHS = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
@@ -119,6 +122,8 @@ function toggle(teamId: number) {
     <Head title="Review Bersama" />
     <AppLayout>
         <template #title>Review Bersama</template>
+
+        <AttentionPanel :groups="attention" />
 
         <!-- Period controls -->
         <div class="mb-4 flex flex-col gap-3 rounded-lg border bg-white p-3 sm:p-4 lg:flex-row lg:items-center lg:justify-between">

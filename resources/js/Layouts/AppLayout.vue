@@ -1,9 +1,9 @@
 <script setup lang="ts">
 import { Link, router, usePage } from '@inertiajs/vue3';
 import { computed, onMounted, onUnmounted, ref, type Component } from 'vue';
-import { CalendarClock,
-    Award, BookOpen, CalendarCheck, CalendarDays, CalendarRange, ClipboardCheck, FileChartColumn, FileSpreadsheet, FileText, FolderKanban,
-    House, LayoutGrid, LayoutList, ListChecks, ListTodo, LogOut, Menu, PanelLeftClose, PanelLeftOpen, Target, UserRound, Users, X, Zap,
+import {
+    Award, BookOpen, CalendarCheck, CalendarDays, CalendarRange, ClipboardCheck, Eye, FileChartColumn, FileSpreadsheet, FolderKanban,
+    House, LayoutGrid, LayoutList, ListChecks, ListTodo, LogOut, Menu, Network, PanelLeftClose, PanelLeftOpen, Target, UserRound, Users, X, Zap,
 } from 'lucide-vue-next';
 import { useSidebarStore } from '@/stores/sidebar';
 import { Notivue, Notification, push } from 'notivue';
@@ -15,6 +15,7 @@ import {
 const page = usePage();
 const sidebar = useSidebarStore();
 
+const impersonating = computed(() => (page.props.impersonating ?? null) as { name: string; role: string } | null);
 const user = computed(() => page.props.auth.user as { name: string; email: string; role: string; position?: string | null });
 const isAdmin = computed(() => user.value.role === 'admin');
 const isHead = computed(() => user.value.role === 'head');
@@ -38,14 +39,14 @@ const navSections = computed<NavSection[]>(() => {
             items: [
                 { label: 'Beranda', href: route('dashboard'), active: is('dashboard'), icon: House, show: true },
                 { label: 'Matriks', href: route('matrix'), active: is('matrix'), icon: LayoutGrid, show: true },
+                { label: 'Struktur Organisasi', href: route('organization.index'), active: is('organization.*'), icon: Network, show: true },
             ],
         },
         {
-            // Personal claim tools; the head only reads, so they stay hidden for the head.
+            // Personal tools; the head only reads, so they stay hidden for the head.
             title: 'Kegiatan',
             items: [
-                { label: 'Rencana Minggu Ini', href: route('weekly-plan.index'), active: is('weekly-plan.*'), icon: CalendarClock, show: hasEmployee.value || isHead.value || isAdmin.value },
-                { label: 'Rekap Mingguan', href: route('weekly.index'), active: is('weekly.*'), icon: CalendarCheck, show: hasEmployee.value && !isHead.value },
+                { label: 'Rekap Mingguan', href: route('weekly.index'), active: is('weekly.index'), icon: CalendarCheck, show: hasEmployee.value && !isHead.value },
                 { label: isAdmin.value ? 'Kegiatan kipApp' : 'Kegiatan Saya', href: route('kip-activities.index'), active: is('kip-activities.*'), icon: ListChecks, show: isAdmin.value || (hasEmployee.value && !isHead.value) },
                 { label: 'Angka Kredit Saya', href: route('credit.mine'), active: is('credit.mine'), icon: Award, show: hasEmployee.value },
             ],
@@ -63,13 +64,6 @@ const navSections = computed<NavSection[]>(() => {
             ],
         },
         {
-            title: 'Laporan',
-            items: [
-                { label: 'Laporan Pegawai', href: route('laporan.pegawai'), active: is('laporan.*'), icon: FileText, show: isAdmin.value || isHead.value },
-                { label: 'Input Kinerja', href: route('performance.index'), active: is('performance.*'), icon: ClipboardCheck, show: isHead.value },
-            ],
-        },
-        {
             title: 'Data Master',
             items: [
                 { label: 'Tim Kerja', href: route('teams.index'), active: is('teams.*'), icon: Users, show: isAdmin.value },
@@ -77,6 +71,7 @@ const navSections = computed<NavSection[]>(() => {
                 { label: 'Proyek', href: route('projects.index'), active: is('projects.*'), icon: FolderKanban, show: canViewProjects.value },
                 { label: 'IKU', href: route('performance-indicators.index'), active: is('performance-indicators.*'), icon: Target, show: canViewIndicators.value },
                 { label: 'Rencana Kinerja (RK)', href: route('performance-plans.index'), active: is('performance-plans.*'), icon: ListTodo, show: canViewPlans.value },
+                { label: 'Lihat sebagai', href: route('admin.impersonate'), active: is('admin.impersonate*'), icon: Eye, show: isAdmin.value && !impersonating.value },
                 { label: 'Integrasi kipApp', href: route('kip-integration.index'), active: is('kip-integration.*'), icon: Zap, show: isAdmin.value },
             ],
         },
@@ -407,6 +402,10 @@ onUnmounted(() => {
             </Notivue>
 
             <!-- Page content -->
+            <div v-if="impersonating" class="flex flex-wrap items-center gap-3 border-b border-amber-300 bg-amber-100 px-4 py-2 text-sm text-amber-950" role="status">
+                <span>Anda melihat sebagai <strong>{{ impersonating.name }}</strong>. Mode hanya lihat: perubahan dinonaktifkan.</span>
+                <button type="button" class="ml-auto rounded-md border border-amber-400 bg-white px-3 py-1 font-medium hover:bg-amber-50" @click="router.post(route('admin.impersonate.stop'))">Kembali ke admin</button>
+            </div>
             <main class="flex-1 overflow-auto p-4 sm:p-6 print:overflow-visible print:p-0">
                 <slot />
             </main>

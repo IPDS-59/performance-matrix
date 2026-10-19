@@ -27,25 +27,25 @@ it('shows an empty list for a user without a linked employee', function () {
 });
 
 it('lists synced kegiatan for an admin', function () {
-    KipActivity::factory()->count(3)->create(['is_claimed' => false]);
-    KipActivity::factory()->create(['is_claimed' => true]);
+    KipActivity::factory()->count(3)->create(['sent_at' => null]);
+    KipActivity::factory()->create(['sent_at' => '2026-10-01']);
 
     $this->actingAs(adminUser())
         ->get(route('kip-activities.index'))
         ->assertInertia(fn ($page) => $page
             ->component('Kinetik/Activities')
             ->where('stats.total', 4)
-            ->where('stats.claimed', 1)
+            ->where('stats.sent', 1)
             ->has('activities.data', 4)
         );
 });
 
-it('filters kegiatan by claimed status', function () {
-    KipActivity::factory()->count(2)->create(['is_claimed' => false]);
-    KipActivity::factory()->create(['is_claimed' => true]);
+it('filters kegiatan by sent status', function () {
+    KipActivity::factory()->count(2)->create(['sent_at' => null]);
+    KipActivity::factory()->create(['sent_at' => '2026-10-01']);
 
     $this->actingAs(adminUser())
-        ->get(route('kip-activities.index', ['status' => 'claimed']))
+        ->get(route('kip-activities.index', ['status' => 'sent']))
         ->assertInertia(fn ($page) => $page->has('activities.data', 1));
 });
 

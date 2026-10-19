@@ -25,16 +25,9 @@ class EmployeeController extends Controller
             ->orderBy('name')
             ->get(['id', 'name', 'display_name', 'team_id', 'employee_number', 'nip_lama', 'nip_baru', 'position', 'office', 'is_active', 'user_id']);
 
-        return Inertia::render('Employees/Index', compact('employees'));
-    }
-
-    public function create(): Response
-    {
-        $this->authorize('create', Employee::class);
-
         $teams = Team::where('is_active', true)->orderBy('name')->get(['id', 'name']);
 
-        return Inertia::render('Employees/Create', compact('teams'));
+        return Inertia::render('Employees/Index', compact('employees', 'teams'));
     }
 
     public function store(Request $request): RedirectResponse

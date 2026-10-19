@@ -15,8 +15,8 @@ const active = ref<GuideRole>(props.defaultRole);
 const CYCLE = [
     { who: 'Anggota', what: 'Input kegiatan harian di kipApp' },
     { who: 'Kinetik', what: 'Tarik data kipApp setiap pagi, atau saat Anda menekan Sinkronkan data saya' },
-    { who: 'Anggota', what: 'Klaim kegiatan di Rekap Mingguan' },
-    { who: 'PJ', what: 'Rapat tim, ringkasan, bukti, kunci' },
+    { who: 'Anggota', what: 'Rencanakan kegiatan dan isi capaian di Rekap Mingguan' },
+    { who: 'PJ', what: 'Rapat tim, parafrase per RK, bukti, kunci' },
     { who: 'Pimpinan', what: 'Review Bersama dan Catatan Pimpinan' },
 ];
 
@@ -40,7 +40,7 @@ function print() {
                         </div>
                         <div>
                             <h2 class="text-xl font-semibold text-gray-900 print:text-2xl">Buku Pedoman Kinetik</h2>
-                            <p class="mt-1 text-sm text-gray-600">Kinerja Terintegrasi, BPS Provinsi Sulawesi Tengah. Alur kerja untuk setiap pengguna.</p>
+                            <p class="mt-1 text-sm text-gray-600">Kinerja Statistik Terintegrasi, BPS Provinsi Sulawesi Tengah. Alur kerja untuk setiap pengguna.</p>
                         </div>
                     </div>
                     <Button variant="outline" size="sm" class="print:hidden" @click="print">

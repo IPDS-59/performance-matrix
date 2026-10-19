@@ -14,7 +14,7 @@ class KipActivityController extends Controller
     public function index(Request $request): Response
     {
         $search = trim((string) $request->query('q', ''));
-        $status = $request->query('status', 'all'); // all | claimed | unclaimed
+        $status = $request->query('status', 'all'); // all | sent | unsent (sent to the atasan in kipApp)
 
         // Period filter: a week, month or quarter around an anchor date. An
         // activity counts when it runs during the period.
@@ -45,8 +45,8 @@ class KipActivityController extends Controller
                         ->orWhereHas('employee', fn (Builder $e) => $e->where('name', 'like', "%{$search}%"));
                 });
             })
-            ->when($status === 'claimed', fn (Builder $q) => $q->where('is_claimed', true))
-            ->when($status === 'unclaimed', fn (Builder $q) => $q->where('is_claimed', false))
+            ->when($status === 'sent', fn (Builder $q) => $q->whereNotNull('sent_at'))
+            ->when($status === 'unsent', fn (Builder $q) => $q->whereNull('sent_at'))
             ->orderByDesc('activity_date_start')
             ->orderByDesc('id')
             ->paginate(25)
@@ -61,7 +61,7 @@ class KipActivityController extends Controller
                 'date_end' => $a->activity_date_end?->toDateString(),
                 'progress' => $a->progress,
                 'evidence_url' => $a->evidence_url,
-                'is_claimed' => $a->is_claimed,
+                'is_sent' => $a->sent_at !== null,
             ]);
 
         $scopeQuery = fn () => KipActivity::query()
@@ -80,7 +80,7 @@ class KipActivityController extends Controller
             ],
             'stats' => [
                 'total' => $scopeQuery()->count(),
-                'claimed' => $scopeQuery()->where('is_claimed', true)->count(),
+                'sent' => $scopeQuery()->whereNotNull('sent_at')->count(),
             ],
             'canViewAll' => $canViewAll,
         ]);

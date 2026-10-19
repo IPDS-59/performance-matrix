@@ -34,7 +34,6 @@ class KipActivityFactory extends Factory
             'sent_at' => null,
             'raw_payload' => [],
             'fetched_at' => now(),
-            'is_claimed' => false,
         ];
     }
 }

@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import AppLayout from '@/Layouts/AppLayout.vue';
 import { Head } from '@inertiajs/vue3';
+import { computed } from 'vue';
 import type { PlanComplianceProps } from '@/types';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/Components/ui/table';
 import { planningRate, rateClass, usePlanCompliance } from '@/composables/usePlanCompliance';
@@ -9,6 +10,9 @@ import { useDateFormat } from '@/composables/useDateFormat';
 const props = defineProps<PlanComplianceProps>();
 const { formatDate } = useDateFormat();
 const { thisWeekRate, quarterCompletion } = usePlanCompliance(() => props.teams);
+
+const teamsMissing = computed(() => props.teams.filter((t) => t.missing_this_week.length));
+const missingTotal = computed(() => new Set(teamsMissing.value.flatMap((t) => t.missing_this_week)).size);
 
 const pct = (value: number | null) => (value === null ? '—' : `${value}%`);
 </script>
@@ -59,13 +63,22 @@ const pct = (value: number | null) => (value === null ? '—' : `${value}%`);
             </Table>
         </div>
 
-        <section v-if="teams.some(t => t.missing_this_week.length)" class="mt-6" aria-labelledby="belum-title">
-            <h2 id="belum-title" class="mb-2 text-sm font-semibold text-gray-800">Belum membuat rencana minggu ini</h2>
-            <ul class="space-y-1 text-sm text-gray-700">
-                <li v-for="team in teams.filter(t => t.missing_this_week.length)" :key="team.team_id">
-                    <span class="font-medium">{{ team.name }}:</span> {{ team.missing_this_week.join(', ') }}
-                </li>
-            </ul>
+        <section v-if="teamsMissing.length" class="mt-8" aria-labelledby="belum-title">
+            <div class="mb-3 flex items-baseline justify-between gap-3">
+                <h2 id="belum-title" class="text-sm font-semibold text-gray-800">Belum membuat rencana minggu ini</h2>
+                <p class="text-xs text-gray-500">{{ missingTotal }} anggota di {{ teamsMissing.length }} tim</p>
+            </div>
+            <div class="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+                <div v-for="team in teamsMissing" :key="team.team_id" class="rounded-lg border bg-white p-4">
+                    <div class="mb-3 flex items-start justify-between gap-2">
+                        <p class="text-sm font-medium text-gray-800">{{ team.name }}</p>
+                        <span class="shrink-0 rounded-full bg-red-50 px-2 py-0.5 text-xs font-semibold tabular-nums text-red-700">{{ team.missing_this_week.length }} dari {{ team.weeks.at(-1)?.members ?? '-' }}</span>
+                    </div>
+                    <ul class="flex max-h-32 flex-wrap gap-1.5 overflow-y-auto">
+                        <li v-for="name in team.missing_this_week" :key="name" class="rounded-md bg-gray-100 px-2 py-1 text-xs text-gray-700">{{ name }}</li>
+                    </ul>
+                </div>
+            </div>
         </section>
     </AppLayout>
 </template>

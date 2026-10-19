@@ -2,142 +2,120 @@
 
 namespace App\Services\Kinetik;
 
-use App\Models\ActivityClaim;
-use App\Models\KipActivity;
+use App\Models\Employee;
+use App\Models\PerformancePlan;
+use App\Models\PlanItem;
 use App\Models\Project;
 use App\Models\RecapOverride;
+use App\Models\RkRecap;
 use App\Models\Team;
-use App\Models\WeeklyRecapRow;
-use App\Models\WeeklyRecapRowClaim;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Collection;
 
 /**
- * Live indexed aggregation over saved activity claims, grouped by project and
- * Rencana Kinerja (RK). Portable across SQLite (local/CI) and Postgres (prod) —
- * no materialized views, only indexed WHERE/GROUP queries.
+ * The team recap, read from the members' plan items and what the PJ wrote in
+ * rk_recaps (week, month) or recap_overrides (quarter, FRA). Live queries only,
+ * portable across SQLite (local/CI) and Postgres (prod).
  */
 class RecapAggregator
 {
     /**
-     * Team weekly recap — all members' saved claims for the week, segmented by
-     * project. No paraphrase overrides (raw aggregation only).
+     * Week and month: one panel per RK of the team, for the paraphrase box.
+     * Entries are the members' own plan items; the PJ cannot edit them here.
      *
-     * @return array<int, array<string, mixed>>
+     * @return list<array<string, mixed>>
      */
-    public function weekly(Team $team, string $weekStart): array
+    public function panels(Team $team, string $type, Carbon $start): array
     {
-        $claims = $this->claimsQuery($team)
-            ->whereDate('week_start', $weekStart)
-            ->get();
+        [$from, $to] = $this->range($type, $start);
+        $items = $this->items($team, $type, $from, $to)->groupBy('performance_plan_id');
+        $recaps = RkRecap::forPeriod($team->id, $type, $from->toDateString())->with('lockedBy')->get()->keyBy('performance_plan_id');
+        $context = $type === 'month' ? $this->weekParaphrases($team, $from, $to) : collect();
 
-        $year = Carbon::parse($weekStart)->year;
-        $overrides = $this->overrides($team, 'week', $year, weekStart: $weekStart);
-
-        return $this->segment($claims, $overrides, withFollowUp: false, inherited: collect());
-    }
-
-    /**
-     * The weekly recap as the PJ edits it: one output row per kegiatan, or one
-     * for several kegiatan the PJ merged. A row without a saved PJ text shows
-     * what the members wrote, so the PJ does not type it again.
-     *
-     * @return array<int, array<string, mixed>>
-     */
-    public function weeklyRows(Team $team, string $weekStart): array
-    {
-        $claims = $this->claimsQuery($team)
-            ->whereDate('week_start', $weekStart)
-            ->orderBy('activity_date_start')
-            ->orderBy('id')
-            ->get();
-
-        $rowOf = WeeklyRecapRowClaim::whereIn('activity_claim_id', $claims->pluck('id'))->pluck('weekly_recap_row_id', 'activity_claim_id');
-        $rows = WeeklyRecapRow::whereIn('id', $rowOf->unique()->values())->get()->keyBy('id');
-        $dash = fn (?string $v) => ($v === null || trim($v) === '-') ? null : $v;
-
-        return $claims
-            ->groupBy(fn (ActivityClaim $c) => $this->projectOf($c)?->id ?? 0)
-            ->map(function (Collection $projectClaims) use ($rowOf, $rows, $dash) {
-                $project = $this->projectOf($projectClaims->first());
-
-                $outputRows = $projectClaims
-                    ->groupBy(fn (ActivityClaim $c) => $rowOf->has($c->id) ? 'r'.$rowOf[$c->id] : 'c'.$c->id)
-                    ->map(function (Collection $group, string $key) use ($rows, $dash) {
-                        $row = str_starts_with($key, 'r') ? $rows->get((int) substr($key, 1)) : null;
-                        $lines = $group->map(fn (ActivityClaim $c) => [
-                            'claim_id' => $c->id,
-                            'name' => $c->employee?->display_name ?? $c->employee?->name ?? 'Anggota',
-                            'uraian' => trim((string) ($c->kipActivity?->description ?? '')) ?: null,
-                            'rk_description' => $c->performancePlan?->description ?? '—',
-                            'target' => $c->target !== null ? (float) $c->target : null,
-                            'realization' => $c->realization !== null ? (float) $c->realization : null,
-                            'target_unit' => $c->target_unit,
-                            'achievement' => $c->achievement !== null ? (float) $c->achievement : null,
-                            'adjusted_by' => $c->adjustedBy?->display_name ?? $c->adjustedBy?->name,
-                            'pic_employee_id' => $c->performancePlan?->pic_employee_id,
-                            'plan_id' => $c->performance_plan_id,
-                        ])->values()->all();
-
-                        return [
-                            'key' => $key,
-                            'row_id' => $row?->id,
-                            'claim_ids' => $group->pluck('id')->all(),
-                            'claims' => $lines,
-                            'merged' => $group->count() > 1,
-                            'saved' => $row?->saved_at !== null,
-                            'pj_uraian' => $row?->pj_uraian,
-                            'obstacle' => $row ? $row->obstacle : $this->joinText($group->pluck('obstacle')->map($dash)),
-                            'solution' => $row ? $row->solution : $this->joinText($group->pluck('solution')->map($dash)),
-                            'follow_up_plan' => $row ? $row->follow_up_plan : $this->joinText($group->pluck('follow_up_plan')->map($dash)),
-                        ];
-                    })
-                    ->values()
-                    ->all();
+        return $this->teamPlans($team)
+            ->map(function (PerformancePlan $plan) use ($items, $recaps, $context) {
+                $planItems = $items->get($plan->id, collect());
+                $recap = $recaps->get($plan->id);
 
                 return [
-                    'project_id' => $project?->id,
-                    'project_name' => $project?->name ?? $projectClaims->first()->performancePlan?->team?->name ?? '—',
-                    'leader_rk' => $project?->leader_rk,
-                    'rows' => $outputRows,
+                    'performance_plan_id' => $plan->id,
+                    'rk_description' => $plan->description,
+                    'project_id' => $plan->project_id,
+                    'project_name' => $plan->project?->name,
+                    'pic_employee_id' => $plan->pic_employee_id,
+                    'entry_count' => $planItems->count(),
+                    'entries' => $this->entries($planItems),
+                    'recap' => $recap ? [
+                        'paraphrase' => $recap->paraphrase,
+                        'target' => $recap->target !== null ? (float) $recap->target : null,
+                        'target_unit' => $recap->target_unit,
+                        'capaian' => $recap->capaian !== null ? (float) $recap->capaian : null,
+                        'locked' => $recap->isLocked(),
+                        'locked_by' => $recap->lockedBy?->display_name ?? $recap->lockedBy?->name,
+                    ] : null,
+                    'default_unit' => $planItems->pluck('target_unit')->filter()->first() ?? $plan->target_unit,
+                    'weeks' => $context->get($plan->id, []),
                 ];
             })
+            // RK with entries or a recap first, then alphabetical.
+            ->sortBy(fn (array $panel) => [$panel['entry_count'] === 0 && $panel['recap'] === null ? 1 : 0, mb_strtolower($panel['rk_description'])])
             ->values()
             ->all();
     }
 
     /**
-     * Per-member input status for a week, like the member blocks in the old
-     * "Kegiatan Mingguan Anggota" sheet: how many kipApp activities each team
-     * member has that week and how many they already saved as claims.
+     * Team weekly recap rows, segmented by Projek.
+     *
+     * @return array<int, array<string, mixed>>
+     */
+    public function weekly(Team $team, string $weekStart): array
+    {
+        return $this->segments($team, 'week', Carbon::parse($weekStart)->startOfWeek(Carbon::MONDAY), $this->noOverrides());
+    }
+
+    /**
+     * @return array<int, array<string, mixed>>
+     */
+    public function monthly(Team $team, int $year, int $month): array
+    {
+        return $this->segments($team, 'month', Carbon::create($year, $month, 1), $this->noOverrides());
+    }
+
+    /**
+     * Quarterly recap (FRA): numbers from the months, text and follow-up from the PJ.
+     *
+     * @return array<int, array<string, mixed>>
+     */
+    public function quarterly(Team $team, int $year, int $quarter): array
+    {
+        $overrides = RecapOverride::query()
+            ->with(['followUpPic', 'confirmedBy'])
+            ->where('team_id', $team->id)
+            ->where('period_type', 'quarter')
+            ->where('period_year', $year)
+            ->where('period_quarter', $quarter)
+            ->get()
+            ->keyBy(fn (RecapOverride $o) => self::rowKey($o->performance_plan_id, $o->project_id));
+
+        return $this->segments($team, 'quarter', Carbon::create($year, ($quarter - 1) * 3 + 1, 1), $overrides);
+    }
+
+    /**
+     * Per member: how many plan items they have in the week and how many already
+     * carry a capaian.
      *
      * @return array<int, array{employee_id: int, name: string, total: int, saved: int, status: string}>
      */
     public function memberCompleteness(Team $team, string $weekStart): array
     {
-        $members = $team->members()->orderBy('employees.name')->get();
-        $ids = $members->pluck('id');
-        $weekEnd = Carbon::parse($weekStart)->endOfWeek(Carbon::SUNDAY)->toDateString();
+        $start = Carbon::parse($weekStart)->startOfWeek(Carbon::MONDAY);
+        $items = $this->items($team, 'week', $start, $start->copy()->endOfWeek(Carbon::SUNDAY))->groupBy('employee_id');
 
-        // Same rule as the member's weekly page, so a multi-week activity
-        // claimed this week also counts as an activity of this week.
-        $totals = KipActivity::whereIn('employee_id', $ids)
-            ->duringWeek($weekStart, $weekEnd)
-            ->selectRaw('employee_id, COUNT(*) as n')
-            ->groupBy('employee_id')
-            ->pluck('n', 'employee_id');
-
-        $saved = ActivityClaim::whereIn('employee_id', $ids)
-            ->where('status', 'saved')
-            ->whereDate('week_start', $weekStart)
-            ->selectRaw('employee_id, COUNT(*) as n')
-            ->groupBy('employee_id')
-            ->pluck('n', 'employee_id');
-
-        return $members->map(function ($member) use ($totals, $saved) {
-            $total = (int) ($totals[$member->id] ?? 0);
-            $done = (int) ($saved[$member->id] ?? 0);
+        return $team->members()->orderBy('employees.name')->get()->map(function (Employee $member) use ($items) {
+            $mine = $items->get($member->id, collect());
+            $total = $mine->count();
+            $done = $mine->whereNotNull('capaian')->count();
 
             return [
                 'employee_id' => $member->id,
@@ -145,7 +123,7 @@ class RecapAggregator
                 'total' => $total,
                 'saved' => $done,
                 'status' => match (true) {
-                    $total === 0 && $done === 0 => 'no_activity',
+                    $total === 0 => 'no_activity',
                     $done >= $total => 'complete',
                     $done === 0 => 'empty',
                     default => 'partial',
@@ -154,164 +132,170 @@ class RecapAggregator
         })->values()->all();
     }
 
-    /**
-     * Resolve the default week anchor for a team: the week of the latest saved
-     * claim, or null when no claims exist yet.
-     */
+    /** The week of the team's latest plan item, or null when there is none. */
     public function defaultWeekStart(Team $team): ?string
     {
-        $raw = $this->latestWeekStart($team);
+        $latest = PlanItem::where('team_id', $team->id)->where('status', '!=', 'cancelled')->max('date_start');
 
-        return $raw ? Carbon::parse($raw)->startOfWeek(Carbon::MONDAY)->toDateString() : null;
+        return $latest ? Carbon::parse($latest)->startOfWeek(Carbon::MONDAY)->toDateString() : null;
     }
 
-    /**
-     * Team monthly recap — segmented by project, paraphrase overrides merged.
-     *
-     * @return array<int, array<string, mixed>>
-     */
-    public function monthly(Team $team, int $year, int $month): array
+    /** The month of the team's latest plan item. */
+    public function latestPeriod(Team $team): ?Carbon
     {
-        $claims = $this->claimsQuery($team)
-            ->where('period_year', $year)
-            ->where('period_month', $month)
-            ->get();
+        $latest = PlanItem::where('team_id', $team->id)->where('status', '!=', 'cancelled')->max('date_start');
 
-        $overrides = $this->overrides($team, 'month', $year, month: $month);
-
-        $start = Carbon::create($year, $month, 1)->toDateString();
-        $end = Carbon::create($year, $month, 1)->endOfMonth()->toDateString();
-        $inherited = $this->weeklyInheritedMap($team, $year, $start, $end);
-
-        return $this->segment($claims, $overrides, withFollowUp: false, inherited: $inherited);
+        return $latest ? Carbon::parse($latest) : null;
     }
 
-    /**
-     * Team quarterly recap (FRA format) — paraphrase overrides plus follow-up
-     * evidence / PIC / deadline merged.
-     *
-     * @return array<int, array<string, mixed>>
-     */
-    public function quarterly(Team $team, int $year, int $quarter): array
-    {
-        $claims = $this->claimsQuery($team)
-            ->where('period_year', $year)
-            ->where('period_quarter', $quarter)
-            ->get();
-
-        $overrides = $this->overrides($team, 'quarter', $year, quarter: $quarter);
-
-        $firstMonth = ($quarter - 1) * 3 + 1;
-        $start = Carbon::create($year, $firstMonth, 1)->toDateString();
-        $end = Carbon::create($year, $firstMonth + 2, 1)->endOfMonth()->toDateString();
-        $inherited = $this->weeklyInheritedMap($team, $year, $start, $end);
-
-        return $this->segment($claims, $overrides, withFollowUp: true, inherited: $inherited);
-    }
-
-    /**
-     * Base query: saved claims whose RK belongs to the team — either directly
-     * (team-scoped RK with project_id = null) or via the RK's project.
-     */
-    private function claimsQuery(Team $team): Builder
-    {
-        return ActivityClaim::query()
-            ->where('status', 'saved')
-            ->whereHas('performancePlan', fn (Builder $q) => $q->where(function (Builder $w) use ($team) {
-                $w->where('team_id', $team->id)
-                    ->orWhereHas('project', fn (Builder $p) => $p->where('team_id', $team->id));
-            }))
-            ->with(['performancePlan.project', 'performancePlan.team', 'project', 'employee', 'kipActivity', 'adjustedBy']);
-    }
-
-    /**
-     * Latest week_start among saved claims for the team (null if none).
-     */
-    public function latestWeekStart(Team $team): ?string
-    {
-        return $this->claimsQuery($team)->max('week_start');
-    }
-
-    /**
-     * Most recent saved claim for the team, ordered by period_year / period_month desc.
-     */
-    public function latestClaimPeriod(Team $team): ?ActivityClaim
-    {
-        return $this->claimsQuery($team)
-            ->orderByDesc('period_year')
-            ->orderByDesc('period_month')
-            ->first();
-    }
-
-    /**
-     * Override rows for the period, keyed by rowKey(plan, project).
-     *
-     * @return Collection<int, RecapOverride>
-     */
-    private function overrides(
-        Team $team,
-        string $periodType,
-        int $year,
-        ?int $month = null,
-        ?int $quarter = null,
-        ?string $weekStart = null,
-    ): Collection {
-        return RecapOverride::query()
-            ->with(['followUpPic', 'confirmedBy'])
-            ->where('team_id', $team->id)
-            ->where('period_type', $periodType)
-            ->where('period_year', $year)
-            ->when($month !== null, fn (Builder $q) => $q->where('period_month', $month))
-            ->when($quarter !== null, fn (Builder $q) => $q->where('period_quarter', $quarter))
-            ->when($weekStart !== null, fn (Builder $q) => $q->whereDate('week_start', $weekStart))
-            ->get()
-            ->keyBy(fn (RecapOverride $o) => self::rowKey($o->performance_plan_id, $o->project_id));
-    }
-
-    /**
-     * Identity of one recap row: an RK within a Projek (project may be null).
-     */
+    /** Identity of one recap row: an RK within a Projek (project may be null). */
     public static function rowKey(int $planId, ?int $projectId): string
     {
         return $planId.':'.($projectId ?? '');
     }
 
-    /**
-     * The Projek a claim counts toward: the member's choice, else the RK's own.
-     */
-    private function projectOf(ActivityClaim $claim): ?Project
+    /** @return Collection<string, RecapOverride> */
+    private function noOverrides(): Collection
     {
-        return $claim->project ?? $claim->performancePlan?->project;
+        return collect();
+    }
+
+    /** @return array{0: Carbon, 1: Carbon} */
+    private function range(string $type, Carbon $start): array
+    {
+        return match ($type) {
+            'week' => [$start->copy()->startOfWeek(Carbon::MONDAY), $start->copy()->startOfWeek(Carbon::MONDAY)->endOfWeek(Carbon::SUNDAY)],
+            'month' => [$start->copy()->startOfMonth(), $start->copy()->endOfMonth()],
+            default => [$start->copy()->firstOfQuarter(), $start->copy()->lastOfQuarter()],
+        };
     }
 
     /**
-     * Group claims by project, then by RK, aggregating numbers and text.
+     * The team's plan items of a period. A week counts every item that overlaps
+     * it, like the member's page; a month or quarter counts an item once, by its
+     * start date, so sums never count a long item twice.
      *
-     * @param  Collection<int, ActivityClaim>  $claims
-     * @param  Collection<int, RecapOverride>  $overrides
-     * @param  Collection<int, array{obstacle: string|null, solution: string|null, follow_up_plan: string|null}>  $inherited
+     * @return Collection<int, PlanItem>
+     */
+    private function items(Team $team, string $type, Carbon $from, Carbon $to): Collection
+    {
+        return PlanItem::query()
+            ->where('team_id', $team->id)
+            ->where('status', '!=', 'cancelled')
+            ->when(
+                $type === 'week',
+                fn (Builder $q) => $q->whereDate('date_start', '<=', $to->toDateString())->whereDate('date_end', '>=', $from->toDateString()),
+                fn (Builder $q) => $q->whereDate('date_start', '>=', $from->toDateString())->whereDate('date_start', '<=', $to->toDateString()),
+            )
+            ->with(['employee:id,name,display_name', 'performancePlan.project', 'performancePlan.team', 'project'])
+            ->orderBy('date_start')
+            ->orderBy('id')
+            ->get();
+    }
+
+    /** @return Collection<int, PerformancePlan> */
+    private function teamPlans(Team $team): Collection
+    {
+        return PerformancePlan::with('project')
+            ->where(fn (Builder $q) => $q->where('team_id', $team->id)->orWhereHas('project', fn (Builder $p) => $p->where('team_id', $team->id)))
+            ->get();
+    }
+
+    /**
+     * One entry per member: their sentences (the uraian capaian, else the
+     * kegiatan), and their own target and capaian summed over their items.
+     *
+     * @param  Collection<int, PlanItem>  $items
+     * @return list<array<string, mixed>>
+     */
+    private function entries(Collection $items): array
+    {
+        return $items->groupBy('employee_id')
+            ->map(function (Collection $mine) {
+                $sentences = $mine->flatMap(function (PlanItem $i) {
+                    $own = self::sentences($i->capaian_note);
+
+                    return $own->isNotEmpty() ? $own : self::sentences($i->description);
+                });
+
+                return [
+                    'employee_id' => $mine->first()->employee_id,
+                    'name' => $mine->first()->employee?->display_name ?? $mine->first()->employee?->name ?? 'Anggota',
+                    'lines' => $sentences->values()->all(),
+                    'items' => $mine->count(),
+                    'target' => $mine->whereNotNull('target')->isEmpty() ? null : (float) $mine->sum('target'),
+                    'capaian' => $mine->whereNotNull('capaian')->isEmpty() ? null : (float) $mine->sum('capaian'),
+                    'unit' => $mine->pluck('target_unit')->filter()->first(),
+                ];
+            })
+            ->sortBy(fn (array $entry) => mb_strtolower($entry['name']))
+            ->values()
+            ->all();
+    }
+
+    /**
+     * @return Collection<int, string>
+     */
+    public static function sentences(?string $text): Collection
+    {
+        return collect(preg_split('/(?<=[.!?])\s+|\R+/u', trim((string) $text)) ?: [])
+            ->map(fn (string $s) => trim($s))
+            ->filter(fn (string $s) => $s !== '' && $s !== '-')
+            ->values();
+    }
+
+    /**
+     * The weekly paraphrases of a month per RK, for the monthly panel to read.
+     *
+     * @return Collection<int, list<array{label: string, start: string, paraphrase: string}>>
+     */
+    private function weekParaphrases(Team $team, Carbon $from, Carbon $to): Collection
+    {
+        return RkRecap::query()
+            ->where('team_id', $team->id)
+            ->where('period_type', 'week')
+            ->whereDate('period_start', '>=', $from->toDateString())
+            ->whereDate('period_start', '<=', $to->toDateString())
+            ->whereNotNull('paraphrase')
+            ->orderBy('period_start')
+            ->get()
+            ->groupBy('performance_plan_id')
+            ->map(fn (Collection $weeks) => $weeks->map(fn (RkRecap $w) => [
+                'label' => Carbon::parse($w->period_start)->locale('id')->translatedFormat('j M'),
+                'start' => Carbon::parse($w->period_start)->toDateString(),
+                'paraphrase' => (string) $w->paraphrase,
+            ])->values()->all());
+    }
+
+    /**
+     * Rows grouped by Projek, then by RK.
+     *
+     * @param  Collection<string, RecapOverride>  $overrides
      * @return array<int, array<string, mixed>>
      */
-    private function segment(Collection $claims, Collection $overrides, bool $withFollowUp, Collection $inherited): array
+    private function segments(Team $team, string $type, Carbon $start, Collection $overrides): array
     {
-        return $claims
-            ->groupBy(fn (ActivityClaim $c) => $this->projectOf($c)?->id ?? 0)
-            ->map(function (Collection $projectClaims) use ($overrides, $withFollowUp, $inherited) {
-                $project = $this->projectOf($projectClaims->first());
+        [$from, $to] = $this->range($type, $start);
+        $items = $this->items($team, $type, $from, $to)->groupBy('performance_plan_id');
+        $recaps = $type === 'quarter'
+            ? $this->monthRecaps($team, $from, $to)
+            : RkRecap::forPeriod($team->id, $type, $from->toDateString())->with('lockedBy')->get()->groupBy('performance_plan_id');
 
-                $rows = $this->groupMerged($projectClaims
-                    ->groupBy('performance_plan_id')
-                    ->map(fn (Collection $rk) => $this->aggregateRk($rk, $project?->id, $overrides, $withFollowUp, $inherited))
-                    ->values());
+        $planIds = $items->keys()->merge($recaps->keys())->unique();
+        $plans = PerformancePlan::with('project', 'team')->whereIn('id', $planIds)->get();
 
-                $teamName = $projectClaims->first()->performancePlan?->team?->name;
+        return $plans
+            ->map(fn (PerformancePlan $plan) => $this->row($plan, $items->get($plan->id, collect()), $recaps->get($plan->id, collect()), $type, $overrides))
+            ->groupBy(fn (array $row) => $row['project_id'] ?? 0)
+            ->map(function (Collection $rows) {
+                $project = $rows->first()['project_id'] ? Project::find($rows->first()['project_id']) : null;
 
                 return [
                     'project_id' => $project?->id,
-                    'project_name' => $project?->name ?? $teamName ?? '—',
+                    'project_name' => $project?->name ?? $rows->first()['team_name'] ?? '—',
                     // The ketua tim's RK the Projek hangs under (kipApp proyek.rencanakinerjaketua).
                     'leader_rk' => $project?->leader_rk,
-                    'rows' => $rows,
+                    'rows' => $rows->sortBy(fn (array $r) => mb_strtolower($r['rk_description']))->values()->all(),
                 ];
             })
             ->values()
@@ -319,196 +303,87 @@ class RecapAggregator
     }
 
     /**
-     * Put merged rows next to each other, lead row first, at the position of
-     * the group's first row.
+     * The monthly recaps inside a quarter, per RK.
      *
-     * @param  Collection<int, array<string, mixed>>  $rows
-     * @return array<int, array<string, mixed>>
+     * @return Collection<int, Collection<int, RkRecap>>
      */
-    private function groupMerged(Collection $rows): array
+    private function monthRecaps(Team $team, Carbon $from, Carbon $to): Collection
     {
-        $first = [];
-        foreach ($rows as $i => $row) {
-            $first[$row['merge_key'] ?? $row['row_key']] ??= $i;
-        }
-
-        return $rows
-            ->map(fn (array $row, int $i) => [$row, $i])
-            ->sortBy([
-                fn (array $a, array $b) => $first[$a[0]['merge_key'] ?? $a[0]['row_key']] <=> $first[$b[0]['merge_key'] ?? $b[0]['row_key']],
-                fn (array $a, array $b) => ($a[0]['row_key'] !== ($a[0]['merge_key'] ?? $a[0]['row_key'])) <=> ($b[0]['row_key'] !== ($b[0]['merge_key'] ?? $b[0]['row_key'])),
-                fn (array $a, array $b) => $a[1] <=> $b[1],
-            ])
-            ->map(fn (array $pair) => $pair[0])
-            ->values()
-            ->all();
+        return RkRecap::query()
+            ->where('team_id', $team->id)
+            ->where('period_type', 'month')
+            ->whereDate('period_start', '>=', $from->toDateString())
+            ->whereDate('period_start', '<=', $to->toDateString())
+            ->get()
+            ->groupBy('performance_plan_id');
     }
 
     /**
-     * Aggregate one RK row across all contributing claims.
-     *
-     * @param  Collection<int, ActivityClaim>  $claims
-     * @param  Collection<int, RecapOverride>  $overrides
-     * @param  Collection<int, array{obstacle: string|null, solution: string|null, follow_up_plan: string|null}>  $inherited
+     * @param  Collection<int, PlanItem>  $items
+     * @param  Collection<int, RkRecap>  $recaps  one for a week or month, up to three for a quarter
+     * @param  Collection<string, RecapOverride>  $overrides
      * @return array<string, mixed>
      */
-    private function aggregateRk(Collection $claims, ?int $projectId, Collection $overrides, bool $withFollowUp, Collection $inherited): array
+    private function row(PerformancePlan $plan, Collection $items, Collection $recaps, string $type, Collection $overrides): array
     {
-        $first = $claims->first();
-        $plan = $first->performancePlan;
+        $project = $items->first()?->project ?? $plan->project;
+        $projectId = $project?->id;
 
-        $target = (float) $claims->sum('target');
-        $realization = (float) $claims->sum('realization');
-        $achievement = $target > 0 ? round($realization / $target * 100, 2) : null;
+        // The PJ's own numbers win; without them the members' numbers are summed.
+        $pjTarget = $recaps->whereNotNull('target');
+        $pjCapaian = $recaps->whereNotNull('capaian');
+        $target = $pjTarget->isNotEmpty() ? (float) $pjTarget->sum('target') : (float) $items->sum('target');
+        $realization = $pjCapaian->isNotEmpty() ? (float) $pjCapaian->sum('capaian') : (float) $items->sum('capaian');
+        $hasNumbers = $pjTarget->isNotEmpty() || $items->whereNotNull('target')->isNotEmpty();
+        $unit = $recaps->pluck('target_unit')->filter()->last() ?? $items->pluck('target_unit')->filter()->first() ?? $plan->target_unit;
 
-        $uraianAgg = $this->joinLines(
-            $claims->map(fn (ActivityClaim $c) => $c->kipActivity?->description)
-        );
-
-        $uraianItems = $claims
-            ->filter(fn (ActivityClaim $c) => filled($c->kipActivity?->description))
-            ->map(fn (ActivityClaim $c) => [
-                'name' => $c->employee?->display_name ?? $c->employee?->name ?? 'Anggota',
-                'uraian' => trim((string) $c->kipActivity->description),
-            ])
-            ->values()
-            ->all();
-
-        // Each member claim behind the row, for the member lines and PJ corrections.
-        $claimLines = $claims
-            ->map(fn (ActivityClaim $c) => [
-                'claim_id' => $c->id,
-                'name' => $c->employee?->display_name ?? $c->employee?->name ?? 'Anggota',
-                'uraian' => trim((string) ($c->kipActivity?->description ?? '')) ?: null,
-                'target' => $c->target !== null ? (float) $c->target : null,
-                'realization' => $c->realization !== null ? (float) $c->realization : null,
-                'target_unit' => $c->target_unit,
-                'achievement' => $c->achievement !== null ? (float) $c->achievement : null,
-                'adjusted_by' => $c->adjustedBy?->display_name ?? $c->adjustedBy?->name,
-            ])
-            ->values()
-            ->all();
-
-        $obstacleAgg = $this->joinText($claims->pluck('obstacle'));
-        $solutionAgg = $this->joinText($claims->pluck('solution'));
-        $followUpAgg = $this->joinText($claims->pluck('follow_up_plan'));
-
-        $key = self::rowKey($first->performance_plan_id, $projectId);
-        // Paraphrases saved before claims carried a Projek have no project_id.
-        $legacyKey = self::rowKey($first->performance_plan_id, null);
-        $override = $overrides->get($key) ?? $overrides->get($legacyKey);
-        // A merged row shows the text of its group's lead row.
-        $text = $override?->merge_key ? ($overrides->get($override->merge_key) ?? $override) : $override;
-        $inheritedRow = $inherited->get($key) ?? $inherited->get($legacyKey);
-
-        $contributors = $claims
-            ->map(fn (ActivityClaim $c) => $c->employee?->display_name ?? $c->employee?->name)
-            ->filter()
-            ->unique()
-            ->values()
-            ->all();
+        $override = $overrides->get(self::rowKey($plan->id, $projectId)) ?? $overrides->get(self::rowKey($plan->id, null));
+        $paraphrase = $type === 'quarter'
+            ? $override?->uraian
+            : $recaps->first()?->paraphrase;
+        $locked = $type === 'quarter' ? $override?->confirmed_at !== null : $recaps->first()?->isLocked() === true;
 
         $row = [
-            'row_key' => $key,
-            'performance_plan_id' => $first->performance_plan_id,
+            'row_key' => self::rowKey($plan->id, $projectId),
+            'performance_plan_id' => $plan->id,
             'project_id' => $projectId,
-            'merge_key' => $override?->merge_key,
-            'uraian_aggregated' => $uraianAgg,
-            'uraian_items' => $uraianItems,
-            'claims' => $claimLines,
-            'pic_employee_id' => $plan?->pic_employee_id,
-            'rk_code' => $plan?->code,
-            'rk_description' => $plan?->description ?? '—',
+            'team_name' => $plan->team?->name,
+            'pic_employee_id' => $plan->pic_employee_id,
+            'rk_code' => $plan->code,
+            'rk_description' => $plan->description ?? '—',
             'target' => $target,
             'realization' => $realization,
-            'achievement' => $achievement,
-            // Unit must match the summed claim values (members enter target/realisasi
-            // in the claim's own unit, e.g. "Kegiatan"), not the plan's IKI unit.
-            'target_unit' => $first->target_unit ?? $plan?->target_unit,
-            'obstacle' => $text?->obstacle ?? $obstacleAgg,
-            'solution' => $text?->solution ?? $solutionAgg,
-            'follow_up_plan' => $text?->follow_up_plan ?? $followUpAgg,
-            'obstacle_aggregated' => $obstacleAgg,
-            'solution_aggregated' => $solutionAgg,
-            'follow_up_aggregated' => $followUpAgg,
-            'is_overridden' => $override !== null,
-            'pj_obstacle' => $text?->obstacle,
-            'pj_solution' => $text?->solution,
-            'pj_follow_up_plan' => $text?->follow_up_plan,
-            'inherited_obstacle' => $inheritedRow['obstacle'] ?? null,
-            'inherited_solution' => $inheritedRow['solution'] ?? null,
-            'inherited_follow_up_plan' => $inheritedRow['follow_up_plan'] ?? null,
-            'pj_uraian' => $text?->uraian,
-            'is_confirmed' => $override?->confirmed_at !== null,
-            'confirmed_by' => $override?->confirmedBy?->display_name ?? $override?->confirmedBy?->name,
-            'contributors' => $contributors,
+            'achievement' => $hasNumbers && $target > 0 ? round($realization / $target * 100, 2) : null,
+            'target_unit' => $unit,
+            'uraian_aggregated' => self::joinLines($items->map(fn (PlanItem $i) => $i->capaian_note ?: $i->description)),
+            'pj_uraian' => $paraphrase,
+            'is_overridden' => filled($paraphrase),
+            'is_confirmed' => $locked,
+            'confirmed_by' => $type === 'quarter'
+                ? ($override?->confirmedBy?->display_name ?? $override?->confirmedBy?->name)
+                : ($recaps->first()?->lockedBy?->display_name ?? $recaps->first()?->lockedBy?->name),
+            'contributors' => $items->map(fn (PlanItem $i) => $i->employee?->display_name ?? $i->employee?->name)->filter()->unique()->values()->all(),
+            'obstacle' => $override?->obstacle,
+            'solution' => $override?->solution,
+            'follow_up_plan' => $override?->follow_up_plan,
         ];
 
-        if ($withFollowUp) {
-            $row['follow_up_evidence_url'] = $text?->follow_up_evidence_url;
-            $row['follow_up_pic'] = $text?->followUpPic?->display_name ?? $text?->followUpPic?->name;
-            $row['follow_up_pic_employee_id'] = $text?->follow_up_pic_employee_id;
-            $row['follow_up_deadline'] = $text?->follow_up_deadline?->toDateString();
+        if ($type === 'quarter') {
+            $row['follow_up_evidence_url'] = $override?->follow_up_evidence_url;
+            $row['follow_up_pic'] = $override?->followUpPic?->display_name ?? $override?->followUpPic?->name;
+            $row['follow_up_pic_employee_id'] = $override?->follow_up_pic_employee_id;
+            $row['follow_up_deadline'] = $override?->follow_up_deadline?->toDateString();
         }
 
         return $row;
     }
 
     /**
-     * Build a map of inherited (rolled-up) weekly paraphrase text for a team
-     * and date range. Returns a Collection keyed by rowKey(plan, project), each
-     * value being {obstacle, solution, follow_up_plan} combined from all WEEKLY
-     * RecapOverrides whose week_start falls within [$start..$end].
-     *
-     * @return Collection<int, array{obstacle: string|null, solution: string|null, follow_up_plan: string|null}>
-     */
-    private function weeklyInheritedMap(Team $team, int $year, string $start, string $end): Collection
-    {
-        return RecapOverride::query()
-            ->where('team_id', $team->id)
-            ->where('period_type', 'week')
-            ->where('period_year', $year)
-            ->whereDate('week_start', '>=', $start)
-            ->whereDate('week_start', '<=', $end)
-            ->get()
-            ->groupBy(fn (RecapOverride $o) => self::rowKey($o->performance_plan_id, $o->project_id))
-            ->map(function (Collection $rows): array {
-                return [
-                    'obstacle' => $this->joinText($rows->pluck('obstacle')),
-                    'solution' => $this->joinText($rows->pluck('solution')),
-                    'follow_up_plan' => $this->joinText($rows->pluck('follow_up_plan')),
-                ];
-            });
-    }
-
-    /**
-     * Join non-empty text fragments with newlines, preserving duplicates so each
-     * member's activity description appears individually.
-     *
      * @param  Collection<int, string|null>  $values
      */
-    private function joinLines(Collection $values): ?string
+    private static function joinLines(Collection $values): ?string
     {
-        $joined = $values
-            ->filter(fn ($v) => filled($v))
-            ->map(fn ($v) => trim((string) $v))
-            ->implode("\n");
-
-        return $joined === '' ? null : $joined;
-    }
-
-    /**
-     * Join distinct non-empty text fragments with "; ".
-     *
-     * @param  Collection<int, string|null>  $values
-     */
-    private function joinText(Collection $values): ?string
-    {
-        $joined = $values
-            ->filter(fn ($v) => filled($v))
-            ->map(fn ($v) => trim((string) $v))
-            ->unique()
-            ->implode('; ');
+        $joined = $values->filter(fn ($v) => filled($v))->map(fn ($v) => trim((string) $v))->implode("\n");
 
         return $joined === '' ? null : $joined;
     }

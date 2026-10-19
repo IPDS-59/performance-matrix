@@ -2,6 +2,7 @@
 
 namespace App\Http\Middleware;
 
+use App\Http\Controllers\Admin\ImpersonationController;
 use App\Http\Controllers\CreditController;
 use App\Http\Controllers\PlanComplianceController;
 use App\Models\PerformanceIndicator;
@@ -46,6 +47,10 @@ class HandleInertiaRequests extends Middleware
                 ] : null,
                 'has_employee' => $request->user() ? $request->user()->employee !== null : false,
             ],
+            'impersonating' => $request->session()->has(ImpersonationController::SESSION_KEY) ? [
+                'name' => $request->user()?->employee?->display_name ?? $request->user()?->name,
+                'role' => $request->user()?->role,
+            ] : null,
             'can' => fn () => [
                 'view_projects' => $request->user() ? rescue(fn () => $request->user()->can('viewAny', Project::class), false) : false,
                 'view_indicators' => $request->user() ? rescue(fn () => $request->user()->can('viewAny', PerformanceIndicator::class), false) : false,

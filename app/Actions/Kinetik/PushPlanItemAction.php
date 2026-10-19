@@ -4,6 +4,7 @@ namespace App\Actions\Kinetik;
 
 use App\Kinetik\Exceptions\KipApiException;
 use App\Kinetik\Sources\ApiKipWriter;
+use App\Models\MemberSkpStatus;
 use App\Models\PerformancePlan;
 use App\Models\PlanItem;
 use App\Models\User;
@@ -45,8 +46,8 @@ class PushPlanItemAction
                     'rkid' => (string) $rk['rkid'],
                     'rencanakinerja' => (string) $rk['rencanakinerja'],
                     'kegiatan' => $plan->description,
-                    'tanggal' => Carbon::parse($plan->date_start)->toDateString(),
-                    'tanggalselesai' => Carbon::parse($plan->date_end)->toDateString(),
+                    ...$plan->kipFields(),
+                    'parentid' => $plan->parent_id ? PlanItem::whereKey($plan->parent_id)->value('kip_external_id') : null,
                 ]),
                 'kip_skp_id' => $skpId,
                 'kip_rk_id' => (string) $rk['rkid'],
@@ -77,6 +78,8 @@ class PushPlanItemAction
             throw new RuntimeException("SKP triwulan {$date->quarter} belum dibuat di kipApp. Buat SKP triwulan dulu.");
         }
 
+        MemberSkpStatus::remember($plan->employee_id, $date->year, $date->quarter, $skp['statusskpid'] ?? null, $skp['statusskp'] ?? null);
+
         $rk = $this->matchRk($writer->rks((string) $skp['id']), $plan->performancePlan);
         if ($rk === null) {
             throw new RuntimeException('RK rencana ini tidak ditemukan di SKP triwulan kipApp.');
@@ -105,7 +108,7 @@ class PushPlanItemAction
         $attempts = $plan->push_attempts + 1;
         $plan->update(['push_attempts' => $attempts, 'push_error' => mb_substr($e->getMessage(), 0, 500)]);
 
-        $url = route('weekly-plan.index', ['team' => $plan->team_id, 'week' => Carbon::parse($plan->date_start)->toDateString()]);
+        $url = route('weekly.index', ['week' => Carbon::parse($plan->date_start)->toDateString()]);
 
         // One notice for the first failure only.
         if ($attempts === 1) {

@@ -75,7 +75,7 @@ class CreatePlansFromRtlAction
             $user?->notify(new KinetikNotification(
                 'plan_rtl',
                 count($teamIds).' RTL triwulan lalu menjadi rencana kerja Anda. Periksa dan ubah bila perlu.',
-                route('weekly-plan.index', ['team' => $teamIds[0], 'week' => $start->toDateString()]),
+                route('weekly.index', ['week' => $start->toDateString()]),
             ));
         }
 

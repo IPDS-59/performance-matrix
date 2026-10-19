@@ -1,4 +1,4 @@
-import type { PlanFlowStep, PlanItemRow } from '@/types';
+import type { PlanItemRow } from '@/types';
 
 export type PlanStageKey = 'planned' | 'in_kipapp' | 'in_progress' | 'done' | 'sent';
 export type PlanTone = 'neutral' | 'info' | 'warning' | 'success' | 'done';
@@ -44,8 +44,3 @@ export const toneClass: Record<PlanTone, string> = {
     success: 'bg-green-50 text-green-800',
     done: 'bg-emerald-100 text-emerald-900',
 };
-
-/** The first blocked step of a member's flow: the message worth showing on the card. */
-export function firstBlocker(flow: PlanFlowStep[]): PlanFlowStep | null {
-    return flow.find(step => step.state === 'blocked') ?? null;
-}

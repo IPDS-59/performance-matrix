@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import AppLayout from '@/Layouts/AppLayout.vue';
 import { Head, Link, router } from '@inertiajs/vue3';
-import type { Team } from '@/types';
+import type { Employee, Team } from '@/types';
+import TeamFormDialog from '@/Components/Teams/TeamFormDialog.vue';
 import { Button } from '@/Components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/Components/ui/table';
 import ConfirmDialog from '@/Components/ConfirmDialog.vue';
@@ -10,7 +11,12 @@ import { ref } from 'vue';
 const props = defineProps<{
     teams: Team[];
     manageableTeamIds: number[];
+    employees: Employee[];
 }>();
+
+const formOpen = ref(false);
+const editing = ref<Team | null>(null);
+function openForm(team: Team | null) { editing.value = team; formOpen.value = true; }
 
 const manageableSet = new Set(props.manageableTeamIds);
 
@@ -37,9 +43,7 @@ function executeDelete() {
         <template #title>Tim Kerja</template>
 
         <div class="mb-4 flex justify-end">
-            <Button as-child>
-                <Link :href="route('teams.create')">Tambah Tim</Link>
-            </Button>
+            <Button @click="openForm(null)">Tambah Tim</Button>
         </div>
 
         <div class="rounded-md border bg-white">
@@ -71,9 +75,7 @@ function executeDelete() {
                                 <Button v-if="manageableSet.has(team.id)" variant="outline" size="sm" as-child>
                                     <Link :href="route('teams.members.edit', team.id)">Kelola Anggota</Link>
                                 </Button>
-                                <Button variant="outline" size="sm" as-child>
-                                    <Link :href="route('teams.edit', team.id)">Edit</Link>
-                                </Button>
+                                <Button variant="outline" size="sm" @click="openForm(team)">Edit</Button>
                                 <Button variant="destructive" size="sm" @click="confirmDelete(team.id, team.name)">
                                     Hapus
                                 </Button>
@@ -83,6 +85,8 @@ function executeDelete() {
                 </TableBody>
             </Table>
         </div>
+
+        <TeamFormDialog v-model:open="formOpen" :item="editing" :employees="employees" />
 
         <ConfirmDialog
             v-model:open="confirmOpen"

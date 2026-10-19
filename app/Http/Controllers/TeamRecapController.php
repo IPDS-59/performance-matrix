@@ -2,22 +2,20 @@
 
 namespace App\Http\Controllers;
 
-use App\Actions\Kinetik\MergeRecapRowsAction;
-use App\Actions\Kinetik\PrefillRecapAction;
-use App\Actions\Kinetik\SaveWeeklyRecapRowsAction;
+use App\Actions\Kinetik\BuildAttentionItemsAction;
+use App\Actions\Kinetik\SaveRkRecapAction;
 use App\Http\Controllers\Concerns\ResolvesTeams;
-use App\Models\ActivityClaim;
 use App\Models\Employee;
 use App\Models\LeadershipNote;
 use App\Models\PerformancePlan;
+use App\Models\PlanItem;
 use App\Models\Project;
 use App\Models\RecapLock;
 use App\Models\RecapOverride;
 use App\Models\RecapSummary;
+use App\Models\RkRecap;
 use App\Models\Team;
 use App\Models\TeamRecapEvidence;
-use App\Models\WeeklyRecapRow;
-use App\Models\WeeklyTeamNote;
 use App\Notifications\KinetikNotification;
 use App\Services\Kinetik\RecapAggregator;
 use Carbon\Carbon;
@@ -30,6 +28,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Inertia\Inertia;
 use Inertia\Response;
+use RuntimeException;
 
 class TeamRecapController extends Controller
 {
@@ -47,14 +46,35 @@ class TeamRecapController extends Controller
         $teams = $this->teamsFor($request);
         $team = $this->selectedTeam($request, $teams, $employee);
 
-        $defaultWeek = $team ? $this->aggregator->defaultWeekStart($team) : null;
-        $anchor = $request->query('week')
-            ? Carbon::parse($request->query('week'))
-            : ($defaultWeek ? Carbon::parse($defaultWeek) : now());
-        $weekStart = $anchor->copy()->startOfWeek(Carbon::MONDAY)->toDateString();
-        $weekEnd = $anchor->copy()->endOfWeek(Carbon::SUNDAY)->toDateString();
+        // The page opens on the months of a year, then the weeks of the chosen month, then one week.
+        if ($request->query('week') === null) {
+            $year = $request->query('year') !== null
+                ? (int) $request->query('year')
+                : (($team ? $this->aggregator->latestPeriod($team) : null) ?? now())->year;
+            $month = $request->query('month') !== null ? (int) $request->query('month') : null;
 
-        $segments = $team ? $this->aggregator->weeklyRows($team, $weekStart) : [];
+            return Inertia::render('Kinetik/TeamWeeklyRecap', [
+                'teams' => $this->teamOptions($teams),
+                'selectedTeamId' => $team?->id,
+                'view' => $month === null ? 'months' : 'weeks',
+                'periods' => $team ? ($month === null ? $this->monthRows($team, $year) : $this->weekRows($team, $year, $month)) : [],
+                'year' => $year,
+                'month' => $month,
+                'panels' => [],
+                'evidences' => [],
+                'weekStart' => '',
+                'weekEnd' => '',
+                'prevWeek' => '',
+                'nextWeek' => '',
+                'canManage' => $team !== null && $employee !== null && $this->isPj($employee, $team->id),
+                'currentEmployeeId' => $employee?->id,
+                'members' => [],
+                'plans' => [],
+            ]);
+        }
+
+        $monday = Carbon::parse($request->query('week'))->startOfWeek(Carbon::MONDAY);
+        $weekStart = $monday->toDateString();
 
         $evidences = $team
             ? TeamRecapEvidence::where('team_id', $team->id)
@@ -67,26 +87,53 @@ class TeamRecapController extends Controller
         return Inertia::render('Kinetik/TeamWeeklyRecap', [
             'teams' => $this->teamOptions($teams),
             'selectedTeamId' => $team?->id,
-            'segments' => $segments,
+            'view' => 'detail',
+            'periods' => [],
+            'year' => $monday->year,
+            'month' => $monday->month,
+            'panels' => $team ? $this->aggregator->panels($team, 'week', $monday) : [],
             'evidences' => $evidences,
             'weekStart' => $weekStart,
-            'weekEnd' => $weekEnd,
-            'prevWeek' => Carbon::parse($weekStart)->subWeek()->toDateString(),
-            'nextWeek' => Carbon::parse($weekStart)->addWeek()->toDateString(),
-            ...$this->lockProps($employee, $team, 'week', (int) Carbon::parse($weekStart)->year, weekStart: $weekStart),
+            'weekEnd' => $monday->copy()->endOfWeek(Carbon::SUNDAY)->toDateString(),
+            'prevWeek' => $monday->copy()->subWeek()->toDateString(),
+            'nextWeek' => $monday->copy()->addWeek()->toDateString(),
+            'canManage' => $team !== null && $employee !== null && $this->isPj($employee, $team->id),
             'currentEmployeeId' => $employee?->id,
             'members' => $team ? $this->aggregator->memberCompleteness($team, $weekStart) : [],
-            // "Laporan Tersimpan": the four weeks before, read-only.
-            'previousWeeks' => $team ? collect(range(1, 4))
-                ->map(fn (int $n) => [$n, Carbon::parse($weekStart)->subWeeks($n)])
-                ->map(fn (array $week) => [
-                    'label' => $week[0] === 1 ? 'Minggu lalu' : "{$week[0]} minggu lalu",
-                    'start' => $week[1]->toDateString(),
-                    'end' => $week[1]->copy()->endOfWeek(Carbon::SUNDAY)->toDateString(),
-                    'segments' => $this->aggregator->weekly($team, $week[1]->toDateString()),
-                ])
-                ->all() : [],
+            'plans' => $team ? $this->weekPlans($team, $monday) : [],
         ]);
+    }
+
+    /**
+     * What each member plans or did this week, read only, for the PJ's weekly meeting.
+     *
+     * @return list<array<string, mixed>>
+     */
+    private function weekPlans(Team $team, Carbon $monday): array
+    {
+        return PlanItem::where('team_id', $team->id)
+            ->duringWeek($monday->toDateString(), $monday->copy()->endOfWeek(Carbon::SUNDAY)->toDateString())
+            ->with(['employee:id,name,display_name', 'performancePlan:id,description'])
+            ->orderBy('date_start')
+            ->get()
+            ->sortBy(fn (PlanItem $p) => $p->employee?->display_name ?? $p->employee?->name)
+            ->map(fn (PlanItem $p) => [
+                'id' => $p->id,
+                'employee_id' => $p->employee_id,
+                'employee_name' => $p->employee?->display_name ?? $p->employee?->name ?? '-',
+                'description' => $p->description,
+                'rk_name' => $p->performancePlan?->description,
+                'date_start' => Carbon::parse($p->date_start)->toDateString(),
+                'date_end' => Carbon::parse($p->date_end)->toDateString(),
+                'target' => $p->target !== null ? (float) $p->target : null,
+                'target_unit' => $p->target_unit,
+                'capaian' => $p->capaian !== null ? (float) $p->capaian : null,
+                'capaian_note' => $p->capaian_note,
+                'evidence_url' => $p->evidence_url,
+                'status' => $p->status,
+                'in_kipapp' => $p->kip_external_id !== null,
+                'sent' => $p->kip_sent_at !== null,
+            ])->values()->all();
     }
 
     // ── Team monthly recap ───────────────────────────────────────────────────
@@ -97,31 +144,135 @@ class TeamRecapController extends Controller
         $teams = $this->teamsFor($request);
         $team = $this->selectedTeam($request, $teams, $employee);
 
-        $hasYearParam = $request->query('year') !== null;
-        $hasMonthParam = $request->query('month') !== null;
+        $year = $request->query('year') !== null
+            ? (int) $request->query('year')
+            : (($team ? $this->aggregator->latestPeriod($team) : null) ?? now())->year;
 
-        if (! $hasYearParam && ! $hasMonthParam && $team) {
-            $latest = $this->aggregator->latestClaimPeriod($team);
-            $year = $latest?->period_year ?? now()->year;
-            $month = $latest?->period_month ?? now()->month;
-        } else {
-            $year = (int) $request->query('year', now()->year);
-            $month = (int) $request->query('month', now()->month);
+        // No month in the address: show the list of months. A month opens its detail.
+        if ($request->query('month') === null) {
+            return Inertia::render('Kinetik/MonthlyRecap', [
+                'teams' => $this->teamOptions($teams),
+                'selectedTeamId' => $team?->id,
+                'view' => 'list',
+                'months' => $team ? $this->monthRows($team, $year) : [],
+                'panels' => [],
+                'year' => $year,
+                'month' => null,
+                'canManage' => $team !== null && $employee !== null && $this->isPj($employee, $team->id),
+                'currentEmployeeId' => $employee?->id,
+            ]);
         }
 
-        $segments = $team ? $this->aggregator->monthly($team, $year, $month) : [];
+        $month = (int) $request->query('month');
 
         return Inertia::render('Kinetik/MonthlyRecap', [
+            'view' => 'detail',
+            'months' => [],
             'teams' => $this->teamOptions($teams),
             'selectedTeamId' => $team?->id,
-            'segments' => $segments,
-            'sections' => $team ? $this->weekSections($team, $year, $month) : [],
-            'summaries' => $team ? $this->summaries($team, 'month', $year, month: $month) : (object) [],
+            'panels' => $team ? $this->aggregator->panels($team, 'month', Carbon::create($year, $month, 1)) : [],
             'year' => $year,
             'month' => $month,
-            ...$this->lockProps($employee, $team, 'month', $year, month: $month),
+            'canManage' => $team !== null && $employee !== null && $this->isPj($employee, $team->id),
             'currentEmployeeId' => $employee?->id,
         ]);
+    }
+
+    /**
+     * One row per month of the year: how many kegiatan the members planned, how many RK have a
+     * paraphrase, and how many are locked.
+     *
+     * @return list<array{month: int, key: int, current: bool, label: string, activities: int, written: int, locked: int}>
+     */
+    private function monthRows(Team $team, int $year): array
+    {
+        $activities = PlanItem::where('team_id', $team->id)->where('status', '!=', 'cancelled')
+            ->whereDate('date_start', '>=', "{$year}-01-01")->whereDate('date_start', '<=', "{$year}-12-31")
+            ->pluck('date_start')
+            ->countBy(fn ($d) => (int) Carbon::parse($d)->month);
+
+        $recaps = RkRecap::where('team_id', $team->id)->where('period_type', 'month')
+            ->whereDate('period_start', '>=', "{$year}-01-01")->whereDate('period_start', '<=', "{$year}-12-31")
+            ->get(['period_start', 'paraphrase', 'locked_at'])
+            ->groupBy(fn ($r) => (int) Carbon::parse($r->period_start)->month);
+
+        return collect(range(1, 12))->map(fn (int $m) => [
+            'month' => $m,
+            'key' => $m,
+            'current' => $year === now()->year && $m === now()->month,
+            'label' => Carbon::create($year, $m, 1)->locale('id')->translatedFormat('F'),
+            'activities' => (int) ($activities[$m] ?? 0),
+            'written' => ($recaps[$m] ?? collect())->filter(fn ($r) => filled($r->paraphrase))->count(),
+            'locked' => ($recaps[$m] ?? collect())->filter(fn ($r) => $r->locked_at !== null)->count(),
+        ])->all();
+    }
+
+    /**
+     * The weeks (Monday to Sunday) that touch a month, with the same counts as monthRows().
+     *
+     * @return list<array{key: string, label: string, current: bool, activities: int, written: int, locked: int}>
+     */
+    private function weekRows(Team $team, int $year, int $month): array
+    {
+        $first = Carbon::create($year, $month, 1)->startOfWeek(Carbon::MONDAY);
+        $last = Carbon::create($year, $month, 1)->endOfMonth();
+        $starts = [];
+        for ($d = $first->copy(); $d->lte($last); $d->addWeek()) {
+            $starts[] = $d->toDateString();
+        }
+
+        $items = PlanItem::where('team_id', $team->id)->where('status', '!=', 'cancelled')
+            ->whereDate('date_start', '>=', $starts[0])->whereDate('date_start', '<=', Carbon::parse(end($starts))->endOfWeek(Carbon::SUNDAY)->toDateString())
+            ->pluck('date_start')
+            ->countBy(fn ($d) => Carbon::parse($d)->startOfWeek(Carbon::MONDAY)->toDateString());
+
+        $recaps = RkRecap::where('team_id', $team->id)->where('period_type', 'week')->whereIn('period_start', $starts)
+            ->get(['period_start', 'paraphrase', 'locked_at'])
+            ->groupBy(fn ($r) => Carbon::parse($r->period_start)->toDateString());
+
+        $thisWeek = now()->startOfWeek(Carbon::MONDAY)->toDateString();
+
+        return collect($starts)->map(fn (string $start) => [
+            'key' => $start,
+            'label' => Carbon::parse($start)->locale('id')->translatedFormat('j M').' – '.Carbon::parse($start)->endOfWeek(Carbon::SUNDAY)->locale('id')->translatedFormat('j M Y'),
+            'current' => $start === $thisWeek,
+            'activities' => (int) ($items[$start] ?? 0),
+            'written' => ($recaps[$start] ?? collect())->filter(fn ($r) => filled($r->paraphrase))->count(),
+            'locked' => ($recaps[$start] ?? collect())->filter(fn ($r) => $r->locked_at !== null)->count(),
+        ])->all();
+    }
+
+    /**
+     * The four quarters of a year: kegiatan planned, month RK paraphrases written, and whether the
+     * quarter recap is locked.
+     *
+     * @return list<array{key: int, label: string, current: bool, activities: int, written: int, locked: int}>
+     */
+    private function quarterRows(Team $team, int $year): array
+    {
+        $items = PlanItem::where('team_id', $team->id)->where('status', '!=', 'cancelled')
+            ->whereDate('date_start', '>=', "{$year}-01-01")->whereDate('date_start', '<=', "{$year}-12-31")
+            ->pluck('date_start')
+            ->countBy(fn ($d) => (int) Carbon::parse($d)->quarter);
+
+        $recaps = RkRecap::where('team_id', $team->id)->where('period_type', 'month')
+            ->whereDate('period_start', '>=', "{$year}-01-01")->whereDate('period_start', '<=', "{$year}-12-31")
+            ->get(['period_start', 'paraphrase'])
+            ->filter(fn ($r) => filled($r->paraphrase))
+            ->countBy(fn ($r) => (int) Carbon::parse($r->period_start)->quarter);
+
+        return collect([1, 2, 3, 4])->map(function (int $q) use ($team, $year, $items, $recaps) {
+            $written = (int) ($recaps[$q] ?? 0);
+
+            return [
+                'key' => $q,
+                'label' => "Triwulan {$q}",
+                'current' => $year === now()->year && $q === now()->quarter,
+                'activities' => (int) ($items[$q] ?? 0),
+                'written' => $written,
+                'locked' => RecapLock::forPeriod($team->id, 'quarter', $year, null, $q, null) ? max($written, 1) : 0,
+            ];
+        })->all();
     }
 
     // ── Team quarterly recap (FRA) ───────────────────────────────────────────
@@ -132,23 +283,39 @@ class TeamRecapController extends Controller
         $teams = $this->teamsFor($request);
         $team = $this->selectedTeam($request, $teams, $employee);
 
-        $hasYearParam = $request->query('year') !== null;
-        $hasQuarterParam = $request->query('quarter') !== null;
+        $year = $request->query('year') !== null
+            ? (int) $request->query('year')
+            : (($team ? $this->aggregator->latestPeriod($team) : null) ?? now())->year;
 
-        if (! $hasYearParam && ! $hasQuarterParam && $team) {
-            $latest = $this->aggregator->latestClaimPeriod($team);
-            $year = $latest?->period_year ?? now()->year;
-            $quarter = $latest?->period_quarter ?? (int) intdiv(now()->month - 1, 3) + 1;
-        } else {
-            $year = (int) $request->query('year', now()->year);
-            $quarter = (int) $request->query('quarter', (int) intdiv(now()->month - 1, 3) + 1);
+        // No quarter in the address: show the four quarters of the year. One opens its detail.
+        if ($request->query('quarter') === null) {
+            return Inertia::render('Kinetik/QuarterlyRecap', [
+                'teams' => $this->teamOptions($teams),
+                'selectedTeamId' => $team?->id,
+                'view' => 'list',
+                'periods' => $team ? $this->quarterRows($team, $year) : [],
+                'segments' => [],
+                'sections' => [],
+                'summaries' => (object) [],
+                'year' => $year,
+                'quarter' => 1,
+                'pics' => [],
+                'canManage' => false,
+                'canLock' => false,
+                'lock' => null,
+                'currentEmployeeId' => $employee?->id,
+            ]);
         }
+
+        $quarter = (int) $request->query('quarter');
 
         $segments = $team ? $this->aggregator->quarterly($team, $year, $quarter) : [];
 
         return Inertia::render('Kinetik/QuarterlyRecap', [
             'teams' => $this->teamOptions($teams),
             'selectedTeamId' => $team?->id,
+            'view' => 'detail',
+            'periods' => [],
             'segments' => $segments,
             'sections' => $team ? $this->monthSections($team, $year, $quarter) : [],
             'summaries' => $team ? $this->summaries($team, 'quarter', $year, quarter: $quarter) : (object) [],
@@ -225,6 +392,7 @@ class TeamRecapController extends Controller
             'weekEnd' => Carbon::parse($weekStart)->endOfWeek(Carbon::SUNDAY)->toDateString(),
             'teams' => $teams,
             'canWriteNotes' => $request->user()->hasRole('head'),
+            'attention' => app(BuildAttentionItemsAction::class)->execute($this->teamsFor($request)),
         ]);
     }
 
@@ -404,11 +572,9 @@ class TeamRecapController extends Controller
 
         $validated = $request->validate([
             'team_id' => ['required', 'integer', 'exists:teams,id'],
-            'period_type' => ['required', 'in:week,month,quarter'],
+            'period_type' => ['required', 'in:quarter'],
             'period_year' => ['required', 'integer'],
-            'period_month' => ['nullable', 'integer', 'between:1,12', 'required_if:period_type,month'],
-            'period_quarter' => ['nullable', 'integer', 'between:1,4', 'required_if:period_type,quarter'],
-            'week_start' => ['nullable', 'date', 'required_if:period_type,week'],
+            'period_quarter' => ['required', 'integer', 'between:1,4'],
             'locked' => ['required', 'boolean'],
         ]);
 
@@ -423,14 +589,11 @@ class TeamRecapController extends Controller
         }
 
         if ($existing === null) {
-            $type = $validated['period_type'];
             RecapLock::create([
                 'team_id' => $validated['team_id'],
-                'period_type' => $type,
+                'period_type' => 'quarter',
                 'period_year' => $validated['period_year'],
-                'week_start' => $type === 'week' ? Carbon::parse($validated['week_start'])->toDateString() : null,
-                'period_month' => $type === 'month' ? $validated['period_month'] : null,
-                'period_quarter' => $type === 'quarter' ? $validated['period_quarter'] : null,
+                'period_quarter' => $validated['period_quarter'],
                 'locked_by' => $employee->id,
             ]);
         }
@@ -457,7 +620,6 @@ class TeamRecapController extends Controller
         $this->authorizePj($employee, (int) $validated['team_id']);
 
         $weekStart = Carbon::parse($validated['week_start']);
-        $this->ensureUnlocked((int) $validated['team_id'], 'week', $weekStart->year, weekStart: $weekStart->toDateString());
 
         TeamRecapEvidence::create([
             'team_id' => $validated['team_id'],
@@ -480,47 +642,64 @@ class TeamRecapController extends Controller
         abort_if($employee === null, 403, 'Akun tidak terhubung ke data pegawai.');
 
         $this->authorizePj($employee, $evidence->team_id);
-        $this->ensureUnlocked($evidence->team_id, 'week', $evidence->period_year, weekStart: Carbon::parse($evidence->week_start)->toDateString());
-
         $evidence->delete();
 
         return back()->with('success', 'Bukti dukung berhasil dihapus.');
     }
 
-    // ── Single weekly PJ note ────────────────────────────────────────────────
+    // ── Per-RK paraphrase, target and capaian (week, month) ─────────────────
 
-    public function storeWeeklyNote(Request $request): RedirectResponse
+    public function storeRk(Request $request, SaveRkRecapAction $action): RedirectResponse
+    {
+        $data = $this->validatedRk($request, [
+            'paraphrase' => ['nullable', 'string', 'max:5000'],
+            'target' => ['nullable', 'numeric', 'min:0', 'max:9999999999'],
+            'target_unit' => ['nullable', 'string', 'max:100'],
+            'capaian' => ['nullable', 'numeric', 'min:0', 'max:9999999999'],
+            'lock' => ['sometimes', 'boolean'],
+        ]);
+
+        try {
+            $action->save($request->user()->employee, $data, (bool) ($data['lock'] ?? false));
+        } catch (RuntimeException $e) {
+            return back()->with('error', $e->getMessage());
+        }
+
+        return back()->with('success', ! empty($data['lock']) ? 'Rekap RK disimpan dan dikunci.' : 'Rekap RK disimpan.');
+    }
+
+    public function unlockRk(Request $request, SaveRkRecapAction $action): RedirectResponse
+    {
+        $action->unlock($this->validatedRk($request));
+
+        return back()->with('success', 'Kunci rekap RK dibuka.');
+    }
+
+    /**
+     * The shared part of the RK endpoints: the period and RK of a team, and the
+     * actor being the PJ or the RK's PIC.
+     *
+     * @param  array<string, mixed>  $rules
+     * @return array<string, mixed>
+     */
+    private function validatedRk(Request $request, array $rules = []): array
     {
         $employee = $request->user()->employee;
         abort_if($employee === null, 403, 'Akun tidak terhubung ke data pegawai.');
 
-        $validated = $request->validate([
+        $data = $request->validate([
             'team_id' => ['required', 'integer', 'exists:teams,id'],
-            'week_start' => ['required', 'date'],
-            'uraian' => ['nullable', 'string'],
-            'obstacle' => ['nullable', 'string'],
-            'solution' => ['nullable', 'string'],
-            'follow_up_plan' => ['nullable', 'string'],
+            'performance_plan_id' => ['required', 'integer', 'exists:performance_plans,id'],
+            'period_type' => ['required', 'in:week,month'],
+            'period_start' => ['required', 'date'],
+            ...$rules,
         ]);
 
-        $this->authorizePj($employee, (int) $validated['team_id']);
-        $this->ensureUnlocked((int) $validated['team_id'], 'week', Carbon::parse($validated['week_start'])->year, weekStart: $validated['week_start']);
+        $plan = PerformancePlan::with('project')->findOrFail($data['performance_plan_id']);
+        abort_unless(($plan->project?->team_id ?? $plan->team_id) === (int) $data['team_id'], 422, 'RK ini bukan milik tim yang dipilih.');
+        $this->authorizeParaphrase($employee, (int) $data['team_id'], $plan);
 
-        WeeklyTeamNote::updateOrCreate(
-            [
-                'team_id' => $validated['team_id'],
-                'week_start' => $validated['week_start'],
-            ],
-            [
-                'uraian' => $validated['uraian'] ?? null,
-                'obstacle' => $validated['obstacle'] ?? null,
-                'solution' => $validated['solution'] ?? null,
-                'follow_up_plan' => $validated['follow_up_plan'] ?? null,
-                'created_by' => $employee->id,
-            ],
-        );
-
-        return back()->with('success', 'Catatan mingguan berhasil disimpan.');
+        return $data;
     }
 
     // ── Paraphrase / FRA follow-up override ──────────────────────────────────
@@ -534,11 +713,9 @@ class TeamRecapController extends Controller
             'team_id' => ['required', 'integer', 'exists:teams,id'],
             'performance_plan_id' => ['required', 'integer', 'exists:performance_plans,id'],
             'project_id' => ['nullable', 'integer', 'exists:projects,id'],
-            'period_type' => ['required', 'in:week,month,quarter'],
-            'period_year' => ['nullable', 'integer'],
-            'period_month' => ['nullable', 'integer', 'between:1,12'],
-            'period_quarter' => ['nullable', 'integer', 'between:1,4'],
-            'week_start' => ['nullable', 'date', 'required_if:period_type,week'],
+            'period_type' => ['required', 'in:quarter'],
+            'period_year' => ['required', 'integer'],
+            'period_quarter' => ['required', 'integer', 'between:1,4'],
             'uraian' => ['nullable', 'string'],
             'obstacle' => ['nullable', 'string'],
             'solution' => ['nullable', 'string'],
@@ -547,10 +724,6 @@ class TeamRecapController extends Controller
             'follow_up_pic_employee_id' => ['nullable', 'integer', 'exists:employees,id'],
             'follow_up_deadline' => ['nullable', 'date'],
         ]);
-
-        if (($validated['period_type'] ?? '') === 'week' && empty($validated['period_year'])) {
-            $validated['period_year'] = Carbon::parse($validated['week_start'])->year;
-        }
 
         $plan = PerformancePlan::findOrFail((int) $validated['performance_plan_id']);
         $this->authorizeParaphrase($employee, (int) $validated['team_id'], $plan);
@@ -561,15 +734,14 @@ class TeamRecapController extends Controller
                 'team_id' => $validated['team_id'],
                 'performance_plan_id' => $validated['performance_plan_id'],
                 'project_id' => $validated['project_id'] ?? null,
-                'period_type' => $validated['period_type'],
+                'period_type' => 'quarter',
                 'period_year' => $validated['period_year'],
-                'period_month' => $validated['period_month'] ?? null,
-                'period_quarter' => $validated['period_quarter'] ?? null,
-                'week_start' => $validated['week_start'] ?? null,
+                'period_month' => null,
+                'period_quarter' => $validated['period_quarter'],
+                'week_start' => null,
             ],
             [
-                // Only the fields the form sent: the weekly form has no
-                // Permasalahan, and must not clear the one saved elsewhere.
+                // Only the fields the form sent.
                 ...collect(['uraian', 'obstacle', 'solution', 'follow_up_plan', 'follow_up_evidence_url', 'follow_up_pic_employee_id', 'follow_up_deadline'])
                     ->filter(fn (string $field) => $request->exists($field))
                     ->mapWithKeys(fn (string $field) => [$field => $validated[$field] ?? null])
@@ -581,276 +753,6 @@ class TeamRecapController extends Controller
         return back()->with('success', 'Rekap berhasil diparafrase.');
     }
 
-    // ── Pre-fill from lower periods ──────────────────────────────────────────
-
-    /**
-     * Fill the empty text of a monthly recap from its weeks, or of a quarterly
-     * recap from its months. PJ only; blocked while the period is locked.
-     */
-    public function prefill(Request $request, PrefillRecapAction $prefill): RedirectResponse
-    {
-        $employee = $request->user()->employee;
-        abort_if($employee === null, 403, 'Akun tidak terhubung ke data pegawai.');
-
-        $validated = $request->validate([
-            'team_id' => ['required', 'integer', 'exists:teams,id'],
-            'period_type' => ['required', 'in:month,quarter'],
-            'period_year' => ['required', 'integer', 'between:2000,2100'],
-            'period_month' => ['nullable', 'integer', 'between:1,12', 'required_if:period_type,month'],
-            'period_quarter' => ['nullable', 'integer', 'between:1,4', 'required_if:period_type,quarter'],
-        ]);
-
-        $this->authorizePj($employee, (int) $validated['team_id']);
-        $this->ensureUnlockedFor($validated);
-
-        $type = $validated['period_type'];
-        $filled = $prefill->execute(
-            Team::findOrFail($validated['team_id']),
-            $employee,
-            $type,
-            (int) $validated['period_year'],
-            $type === 'month' ? (int) $validated['period_month'] : null,
-            $type === 'quarter' ? (int) $validated['period_quarter'] : null,
-        );
-
-        $source = $type === 'month' ? 'mingguan' : 'bulanan';
-
-        return back()->with('success', $filled
-            ? "{$filled} baris diisi dari rekap {$source}. Teks yang sudah ada tidak diubah."
-            : "Tidak ada teks {$source} baru untuk diisi.");
-    }
-
-    // ── PJ corrects a member's numbers ───────────────────────────────────────
-
-    /**
-     * The PJ corrects a member's target or realisasi on the team recap. The
-     * claim remembers who changed it, and the member's next save resets that.
-     */
-    public function adjustClaim(Request $request, ActivityClaim $claim): RedirectResponse
-    {
-        $employee = $request->user()->employee;
-        abort_if($employee === null, 403, 'Akun tidak terhubung ke data pegawai.');
-
-        $claim->loadMissing('performancePlan.project');
-        $teamId = $claim->project?->team_id ?? $claim->performancePlan?->project?->team_id ?? $claim->performancePlan?->team_id;
-        abort_if($teamId === null, 404);
-        $this->authorizePj($employee, (int) $teamId);
-
-        if (RecapLock::coversDate((int) $teamId, Carbon::parse($claim->activity_date_start))) {
-            return back()->with('error', self::LOCKED_MESSAGE);
-        }
-
-        $validated = $request->validate([
-            'target' => ['nullable', 'numeric', 'min:0'],
-            'realization' => ['nullable', 'numeric', 'min:0'],
-        ]);
-
-        $this->applyClaimNumbers($claim, $employee, $validated);
-
-        return back()->with('success', 'Angka anggota diperbarui.');
-    }
-
-    /**
-     * Save one Projek card of the weekly recap: the PJ's rows (one per kegiatan,
-     * or merged) and the corrections to member numbers, in one request. Saving
-     * makes the rows part of "Laporan Tersimpan".
-     */
-    public function saveWeeklyProject(Request $request, SaveWeeklyRecapRowsAction $rows): RedirectResponse
-    {
-        $employee = $request->user()->employee;
-        abort_if($employee === null, 403, 'Akun tidak terhubung ke data pegawai.');
-
-        $validated = $request->validate([
-            'team_id' => ['required', 'integer', 'exists:teams,id'],
-            'week_start' => ['required', 'date'],
-            'rows' => ['array'],
-            'rows.*.claim_ids' => ['required', 'array', 'min:1'],
-            'rows.*.claim_ids.*' => ['integer', 'exists:activity_claims,id'],
-            'rows.*.uraian' => ['nullable', 'string'],
-            'rows.*.obstacle' => ['nullable', 'string'],
-            'rows.*.solution' => ['nullable', 'string'],
-            'rows.*.follow_up_plan' => ['nullable', 'string'],
-            'claims' => ['array'],
-            'claims.*.id' => ['required', 'integer', 'exists:activity_claims,id'],
-            'claims.*.target' => ['nullable', 'numeric', 'min:0'],
-            'claims.*.realization' => ['nullable', 'numeric', 'min:0'],
-            'claims.*.target_unit' => ['nullable', 'string', 'max:50'],
-        ]);
-
-        $teamId = (int) $validated['team_id'];
-        $weekStart = Carbon::parse($validated['week_start'])->toDateString();
-        $this->ensureUnlocked($teamId, 'week', Carbon::parse($weekStart)->year, weekStart: $weekStart);
-
-        $claimIds = collect($validated['rows'] ?? [])->pluck('claim_ids')->flatten()->merge(collect($validated['claims'] ?? [])->pluck('id'))->unique();
-        $claims = ActivityClaim::with('performancePlan.project', 'project')->whereIn('id', $claimIds)->get()->keyBy('id');
-        foreach ($claims as $claim) {
-            $claimTeam = $claim->project?->team_id ?? $claim->performancePlan?->project?->team_id ?? $claim->performancePlan?->team_id;
-            abort_unless((int) $claimTeam === $teamId && Carbon::parse($claim->week_start)->toDateString() === $weekStart, 403, 'Klaim ini bukan milik tim dan minggu yang dipilih.');
-            // A locked month or quarter also freezes the numbers inside it.
-            if (RecapLock::coversDate($teamId, Carbon::parse($claim->activity_date_start))) {
-                return back()->with('error', self::LOCKED_MESSAGE);
-            }
-            $this->authorizeParaphrase($employee, $teamId, $claim->performancePlan);
-        }
-        // Numbers are the PJ's. Without any claim to prove a PIC role, only the PJ may save.
-        if (! empty($validated['claims']) || $claims->isEmpty()) {
-            $this->authorizePj($employee, $teamId);
-        }
-
-        DB::transaction(function () use ($validated, $rows, $employee, $teamId, $weekStart, $claims) {
-            $rows->save($teamId, $weekStart, collect($validated['rows'] ?? [])->map(fn (array $r) => [...$r, 'claim_ids' => array_map('intval', $r['claim_ids'])])->all(), $employee);
-
-            foreach ($validated['claims'] ?? [] as $input) {
-                $this->applyClaimNumbers($claims[$input['id']], $employee, $input);
-            }
-        });
-
-        return back()->with('success', 'Rekap projek disimpan ke Laporan Tersimpan.');
-    }
-
-    /** Merge the kegiatan the PJ ticked into one output row. */
-    public function mergeWeeklyRows(Request $request, SaveWeeklyRecapRowsAction $rows): RedirectResponse
-    {
-        [$employee, $teamId, $weekStart] = $this->weeklyRowRequest($request, [
-            'claim_ids' => ['required', 'array', 'min:2'],
-            'claim_ids.*' => ['integer', 'distinct', 'exists:activity_claims,id'],
-        ]);
-
-        $claims = ActivityClaim::with('performancePlan.project', 'project')->whereIn('id', $request->input('claim_ids'))->get();
-        abort_unless($claims->count() === count($request->input('claim_ids')), 422);
-        abort_unless($claims->every(fn (ActivityClaim $c) => Carbon::parse($c->week_start)->toDateString() === $weekStart), 422, 'Hanya kegiatan dari minggu yang sama yang dapat digabung.');
-        abort_unless($claims->map(fn (ActivityClaim $c) => $c->project_id ?? $c->performancePlan?->project_id)->unique()->count() === 1, 422, 'Hanya kegiatan dari projek yang sama yang dapat digabung.');
-
-        $rows->merge($teamId, $weekStart, array_map('intval', $request->input('claim_ids')), $employee);
-
-        return back()->with('success', 'Kegiatan digabungkan. Tulis satu parafrase untuk baris gabungan.');
-    }
-
-    /** Undo a merge: every kegiatan is a row of its own again. */
-    public function splitWeeklyRow(Request $request, SaveWeeklyRecapRowsAction $rows): RedirectResponse
-    {
-        [, $teamId] = $this->weeklyRowRequest($request, ['row_id' => ['required', 'integer', 'exists:weekly_recap_rows,id']]);
-
-        $row = WeeklyRecapRow::where('team_id', $teamId)->findOrFail($request->integer('row_id'));
-        $rows->split($row);
-
-        return back()->with('success', 'Penggabungan dibatalkan.');
-    }
-
-    /**
-     * @param  array<string, mixed>  $rules
-     * @return array{0: Employee, 1: int, 2: string}
-     */
-    private function weeklyRowRequest(Request $request, array $rules): array
-    {
-        $employee = $request->user()->employee;
-        abort_if($employee === null, 403, 'Akun tidak terhubung ke data pegawai.');
-
-        $validated = $request->validate(['team_id' => ['required', 'integer', 'exists:teams,id'], 'week_start' => ['required', 'date'], ...$rules]);
-        $teamId = (int) $validated['team_id'];
-        $weekStart = Carbon::parse($validated['week_start'])->toDateString();
-        $this->authorizePj($employee, $teamId);
-        $this->ensureUnlocked($teamId, 'week', Carbon::parse($weekStart)->year, weekStart: $weekStart);
-
-        return [$employee, $teamId, $weekStart];
-    }
-
-    /**
-     * @param  array{target?: mixed, realization?: mixed, target_unit?: mixed}  $input
-     */
-    private function applyClaimNumbers(ActivityClaim $claim, Employee $employee, array $input): void
-    {
-        $target = isset($input['target']) ? (float) $input['target'] : null;
-        $realization = isset($input['realization']) ? (float) $input['realization'] : null;
-
-        $claim->update([
-            'target' => $target,
-            'realization' => $realization,
-            'achievement' => $target && $realization !== null ? round($realization / $target * 100, 2) : null,
-            ...(array_key_exists('target_unit', $input) ? ['target_unit' => $input['target_unit']] : []),
-            'adjusted_by' => $employee->id,
-        ]);
-
-        // Tell the member, unless the PJ corrected their own claim or nothing changed.
-        $owner = $claim->employee?->user;
-        if ($owner && $owner->id !== $employee->user_id && $claim->wasChanged(['target', 'realization', 'target_unit'])) {
-            $number = fn (?float $v) => $v === null ? '—' : rtrim(rtrim(number_format($v, 2, ',', '.'), '0'), ',');
-            $owner->notify(new KinetikNotification(
-                'claim_adjusted',
-                ($employee->display_name ?? $employee->name).' mengoreksi angka kegiatan "'.Str::limit((string) ($claim->kipActivity?->description ?? 'Tanpa uraian'), 80).'": realisasi '.$number($realization).' dari target '.$number($target).' '.($claim->target_unit ?? '').'.',
-                route('weekly.index', ['week' => Carbon::parse($claim->week_start)->toDateString()]),
-            ));
-        }
-    }
-
-    // ── Gabungkan / Pisahkan rows ────────────────────────────────────────────
-
-    /**
-     * Merge two or more RK rows of one Projek into one recap row. PJ only.
-     */
-    public function mergeRows(Request $request, MergeRecapRowsAction $merge): RedirectResponse
-    {
-        [$employee, $period] = $this->rowGroupRequest($request, [
-            'project_id' => ['nullable', 'integer', 'exists:projects,id'],
-            'performance_plan_ids' => ['required', 'array', 'min:2'],
-            'performance_plan_ids.*' => ['integer', 'distinct', 'exists:performance_plans,id'],
-        ]);
-
-        $merge->merge($period, $request->integer('project_id') ?: null, array_map('intval', $request->input('performance_plan_ids')), $employee);
-
-        return back()->with('success', 'Baris digabungkan. Isi uraian dan parafrase pada baris pertama grup.');
-    }
-
-    /**
-     * Undo a merge; every row shows its own text again. PJ only.
-     */
-    public function splitRows(Request $request, MergeRecapRowsAction $merge): RedirectResponse
-    {
-        [, $period] = $this->rowGroupRequest($request, [
-            'merge_key' => ['required', 'string', 'max:64'],
-        ]);
-
-        $merge->split($period, (string) $request->input('merge_key'));
-
-        return back()->with('success', 'Baris dipisahkan.');
-    }
-
-    /**
-     * Shared validation for merge and split: the period, PJ of the team, unlocked.
-     *
-     * @param  array<string, mixed>  $rules
-     * @return array{0: Employee, 1: array<string, mixed>}
-     */
-    private function rowGroupRequest(Request $request, array $rules): array
-    {
-        $employee = $request->user()->employee;
-        abort_if($employee === null, 403, 'Akun tidak terhubung ke data pegawai.');
-
-        $validated = $request->validate([
-            'team_id' => ['required', 'integer', 'exists:teams,id'],
-            'period_type' => ['required', 'in:week,month,quarter'],
-            'period_year' => ['required', 'integer', 'between:2000,2100'],
-            'week_start' => ['nullable', 'date', 'required_if:period_type,week'],
-            'period_month' => ['nullable', 'integer', 'between:1,12', 'required_if:period_type,month'],
-            'period_quarter' => ['nullable', 'integer', 'between:1,4', 'required_if:period_type,quarter'],
-            ...$rules,
-        ]);
-
-        $this->authorizePj($employee, (int) $validated['team_id']);
-        $this->ensureUnlockedFor($validated);
-
-        $type = $validated['period_type'];
-
-        return [$employee, [
-            'team_id' => (int) $validated['team_id'],
-            'period_type' => $type,
-            'period_year' => (int) $validated['period_year'],
-            'week_start' => $type === 'week' ? Carbon::parse($validated['week_start'])->toDateString() : null,
-            'period_month' => $type === 'month' ? (int) $validated['period_month'] : null,
-            'period_quarter' => $type === 'quarter' ? (int) $validated['period_quarter'] : null,
-        ]];
-    }
-
     // ── Bulk confirm (achievement ≥ 100%) ────────────────────────────────────
 
     public function confirmBulk(Request $request): RedirectResponse
@@ -860,11 +762,9 @@ class TeamRecapController extends Controller
 
         $validated = $request->validate([
             'team_id' => ['required', 'integer', 'exists:teams,id'],
-            'period_type' => ['required', 'in:week,month,quarter'],
+            'period_type' => ['required', 'in:quarter'],
             'period_year' => ['required', 'integer'],
-            'period_month' => ['nullable', 'integer', 'between:1,12'],
-            'period_quarter' => ['nullable', 'integer', 'between:1,4'],
-            'week_start' => ['nullable', 'date', 'required_if:period_type,week'],
+            'period_quarter' => ['required', 'integer', 'between:1,4'],
             'performance_plan_ids' => ['required', 'array'],
             'performance_plan_ids.*' => ['integer', 'exists:performance_plans,id'],
             // Parallel to performance_plan_ids: the Projek of each row (nullable).
@@ -879,9 +779,9 @@ class TeamRecapController extends Controller
             'team_id' => $validated['team_id'],
             'period_type' => $validated['period_type'],
             'period_year' => $validated['period_year'],
-            'period_month' => $validated['period_month'] ?? null,
-            'period_quarter' => $validated['period_quarter'] ?? null,
-            'week_start' => $validated['week_start'] ?? null,
+            'period_month' => null,
+            'period_quarter' => $validated['period_quarter'],
+            'week_start' => null,
         ];
 
         DB::transaction(function () use ($validated, $periodKey, $employee) {
@@ -912,11 +812,9 @@ class TeamRecapController extends Controller
             'team_id' => ['required', 'integer', 'exists:teams,id'],
             'performance_plan_id' => ['required', 'integer', 'exists:performance_plans,id'],
             'project_id' => ['nullable', 'integer', 'exists:projects,id'],
-            'period_type' => ['required', 'in:week,month,quarter'],
+            'period_type' => ['required', 'in:quarter'],
             'period_year' => ['required', 'integer'],
-            'period_month' => ['nullable', 'integer', 'between:1,12'],
-            'period_quarter' => ['nullable', 'integer', 'between:1,4'],
-            'week_start' => ['nullable', 'date', 'required_if:period_type,week'],
+            'period_quarter' => ['required', 'integer', 'between:1,4'],
             'confirmed' => ['required', 'boolean'],
         ]);
 
@@ -929,9 +827,9 @@ class TeamRecapController extends Controller
             'project_id' => $validated['project_id'] ?? null,
             'period_type' => $validated['period_type'],
             'period_year' => $validated['period_year'],
-            'period_month' => $validated['period_month'] ?? null,
-            'period_quarter' => $validated['period_quarter'] ?? null,
-            'week_start' => $validated['week_start'] ?? null,
+            'period_month' => null,
+            'period_quarter' => $validated['period_quarter'],
+            'week_start' => null,
         ];
 
         RecapOverride::updateOrCreate($key, [
@@ -956,10 +854,9 @@ class TeamRecapController extends Controller
         $validated = $request->validate([
             'team_id' => ['required', 'integer', 'exists:teams,id'],
             'project_id' => ['nullable', 'integer', 'exists:projects,id'],
-            'period_type' => ['required', 'in:month,quarter'],
+            'period_type' => ['required', 'in:quarter'],
             'period_year' => ['required', 'integer', 'between:2000,2100'],
-            'period_month' => ['nullable', 'integer', 'between:1,12', 'required_if:period_type,month'],
-            'period_quarter' => ['nullable', 'integer', 'between:1,4', 'required_if:period_type,quarter'],
+            'period_quarter' => ['required', 'integer', 'between:1,4'],
             'body' => ['nullable', 'string', 'max:10000'],
             'obstacle' => ['nullable', 'string', 'max:10000'],
             'solution' => ['nullable', 'string', 'max:10000'],
@@ -975,8 +872,8 @@ class TeamRecapController extends Controller
             'project_id' => $validated['project_id'] ?? null,
             'period_type' => $type,
             'period_year' => (int) $validated['period_year'],
-            'period_month' => $type === 'month' ? (int) $validated['period_month'] : null,
-            'period_quarter' => $type === 'quarter' ? (int) $validated['period_quarter'] : null,
+            'period_month' => null,
+            'period_quarter' => (int) $validated['period_quarter'],
         ];
         $text = collect(['body', 'obstacle', 'solution', 'follow_up_plan'])
             ->mapWithKeys(fn (string $field) => [$field => trim($validated[$field] ?? '') ?: null]);
@@ -1001,32 +898,6 @@ class TeamRecapController extends Controller
             ->get()
             ->mapWithKeys(fn (RecapSummary $s) => [(string) ($s->project_id ?? 'none') => $s->only(['body', 'obstacle', 'solution', 'follow_up_plan'])])
             ->all();
-    }
-
-    /**
-     * Read-only weekly recaps of a month: weeks that start in the month, as the
-     * monthly pre-fill uses.
-     *
-     * @return list<array{label: string, start: string, end: string, segments: array<int, array<string, mixed>>}>
-     */
-    private function weekSections(Team $team, int $year, int $month): array
-    {
-        $sections = [];
-        $monday = Carbon::create($year, $month, 1)->startOfWeek(Carbon::MONDAY);
-        if ($monday->month !== $month) {
-            $monday->addWeek();
-        }
-
-        for ($n = 1; $monday->month === $month; $n++, $monday->addWeek()) {
-            $sections[] = [
-                'label' => "Minggu {$n}",
-                'start' => $monday->toDateString(),
-                'end' => $monday->copy()->endOfWeek(Carbon::SUNDAY)->toDateString(),
-                'segments' => $this->aggregator->weekly($team, $monday->toDateString()),
-            ];
-        }
-
-        return $sections;
     }
 
     /**
@@ -1106,13 +977,6 @@ class TeamRecapController extends Controller
     private function ensureUnlockedFor(array $validated): void
     {
         if ($this->lockFor($validated) !== null) {
-            throw new HttpResponseException(back()->with('error', self::LOCKED_MESSAGE));
-        }
-    }
-
-    private function ensureUnlocked(int $teamId, string $type, int $year, ?int $month = null, ?int $quarter = null, ?string $weekStart = null): void
-    {
-        if (RecapLock::forPeriod($teamId, $type, $year, $month, $quarter, $weekStart) !== null) {
             throw new HttpResponseException(back()->with('error', self::LOCKED_MESSAGE));
         }
     }
