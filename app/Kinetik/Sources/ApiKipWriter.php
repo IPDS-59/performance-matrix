@@ -126,6 +126,18 @@ class ApiKipWriter
         return $this->rks((string) $skp['id']);
     }
 
+    /** One SKP by its id (the header kipApp shows), or null. @return array<string, mixed>|null */
+    public function skpById(string $skpId): ?array
+    {
+        return collect($this->rows($this->get('v1/skp', ['skpid' => $skpId]), 'skp'))->first();
+    }
+
+    /** The signed-in person's own kipApp profile (id is the pegawaiid). @return array<string, mixed> */
+    public function me(): array
+    {
+        return (array) $this->get('v1/user', [])->json();
+    }
+
     /** The member's yearly SKP of one period, or null. @return array<string, mixed>|null */
     public function yearlySkp(string $pegawaiId, int $periodeId): ?array
     {

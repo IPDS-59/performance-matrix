@@ -2,7 +2,7 @@
 import { Link, router, usePage } from '@inertiajs/vue3';
 import { computed, onMounted, onUnmounted, ref, type Component } from 'vue';
 import {
-    Award, BookOpen, CalendarCheck, CalendarDays, CalendarRange, ClipboardCheck, Eye, FileCheck, FileChartColumn, FileSpreadsheet, FolderKanban,
+    Award, BadgeCheck, BookOpen, CalendarCheck, CalendarDays, CalendarRange, ClipboardCheck, Eye, FileCheck, FileChartColumn, FileSpreadsheet, FolderKanban,
     House, LayoutGrid, LayoutList, ListChecks, ListTodo, LogOut, Menu, Network, PanelLeftClose, PanelLeftOpen, Target, UserRound, Users, X, Zap,
 } from 'lucide-vue-next';
 import { useSidebarStore } from '@/stores/sidebar';
@@ -23,6 +23,7 @@ const isStaff = computed(() => user.value.role === 'staff');
 const canViewProjects = computed(() => (page.props.can as Record<string, boolean>)?.view_projects ?? false);
 const canViewIndicators = computed(() => (page.props.can as Record<string, boolean>)?.view_indicators ?? false);
 const canViewPlans = computed(() => (page.props.can as Record<string, boolean>)?.view_plans ?? false);
+const canApproveSkp = computed(() => (page.props.can as Record<string, boolean>)?.approve_skp ?? false);
 const canViewPlanCompliance = computed(() => (page.props.can as Record<string, boolean>)?.view_plan_compliance ?? false);
 const canViewTeamCredits = computed(() => (page.props.can as Record<string, boolean>)?.view_team_credits ?? false);
 const hasEmployee = computed(() => !!(page.props.auth as { has_employee?: boolean })?.has_employee);
@@ -60,6 +61,7 @@ const navSections = computed<NavSection[]>(() => {
                 { label: 'Bulanan', href: route('team-recap.monthly'), active: is('team-recap.monthly'), icon: CalendarRange, show: hasEmployee.value || isHead.value || isAdmin.value },
                 { label: 'Triwulanan (FRA)', href: route('team-recap.quarterly'), active: is('team-recap.quarterly'), icon: FileChartColumn, show: hasEmployee.value || isHead.value || isAdmin.value },
                 { label: 'Kertas Kerja FRA', href: route('fra.index'), active: is('fra.*'), icon: FileSpreadsheet, show: canViewPlanCompliance.value },
+                { label: 'Persetujuan SKP', href: route('skp.approvals'), active: is('skp.approvals'), icon: BadgeCheck, show: canApproveSkp.value },
                 { label: 'Kepatuhan Rencana', href: route('plan-compliance.index'), active: is('plan-compliance.*'), icon: ClipboardCheck, show: canViewPlanCompliance.value },
                 { label: 'Angka Kredit Tim', href: route('credit.team'), active: is('credit.team'), icon: Award, show: canViewTeamCredits.value },
             ],

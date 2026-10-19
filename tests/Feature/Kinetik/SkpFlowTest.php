@@ -2,6 +2,7 @@
 
 use App\Models\Employee;
 use App\Models\MemberKipCredential;
+use App\Models\SkpStatus;
 use App\Models\User;
 use Illuminate\Http\Client\Factory;
 use Illuminate\Support\Carbon;
@@ -54,7 +55,7 @@ function fakeSkpApi(?int $q4 = null, int $yearly = 6, int $ikiPerRk = 1): array
         }
         if (str_contains($url, '/v1/skp')) {
             if (($q['jenis'] ?? null) === '1') {
-                return Http::response([['id' => '100', 'periodeid' => 8, 'statusskpid' => $yearly, 'statusskp' => $yearly === 6 ? 'Ditetapkan' : 'Sedang dibuat', 'jmlrk' => 2, 'namaatasan' => 'Atasan', 'unitkerjaid' => '100', 'wilayahid' => '7200_11']]);
+                return Http::response([['id' => '100', 'periodeid' => 8, 'statusskpid' => $yearly, 'statusskp' => $yearly === 6 ? 'Ditetapkan' : 'Sedang dibuat', 'jmlrk' => 2, 'namaatasan' => 'Atasan', 'atasanid' => '555', 'unitkerjaid' => '100', 'wilayahid' => '7200_11']]);
             }
             $rows = [['id' => '301', 'periodeid' => 8, 'periodepenilaianid' => 3, 'statusskpid' => 7, 'statusskp' => 'Dinilai']];
             if ($q4 !== null || $made) {
@@ -167,4 +168,16 @@ it('blocks the changes while an admin only views as the member', function () {
 
     $this->post(route('skp.quarter.create', 4), ['rk_ids' => ['900']])->assertSessionHas('error');
     Http::assertNotSent(fn ($r) => $r->method() === 'POST' && str_contains($r->url(), '/skp/bulanan'));
+});
+
+it('stores the sent SKP for the atasan and tells them', function () {
+    $user = skpMember();
+    $atasan = User::factory()->create();
+    Employee::factory()->create(['user_id' => $atasan->id, 'kip_pegawai_id' => '555']);
+    fakeSkpApi(yearly: 1);
+
+    $this->actingAs($user)->post(route('skp.submit'), ['kind' => 'yearly'])->assertSessionHas('success');
+
+    expect(SkpStatus::where('kind', 'yearly')->first())->atasan_pegawai_id->toBe('555')->kip_skp_id->toBe('100');
+    expect($atasan->notifications->where('data.type', 'skp_sent'))->toHaveCount(1);
 });

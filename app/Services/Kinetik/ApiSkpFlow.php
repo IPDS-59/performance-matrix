@@ -4,8 +4,12 @@ namespace App\Services\Kinetik;
 
 use App\Kinetik\Contracts\SkpFlow;
 use App\Kinetik\Sources\ApiKipWriter;
+use App\Models\Employee;
 use App\Models\MemberSkpStatus;
+use App\Models\SkpStatus;
 use App\Models\User;
+use App\Notifications\KinetikNotification;
+use Illuminate\Support\Facades\Notification;
 use RuntimeException;
 
 /** SkpFlow against the live kipApp, with the member's own token. */
@@ -105,7 +109,7 @@ class ApiSkpFlow implements SkpFlow
             throw new RuntimeException('SKP belum bisa dikirim: '.implode('; ', $blockers));
         }
         $writer->submitSkp((string) $skp['id'], $flag);
-        $this->remember($user, $kind, $quarter, $writer, $pegawaiId);
+        $this->remember($user, $kind, $quarter, $writer, $pegawaiId, sent: true);
     }
 
     public function cancel(User $user, string $kind, ?int $quarter): void
@@ -151,13 +155,36 @@ class ApiSkpFlow implements SkpFlow
         return [$skp, $flag];
     }
 
-    private function remember(User $user, string $kind, ?int $quarter, ApiKipWriter $writer, string $pegawaiId): void
+    /** Keep the local rows in step with kipApp after a send or a take back, and tell the atasan about a send. */
+    private function remember(User $user, string $kind, ?int $quarter, ApiKipWriter $writer, string $pegawaiId, bool $sent = false): void
     {
-        if ($kind !== 'quarter' || $quarter === null) {
+        $periodeId = (int) config('kinetik.kip.periode_id');
+        $tahun = (int) config('kinetik.kip.tahun');
+        $skp = $kind === 'yearly' ? $writer->yearlySkp($pegawaiId, $periodeId) : ($writer->quarterSkps($pegawaiId, $periodeId)[(int) $quarter] ?? null);
+        if ($skp === null) {
             return;
         }
-        $skp = $writer->quarterSkps($pegawaiId, (int) config('kinetik.kip.periode_id'))[$quarter] ?? null;
-        MemberSkpStatus::remember($user->employee->id, (int) config('kinetik.kip.tahun'), $quarter, $skp['statusskpid'] ?? null, $skp['statusskp'] ?? null);
+
+        if ($kind === 'quarter') {
+            MemberSkpStatus::remember($user->employee->id, $tahun, (int) $quarter, $skp['statusskpid'] ?? null, $skp['statusskp'] ?? null);
+        }
+        $row = SkpStatus::remember($user->employee->id, $tahun, $kind, $kind === 'yearly' ? 0 : (int) $quarter, $skp);
+
+        if ($sent) {
+            $this->tellAtasan($user, $row);
+        }
+    }
+
+    private function tellAtasan(User $member, SkpStatus $row): void
+    {
+        $atasan = $row->atasan_pegawai_id !== null
+            ? Employee::where('kip_pegawai_id', $row->atasan_pegawai_id)->first()?->user
+            : null;
+        $recipients = $atasan !== null ? collect([$atasan]) : User::role('head')->get();
+        $name = $member->employee->display_name ?? $member->employee->name;
+        $what = $row->kind === 'yearly' ? 'untuk ditetapkan' : 'untuk dinilai';
+
+        Notification::send($recipients, new KinetikNotification('skp_sent', "{$name} mengirim {$row->label()} {$what}.", route('skp.approvals')));
     }
 
     /**

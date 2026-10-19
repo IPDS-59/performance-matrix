@@ -24,6 +24,9 @@ Schedule::command('kinetik:verify-office --apply')->dailyAt('04:40');
 // Kinetik: enrich RK with team + parsed IKI targets daily at 04:45
 Schedule::command('kinetik:sync-kip-plans')->dailyAt('04:45');
 
+// Where every SKP stands in kipApp, for the atasan's approval page. A member's own send updates its row at once.
+Schedule::command('kinetik:sync-skp-statuses')->dailyAt('05:15');
+
 // Angka Kredit: golongan and SKP predikat change a few times a year. About
 // three kipApp calls per employee, so once a week is enough.
 Schedule::command('kinetik:sync-careers')->weeklyOn(1, '05:30');
