@@ -35,8 +35,8 @@ return [
         // local password. Also the switch to turn SSO login off for everyone (for example when BPS
         // closes the old SSO). Accounts then keep their local password and kipApp features stay off.
         'sso_login' => filter_var(env('KIP_SSO_LOGIN', env('APP_ENV') !== 'local'), FILTER_VALIDATE_BOOLEAN),
-        // "Kirim ke atasan" and "Batalkan kirim" call kipApp endpoints that were decoded but never
-        // tested live. Keep it off until one test on a throwaway kegiatan has passed.
+        // "Kirim ke atasan" and "Batalkan kirim" (POST /kegiatan/kirim and /batal). Tested live on
+        // 2026-10-19 on a throwaway kegiatan: send, cancel and delete all worked.
         'send_to_atasan' => (bool) env('KIP_SEND_TO_ATASAN', false),
 
         // Item 2 of docs/plans/2026-10-17-kipapp-entry-flow.md. On: a one-day kegiatan is pushed with
@@ -46,7 +46,8 @@ return [
         'null_times' => (bool) env('KIP_NULL_TIMES', false),
         // Items 7 and 8. On: a kegiatan already in kipApp (not sent) can be edited and deleted from Kinetik
         // (PUT and DELETE /kegiatan), and a sent one can change "Masukan ke capaian SKP". Off: edit and
-        // cancel stay possible only while the kegiatan is not in kipApp yet (today). Never tested live.
+        // cancel stay possible only while the kegiatan is not in kipApp yet. PUT and DELETE /kegiatan were
+        // verified live (2026-10-08 and 2026-10-19).
         'edit_after_push' => (bool) env('KIP_EDIT_AFTER_PUSH', false),
 
         // Login accounts for synced employees. kipApp does not expose employee

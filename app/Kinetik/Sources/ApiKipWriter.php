@@ -6,6 +6,7 @@ use App\Kinetik\Exceptions\KipApiException;
 use Illuminate\Http\Client\PendingRequest;
 use Illuminate\Http\Client\Response;
 use Illuminate\Support\Facades\Http;
+use RuntimeException;
 
 /**
  * The kipApp calls that write a member's kegiatan, with the member's own token.
@@ -14,6 +15,9 @@ use Illuminate\Support\Facades\Http;
  */
 class ApiKipWriter
 {
+    /** statusskpid of a yearly SKP that is "Ditetapkan". */
+    private const YEARLY_APPROVED = 6;
+
     public function __construct(#[\SensitiveParameter] private readonly string $token) {}
 
     /**
@@ -26,6 +30,65 @@ class ApiKipWriter
         $rows = $this->rows($this->get('v1/skp', ['pegawaiid' => $pegawaiId, 'jenis' => 2]), 'skp');
 
         return collect($rows)->first(fn (array $r) => (int) ($r['periodeid'] ?? 0) === $periodeId && (int) ($r['periodepenilaianid'] ?? 0) === $quarter);
+    }
+
+    /**
+     * Creates the member's SKP of one quarter, like kipApp's "Buat SKP Periodik": the RK of the
+     * yearly SKP (which must be Ditetapkan) that the member also had in the latest quarter, or all
+     * of them when there is no earlier quarter. Verified live on 2026-10-05 (POST /skp/bulanan).
+     *
+     * @return array<string, mixed> the new quarterly SKP
+     */
+    public function createQuarterSkp(string $pegawaiId, int $periodeId, int $quarter): array
+    {
+        $rows = $this->rows($this->get('v1/skp', ['pegawaiid' => $pegawaiId, 'jenis' => 1]), 'skp tahunan');
+        $yearly = collect($rows)->first(fn (array $r) => (int) ($r['periodeid'] ?? 0) === $periodeId);
+        if ($yearly === null) {
+            throw new RuntimeException('SKP Tahunan belum ada di kipApp, jadi SKP triwulan belum bisa dibuat.');
+        }
+        if ((int) ($yearly['statusskpid'] ?? 0) !== self::YEARLY_APPROVED) {
+            throw new RuntimeException('SKP Tahunan belum Ditetapkan ('.($yearly['statusskp'] ?? 'status tidak diketahui').'), jadi SKP triwulan belum bisa dibuat.');
+        }
+
+        $json = $this->get('v1/skp/rk/copy/bulanan', [
+            'pegawaiid' => $pegawaiId, 'periodepenilaianid' => $quarter, 'periodeid' => $periodeId,
+            'unitkerjaid' => $yearly['unitkerjaid'] ?? null, 'wilayahid' => $yearly['wilayahid'] ?? null,
+        ])->json('rk') ?? [];
+        $candidates = collect($json)->filter(fn ($r) => is_array($r) && ! ($r['iscopied'] ?? false))->values();
+        if ($candidates->isEmpty()) {
+            throw new RuntimeException('SKP Tahunan belum punya RK yang bisa dipakai untuk SKP triwulan.');
+        }
+
+        $earlier = $this->latestQuarterRkNames($pegawaiId, $periodeId, $quarter);
+        $chosen = $candidates->filter(fn (array $r) => in_array($this->norm($r['rencanakinerja'] ?? null), $earlier, true));
+        if ($chosen->isEmpty()) {
+            $chosen = $candidates;
+        }
+
+        $this->send('post', 'v1/skp/bulanan', [
+            'id' => (string) $yearly['id'], 'periodepenilaianid' => $quarter, 'flagmethod' => 1,
+            'data' => $chosen->map(fn (array $r) => [
+                'rk' => $r['id'], 'iki' => collect($r['iki'] ?? [])->pluck('id')->values()->all(), 'flagrk' => $r['flagrk'] ?? 1,
+            ])->values()->all(),
+        ], 'buat SKP triwulan');
+
+        return $this->quarterSkp($pegawaiId, $periodeId, $quarter)
+            ?? throw new RuntimeException('kipApp menerima permintaan SKP triwulan, tetapi SKP-nya belum terbaca. Coba lagi sebentar lagi.');
+    }
+
+    /** RK texts of the member's newest earlier quarter of that year, normalised. @return list<string> */
+    private function latestQuarterRkNames(string $pegawaiId, int $periodeId, int $quarter): array
+    {
+        $previous = collect($this->rows($this->get('v1/skp', ['pegawaiid' => $pegawaiId, 'jenis' => 2]), 'skp'))
+            ->filter(fn (array $r) => (int) ($r['periodeid'] ?? 0) === $periodeId && (int) ($r['periodepenilaianid'] ?? 0) < $quarter)
+            ->sortByDesc(fn (array $r) => (int) $r['periodepenilaianid'])->first();
+
+        return $previous === null ? [] : collect($this->rks((string) $previous['id']))->map(fn (array $r) => $this->norm($r['rencanakinerja'] ?? null))->all();
+    }
+
+    private function norm(?string $text): string
+    {
+        return mb_strtolower(preg_replace('/\s+/', ' ', trim((string) $text)));
     }
 
     /** @return list<array<string, mixed>> */

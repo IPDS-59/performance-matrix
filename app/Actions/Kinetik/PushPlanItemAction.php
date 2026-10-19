@@ -74,9 +74,8 @@ class PushPlanItemAction
         }
 
         $skp = $writer->quarterSkp((string) $plan->employee->kip_pegawai_id, (int) config('kinetik.kip.periode_id'), $date->quarter);
-        if ($skp === null) {
-            throw new RuntimeException("SKP triwulan {$date->quarter} belum dibuat di kipApp. Buat SKP triwulan dulu.");
-        }
+        // A new quarter has no SKP until someone creates it, so create it here, like kipApp's "Buat SKP Periodik".
+        $skp ??= $writer->createQuarterSkp((string) $plan->employee->kip_pegawai_id, (int) config('kinetik.kip.periode_id'), $date->quarter);
 
         MemberSkpStatus::remember($plan->employee_id, $date->year, $date->quarter, $skp['statusskpid'] ?? null, $skp['statusskp'] ?? null);
 

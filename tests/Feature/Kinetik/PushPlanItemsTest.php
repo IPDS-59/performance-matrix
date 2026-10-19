@@ -76,7 +76,7 @@ it('does not push plans of the future or of the past', function () {
     Http::assertNothingSent();
 });
 
-it('stores the reason when the quarter SKP does not exist, tells the member once and retries next run', function () {
+it('stores the reason when the quarter SKP cannot be created, tells the member once and retries next run', function () {
     $plan = pushSetup();
     Http::fake(['*/v1/skp*' => Http::response([])]);
 
@@ -84,8 +84,82 @@ it('stores the reason when the quarter SKP does not exist, tells the member once
     app(PushDuePlansAction::class)->execute();
 
     $fresh = $plan->fresh();
-    expect($fresh)->status->toBe('planned')->push_attempts->toBe(2)->push_error->toContain('SKP triwulan 4 belum dibuat')
+    expect($fresh)->status->toBe('planned')->push_attempts->toBe(2)->push_error->toContain('SKP Tahunan belum ada')
         ->and($plan->employee->user->notifications->where('data.type', 'plan_push_failed'))->toHaveCount(1);
+});
+
+function fakeKipWithoutQuarterSkp(int $yearlyStatus = 6): array
+{
+    $created = false;
+    $kegiatanPosted = false;
+    $posted = [];
+    Http::fake(function ($request) use (&$created, &$kegiatanPosted, &$posted, $yearlyStatus) {
+        $url = $request->url();
+        parse_str(parse_url($url, PHP_URL_QUERY) ?? '', $q);
+        if (str_contains($url, '/v1/skp/bulanan')) {
+            $created = true;
+            $posted = $request->data();
+
+            return Http::response(['status' => true]);
+        }
+        if (str_contains($url, '/v1/skp/rk/copy/bulanan')) {
+            return Http::response(['rk' => [
+                ['id' => '900', 'rencanakinerja' => 'RK Inovasi', 'flagrk' => 1, 'iscopied' => false, 'iki' => [['id' => '9001'], ['id' => '9002']]],
+                ['id' => '901', 'rencanakinerja' => 'RK Lain', 'flagrk' => 1, 'iscopied' => false, 'iki' => [['id' => '9011']]],
+            ]]);
+        }
+        if (str_contains($url, '/v1/skp/rk')) {
+            return Http::response([['rkid' => '14656590', 'rencanakinerja' => 'RK Inovasi']]);
+        }
+        if (str_contains($url, '/v1/skp')) {
+            if (($q['jenis'] ?? null) === '1') {
+                return Http::response([['id' => '100', 'periodeid' => 8, 'statusskpid' => $yearlyStatus, 'statusskp' => $yearlyStatus === 6 ? 'Ditetapkan' : 'Sedang dibuat', 'unitkerjaid' => '100', 'wilayahid' => '7200_11']]);
+            }
+            $rows = [['id' => '300', 'periodeid' => 8, 'periodepenilaianid' => 3]];
+            if ($created) {
+                $rows[] = ['id' => '1460709', 'periodeid' => 8, 'periodepenilaianid' => 4];
+            }
+
+            return Http::response($rows);
+        }
+        if (str_contains($url, '/v1/kegiatan')) {
+            if ($request->method() === 'POST') {
+                $kegiatanPosted = true;
+
+                return Http::response(['status' => true]);
+            }
+
+            return Http::response($kegiatanPosted ? [['kegiatanperhariid' => 5550001, 'kegiatan' => 'Entri SE2026', 'rkid' => '14656590']] : []);
+        }
+
+        return Http::response([], 404);
+    });
+
+    return [function () use (&$posted) {
+        return $posted;
+    }];
+}
+
+it('creates the quarter SKP from the yearly one when the quarter has none, then pushes the plan', function () {
+    $plan = pushSetup();
+    [$posted] = fakeKipWithoutQuarterSkp();
+
+    expect(app(PushDuePlansAction::class)->execute())->toBe(['pushed' => 1, 'failed' => 0]);
+
+    expect($plan->fresh())->status->toBe('pushed')->kip_skp_id->toBe('1460709');
+    // Only the RK the member also had last quarter (RK Inovasi), with its IKI.
+    expect($posted())->toMatchArray(['id' => '100', 'periodepenilaianid' => 4, 'flagmethod' => 1])
+        ->and($posted()['data'])->toBe([['rk' => '900', 'iki' => ['9001', '9002'], 'flagrk' => 1]]);
+});
+
+it('does not create the quarter SKP while the yearly SKP is not Ditetapkan', function () {
+    $plan = pushSetup();
+    [$posted] = fakeKipWithoutQuarterSkp(yearlyStatus: 5);
+
+    expect(app(PushDuePlansAction::class)->execute())->toBe(['pushed' => 0, 'failed' => 1]);
+
+    expect($plan->fresh())->status->toBe('planned')->push_error->toContain('SKP Tahunan belum Ditetapkan')
+        ->and($posted())->toBe([]);
 });
 
 it('stops after one rejected SSO login and never sends the password again (T4)', function () {
