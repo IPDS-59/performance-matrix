@@ -37,9 +37,10 @@ class ApiKipWriter
      * yearly SKP (which must be Ditetapkan) that the member also had in the latest quarter, or all
      * of them when there is no earlier quarter. Verified live on 2026-10-05 (POST /skp/bulanan).
      *
+     * @param  list<string>|null  $rkIds  the RK of the yearly SKP to take; null picks them as described above
      * @return array<string, mixed> the new quarterly SKP
      */
-    public function createQuarterSkp(string $pegawaiId, int $periodeId, int $quarter): array
+    public function createQuarterSkp(string $pegawaiId, int $periodeId, int $quarter, ?array $rkIds = null): array
     {
         $rows = $this->rows($this->get('v1/skp', ['pegawaiid' => $pegawaiId, 'jenis' => 1]), 'skp tahunan');
         $yearly = collect($rows)->first(fn (array $r) => (int) ($r['periodeid'] ?? 0) === $periodeId);
@@ -59,10 +60,17 @@ class ApiKipWriter
             throw new RuntimeException('SKP Tahunan belum punya RK yang bisa dipakai untuk SKP triwulan.');
         }
 
-        $earlier = $this->latestQuarterRkNames($pegawaiId, $periodeId, $quarter);
-        $chosen = $candidates->filter(fn (array $r) => in_array($this->norm($r['rencanakinerja'] ?? null), $earlier, true));
-        if ($chosen->isEmpty()) {
-            $chosen = $candidates;
+        if ($rkIds !== null) {
+            $chosen = $candidates->filter(fn (array $r) => in_array((string) $r['id'], array_map('strval', $rkIds), true));
+            if ($chosen->isEmpty()) {
+                throw new RuntimeException('Pilih minimal satu RK untuk SKP triwulan.');
+            }
+        } else {
+            $earlier = $this->latestQuarterRkNames($pegawaiId, $periodeId, $quarter);
+            $chosen = $candidates->filter(fn (array $r) => in_array($this->norm($r['rencanakinerja'] ?? null), $earlier, true));
+            if ($chosen->isEmpty()) {
+                $chosen = $candidates;
+            }
         }
 
         $this->send('post', 'v1/skp/bulanan', [
@@ -82,9 +90,10 @@ class ApiKipWriter
      * the quarter SKP are sent again together with the new ones. Returns the RK ids now in the SKP.
      *
      * @param  list<string>  $wantedTexts  RK texts to add (any spacing or case)
+     * @param  list<string>|null  $rkIds  yearly RK ids to add instead of matching by text
      * @return list<array<string, mixed>> the RK of the quarter SKP after the call
      */
-    public function addRksToQuarterSkp(string $pegawaiId, int $periodeId, array $skp, array $wantedTexts): array
+    public function addRksToQuarterSkp(string $pegawaiId, int $periodeId, array $skp, array $wantedTexts, ?array $rkIds = null): array
     {
         $yearly = collect($this->rows($this->get('v1/skp', ['pegawaiid' => $pegawaiId, 'jenis' => 1]), 'skp tahunan'))
             ->first(fn (array $r) => (int) ($r['periodeid'] ?? 0) === $periodeId);
@@ -99,7 +108,9 @@ class ApiKipWriter
         ])->json('rk') ?? [])->filter(fn ($r) => is_array($r));
 
         $wantedNames = array_map(fn (string $t) => $this->norm($t), $wantedTexts);
-        $toAdd = $rows->filter(fn (array $r) => ! ($r['iscopied'] ?? false) && in_array($this->norm($r['rencanakinerja'] ?? null), $wantedNames, true));
+        $toAdd = $rows->filter(fn (array $r) => ! ($r['iscopied'] ?? false) && ($rkIds !== null
+            ? in_array((string) $r['id'], array_map('strval', $rkIds), true)
+            : in_array($this->norm($r['rencanakinerja'] ?? null), $wantedNames, true)));
         if ($toAdd->isEmpty()) {
             throw new RuntimeException('RK rencana ini tidak ada di SKP Tahunan, jadi tidak bisa ditambahkan ke SKP triwulan.');
         }
@@ -113,6 +124,63 @@ class ApiKipWriter
         ], 'tambah RK ke SKP triwulan');
 
         return $this->rks((string) $skp['id']);
+    }
+
+    /** The member's yearly SKP of one period, or null. @return array<string, mixed>|null */
+    public function yearlySkp(string $pegawaiId, int $periodeId): ?array
+    {
+        return collect($this->rows($this->get('v1/skp', ['pegawaiid' => $pegawaiId, 'jenis' => 1]), 'skp tahunan'))
+            ->first(fn (array $r) => (int) ($r['periodeid'] ?? 0) === $periodeId);
+    }
+
+    /** The member's quarter SKPs of one period, keyed by quarter (1 to 4). @return array<int, array<string, mixed>> */
+    public function quarterSkps(string $pegawaiId, int $periodeId): array
+    {
+        return collect($this->rows($this->get('v1/skp', ['pegawaiid' => $pegawaiId, 'jenis' => 2]), 'skp'))
+            ->filter(fn (array $r) => (int) ($r['periodeid'] ?? 0) === $periodeId && (int) ($r['periodepenilaianid'] ?? 0) > 0)
+            ->keyBy(fn (array $r) => (int) $r['periodepenilaianid'])->all();
+    }
+
+    /**
+     * RK of the yearly SKP that a quarter SKP can take, from kipApp's "copy" list. With the quarter SKP id
+     * the rows say which RK are already in it (iscopied).
+     *
+     * @param  array<string, mixed>  $yearly
+     * @return list<array{id: string, rencanakinerja: string, iscopied: bool, jmliki: int}>
+     */
+    public function rkCandidates(string $pegawaiId, int $periodeId, array $yearly, int $quarter, ?string $quarterSkpId = null): array
+    {
+        $query = [
+            'pegawaiid' => $pegawaiId, 'periodepenilaianid' => $quarter, 'periodeid' => $periodeId,
+            'unitkerjaid' => $yearly['unitkerjaid'] ?? null, 'wilayahid' => $yearly['wilayahid'] ?? null,
+        ];
+        if ($quarterSkpId !== null) {
+            $query['skpid'] = $quarterSkpId;
+        }
+
+        return collect($this->get('v1/skp/rk/copy/bulanan', $query)->json('rk') ?? [])
+            ->filter(fn ($r) => is_array($r))
+            ->map(fn (array $r) => [
+                'id' => (string) $r['id'], 'rencanakinerja' => (string) ($r['rencanakinerja'] ?? ''),
+                'iscopied' => (bool) ($r['iscopied'] ?? false), 'jmliki' => count($r['iki'] ?? []),
+            ])->values()->all();
+    }
+
+    /**
+     * Moves a SKP to another status like kipApp's buttons do (POST /skp/penetapan/kirim): flag 2 sends a
+     * yearly SKP to the atasan to be set (ditetapkan), flag 5 sends a quarter SKP to be rated. Flag 5
+     * verified live on 2026-10-20 (status 1 became 5, "Sedang diperiksa"). Flag 2 is read from kipApp's own
+     * code only. The atasan's own steps (6 tetapkan, 7 nilai) are not offered by Kinetik.
+     */
+    public function submitSkp(string $skpId, int $flag): void
+    {
+        $this->send('post', 'v1/skp/penetapan/kirim', ['skpid' => $skpId, 'flag' => $flag], 'kirim SKP');
+    }
+
+    /** Takes a sent SKP back to "Sedang dibuat" (POST /skp/kembalikan). Verified live on 2026-10-20 for a status 5 SKP. */
+    public function returnSkp(string $skpId): void
+    {
+        $this->send('post', 'v1/skp/kembalikan', ['id' => $skpId], 'batalkan kirim SKP');
     }
 
     /** RK texts of the member's newest earlier quarter of that year, normalised. @return list<string> */
