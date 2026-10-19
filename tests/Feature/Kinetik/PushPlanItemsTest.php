@@ -152,6 +152,56 @@ it('creates the quarter SKP from the yearly one when the quarter has none, then 
         ->and($posted()['data'])->toBe([['rk' => '900', 'iki' => ['9001', '9002'], 'flagrk' => 1]]);
 });
 
+it('adds the plan RK to a quarter SKP that does not have it yet, keeping the RK it has', function () {
+    $plan = pushSetup();
+    $added = false;
+    $kegiatanPosted = false;
+    $body = [];
+    Http::fake(function ($request) use (&$added, &$kegiatanPosted, &$body) {
+        $url = $request->url();
+        parse_str(parse_url($url, PHP_URL_QUERY) ?? '', $q);
+        if (str_contains($url, '/v1/skp/bulanan')) {
+            $added = true;
+            $body = $request->data();
+
+            return Http::response(['status' => true]);
+        }
+        if (str_contains($url, '/v1/skp/rk/copy/bulanan')) {
+            return Http::response(['rk' => [
+                ['id' => '800', 'rencanakinerja' => 'RK Lain', 'flagrk' => 1, 'iscopied' => true, 'iki' => [['id' => '8001']]],
+                ['id' => '900', 'rencanakinerja' => 'RK Inovasi', 'flagrk' => 1, 'iscopied' => false, 'iki' => [['id' => '9001']]],
+            ]]);
+        }
+        if (str_contains($url, '/v1/skp/rk')) {
+            return Http::response($added
+                ? [['rkid' => '1', 'rencanakinerja' => 'RK Lain'], ['rkid' => '14656590', 'rencanakinerja' => 'RK Inovasi']]
+                : [['rkid' => '1', 'rencanakinerja' => 'RK Lain']]);
+        }
+        if (str_contains($url, '/v1/skp')) {
+            return ($q['jenis'] ?? null) === '1'
+                ? Http::response([['id' => '100', 'periodeid' => 8, 'statusskpid' => 6, 'unitkerjaid' => '100', 'wilayahid' => '7200_11']])
+                : Http::response([['id' => '1460709', 'periodeid' => 8, 'periodepenilaianid' => 4]]);
+        }
+        if (str_contains($url, '/v1/kegiatan')) {
+            if ($request->method() === 'POST') {
+                $kegiatanPosted = true;
+
+                return Http::response(['status' => true]);
+            }
+
+            return Http::response($kegiatanPosted ? [['kegiatanperhariid' => 5550001, 'kegiatan' => 'Entri SE2026', 'rkid' => '14656590']] : []);
+        }
+
+        return Http::response([], 404);
+    });
+
+    expect(app(PushDuePlansAction::class)->execute())->toBe(['pushed' => 1, 'failed' => 0]);
+
+    expect($plan->fresh())->status->toBe('pushed')->kip_rk_id->toBe('14656590');
+    expect($body)->toMatchArray(['id' => '1460709', 'periodepenilaianid' => 4, 'flagmethod' => 2])
+        ->and(collect($body['data'])->pluck('rk')->all())->toBe(['800', '900']);
+});
+
 it('does not create the quarter SKP while the yearly SKP is not Ditetapkan', function () {
     $plan = pushSetup();
     [$posted] = fakeKipWithoutQuarterSkp(yearlyStatus: 5);
