@@ -65,7 +65,7 @@ export const SHOTS = {
     },
     skpPersetujuan: {
         src: '/images/pedoman/skp-persetujuan.webp',
-        alt: 'Halaman Persetujuan SKP: daftar SKP yang menunggu atasan dengan tombol Tetapkan, Nilai di kipApp dan Kembalikan',
+        alt: 'Halaman Persetujuan SKP: SKP triwulan yang menunggu dinilai dengan rincian kegiatan dan capaian tiap RK, tombol Nilai di kipApp dan Kembalikan',
         width: 1024, height: 860,
         markers: [
             { n: 1, x: 30, y: 13, label: 'Hanya SKP yang atasannya Anda dan sedang menunggu.' },
@@ -265,7 +265,7 @@ export const GUIDE_FLOWS: GuideFlow[] = [
                 body: [
                     'Halaman ini menunjukkan SKP Anda di kipApp: SKP Tahunan dengan tahapnya, dan SKP tiap triwulan dengan status, jumlah RK dan jumlah kegiatan.',
                     'Urutan di kipApp: (1) RK dan IKI SKP Tahunan dibuat di kipApp, (2) SKP Tahunan dikirim lalu ditetapkan atasan, (3) SKP triwulan dibuat, (4) kegiatan diisi, (5) SKP triwulan dikirim dan dinilai atasan.',
-                    'Atasan menetapkan SKP Tahunan di halaman Persetujuan SKP Kinetik atau di kipApp, dengan akun kipApp-nya sendiri. Menilai SKP triwulan tetap di kipApp. Anda melihat statusnya di sini dan mendapat notifikasi saat atasan menetapkan atau mengembalikan.',
+                    'Atasan menetapkan SKP Tahunan di halaman Persetujuan SKP Kinetik atau di kipApp, dengan akun kipApp-nya sendiri. Menilai SKP triwulan di kipApp. Anda melihat statusnya di sini dan mendapat notifikasi saat atasan menetapkan atau mengembalikan.',
                     'SKP Tahunan yang masih Sedang dibuat bisa dikirim dari halaman ini dengan "Kirim untuk ditetapkan". Syaratnya sama seperti kipApp: minimal satu RK dan setiap RK punya IKI.',
                 ],
                 shot: SHOTS.skpSaya,
@@ -422,7 +422,8 @@ export const GUIDE_FLOWS: GuideFlow[] = [
                 body: [
                     'Saat pegawai mengirim SKP lewat Kinetik, Anda mendapat notifikasi. Halaman ini mendaftar SKP yang atasannya Anda dan sedang menunggu: SKP Tahunan yang menunggu ditetapkan, dan SKP triwulan yang menunggu dinilai.',
                     '"Tetapkan" menetapkan SKP Tahunan. "Kembalikan" mengirim SKP kembali ke pegawai. Kinetik bertanya dulu, lalu bekerja dengan akun kipApp Anda sendiri, jadi Anda harus sudah masuk ke Kinetik dengan kata sandi SSO.',
-                    'SKP triwulan dinilai di kipApp lewat tombol "Nilai di kipApp", karena penilaian butuh nilai tiap RK dan perilaku.',
+                    'Klik nama pegawai pada SKP triwulan untuk membuka bahan penilaian: tiap RK dengan jumlah kegiatan, yang selesai, yang terkirim ke kipApp, capaian terhadap target, dan catatan capaian. Data ini dari Kinetik, jadi Anda menilai dengan bukti di depan mata.',
+                    'SKP triwulan dinilai di kipApp lewat tombol "Nilai di kipApp". Halaman Nilai SKP di Kinetik (nilai dan umpan balik tiap RK dan perilaku BerAKHLAK, lalu "Selesai menilai") sudah dibuat tetapi belum dinyalakan, karena menilai SKP berarti mengisi nilai resmi seseorang dan belum pernah kami uji langsung. Kami menyalakannya bersama atasan saat penilaian pertama.',
                     'Daftar diperbarui tiap pagi dan saat pegawai mengirim lewat Kinetik. SKP yang dikirim langsung dari kipApp baru tampil pada pembaruan berikutnya.',
                     'Tetapkan dan Kembalikan mengikuti kode kipApp sendiri. Kami belum menguji penetapan langsung karena semua SKP Tahunan kantor ini sudah Ditetapkan.',
                 ],

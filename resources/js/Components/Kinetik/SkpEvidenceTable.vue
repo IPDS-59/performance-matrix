@@ -14,7 +14,7 @@ const num = (n: number) => new Intl.NumberFormat('id-ID', { maximumFractionDigit
                 <th class="py-1 pr-3 font-medium">RK</th>
                 <th class="px-3 py-1 text-right font-medium">Kegiatan</th>
                 <th class="px-3 py-1 text-right font-medium">Selesai</th>
-                <th class="px-3 py-1 text-right font-medium">Terkirim ke kipApp</th>
+                <th class="px-3 py-1 text-right font-medium">Terkirim</th>
                 <th class="px-3 py-1 text-right font-medium">Capaian / target</th>
             </tr>
         </thead>
