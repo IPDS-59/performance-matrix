@@ -63,6 +63,17 @@ export const SHOTS = {
             { n: 2, x: 45.9, y: 93.6, label: 'Kirim untuk dinilai atasan. Setelah itu tombolnya menjadi Batalkan pengiriman.' },
         ],
     },
+    skpPersetujuan: {
+        src: '/images/pedoman/skp-persetujuan.webp',
+        alt: 'Halaman Persetujuan SKP: daftar SKP yang menunggu atasan dengan tombol Tetapkan, Nilai di kipApp dan Kembalikan',
+        width: 1024, height: 860,
+        markers: [
+            { n: 1, x: 30, y: 13, label: 'Hanya SKP yang atasannya Anda dan sedang menunggu.' },
+            { n: 2, x: 82.4, y: 29.5, label: 'Tetapkan SKP Tahunan, dengan akun kipApp Anda sendiri.' },
+            { n: 3, x: 79.4, y: 23.3, label: 'SKP triwulan dinilai di kipApp, karena butuh nilai tiap RK.' },
+            { n: 4, x: 92, y: 29.5, label: 'Kembalikan ke pegawai. SKP kembali ke Sedang dibuat.' },
+        ],
+    },
     anggotaAngkaKredit: {
         src: '/images/pedoman/anggota-angka-kredit.webp',
         alt: 'Halaman Angka Kredit Saya dengan kemajuan, AK dari PAK dan rumus per triwulan',
@@ -253,7 +264,7 @@ export const GUIDE_FLOWS: GuideFlow[] = [
                 body: [
                     'Halaman ini menunjukkan SKP Anda di kipApp: SKP Tahunan dengan tahapnya, dan SKP tiap triwulan dengan status, jumlah RK dan jumlah kegiatan.',
                     'Urutan di kipApp: (1) RK dan IKI SKP Tahunan dibuat di kipApp, (2) SKP Tahunan dikirim lalu ditetapkan atasan, (3) SKP triwulan dibuat, (4) kegiatan diisi, (5) SKP triwulan dikirim dan dinilai atasan.',
-                    'Atasan menetapkan dan menilai SKP di kipApp. Kinetik tidak melakukannya atas nama atasan. Anda hanya melihat statusnya di sini.',
+                    'Atasan menetapkan SKP Tahunan di halaman Persetujuan SKP Kinetik atau di kipApp, dengan akun kipApp-nya sendiri. Menilai SKP triwulan tetap di kipApp. Anda melihat statusnya di sini dan mendapat notifikasi saat atasan menetapkan atau mengembalikan.',
                     'SKP Tahunan yang masih Sedang dibuat bisa dikirim dari halaman ini dengan "Kirim untuk ditetapkan". Syaratnya sama seperti kipApp: minimal satu RK dan setiap RK punya IKI.',
                 ],
                 shot: SHOTS.skpSaya,
@@ -281,7 +292,7 @@ export const GUIDE_FLOWS: GuideFlow[] = [
                     'Kirim dan batal kirim SKP triwulan sudah diuji langsung di kipApp. Kirim SKP Tahunan untuk ditetapkan mengikuti kode kipApp tetapi belum diuji langsung, karena SKP Tahunan kami semuanya sudah Ditetapkan.',
                 ],
                 shot: SHOTS.skpKirim,
-                tip: 'Penetapan dan penilaian dilakukan atasan di kipApp, bukan di Kinetik.',
+                tip: 'Penetapan dan penilaian dilakukan atasan sendiri dengan akun kipApp-nya. Penilaian triwulan di kipApp.',
             },
             {
                 title: 'Pantau Angka Kredit',
@@ -403,6 +414,20 @@ export const GUIDE_FLOWS: GuideFlow[] = [
         replaces: 'Membaca sheet "Rapat Mingguan" dan "Rapat Bulanan"',
         steps: [
             SSO_LOGIN_STEP,
+            {
+                title: 'Tetapkan atau kembalikan SKP',
+                where: 'Menu Rekap Tim → Persetujuan SKP',
+                route: 'skp.approvals',
+                body: [
+                    'Saat pegawai mengirim SKP lewat Kinetik, Anda mendapat notifikasi. Halaman ini mendaftar SKP yang atasannya Anda dan sedang menunggu: SKP Tahunan yang menunggu ditetapkan, dan SKP triwulan yang menunggu dinilai.',
+                    '"Tetapkan" menetapkan SKP Tahunan. "Kembalikan" mengirim SKP kembali ke pegawai. Kinetik bertanya dulu, lalu bekerja dengan akun kipApp Anda sendiri, jadi Anda harus sudah masuk ke Kinetik dengan kata sandi SSO.',
+                    'SKP triwulan dinilai di kipApp lewat tombol "Nilai di kipApp", karena penilaian butuh nilai tiap RK dan perilaku.',
+                    'Daftar diperbarui tiap pagi dan saat pegawai mengirim lewat Kinetik. SKP yang dikirim langsung dari kipApp baru tampil pada pembaruan berikutnya.',
+                    'Tetapkan dan Kembalikan mengikuti kode kipApp sendiri. Kami belum menguji penetapan langsung karena semua SKP Tahunan kantor ini sudah Ditetapkan.',
+                ],
+                shot: SHOTS.skpPersetujuan,
+                tip: 'Jika daftar kosong, tidak ada SKP yang menunggu Anda.',
+            },
             {
                 title: 'Buka Review Bersama',
                 where: 'Menu Rekap Tim → Review Bersama',

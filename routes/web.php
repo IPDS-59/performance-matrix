@@ -25,6 +25,7 @@ use App\Http\Controllers\ProjectDetailController;
 use App\Http\Controllers\ProjectListController;
 use App\Http\Controllers\ReportAttachmentController;
 use App\Http\Controllers\ReportResubmitController;
+use App\Http\Controllers\SkpApprovalController;
 use App\Http\Controllers\SkpController;
 use App\Http\Controllers\TeamController;
 use App\Http\Controllers\TeamMemberController;
@@ -154,6 +155,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
     // Angka Kredit (own, team, admin PAK value)
     Route::get('/skp-saya', [SkpController::class, 'index'])->name('skp.index');
+    Route::get('/persetujuan-skp', [SkpApprovalController::class, 'index'])->name('skp.approvals');
+    Route::post('/persetujuan-skp/{skpStatus}/tetapkan', [SkpApprovalController::class, 'approve'])->name('skp.approve');
+    Route::post('/persetujuan-skp/{skpStatus}/kembalikan', [SkpApprovalController::class, 'sendBack'])->name('skp.sendback');
     Route::post('/skp-saya/triwulan/{quarter}', [SkpController::class, 'createQuarter'])->name('skp.quarter.create');
     Route::put('/skp-saya/triwulan/{quarter}/rk', [SkpController::class, 'addRks'])->name('skp.quarter.rks');
     Route::post('/skp-saya/kirim', [SkpController::class, 'submit'])->name('skp.submit');

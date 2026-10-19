@@ -793,3 +793,17 @@ export interface SkpOverview {
     yearly: SkpYearly | null;
     quarters: SkpQuarter[];
 }
+
+/** One SKP that waits for the atasan (Persetujuan SKP). */
+export interface SkpApprovalRow {
+    id: number;
+    employee: string;
+    label: string;
+    kind: 'yearly' | 'quarter';
+    status: string | null;
+    jml_rk: number;
+    atasan: string | null;
+    since: string | null;
+    /** The signed-in person is this SKP's atasan. */
+    mine: boolean;
+}

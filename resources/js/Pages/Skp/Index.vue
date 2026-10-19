@@ -66,7 +66,7 @@ const yearlyStep = computed(() => stepOf('yearly', props.overview.yearly?.status
                         Status di kipApp: <b class="text-gray-900">{{ overview.yearly.status }}</b>, {{ overview.yearly.jml_rk }} RK<template v-if="overview.yearly.atasan">, atasan {{ overview.yearly.atasan }}</template>.
                     </p>
                     <p v-if="overview.yearly.blockers.length" class="mt-2 text-sm text-amber-800">Belum bisa dikirim: {{ overview.yearly.blockers.join('; ') }}.</p>
-                    <p v-if="overview.yearly.status_id === 2" class="mt-2 text-sm text-gray-700">Menunggu atasan menetapkan di kipApp. Penetapan dilakukan atasan sendiri, bukan lewat Kinetik.</p>
+                    <p v-if="overview.yearly.status_id === 2" class="mt-2 text-sm text-gray-700">Menunggu atasan menetapkan, di halaman Persetujuan SKP Kinetik atau di kipApp. Penetapan dilakukan atasan sendiri dengan akun kipApp-nya.</p>
                     <div class="mt-3 flex flex-wrap gap-2">
                         <Button v-if="overview.yearly.can_submit" size="sm" :disabled="actions.processing.value" @click="confirmSubmit('yearly')">Kirim untuk ditetapkan</Button>
                         <Button v-if="overview.yearly.can_cancel" size="sm" variant="outline" :disabled="actions.processing.value" @click="confirmCancel('yearly')">Batalkan pengiriman</Button>
@@ -108,7 +108,7 @@ const yearlyStep = computed(() => stepOf('yearly', props.overview.yearly?.status
             </section>
 
             <p class="text-xs leading-relaxed text-gray-500">
-                Kinetik mengirim dan membatalkan atas nama Anda, dengan aturan yang sama seperti kipApp. Atasan menetapkan dan menilai SKP di kipApp, tidak lewat Kinetik.
+                Kinetik mengirim dan membatalkan atas nama Anda, dengan aturan yang sama seperti kipApp. Atasan menetapkan SKP Tahunan dan mengembalikan SKP dengan akun kipApp-nya sendiri. Menilai SKP triwulan di kipApp.
             </p>
         </div>
 
