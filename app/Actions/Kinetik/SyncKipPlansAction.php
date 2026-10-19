@@ -6,7 +6,9 @@ use App\Kinetik\Contracts\KipStructureSource;
 use App\Models\Employee;
 use App\Models\PerformancePlan;
 use App\Models\Team;
+use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Log;
 
 /**
  * Cascade enrichment: pull each employee's RK list (skp/rk) with targets parsed
@@ -32,7 +34,16 @@ class SyncKipPlansAction
                 continue;
             }
 
-            foreach ($source->fetchEmployeePlans($employee->nip_lama) as $rk) {
+            try {
+                $plans = $source->fetchEmployeePlans($employee->nip_lama);
+            } catch (ConnectionException $e) {
+                // One slow kipApp answer (timeout) must not stop the run for everyone else. The daily run tries again.
+                Log::warning("kinetik:sync-kip-plans skipped {$employee->nip_lama}: {$e->getMessage()}");
+
+                continue;
+            }
+
+            foreach ($plans as $rk) {
                 if ($rk->externalId === '') {
                     continue;
                 }

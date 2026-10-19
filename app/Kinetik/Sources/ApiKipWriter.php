@@ -76,6 +76,45 @@ class ApiKipWriter
             ?? throw new RuntimeException('kipApp menerima permintaan SKP triwulan, tetapi SKP-nya belum terbaca. Coba lagi sebentar lagi.');
     }
 
+    /**
+     * Adds RK of the yearly SKP to a quarter SKP that already exists (kipApp's edit of a periodic SKP,
+     * POST /skp/bulanan with flagmethod 2). The call takes the whole selection, so the RK already in
+     * the quarter SKP are sent again together with the new ones. Returns the RK ids now in the SKP.
+     *
+     * @param  list<string>  $wantedTexts  RK texts to add (any spacing or case)
+     * @return list<array<string, mixed>> the RK of the quarter SKP after the call
+     */
+    public function addRksToQuarterSkp(string $pegawaiId, int $periodeId, array $skp, array $wantedTexts): array
+    {
+        $yearly = collect($this->rows($this->get('v1/skp', ['pegawaiid' => $pegawaiId, 'jenis' => 1]), 'skp tahunan'))
+            ->first(fn (array $r) => (int) ($r['periodeid'] ?? 0) === $periodeId);
+        if ($yearly === null) {
+            throw new RuntimeException('SKP Tahunan belum ada di kipApp, jadi RK belum bisa ditambahkan ke SKP triwulan.');
+        }
+
+        $quarter = (int) $skp['periodepenilaianid'];
+        $rows = collect($this->get('v1/skp/rk/copy/bulanan', [
+            'pegawaiid' => $pegawaiId, 'periodepenilaianid' => $quarter, 'periodeid' => $periodeId,
+            'unitkerjaid' => $yearly['unitkerjaid'] ?? null, 'wilayahid' => $yearly['wilayahid'] ?? null, 'skpid' => $skp['id'],
+        ])->json('rk') ?? [])->filter(fn ($r) => is_array($r));
+
+        $wantedNames = array_map(fn (string $t) => $this->norm($t), $wantedTexts);
+        $toAdd = $rows->filter(fn (array $r) => ! ($r['iscopied'] ?? false) && in_array($this->norm($r['rencanakinerja'] ?? null), $wantedNames, true));
+        if ($toAdd->isEmpty()) {
+            throw new RuntimeException('RK rencana ini tidak ada di SKP Tahunan, jadi tidak bisa ditambahkan ke SKP triwulan.');
+        }
+
+        $selection = $rows->filter(fn (array $r) => ($r['iscopied'] ?? false))->merge($toAdd);
+        $this->send('post', 'v1/skp/bulanan', [
+            'id' => (string) $skp['id'], 'periodepenilaianid' => $quarter, 'flagmethod' => 2,
+            'data' => $selection->map(fn (array $r) => [
+                'rk' => $r['id'], 'iki' => collect($r['iki'] ?? [])->pluck('id')->values()->all(), 'flagrk' => $r['flagrk'] ?? 1,
+            ])->values()->all(),
+        ], 'tambah RK ke SKP triwulan');
+
+        return $this->rks((string) $skp['id']);
+    }
+
     /** RK texts of the member's newest earlier quarter of that year, normalised. @return list<string> */
     private function latestQuarterRkNames(string $pegawaiId, int $periodeId, int $quarter): array
     {

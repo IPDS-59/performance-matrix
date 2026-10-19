@@ -199,6 +199,7 @@ export const GUIDE_FLOWS: GuideFlow[] = [
                     'Klik baris kegiatan untuk melihat semua isinya dan langkah berikutnya.',
                     'Pada tanggal mulai, Kinetik membuat kegiatan di kipApp atas nama Anda. Pengiriman berjalan otomatis setiap jam kerja mulai pukul 05.10 WITA. Ingin lebih awal? Tekan "Kirim ke kipApp".',
                     'Awal triwulan baru belum ada SKP triwulannya di kipApp. Kinetik membuatnya otomatis dari SKP Tahunan Anda, seperti tombol "Buat SKP Periodik" di kipApp, dengan RK yang sama seperti triwulan sebelumnya. Ini hanya jalan bila SKP Tahunan sudah berstatus Ditetapkan.',
+                    'Kalau SKP triwulan Anda sudah ada tetapi belum memuat RK kegiatan ini, Kinetik menambahkan RK itu dari SKP Tahunan, seperti mengedit SKP Periodik di kipApp. RK yang sudah ada tidak berubah.',
                     'Jika belum terkirim, alasannya tampil di detail kegiatan, misalnya "SKP Tahunan belum Ditetapkan". Kinetik mencoba lagi pada jam berikutnya sampai tanggal selesai dan memberi tahu Anda satu kali lewat lonceng.',
                     'Kinetik tidak mengirim kegiatan sebelum tanggal mulainya, karena kipApp tidak menerima tanggal yang belum tiba. Tombol "Kirim ke kipApp" aktif pada hari itu.',
                     'Selesai mengerjakan? Tekan "Tandai selesai". Uraian capaian wajib minimal 10 karakter saat ini. Kinetik mengirim progres 100%, uraian capaian dan tautan bukti ke kipApp. Tombol "Simpan capaian" hanya menyimpan di Kinetik.',

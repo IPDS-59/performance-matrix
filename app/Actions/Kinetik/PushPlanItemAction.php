@@ -80,6 +80,10 @@ class PushPlanItemAction
         MemberSkpStatus::remember($plan->employee_id, $date->year, $date->quarter, $skp['statusskpid'] ?? null, $skp['statusskp'] ?? null);
 
         $rk = $this->matchRk($writer->rks((string) $skp['id']), $plan->performancePlan);
+        if ($rk === null && $plan->performancePlan !== null) {
+            // The quarter SKP only has the RK its owner picked. Add this plan's RK from the yearly SKP, like kipApp's edit of a periodic SKP.
+            $rk = $this->matchRk($writer->addRksToQuarterSkp((string) $plan->employee->kip_pegawai_id, (int) config('kinetik.kip.periode_id'), $skp, [$plan->performancePlan->description]), $plan->performancePlan);
+        }
         if ($rk === null) {
             throw new RuntimeException('RK rencana ini tidak ditemukan di SKP triwulan kipApp.');
         }
