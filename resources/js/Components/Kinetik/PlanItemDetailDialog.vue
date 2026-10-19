@@ -130,12 +130,13 @@ const waitsForStart = computed(() => stage.value?.action === 'push' && !props.it
             </form>
 
             <DialogFooter class="flex-wrap gap-2">
-                <Button v-if="item?.can_delete" type="button" variant="ghost" class="mr-auto text-red-700" @click="confirming = 'cancel'">Batalkan</Button>
+                <Button v-if="item?.can_delete" type="button" variant="ghost" class="mr-auto text-red-700" @click="confirming = 'cancel'">{{ item.in_kipapp ? 'Hapus kegiatan' : 'Batalkan rencana' }}</Button>
                 <Button v-if="item?.status !== 'cancelled'" type="button" variant="outline" @click="item && emit('copy', item)">Salin kegiatan</Button>
                 <Button v-if="item?.can_edit" type="button" variant="outline" @click="item && emit('edit', item)">Ubah</Button>
                 <Button type="submit" form="plan-result" variant="outline" :disabled="form.processing || item?.status === 'cancelled'">Simpan capaian</Button>
                 <Button v-if="stage?.action" type="button" :disabled="form.processing || waitsForStart" :title="waitsForStart ? 'Kegiatan belum bisa dikirim sebelum tanggal mulainya.' : undefined" @click="run">{{ stage?.actionLabel }}</Button>
             </DialogFooter>
+            <p v-if="item?.sent" class="text-xs text-gray-600">Kegiatan yang sudah dikirim ke atasan tidak bisa dihapus. Batalkan kirim dulu, lalu hapus.</p>
             <p v-if="waitsForStart" class="text-right text-xs text-gray-600">Kegiatan belum bisa dikirim sebelum tanggal mulainya. Kinetik mengirimnya otomatis pada hari itu.</p>
 
             <ConfirmDialog
