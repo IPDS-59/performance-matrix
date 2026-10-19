@@ -452,6 +452,17 @@ export const GUIDE_FLOWS: GuideFlow[] = [
                 tip: 'Kalau daftar kosong, tidak ada SKP anggota yang menunggu Anda.',
             },
             {
+                title: 'Dari mana IKU dan PK berasal',
+                where: 'Menu Data Master → IKU',
+                route: 'performance-indicators.index',
+                body: [
+                    'IKU di Kinetik dibaca dari kipApp saat sinkronisasi struktur: Sasaran dari RK Kepala, lalu IKI pada RK itu menjadi IKU yang didukung timnya. IKU yang Anda tambah sendiri di halaman ini hanya tersimpan di Kinetik dan tidak dikirim ke kipApp.',
+                    'Perjanjian Kinerja (Renstra, tujuan, sasaran dan indikator) tidak bisa dibuat di kipApp oleh pegawai: halamannya hanya untuk dibaca, karena PK ditetapkan di aplikasi SINERGI. Karena itu Kinetik juga tidak membuatnya.',
+                    'IKI sebuah RK dibuat di kipApp pada SKP dan RK Anda. Kinetik belum membuat IKI. Bila IKU atau IKI di Kinetik tampak berbeda dari kipApp, jalankan Sinkronisasi Struktur dan anggap kipApp yang benar.',
+                ],
+                tip: 'IKU tidak ada atau salah? Periksa dulu di kipApp dan SINERGI, lalu minta admin menjalankan Sinkronisasi Struktur.',
+            },
+            {
                 title: 'Buat proyek dan RK sekaligus di kipApp',
                 where: 'Menu Data Master → Proyek → Tambah Proyek, lalu Rencana Kinerja (RK) → Tambah RK',
                 route: 'projects.create',
