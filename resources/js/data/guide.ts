@@ -35,6 +35,34 @@ export const SHOTS = {
             { n: 4, x: 87.4, y: 21.4, label: 'Anggota paling dekat ke kenaikan tampil paling atas.' },
         ],
     },
+    skpSaya: {
+        src: '/images/pedoman/skp-saya.webp',
+        alt: 'Halaman SKP Saya: SKP Tahunan dengan tiga tahapnya dan SKP tiap triwulan',
+        width: 1024, height: 860,
+        markers: [
+            { n: 1, x: 29.4, y: 19.8, label: 'Tahap SKP Tahunan. Atasan menetapkan di kipApp.' },
+            { n: 2, x: 93.8, y: 70.1, label: 'Status SKP tiap triwulan, sama seperti di kipApp.' },
+            { n: 3, x: 29.5, y: 88.0, label: 'Triwulan yang belum punya SKP: tombol Buat SKP.' },
+        ],
+    },
+    skpBuatTriwulan: {
+        src: '/images/pedoman/skp-buat-triwulan.webp',
+        alt: 'Popup Buat SKP TW 4 dengan daftar RK dari SKP Tahunan',
+        width: 1024, height: 860,
+        markers: [
+            { n: 1, x: 27.4, y: 43.4, label: 'Centang RK SKP Tahunan yang masuk ke triwulan ini.' },
+            { n: 2, x: 68.2, y: 64.0, label: 'Buat SKP. Di kipApp SKP-nya langsung ada.' },
+        ],
+    },
+    skpKirim: {
+        src: '/images/pedoman/skp-kirim.webp',
+        alt: 'SKP TW 4 berstatus Sedang dibuat dengan tombol Tambah RK dan Kirim untuk dinilai',
+        width: 1024, height: 860,
+        markers: [
+            { n: 1, x: 33.7, y: 93.6, label: 'Tambah RK selama SKP masih Sedang dibuat.' },
+            { n: 2, x: 45.9, y: 93.6, label: 'Kirim untuk dinilai atasan. Setelah itu tombolnya menjadi Batalkan pengiriman.' },
+        ],
+    },
     anggotaAngkaKredit: {
         src: '/images/pedoman/anggota-angka-kredit.webp',
         alt: 'Halaman Angka Kredit Saya dengan kemajuan, AK dari PAK dan rumus per triwulan',
@@ -217,6 +245,43 @@ export const GUIDE_FLOWS: GuideFlow[] = [
                     'Kegiatan Saya menampilkan semua kegiatan kipApp Anda. Saring per Minggu, Bulan atau Triwulan, lalu pindah periode dengan ‹ dan ›.',
                     'Rekap Tim menampilkan rekap tim Anda. Anda dapat membaca, tetapi hanya PJ yang mengubah ringkasan.',
                 ],
+            },
+            {
+                title: 'Pantau SKP Anda',
+                where: 'Menu Kegiatan → SKP Saya',
+                route: 'skp.index',
+                body: [
+                    'Halaman ini menunjukkan SKP Anda di kipApp: SKP Tahunan dengan tahapnya, dan SKP tiap triwulan dengan status, jumlah RK dan jumlah kegiatan.',
+                    'Urutan di kipApp: (1) RK dan IKI SKP Tahunan dibuat di kipApp, (2) SKP Tahunan dikirim lalu ditetapkan atasan, (3) SKP triwulan dibuat, (4) kegiatan diisi, (5) SKP triwulan dikirim dan dinilai atasan.',
+                    'Atasan menetapkan dan menilai SKP di kipApp. Kinetik tidak melakukannya atas nama atasan. Anda hanya melihat statusnya di sini.',
+                    'SKP Tahunan yang masih Sedang dibuat bisa dikirim dari halaman ini dengan "Kirim untuk ditetapkan". Syaratnya sama seperti kipApp: minimal satu RK dan setiap RK punya IKI.',
+                ],
+                shot: SHOTS.skpSaya,
+            },
+            {
+                title: 'Buat SKP triwulan',
+                where: 'Menu Kegiatan → SKP Saya → Buat SKP TW',
+                route: 'skp.index',
+                body: [
+                    'Awal triwulan baru belum ada SKP-nya. Tekan "Buat SKP TW n", centang RK SKP Tahunan yang Anda kerjakan triwulan itu, lalu "Buat SKP".',
+                    'Tombolnya hanya muncul bila SKP Tahunan sudah Ditetapkan atasan. Kalau belum, halaman memberi tahu alasannya.',
+                    'Selama SKP triwulan masih Sedang dibuat, "Tambah RK" menambahkan RK dari SKP Tahunan. RK yang sudah ada tidak berubah.',
+                    'Kalau Anda lupa, Kinetik membuat SKP triwulan dan menambah RK yang kurang sendiri saat mengirim kegiatan ke kipApp (lihat langkah Kirim ke kipApp).',
+                ],
+                shot: SHOTS.skpBuatTriwulan,
+            },
+            {
+                title: 'Kirim SKP triwulan untuk dinilai',
+                where: 'Menu Kegiatan → SKP Saya → Kirim untuk dinilai',
+                route: 'skp.index',
+                body: [
+                    'Setelah kegiatan triwulan itu lengkap dan sudah dikirim ke atasan, tekan "Kirim untuk dinilai". Kinetik bertanya dulu.',
+                    'Statusnya menjadi "Sedang diperiksa". Selama itu RK dan kegiatan terkunci seperti di kipApp.',
+                    '"Batalkan pengiriman" mengembalikan SKP ke Sedang dibuat, selama atasan belum menilai.',
+                    'Kirim dan batal kirim SKP triwulan sudah diuji langsung di kipApp. Kirim SKP Tahunan untuk ditetapkan mengikuti kode kipApp tetapi belum diuji langsung, karena SKP Tahunan kami semuanya sudah Ditetapkan.',
+                ],
+                shot: SHOTS.skpKirim,
+                tip: 'Penetapan dan penilaian dilakukan atasan di kipApp, bukan di Kinetik.',
             },
             {
                 title: 'Pantau Angka Kredit',

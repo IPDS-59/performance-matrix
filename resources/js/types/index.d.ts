@@ -749,3 +749,47 @@ export interface OrgTreeData {
 export interface OrganizationProps {
     tree: OrgTreeData;
 }
+
+/** A yearly RK that a quarter SKP can take (SKP Saya). */
+export interface SkpRkCandidate {
+    id: string;
+    rencanakinerja: string;
+    /** Already in the quarter SKP. */
+    in_skp: boolean;
+    jmliki: number;
+}
+
+export interface SkpQuarter {
+    quarter: 1 | 2 | 3 | 4;
+    is_current: boolean;
+    exists: boolean;
+    id: string | null;
+    status_id: number | null;
+    status: string | null;
+    jml_rk: number;
+    jml_kegiatan: number;
+    create_blocker: string | null;
+    can_create: boolean;
+    can_add_rk: boolean;
+    blockers: string[];
+    can_submit: boolean;
+    can_cancel: boolean;
+    candidates: SkpRkCandidate[];
+}
+
+export interface SkpYearly {
+    id: string;
+    status_id: number | null;
+    status: string | null;
+    jml_rk: number;
+    atasan: string | null;
+    blockers: string[];
+    can_submit: boolean;
+    can_cancel: boolean;
+}
+
+export interface SkpOverview {
+    year: number;
+    yearly: SkpYearly | null;
+    quarters: SkpQuarter[];
+}

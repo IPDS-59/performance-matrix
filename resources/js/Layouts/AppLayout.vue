@@ -2,7 +2,7 @@
 import { Link, router, usePage } from '@inertiajs/vue3';
 import { computed, onMounted, onUnmounted, ref, type Component } from 'vue';
 import {
-    Award, BookOpen, CalendarCheck, CalendarDays, CalendarRange, ClipboardCheck, Eye, FileChartColumn, FileSpreadsheet, FolderKanban,
+    Award, BookOpen, CalendarCheck, CalendarDays, CalendarRange, ClipboardCheck, Eye, FileCheck, FileChartColumn, FileSpreadsheet, FolderKanban,
     House, LayoutGrid, LayoutList, ListChecks, ListTodo, LogOut, Menu, Network, PanelLeftClose, PanelLeftOpen, Target, UserRound, Users, X, Zap,
 } from 'lucide-vue-next';
 import { useSidebarStore } from '@/stores/sidebar';
@@ -48,6 +48,7 @@ const navSections = computed<NavSection[]>(() => {
             items: [
                 { label: 'Rekap Mingguan', href: route('weekly.index'), active: is('weekly.index'), icon: CalendarCheck, show: hasEmployee.value && !isHead.value },
                 { label: isAdmin.value ? 'Kegiatan kipApp' : 'Kegiatan Saya', href: route('kip-activities.index'), active: is('kip-activities.*'), icon: ListChecks, show: isAdmin.value || (hasEmployee.value && !isHead.value) },
+                { label: 'SKP Saya', href: route('skp.index'), active: is('skp.*'), icon: FileCheck, show: hasEmployee.value && !isHead.value },
                 { label: 'Angka Kredit Saya', href: route('credit.mine'), active: is('credit.mine'), icon: Award, show: hasEmployee.value },
             ],
         },

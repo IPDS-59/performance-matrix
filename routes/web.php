@@ -25,6 +25,7 @@ use App\Http\Controllers\ProjectDetailController;
 use App\Http\Controllers\ProjectListController;
 use App\Http\Controllers\ReportAttachmentController;
 use App\Http\Controllers\ReportResubmitController;
+use App\Http\Controllers\SkpController;
 use App\Http\Controllers\TeamController;
 use App\Http\Controllers\TeamMemberController;
 use App\Http\Controllers\TeamRecapController;
@@ -152,6 +153,11 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('/sinkron-saya', MyActivitySyncController::class)->name('my-sync');
 
     // Angka Kredit (own, team, admin PAK value)
+    Route::get('/skp-saya', [SkpController::class, 'index'])->name('skp.index');
+    Route::post('/skp-saya/triwulan/{quarter}', [SkpController::class, 'createQuarter'])->name('skp.quarter.create');
+    Route::put('/skp-saya/triwulan/{quarter}/rk', [SkpController::class, 'addRks'])->name('skp.quarter.rks');
+    Route::post('/skp-saya/kirim', [SkpController::class, 'submit'])->name('skp.submit');
+    Route::post('/skp-saya/batal-kirim', [SkpController::class, 'cancel'])->name('skp.cancel');
     Route::get('/angka-kredit', [CreditController::class, 'mine'])->name('credit.mine');
     Route::get('/angka-kredit/tim', [CreditController::class, 'team'])->name('credit.team');
     Route::put('/angka-kredit/{employee}/awal', [CreditController::class, 'updateBase'])->name('credit.base');
