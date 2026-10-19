@@ -14,7 +14,8 @@ class TeamFactory extends Factory
     {
         return [
             'name' => $this->faker->words(3, true),
-            'code' => strtoupper($this->faker->lexify('???')),
+            // Unique: every EmployeeFactory row makes a team, and three random letters collided now and then.
+            'code' => strtoupper($this->faker->unique()->bothify('???###')),
             'description' => $this->faker->sentence(),
             'is_active' => true,
         ];

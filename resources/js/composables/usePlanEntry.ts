@@ -15,7 +15,8 @@ export interface EntryFormState {
     target: string | number;
     target_unit: string;
     capaian: string | number;
-    progress: string | number;
+    /** Not `progress`: useForm has its own `progress` (upload progress) that would overwrite it. Sent as `progress`. */
+    progres: string | number;
     evidence_url: string;
     capaian_note: string;
     is_capaian_skp: boolean;
@@ -62,7 +63,7 @@ export function entryFormState(item: PlanItemRow | null, copyOf: PlanItemRow | n
         target: source?.target ?? '',
         target_unit: source?.target_unit ?? '',
         capaian: source?.capaian ?? '',
-        progress: source ? source.progress : defaultProgress(start, today),
+        progres: source ? source.progress : defaultProgress(start, today),
         evidence_url: source?.evidence_url ?? '',
         capaian_note: source?.capaian_note ?? '',
         is_capaian_skp: source?.is_capaian_skp ?? true,
@@ -84,7 +85,7 @@ export function entryPayload(data: EntryFormState): Record<string, unknown> {
         target: data.target === '' ? null : data.target,
         target_unit: data.target_unit || null,
         capaian: data.capaian === '' ? null : data.capaian,
-        progress: data.progress === '' ? 0 : data.progress,
+        progress: data.progres === '' ? 0 : data.progres,
         evidence_url: data.evidence_url || null,
         capaian_note: data.capaian_note || null,
         is_capaian_skp: data.is_capaian_skp,
