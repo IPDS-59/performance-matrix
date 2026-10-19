@@ -2,7 +2,6 @@
 
 use App\Http\Controllers\Admin\ImpersonationController;
 use App\Http\Controllers\CreditController;
-use App\Http\Controllers\SkpController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\EmployeeController;
 use App\Http\Controllers\EmployeeReportController;
@@ -26,6 +25,7 @@ use App\Http\Controllers\ProjectDetailController;
 use App\Http\Controllers\ProjectListController;
 use App\Http\Controllers\ReportAttachmentController;
 use App\Http\Controllers\ReportResubmitController;
+use App\Http\Controllers\SkpController;
 use App\Http\Controllers\TeamController;
 use App\Http\Controllers\TeamMemberController;
 use App\Http\Controllers\TeamRecapController;
