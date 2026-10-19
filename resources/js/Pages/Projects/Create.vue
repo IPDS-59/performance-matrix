@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import AppLayout from '@/Layouts/AppLayout.vue';
-import { Head, router, useForm } from '@inertiajs/vue3';
+import { Head, router, useForm, usePage } from '@inertiajs/vue3';
+import KipRkKetuaPicker from '@/Components/Kinetik/KipRkKetuaPicker.vue';
 import type { Employee, Team } from '@/types';
 import { Button } from '@/Components/ui/button';
 import { Input } from '@/Components/ui/input';
@@ -29,6 +30,7 @@ const props = defineProps<{
     isAdmin: boolean;
 }>();
 
+const writeKip = computed(() => Boolean((usePage().props as { can?: { write_kip_structure?: boolean } }).can?.write_kip_structure));
 const leaderOpen = ref(false);
 const memberSearch = ref('');
 const memberPickerOpen = ref(false);
@@ -44,6 +46,7 @@ const form = useForm({
     kpi: '',
     status: 'active',
     year: new Date().getFullYear(),
+    rk_ketua_id: null as string | null,
     members: [] as Array<{ employee_id: number; role: 'leader' | 'member' }>,
 });
 
@@ -182,6 +185,9 @@ function copyProject(project: PreviousProject) {
                         <Label for="name">Nama Proyek</Label>
                         <Input id="name" v-model="form.name" class="mt-1" />
                         <InputError :message="form.errors.name" />
+                    </div>
+                    <div v-if="writeKip">
+                        <KipRkKetuaPicker v-model="form.rk_ketua_id" :team-id="form.team_id" />
                     </div>
                     <!-- Members picker (all users, cross-team allowed) -->
                     <div>

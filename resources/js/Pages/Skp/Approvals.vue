@@ -99,7 +99,7 @@ function sendBack(row: SkpApprovalRow) {
             </section>
 
             <p class="text-xs leading-relaxed text-gray-500">
-                Tindakan dilakukan dengan akun kipApp Anda sendiri. Kinetik menetapkan SKP Tahunan dan mengembalikan SKP. Klik nama pegawai pada SKP triwulan untuk melihat kegiatan dan capaian tiap RK sebagai bahan penilaian. Menilai SKP triwulan ada di kipApp, kecuali penilaian lewat Kinetik sudah dinyalakan. Daftar ini diperbarui tiap pagi dan saat pegawai mengirim SKP lewat Kinetik. SKP yang dikirim langsung dari kipApp baru tampil pada pembaruan berikutnya.
+                Tindakan dilakukan dengan akun kipApp Anda sendiri. Kinetik menetapkan SKP Tahunan dan mengembalikan SKP. Klik nama pegawai pada SKP triwulan untuk melihat kegiatan dan capaian tiap RK sebagai bahan penilaian. Tombol Nilai membuka halaman penilaian di Kinetik. Bila penilaian di Kinetik belum dinyalakan, tombolnya membuka kipApp. Daftar ini diperbarui tiap pagi dan saat pegawai mengirim SKP lewat Kinetik. SKP yang dikirim langsung dari kipApp baru tampil pada pembaruan berikutnya.
             </p>
         </div>
 

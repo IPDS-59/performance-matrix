@@ -9,6 +9,7 @@ use App\Http\Controllers\FraController;
 use App\Http\Controllers\GuideController;
 use App\Http\Controllers\KipActivityController;
 use App\Http\Controllers\KipIntegrationController;
+use App\Http\Controllers\KipStructureController;
 use App\Http\Controllers\MemberWeekController;
 use App\Http\Controllers\MyActivitySyncController;
 use App\Http\Controllers\NotificationController;
@@ -54,6 +55,10 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::put('/teams/{team}/members', [TeamMemberController::class, 'update'])->name('teams.members.update');
     Route::resource('employees', EmployeeController::class)->except(['show', 'create']);
     Route::resource('projects', ProjectController::class)->except(['show']);
+    Route::get('/kip/struktur/opsi', [KipStructureController::class, 'options'])->name('kip.structure.options');
+    Route::post('/kip/rk-ketua', [KipStructureController::class, 'storeRkKetua'])->name('kip.rk-ketua.store');
+    Route::post('/projects/{project}/kirim-kipapp', [KipStructureController::class, 'pushProject'])->name('projects.push');
+    Route::post('/performance-plans/{performance_plan}/kirim-kipapp', [KipStructureController::class, 'pushPlan'])->name('performance-plans.push');
     Route::post('/projects/{project}/copy', [ProjectController::class, 'copy'])->name('projects.copy');
     Route::resource('performance-indicators', PerformanceIndicatorController::class)->except(['show', 'create', 'edit']);
     Route::resource('performance-plans', PerformancePlanController::class)->except(['show', 'create', 'edit']);

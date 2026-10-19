@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Actions\Projects\SyncProjectMembersAction;
+use App\Kinetik\Contracts\StructureFlow;
 use App\Models\Employee;
 use App\Models\Project;
 use App\Models\Team;
@@ -202,7 +203,15 @@ class ProjectController extends Controller
             $syncMembers->execute($project, $memberMap);
         }
 
-        return redirect()->route('projects.edit', $project)->with('success', 'Proyek berhasil ditambahkan. Silakan tambahkan anggota dan rincian kegiatan.');
+        $redirect = redirect()->route('projects.edit', $project)->with('success', 'Proyek berhasil ditambahkan. Silakan tambahkan anggota dan rincian kegiatan.');
+
+        // With an RK Ketua picked, the project is created in kipApp too. A failure keeps the local project.
+        if (KipStructureController::enabled() && $request->filled('rk_ketua_id')) {
+            $error = KipStructureController::attempt(fn () => app(StructureFlow::class)->pushProject($request->user(), $project->fresh(), $request->string('rk_ketua_id')->toString()));
+            $redirect->with($error ? 'error' : 'success', $error ? "Proyek tersimpan di Kinetik, tetapi belum dibuat di kipApp: {$error}" : 'Proyek dibuat di Kinetik dan kipApp. Silakan tambahkan anggota dan rincian kegiatan.');
+        }
+
+        return $redirect;
     }
 
     public function edit(Project $project, Request $request): Response

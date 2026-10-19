@@ -57,6 +57,7 @@ class HandleInertiaRequests extends Middleware
                 'view_indicators' => $request->user() ? rescue(fn () => $request->user()->can('viewAny', PerformanceIndicator::class), false) : false,
                 'view_plans' => $request->user() ? rescue(fn () => $request->user()->can('viewAny', PerformancePlan::class), false) : false,
                 'view_plan_compliance' => rescue(fn () => PlanComplianceController::canView($request->user()), false),
+                'write_kip_structure' => (bool) config('kinetik.kip.structure_write'),
                 'approve_skp' => rescue(fn () => SkpApprovalController::canApprove($request->user()), false),
                 'view_team_credits' => $request->user() ? rescue(fn () => CreditController::visibleTeams($request)->isNotEmpty(), false) : false,
             ],
