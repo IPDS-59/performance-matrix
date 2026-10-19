@@ -2,7 +2,7 @@
 import AppLayout from '@/Layouts/AppLayout.vue';
 import { Head, useForm } from '@inertiajs/vue3';
 import { computed, ref } from 'vue';
-import type { CreditSummary } from '@/types';
+import type { CreditQuarter, CreditSummary } from '@/types';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/Components/ui/table';
 import { Button } from '@/Components/ui/button';
 import { Input } from '@/Components/ui/input';
@@ -35,6 +35,25 @@ function saveBase(clear = false) {
             ? { ak_base: null, ak_base_date: null }
             : { ak_base: data.ak_base === '' ? null : data.ak_base, ak_base_date: data.ak_base_date || null }))
         .put(route('credit.base', props.credit.employee_id), { preserveScroll: true, onSuccess: () => (editingBase.value = false) });
+}
+
+// ── A manual AK for one quarter ────────────────────────────────────────────
+const editingQuarter = ref<string | null>(null);
+const quarterForm = useForm({ ak: '' as string | number, reason: '' });
+
+function startEditQuarter(q: CreditQuarter) {
+    quarterForm.ak = q.ak;
+    quarterForm.reason = q.override?.reason ?? '';
+    quarterForm.clearErrors();
+    editingQuarter.value = q.key;
+}
+
+function saveQuarter(q: CreditQuarter) {
+    quarterForm.put(route('credit.quarter', [props.credit.employee_id, q.key]), { preserveScroll: true, onSuccess: () => (editingQuarter.value = null) });
+}
+
+function resetQuarter(q: CreditQuarter) {
+    quarterForm.delete(route('credit.quarter.destroy', [props.credit.employee_id, q.key]), { preserveScroll: true, onSuccess: () => (editingQuarter.value = null) });
 }
 
 const waitingForTime = computed(() => !!props.credit.eligible_from && props.credit.eligible_from > new Date().toISOString().slice(0, 10));
@@ -177,17 +196,50 @@ const waitingForTime = computed(() => !!props.credit.eligible_from && props.cred
                             </TableRow>
                         </TableHeader>
                         <TableBody class="divide-y divide-gray-100">
-                            <TableRow v-for="q in credit.quarters" :key="q.label">
-                                <TableCell class="font-medium text-gray-800">{{ q.label }}</TableCell>
-                                <TableCell class="text-gray-700">{{ q.predikat ?? 'Belum dinilai' }}</TableCell>
-                                <TableCell class="text-right tabular-nums text-gray-900">{{ formatAk(q.ak) }}</TableCell>
-                                <TableCell class="whitespace-normal text-xs leading-snug text-gray-600">{{ q.formula }}</TableCell>
-                                <TableCell>
-                                    <span :class="['inline-flex rounded-full px-2 py-0.5 text-xs font-medium', q.final ? 'bg-green-100 text-green-800' : 'bg-amber-100 text-amber-800']">
-                                        {{ q.final ? 'Final' : 'Estimasi' }}
-                                    </span>
-                                </TableCell>
-                            </TableRow>
+                            <template v-for="q in credit.quarters" :key="q.key">
+                                <TableRow>
+                                    <TableCell class="font-medium text-gray-800">{{ q.label }}</TableCell>
+                                    <TableCell class="text-gray-700">{{ q.predikat ?? 'Belum dinilai' }}</TableCell>
+                                    <TableCell class="text-right tabular-nums text-gray-900">
+                                        {{ formatAk(q.ak) }}
+                                        <span v-if="q.override" class="block text-xs font-normal text-gray-500">hitungan otomatis {{ formatAk(q.computed_ak) }}</span>
+                                    </TableCell>
+                                    <TableCell class="whitespace-normal text-xs leading-snug text-gray-600">{{ q.formula }}</TableCell>
+                                    <TableCell class="whitespace-normal">
+                                        <span v-if="q.override" class="inline-flex rounded-full bg-violet-100 px-2 py-0.5 text-xs font-medium text-violet-800">Diubah manual</span>
+                                        <span v-else :class="['inline-flex rounded-full px-2 py-0.5 text-xs font-medium', q.final ? 'bg-green-100 text-green-800' : 'bg-amber-100 text-amber-800']">
+                                            {{ q.final ? 'Final' : 'Estimasi' }}
+                                        </span>
+                                        <Button type="button" size="sm" variant="ghost" class="ml-1 h-7 px-2 text-xs" :aria-label="`Ubah AK ${q.label}`" @click="startEditQuarter(q)">Ubah</Button>
+                                    </TableCell>
+                                </TableRow>
+                                <TableRow v-if="q.override && editingQuarter !== q.key">
+                                    <TableCell colspan="5" class="whitespace-normal bg-violet-50 py-2 text-xs text-violet-900">
+                                        Diubah manual oleh {{ q.override.by ?? 'pengguna' }} ({{ q.override.role === 'admin' ? 'admin' : 'pegawai' }})<template v-if="q.override.at"> pada {{ formatDate(q.override.at) }}</template>. Alasan: {{ q.override.reason }}
+                                    </TableCell>
+                                </TableRow>
+                                <TableRow v-if="editingQuarter === q.key">
+                                    <TableCell colspan="5" class="whitespace-normal bg-gray-50">
+                                        <form class="grid gap-3 py-2 sm:grid-cols-[10rem_1fr_auto] sm:items-end" @submit.prevent="saveQuarter(q)">
+                                            <div>
+                                                <Label :for="`ak-${q.key}`">AK {{ q.label }}</Label>
+                                                <Input :id="`ak-${q.key}`" v-model="quarterForm.ak" type="number" step="0.001" min="0" class="mt-1" />
+                                                <InputError :message="quarterForm.errors.ak" />
+                                            </div>
+                                            <div>
+                                                <Label :for="`why-${q.key}`">Alasan (terlihat oleh PJ dan pimpinan)</Label>
+                                                <Input :id="`why-${q.key}`" v-model="quarterForm.reason" maxlength="500" placeholder="Contoh: sesuai PAK triwulan ini" class="mt-1" />
+                                                <InputError :message="quarterForm.errors.reason" />
+                                            </div>
+                                            <div class="flex gap-2">
+                                                <Button type="submit" size="sm" :disabled="quarterForm.processing">Simpan</Button>
+                                                <Button v-if="q.override" type="button" size="sm" variant="outline" :disabled="quarterForm.processing" @click="resetQuarter(q)">Pakai hitungan otomatis</Button>
+                                                <Button type="button" size="sm" variant="ghost" @click="editingQuarter = null">Batal</Button>
+                                            </div>
+                                        </form>
+                                    </TableCell>
+                                </TableRow>
+                            </template>
                             <TableRow v-if="!credit.quarters?.length">
                                 <TableCell colspan="5" class="py-8 text-center text-sm text-gray-500">Belum ada SKP periodik sejak {{ formatDate(credit.counted_from) }}.</TableCell>
                             </TableRow>
@@ -202,6 +254,7 @@ const waitingForTime = computed(() => !!props.credit.eligible_from && props.cred
                     Contoh: Ahli Madya (koefisien 37,5) dengan predikat Baik selama satu triwulan = 3 bln × 37,5 ÷ 12 × 100% = 9,375 AK.
                     AK per bulan = koefisien tahunan jenjang ÷ 12 × persentase predikat (Sangat Baik 150%, Baik 100%, Butuh Perbaikan 75%, Kurang 50%, Sangat Kurang 25%).
                     Sumber: PermenPANRB Nomor 1 Tahun 2023 Pasal 37 dan Lampiran A; PerBKN Nomor 3 Tahun 2023 Pasal 13. Data golongan dan predikat dari kipApp.
+                    Ini estimasi, bukan PAK. Belum dihitung: AK dari luar predikat SKP (pendidikan, kompetensi, penyesuaian atau konversi jabatan) dan pengurangan. Angka resmi tetap dari PAK.
                 </span>
             </p>
         </div>

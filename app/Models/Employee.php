@@ -81,6 +81,11 @@ class Employee extends Model
         return $this->hasMany(KipPerformanceRating::class);
     }
 
+    public function creditOverrides(): HasMany
+    {
+        return $this->hasMany(CreditQuarterOverride::class);
+    }
+
     public function teams(): BelongsToMany
     {
         return $this->belongsToMany(Team::class, 'employee_team')
