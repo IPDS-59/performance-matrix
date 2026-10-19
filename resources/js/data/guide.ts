@@ -63,6 +63,15 @@ export const SHOTS = {
             { n: 2, x: 45.9, y: 93.6, label: 'Kirim untuk dinilai atasan. Setelah itu tombolnya menjadi Batalkan pengiriman.' },
         ],
     },
+    adminFitur: {
+        src: '/images/pedoman/admin-fitur.webp',
+        alt: 'Halaman Fitur: daftar fitur kipApp dengan status Menyala atau Mati dan tombol Nyalakan atau Matikan',
+        width: 1024, height: 620,
+        markers: [
+            { n: 1, x: 91, y: 28, label: 'Matikan atau nyalakan fitur. Berlaku segera untuk semua pengguna.' },
+            { n: 2, x: 62, y: 87, label: 'Tanda "Belum diuji langsung": fitur yang menulis data resmi kipApp dan belum pernah dicoba di kipApp asli.' },
+        ],
+    },
     skpNilai: {
         src: '/images/pedoman/skp-nilai.webp',
         alt: 'Halaman Nilai SKP: bahan penilaian dari Kinetik, lalu nilai dan umpan balik untuk tiap RK dan perilaku',
@@ -447,7 +456,7 @@ export const GUIDE_FLOWS: GuideFlow[] = [
                 where: 'Menu Data Master → Proyek → Tambah Proyek, lalu Rencana Kinerja (RK) → Tambah RK',
                 route: 'projects.create',
                 body: [
-                    'Proyek dan RK Anggota yang Anda buat di Kinetik bisa dibuat juga di kipApp, dengan akun kipApp Anda sendiri. Fitur ini belum dinyalakan. Saat belum menyala, proyek dan RK hanya tersimpan di Kinetik dan kipApp tetap diisi seperti biasa.',
+                    'Proyek dan RK Anggota yang Anda buat di Kinetik bisa dibuat juga di kipApp, dengan akun kipApp Anda sendiri. Admin bisa mematikannya di menu Fitur. Saat mati, proyek dan RK hanya tersimpan di Kinetik dan kipApp tetap diisi seperti biasa.',
                     'Di form Tambah Proyek, setelah memilih tim, pilih RK Ketua dari daftar kipApp. Belum ada? Tekan "RK Ketua baru", isi rencana kinerja ketua dan pilih IKI JPT-nya. Proyek dibuat di kipApp di bawah RK Ketua itu, lengkap dengan anggotanya yang sudah terhubung ke kipApp.',
                     'Tambah RK membuat RK Anggota di kipApp untuk PIC-nya di proyek itu. PIC harus anggota proyek. Bila kipApp menolak, data tetap tersimpan di Kinetik dan muncul tombol "Kirim ke kipApp" di daftar untuk mengulang.',
                     'Pembuatan ini mengikuti kode kipApp sendiri dan belum diuji langsung. Periksa hasil pertama di kipApp.',
@@ -596,6 +605,18 @@ export const GUIDE_FLOWS: GuideFlow[] = [
                     'Tempel token dari langkah 1 di kolom Token x-auth, lalu tekan Simpan Token. Status berubah menjadi berlaku, lengkap dengan waktu kedaluwarsa.',
                 ],
                 shot: SHOTS.adminIntegrasi,
+            },
+            {
+                title: 'Nyalakan atau matikan fitur kipApp',
+                where: 'Menu Data Master → Fitur',
+                route: 'admin.features',
+                body: [
+                    'Halaman Fitur mendaftar fitur yang bekerja dengan kipApp: kirim kegiatan ke atasan, ubah dan hapus kegiatan setelah dikirim, Nilai SKP oleh atasan, dan pembuatan RK Ketua, proyek dan RK Anggota di kipApp.',
+                    'Tekan Nyalakan atau Matikan. Perubahan berlaku segera untuk semua pengguna dan tidak perlu menyentuh server. Fitur bertanda "Belum diuji langsung" menulis data resmi di kipApp dan belum pernah dicoba di kipApp asli, jadi Kinetik bertanya dulu sebelum menyalakannya.',
+                    'Pilihan dari halaman ini mengalahkan pengaturan server (.env). "Ikuti pengaturan server" menghapus pilihan itu.',
+                ],
+                shot: SHOTS.adminFitur,
+                tip: 'Ada masalah setelah fitur dinyalakan? Matikan dari sini, data yang sudah masuk ke kipApp tidak ikut terhapus.',
             },
             {
                 title: 'Pantau akun SSO pegawai',

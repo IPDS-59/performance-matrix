@@ -796,6 +796,18 @@ export interface SkpOverview {
     quarters: SkpQuarter[];
 }
 
+/** One feature flag on the admin Fitur page. */
+export interface FeatureFlagRow {
+    key: string;
+    label: string;
+    description: string;
+    tested: boolean;
+    enabled: boolean;
+    overridden: boolean;
+    changed_by: string | null;
+    changed_at: string | null;
+}
+
 /** One row of a kipApp list a form picks from (RK Ketua, IKI JPT). */
 export interface KipChoice {
     id: string;

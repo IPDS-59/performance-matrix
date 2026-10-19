@@ -5,6 +5,7 @@ use App\Http\Controllers\CreditController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\EmployeeController;
 use App\Http\Controllers\EmployeeReportController;
+use App\Http\Controllers\FeatureFlagController;
 use App\Http\Controllers\FraController;
 use App\Http\Controllers\GuideController;
 use App\Http\Controllers\KipActivityController;
@@ -185,6 +186,12 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::post('/integrasi-kipapp/sync', [KipIntegrationController::class, 'syncAll'])->name('kip-integration.sync');
         Route::post('/integrasi-kipapp/sync-structure', [KipIntegrationController::class, 'syncStructure'])->name('kip-integration.sync-structure');
         Route::post('/integrasi-kipapp/sync-careers', [KipIntegrationController::class, 'syncCareers'])->name('kip-integration.sync-careers');
+    });
+
+    Route::middleware('can:manage-kip-integration')->group(function () {
+        Route::get('/admin/fitur', [FeatureFlagController::class, 'index'])->name('admin.features');
+        Route::put('/admin/fitur/{key}', [FeatureFlagController::class, 'update'])->name('admin.features.update');
+        Route::delete('/admin/fitur/{key}', [FeatureFlagController::class, 'reset'])->name('admin.features.reset');
     });
 
     // Profile

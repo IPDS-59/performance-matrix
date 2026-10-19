@@ -3,7 +3,7 @@ import { Link, router, usePage } from '@inertiajs/vue3';
 import { computed, onMounted, onUnmounted, ref, type Component } from 'vue';
 import {
     Award, BadgeCheck, BookOpen, CalendarCheck, CalendarDays, CalendarRange, ClipboardCheck, Eye, FileCheck, FileChartColumn, FileSpreadsheet, FolderKanban,
-    House, LayoutGrid, LayoutList, ListChecks, ListTodo, LogOut, Menu, Network, PanelLeftClose, PanelLeftOpen, Target, UserRound, Users, X, Zap,
+    House, LayoutGrid, LayoutList, ListChecks, ListTodo, LogOut, Menu, Network, PanelLeftClose, PanelLeftOpen, Target, ToggleRight, UserRound, Users, X, Zap,
 } from 'lucide-vue-next';
 import { useSidebarStore } from '@/stores/sidebar';
 import { Notivue, Notification, push } from 'notivue';
@@ -76,6 +76,7 @@ const navSections = computed<NavSection[]>(() => {
                 { label: 'Rencana Kinerja (RK)', href: route('performance-plans.index'), active: is('performance-plans.*'), icon: ListTodo, show: canViewPlans.value },
                 { label: 'Lihat sebagai', href: route('admin.impersonate'), active: is('admin.impersonate*'), icon: Eye, show: isAdmin.value && !impersonating.value },
                 { label: 'Integrasi kipApp', href: route('kip-integration.index'), active: is('kip-integration.*'), icon: Zap, show: isAdmin.value },
+                { label: 'Fitur', href: route('admin.features'), active: is('admin.features*'), icon: ToggleRight, show: isAdmin.value },
             ],
         },
         {
