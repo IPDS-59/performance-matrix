@@ -32,6 +32,11 @@ final class FeatureFlags
                 'description' => 'Halaman Nilai SKP: nilai dan umpan balik tiap RK dan perilaku, lalu Selesai menilai. Mematikannya mengembalikan tombol Nilai ke kipApp.',
                 'tested' => false,
             ],
+            'iki_write' => [
+                'label' => 'Tambah dan hapus IKI di SKP Saya',
+                'description' => 'Anggota menambah IKI pada RK di SKP yang masih Sedang dibuat, supaya SKP bisa dikirim tanpa membuka kipApp. Mematikannya menyembunyikan tombol IKI.',
+                'tested' => false,
+            ],
             'structure_write' => [
                 'label' => 'Buat RK Ketua, proyek dan RK Anggota di kipApp',
                 'description' => 'Proyek dan RK yang dibuat di Kinetik ikut dibuat di kipApp dengan akun PJ. Mematikannya membuat proyek dan RK hanya tersimpan di Kinetik.',

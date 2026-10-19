@@ -171,6 +171,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('/persetujuan-skp/{skpStatus}/nilai/selesai', [SkpRatingController::class, 'finish'])->name('skp.rate.finish');
     Route::post('/skp-saya/triwulan/{quarter}', [SkpController::class, 'createQuarter'])->name('skp.quarter.create');
     Route::put('/skp-saya/triwulan/{quarter}/rk', [SkpController::class, 'addRks'])->name('skp.quarter.rks');
+    Route::post('/skp-saya/iki', [SkpController::class, 'addIki'])->name('skp.iki.store');
+    Route::delete('/skp-saya/iki', [SkpController::class, 'deleteIki'])->name('skp.iki.destroy');
     Route::post('/skp-saya/kirim', [SkpController::class, 'submit'])->name('skp.submit');
     Route::post('/skp-saya/batal-kirim', [SkpController::class, 'cancel'])->name('skp.cancel');
     Route::get('/angka-kredit', [CreditController::class, 'mine'])->name('credit.mine');

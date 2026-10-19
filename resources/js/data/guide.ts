@@ -54,6 +54,17 @@ export const SHOTS = {
             { n: 2, x: 68.2, y: 64.0, label: 'Buat SKP. Di kipApp SKP-nya langsung ada.' },
         ],
     },
+    skpIki: {
+        src: '/images/pedoman/skp-iki.webp',
+        alt: 'SKP TW 4 yang Sedang dibuat dengan daftar RK dan IKI, tombol Tambah IKI dan kotak untuk menulis IKI baru',
+        width: 1024, height: 760,
+        markers: [
+            { n: 1, x: 34.9, y: 36.6, label: 'Tambah IKI pada RK yang belum punya.' },
+            { n: 2, x: 62.5, y: 67.4, label: 'Tulis IKI beserta targetnya, minimal 10 huruf.' },
+            { n: 3, x: 34.7, y: 77.9, label: 'Simpan IKI: dibuat di kipApp dengan akun Anda.' },
+            { n: 4, x: 45.9, y: 85.8, label: 'Setelah tiap RK punya IKI, SKP bisa dikirim.' },
+        ],
+    },
     skpKirim: {
         src: '/images/pedoman/skp-kirim.webp',
         alt: 'SKP TW 4 berstatus Sedang dibuat dengan tombol Tambah RK dan Kirim untuk dinilai',
@@ -324,6 +335,19 @@ export const GUIDE_FLOWS: GuideFlow[] = [
                 shot: SHOTS.skpBuatTriwulan,
             },
             {
+                title: 'Tambah IKI pada RK',
+                where: 'Menu Kegiatan → SKP Saya → kartu triwulan → RK dan IKI',
+                route: 'skp.index',
+                body: [
+                    'SKP tidak bisa dikirim bila ada RK tanpa IKI. Buka "RK dan IKI" pada SKP yang masih Sedang dibuat, lalu tekan "Tambah IKI" di bawah RK yang belum punya.',
+                    'Tulis IKI beserta targetnya dalam satu kalimat, misalnya "Persentase entri data selesai tepat waktu 95 persen". kipApp meminta minimal 10 huruf dan tidak punya kolom target terpisah, jadi target ikut di teksnya. Tombol Simpan IKI membuat IKI di kipApp dengan akun Anda.',
+                    'IKI yang Anda tambah bisa dihapus dengan ikon tempat sampah. IKI yang datang dari atasan atau dari SKP Tahunan tidak bisa dihapus di sini.',
+                    'Fitur ini mengikuti kode kipApp sendiri dan belum diuji langsung, jadi bisa dimatikan admin di menu Fitur. Periksa IKI pertama di kipApp.',
+                ],
+                shot: SHOTS.skpIki,
+                tip: 'Salah menulis IKI? Hapus lalu tambah lagi selama SKP masih Sedang dibuat.',
+            },
+            {
                 title: 'Kirim SKP triwulan untuk dinilai',
                 where: 'Menu Kegiatan → SKP Saya → Kirim untuk dinilai',
                 route: 'skp.index',
@@ -458,7 +482,7 @@ export const GUIDE_FLOWS: GuideFlow[] = [
                 body: [
                     'IKU di Kinetik dibaca dari kipApp saat sinkronisasi struktur: Sasaran dari RK Kepala, lalu IKI pada RK itu menjadi IKU yang didukung timnya. IKU yang Anda tambah sendiri di halaman ini hanya tersimpan di Kinetik dan tidak dikirim ke kipApp.',
                     'Perjanjian Kinerja (Renstra, tujuan, sasaran dan indikator) tidak bisa dibuat di kipApp oleh pegawai: halamannya hanya untuk dibaca, karena PK ditetapkan di aplikasi SINERGI. Karena itu Kinetik juga tidak membuatnya.',
-                    'IKI sebuah RK dibuat di kipApp pada SKP dan RK Anda. Kinetik belum membuat IKI. Bila IKU atau IKI di Kinetik tampak berbeda dari kipApp, jalankan Sinkronisasi Struktur dan anggap kipApp yang benar.',
+                    'IKI sebuah RK dibuat di kipApp, atau di Kinetik lewat SKP Saya bila fitur IKI menyala. Bila IKU atau IKI di Kinetik tampak berbeda dari kipApp, jalankan Sinkronisasi Struktur dan anggap kipApp yang benar.',
                 ],
                 tip: 'IKU tidak ada atau salah? Periksa dulu di kipApp dan SINERGI, lalu minta admin menjalankan Sinkronisasi Struktur.',
             },

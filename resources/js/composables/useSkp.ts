@@ -28,6 +28,14 @@ export function useSkpActions() {
             processing.value = true;
             router.post(route('skp.quarter.create', quarter), { rk_ids: rkIds }, { preserveScroll: true, onSuccess: onDone, onFinish: () => (processing.value = false) });
         },
+        addIki: (kind: 'yearly' | 'quarter', quarter: number | undefined, rkId: string, text: string, onDone: () => void) => {
+            processing.value = true;
+            router.post(route('skp.iki.store'), { kind, quarter, rk_id: rkId, text }, { preserveScroll: true, onSuccess: onDone, onFinish: () => (processing.value = false) });
+        },
+        deleteIki: (kind: 'yearly' | 'quarter', quarter: number | undefined, ikiId: string) => {
+            processing.value = true;
+            router.delete(route('skp.iki.destroy'), { data: { kind, quarter, iki_id: ikiId }, preserveScroll: true, onFinish: () => (processing.value = false) });
+        },
         addRks: (quarter: number, rkIds: string[], onDone: () => void) => {
             processing.value = true;
             router.put(route('skp.quarter.rks', quarter), { rk_ids: rkIds }, { preserveScroll: true, onSuccess: onDone, onFinish: () => (processing.value = false) });

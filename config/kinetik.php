@@ -50,6 +50,10 @@ return [
         // verified live (2026-10-08 and 2026-10-19).
         'edit_after_push' => (bool) env('KIP_EDIT_AFTER_PUSH', false),
 
+        // The member adds and removes IKI of the RK in a SKP that is Sedang dibuat, on SKP Saya. The calls are read from
+        // kipApp's own code and never run live; keep it off until the first IKI is added and checked in kipApp.
+        'iki_write' => (bool) env('KIP_IKI_WRITE', false),
+
         // A new RK Ketua, proyek and RK Anggota made in Kinetik is also created in kipApp, with the tim leader's own
         // token. The calls are read from kipApp's own code and never run live (no safe throwaway test), so keep it off
         // until the first one is made together with a PJ and checked in kipApp.

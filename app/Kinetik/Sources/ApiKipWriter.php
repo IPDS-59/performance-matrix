@@ -159,6 +159,24 @@ class ApiKipWriter
         ], 'nilai perilaku');
     }
 
+    /** Every IKI of a SKP in one call (GET /skp/iki): ikiid, rkid, iki, iscopied, isatasan. @return list<array<string, mixed>> */
+    public function ikis(string $skpId): array
+    {
+        return $this->rows($this->get('v1/skp/iki', ['skpid' => $skpId]), 'skp/iki');
+    }
+
+    /** Add an IKI to an RK of a SKP (POST /skp/iki). kipApp's member form sends only these two fields; the target stays in the text. */
+    public function createIki(string $rkId, string $text): void
+    {
+        $this->send('post', 'v1/skp/iki', ['rkid' => $rkId, 'iki' => $text], 'IKI');
+    }
+
+    /** Delete an IKI (DELETE /skp/iki). */
+    public function deleteIki(string $ikiId): void
+    {
+        $this->send('delete', 'v1/skp/iki', ['id' => $ikiId], 'hapus IKI');
+    }
+
     /** @return array<string, mixed> the periode, wilayah and unit every structure list of kipApp asks for */
     private function scope(): array
     {

@@ -2,6 +2,7 @@
 import AppLayout from '@/Layouts/AppLayout.vue';
 import ConfirmDialog from '@/Components/ConfirmDialog.vue';
 import SkpRkDialog from '@/Components/Kinetik/SkpRkDialog.vue';
+import SkpIkiList from '@/Components/Kinetik/SkpIkiList.vue';
 import { Head } from '@inertiajs/vue3';
 import { computed, ref } from 'vue';
 import { Check, CircleAlert, ExternalLink } from 'lucide-vue-next';
@@ -67,6 +68,7 @@ const yearlyStep = computed(() => stepOf('yearly', props.overview.yearly?.status
                     </p>
                     <p v-if="overview.yearly.blockers.length" class="mt-2 text-sm text-amber-800">Belum bisa dikirim: {{ overview.yearly.blockers.join('; ') }}.</p>
                     <p v-if="overview.yearly.status_id === 2" class="mt-2 text-sm text-gray-700">Menunggu atasan menetapkan, di halaman Persetujuan SKP Kinetik atau di kipApp. Penetapan dilakukan atasan sendiri dengan akun kipApp-nya.</p>
+                    <SkpIkiList v-if="overview.yearly.rk_list.length" :rks="overview.yearly.rk_list" :can-edit="overview.yearly.can_edit_iki" :processing="actions.processing.value" @add="(rk, text, done) => actions.addIki('yearly', undefined, rk, text, done)" @remove="(id) => actions.deleteIki('yearly', undefined, id)" />
                     <div class="mt-3 flex flex-wrap gap-2">
                         <Button v-if="overview.yearly.can_submit" size="sm" :disabled="actions.processing.value" @click="confirmSubmit('yearly')">Kirim untuk ditetapkan</Button>
                         <Button v-if="overview.yearly.can_cancel" size="sm" variant="outline" :disabled="actions.processing.value" @click="confirmCancel('yearly')">Batalkan pengiriman</Button>
@@ -95,6 +97,7 @@ const yearlyStep = computed(() => stepOf('yearly', props.overview.yearly?.status
                             <li v-for="(label, i) in QUARTER_STEPS" :key="label" :class="i <= stepOf('quarter', q.status_id) ? 'font-medium text-gray-900' : ''">{{ i + 1 }}. {{ label }}</li>
                         </ol>
                         <p v-if="q.blockers.length" class="mt-2 text-sm text-amber-800">Belum bisa dikirim: {{ q.blockers.join('; ') }}.</p>
+                        <SkpIkiList v-if="q.rk_list.length" :rks="q.rk_list" :can-edit="q.can_edit_iki" :processing="actions.processing.value" @add="(rk, text, done) => actions.addIki('quarter', q.quarter, rk, text, done)" @remove="(id) => actions.deleteIki('quarter', q.quarter, id)" />
                     </template>
                     <p v-else-if="q.create_blocker" class="mt-1 text-sm text-gray-600">{{ q.create_blocker }}</p>
 
