@@ -3,7 +3,10 @@
 use App\Actions\Kinetik\SyncSkpStatusesAction;
 use App\Models\Employee;
 use App\Models\MemberKipCredential;
+use App\Models\PerformancePlan;
+use App\Models\PlanItem;
 use App\Models\SkpStatus;
+use App\Models\Team;
 use App\Models\User;
 use Illuminate\Http\Client\Factory;
 use Illuminate\Support\Facades\Http;
@@ -138,4 +141,90 @@ it('stores the status of every active employee with the admin token', function (
     expect($result)->toBe(['employees' => 1, 'rows' => 2, 'failed' => 0]);
     expect(SkpStatus::where('employee_id', $member->id)->orderBy('kind', 'desc')->get()->map(fn ($s) => [$s->kind, $s->quarter, $s->status_id, $s->atasan_pegawai_id])->all())
         ->toBe([['yearly', 0, 2, '555'], ['quarter', 4, 5, '555']]);
+});
+
+/** A fake kipApp for rating SKP 100: the RK and behaviour rows come from $rated, writes are collected. */
+function fakeRating(bool $rated): Closure
+{
+    Http::swap(new Factory);
+    $writes = [];
+    Http::fake(function ($request) use (&$writes, $rated) {
+        $path = parse_url($request->url(), PHP_URL_PATH);
+        if (in_array($request->method(), ['POST', 'PUT'])) {
+            $writes[] = [$request->method(), $path, $request->data()];
+
+            return Http::response(['status' => true]);
+        }
+        $nilai = $rated ? 90 : null;
+
+        return match (true) {
+            str_ends_with($path, '/v1/skp/penilaian/rk/periodik') => Http::response([['rkid' => 11, 'rencanakinerja' => 'Entri FRA', 'nilaiumpanbalik' => $nilai, 'levelumpanbalik' => $rated ? 2 : null]]),
+            str_ends_with($path, '/v1/perilaku') => Http::response([['jenisperilakuid' => 4, 'jenisperilaku' => 'Akuntabel', 'nilaiumpanbalik' => $nilai, 'levelumpanbalik' => $rated ? 3 : null]]),
+            str_ends_with($path, '/v1/skp') => Http::response([['id' => '100', 'statusskpid' => 5, 'statusskp' => 'Sedang diperiksa', 'atasanid' => '555', 'namaatasan' => 'Atasan Contoh', 'jmlrk' => 1]]),
+            default => Http::response([], 404),
+        };
+    });
+
+    return function () use (&$writes) {
+        return $writes;
+    };
+}
+
+function quarterSkp(): SkpStatus
+{
+    return waitingSkp(['kind' => 'quarter', 'quarter' => 4, 'status_id' => 5, 'status_text' => 'Sedang diperiksa']);
+}
+
+it('hides the Nilai SKP page while the flag is off', function () {
+    config(['kinetik.kip.atasan_rating' => false]);
+    $atasan = atasanUser();
+    $skp = quarterSkp();
+
+    $this->actingAs($atasan)->get(route('skp.rate', $skp))->assertNotFound();
+    $this->actingAs($atasan)->put(route('skp.rate.rk', $skp), ['id' => '11', 'nilai' => 90])->assertNotFound();
+});
+
+it('saves an RK score with the level kipApp derives and the atasan\'s token', function () {
+    config(['kinetik.kip.atasan_rating' => true]);
+    $atasan = atasanUser();
+    $skp = quarterSkp();
+    $writes = fakeRating(false);
+
+    $this->actingAs($atasan)->put(route('skp.rate.rk', $skp), ['id' => '11', 'nilai' => 99, 'umpanbalik' => 'Rapi'])->assertSessionHas('success');
+    $this->actingAs($atasan)->put(route('skp.rate.perilaku', $skp), ['id' => 4, 'nilai' => 85])->assertSessionHas('success');
+
+    expect(collect($writes())->firstWhere(1, '/api/v1/skp/rk/umpanbalik')[2])->toBe(['id' => '11', 'nilaiumpanbalik' => 99, 'levelumpanbalik' => 3, 'umpanbalik' => 'Rapi'])
+        ->and(collect($writes())->firstWhere(1, '/api/v1/perilaku')[2])->toMatchArray(['skpid' => '100', 'jenisperilakuid' => 4, 'nilaiumpanbalik' => 85, 'levelumpanbalik' => 2]);
+});
+
+it('does not finish a rating while a score is missing, and finishes with flag 7 once all are in', function () {
+    config(['kinetik.kip.atasan_rating' => true]);
+    $atasan = atasanUser();
+    $skp = quarterSkp();
+
+    $writes = fakeRating(false);
+    $this->actingAs($atasan)->post(route('skp.rate.finish', $skp))->assertSessionHas('error');
+    expect(collect($writes())->firstWhere(1, '/api/v1/skp/penetapan/kirim'))->toBeNull();
+
+    $writes = fakeRating(true);
+    $this->actingAs($atasan)->post(route('skp.rate.finish', $skp))->assertRedirect(route('skp.approvals'));
+    expect(collect($writes())->firstWhere(1, '/api/v1/skp/penetapan/kirim')[2])->toBe(['skpid' => '100', 'flag' => 7]);
+    expect($skp->employee->user->notifications->where('data.type', 'skp_dinilai'))->toHaveCount(1);
+});
+
+it('shows the evidence of a quarter next to the SKP', function () {
+    config(['kinetik.kip.atasan_rating' => true]);
+    $atasan = atasanUser();
+    $skp = quarterSkp();
+    $team = Team::factory()->create();
+    $plan = PerformancePlan::factory()->create(['project_id' => null, 'team_id' => $team->id, 'description' => 'Entri FRA']);
+    PlanItem::create(['team_id' => $team->id, 'employee_id' => $skp->employee_id, 'performance_plan_id' => $plan->id, 'description' => 'Entri', 'date_start' => '2026-11-03', 'date_end' => '2026-11-03', 'target' => 10, 'target_unit' => 'dokumen', 'capaian' => 8]);
+    fakeRating(false);
+
+    $this->actingAs($atasan)->get(route('skp.approvals'))->assertInertia(fn ($page) => $page
+        ->where('ratingEnabled', true)
+        ->where('rows.0.evidence.0.rk', 'Entri FRA')
+        ->where('rows.0.evidence.0.kegiatan', 1)
+        ->where('rows.0.evidence.0.capaian', 8)
+        ->where('rows.0.evidence.0.unit', 'dokumen'));
 });

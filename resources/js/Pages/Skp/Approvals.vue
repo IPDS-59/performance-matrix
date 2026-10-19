@@ -3,13 +3,17 @@ import AppLayout from '@/Layouts/AppLayout.vue';
 import ConfirmDialog from '@/Components/ConfirmDialog.vue';
 import { Head, router } from '@inertiajs/vue3';
 import { computed, ref } from 'vue';
-import { CircleAlert, ExternalLink } from 'lucide-vue-next';
+import { ChevronDown, ChevronRight, CircleAlert } from 'lucide-vue-next';
+import SkpEvidenceTable from '@/Components/Kinetik/SkpEvidenceTable.vue';
 import type { SkpApprovalRow } from '@/types';
 import { Button } from '@/Components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/Components/ui/table';
 import { useDateFormat } from '@/composables/useDateFormat';
 
-defineProps<{ rows: SkpApprovalRow[]; loadError: string | null; canActAsAtasan: boolean }>();
+const props = defineProps<{ rows: SkpApprovalRow[]; loadError: string | null; canActAsAtasan: boolean; ratingEnabled: boolean }>();
+
+const open = ref<number | null>(null);
+const rateHref = (row: SkpApprovalRow) => (props.ratingEnabled ? route('skp.rate', row.id) : 'https://kipapp.bps.go.id/');
 
 const { formatDate } = useDateFormat();
 const processing = ref(false);
@@ -55,9 +59,16 @@ function sendBack(row: SkpApprovalRow) {
                             <TableHead class="text-right">Tindakan</TableHead>
                         </TableRow>
                     </TableHeader>
-                    <TableBody class="divide-y divide-gray-100">
-                        <TableRow v-for="row in rows" :key="row.id">
-                            <TableCell class="font-medium text-gray-900">{{ row.employee }}</TableCell>
+                    <TableBody v-for="row in rows" :key="row.id" class="divide-y divide-gray-100 border-t">
+
+                        <TableRow>
+                            <TableCell class="font-medium text-gray-900">
+                                <button v-if="row.kind === 'quarter'" type="button" class="-ml-1 inline-flex items-center gap-1 rounded px-1 text-left hover:bg-gray-100" :aria-expanded="open === row.id" @click="open = open === row.id ? null : row.id">
+                                    <component :is="open === row.id ? ChevronDown : ChevronRight" class="h-4 w-4 text-gray-500" aria-hidden="true" />
+                                    {{ row.employee }}
+                                </button>
+                                <span v-if="row.kind !== 'quarter'">{{ row.employee }}</span>
+                            </TableCell>
                             <TableCell class="text-gray-700">
                                 {{ row.label }}
                                 <span class="block text-xs text-gray-500">{{ row.kind === 'yearly' ? 'Menunggu ditetapkan' : 'Menunggu dinilai' }}</span>
@@ -66,14 +77,21 @@ function sendBack(row: SkpApprovalRow) {
                             <TableCell class="text-gray-700">{{ row.since ? formatDate(row.since) : '—' }}</TableCell>
                             <TableCell class="whitespace-normal text-right">
                                 <span v-if="!row.mine" class="text-xs text-gray-500">Atasan: {{ row.atasan || 'lain' }}</span>
-                                <div v-else class="flex flex-wrap justify-end gap-2">
+                                <div v-if="row.mine" class="flex flex-wrap justify-end gap-2">
                                         <Button v-if="row.kind === 'yearly'" size="sm" :disabled="processing" @click="approve(row)">Tetapkan</Button>
-                                        <Button v-if="row.kind === 'quarter'" as="a" href="https://kipapp.bps.go.id/" target="_blank" rel="noopener" size="sm">Nilai di kipApp <ExternalLink class="ml-1 h-3.5 w-3.5" aria-hidden="true" /></Button>
+                                        <Button v-if="row.kind === 'quarter'" as="a" :href="rateHref(row)" :target="props.ratingEnabled ? undefined : '_blank'" rel="noopener" size="sm">{{ props.ratingEnabled ? 'Nilai' : 'Nilai di kipApp' }}</Button>
                                         <Button size="sm" variant="outline" :disabled="processing" @click="sendBack(row)">Kembalikan</Button>
                                 </div>
                             </TableCell>
                         </TableRow>
-                        <TableRow v-if="!rows.length">
+                        <TableRow v-show="open === row.id" class="bg-gray-50/60">
+                            <TableCell colspan="5" class="whitespace-normal px-4 py-3">
+                                <SkpEvidenceTable :rows="row.evidence" />
+                            </TableCell>
+                        </TableRow>
+                    </TableBody>
+                    <TableBody v-if="!rows.length">
+                        <TableRow>
                             <TableCell colspan="5" class="py-10 text-center text-sm text-gray-500">Tidak ada SKP yang menunggu Anda.</TableCell>
                         </TableRow>
                     </TableBody>
@@ -81,7 +99,7 @@ function sendBack(row: SkpApprovalRow) {
             </section>
 
             <p class="text-xs leading-relaxed text-gray-500">
-                Tindakan dilakukan dengan akun kipApp Anda sendiri. Kinetik menetapkan SKP Tahunan dan mengembalikan SKP. Menilai SKP triwulan tetap di kipApp karena butuh nilai tiap RK. Daftar ini diperbarui tiap pagi dan saat pegawai mengirim SKP lewat Kinetik. SKP yang dikirim langsung dari kipApp baru tampil pada pembaruan berikutnya.
+                Tindakan dilakukan dengan akun kipApp Anda sendiri. Kinetik menetapkan SKP Tahunan dan mengembalikan SKP. Klik nama pegawai pada SKP triwulan untuk melihat kegiatan dan capaian tiap RK sebagai bahan penilaian. Menilai SKP triwulan ada di kipApp, kecuali penilaian lewat Kinetik sudah dinyalakan. Daftar ini diperbarui tiap pagi dan saat pegawai mengirim SKP lewat Kinetik. SKP yang dikirim langsung dari kipApp baru tampil pada pembaruan berikutnya.
             </p>
         </div>
 

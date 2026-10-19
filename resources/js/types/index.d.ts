@@ -806,4 +806,26 @@ export interface SkpApprovalRow {
     since: string | null;
     /** The signed-in person is this SKP's atasan. */
     mine: boolean;
+    evidence: SkpEvidenceRow[];
+}
+
+/** What the member did under one RK in the quarter, from Kinetik's own data. */
+export interface SkpEvidenceRow {
+    rk: string;
+    kegiatan: number;
+    selesai: number;
+    terkirim: number;
+    target: number | null;
+    capaian: number | null;
+    unit: string | null;
+    catatan: string[];
+}
+
+/** The atasan's score so far on one RK or behaviour. */
+export interface SkpRatingRow {
+    id: string | number;
+    name: string;
+    nilai: number | null;
+    level: number | null;
+    umpanbalik: string | null;
 }
