@@ -81,6 +81,11 @@ class Employee extends Model
         return $this->hasMany(KipPerformanceRating::class);
     }
 
+    public function syncWait(): HasOne
+    {
+        return $this->hasOne(MemberSyncWait::class);
+    }
+
     public function creditOverrides(): HasMany
     {
         return $this->hasMany(CreditQuarterOverride::class);

@@ -24,6 +24,14 @@ Schedule::command('kinetik:verify-office --apply')->dailyAt('04:40');
 // Kinetik: enrich RK with team + parsed IKI targets daily at 04:45
 Schedule::command('kinetik:sync-kip-plans')->dailyAt('04:45');
 
+// Every member syncs their own data with their own kipApp token, through the queue. A member whose login ran
+// out waits until they sign in again. BPS SSO being down is retried every 30 minutes.
+Schedule::command('kinetik:sync-members')->dailyAt('05:20');
+Schedule::command('kinetik:sync-members --retry-sso')->everyThirtyMinutes();
+
+// The queue has no always-on worker on this hosting. The scheduler runs it and stops when it is empty.
+Schedule::command('queue:work --stop-when-empty --max-time=240 --tries=1')->everyFiveMinutes()->withoutOverlapping(10);
+
 // Where every SKP stands in kipApp, for the atasan's approval page. A member's own send updates its row at once.
 Schedule::command('kinetik:sync-skp-statuses')->dailyAt('05:15');
 

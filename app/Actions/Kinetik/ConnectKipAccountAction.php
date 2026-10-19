@@ -2,7 +2,7 @@
 
 namespace App\Actions\Kinetik;
 
-use App\Jobs\SyncMyActivitiesJob;
+use App\Jobs\SyncMemberDataJob;
 use App\Kinetik\KipTokenInfo;
 use App\Models\KipCredential;
 use App\Models\MemberKipCredential;
@@ -48,8 +48,10 @@ class ConnectKipAccountAction
 
         if (MemberKipCredential::keyIsConfigured()) {
             MemberKipCredential::remember($user, $password, $result->token, $result->expiresAt);
-            // First sync of the member's own RK and kegiatan, after the response.
-            SyncMyActivitiesJob::dispatchAfterResponse($user->id);
+            // The member's own sync, after the response. It also runs what waited for this sign in and clears the wait.
+            if ($user->employee !== null) {
+                SyncMemberDataJob::dispatchAfterResponse($user->employee->id);
+            }
         }
     }
 
