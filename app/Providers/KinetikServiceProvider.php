@@ -10,6 +10,7 @@ use App\Kinetik\Contracts\SkpApproval;
 use App\Kinetik\Contracts\SkpFlow;
 use App\Kinetik\Contracts\SkpRating;
 use App\Kinetik\Contracts\StructureFlow;
+use App\Kinetik\FeatureFlags;
 use App\Kinetik\Sources\ApiKipActivitySource;
 use App\Kinetik\Sources\ApiKipStructureSource;
 use App\Kinetik\Sources\MockKipActivitySource;
@@ -26,6 +27,11 @@ use Illuminate\Support\ServiceProvider;
 
 class KinetikServiceProvider extends ServiceProvider
 {
+    public function boot(): void
+    {
+        FeatureFlags::apply();
+    }
+
     public function register(): void
     {
         $this->app->bind(KipAuthenticator::class, ConfigBearerAuthenticator::class);
