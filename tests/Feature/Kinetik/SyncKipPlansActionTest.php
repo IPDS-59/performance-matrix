@@ -6,6 +6,7 @@ use App\Kinetik\Sources\ApiKipStructureSource;
 use App\Models\Employee;
 use App\Models\PerformancePlan;
 use App\Models\Team;
+use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Support\Facades\Http;
 
 beforeEach(function () {
@@ -105,4 +106,21 @@ it('deduplicates RK by (team_id, description) when two employees have the same p
     expect(PerformancePlan::where('team_id', $team->id)->count())->toBe(1)
         ->and($summary['created'])->toBe(1)
         ->and($summary['enriched'])->toBe(1);
+});
+
+it('skips an employee whose kipApp request times out and goes on with the next one', function () {
+    $team = Team::factory()->create(['kip_external_id' => '106453', 'name' => 'MTI']);
+    $slow = Employee::factory()->create(['nip_lama' => '111111111']);
+    $ok = Employee::factory()->create(['nip_lama' => '340060924']);
+    Http::fake([
+        'kipapp.bps.go.id/api/v1/dashboard/kegiatanpegawai/belumkirim?niplama=111111111*' => fn () => throw new ConnectionException('cURL error 28: Operation timed out'),
+        'kipapp.bps.go.id/api/v1/dashboard/kegiatanpegawai/belumkirim*' => Http::response([['kegiatan' => [['skpid' => '1285321', 'jumlahkegiatan' => 1]]]], 200),
+        'kipapp.bps.go.id/api/v1/skp/rk*' => Http::response([['rkid' => '13962139', 'rencanakinerja' => 'Terlaksananya Dukungan Metodologi', 'timkerjaid' => '106453']], 200),
+        'kipapp.bps.go.id/api/v1/skp/iki*' => Http::response([], 200),
+        'kipapp.bps.go.id/api/v1/skp*' => Http::response([], 200),
+    ]);
+
+    $summary = (new SyncKipPlansAction)->execute(new ApiKipStructureSource(new ConfigBearerAuthenticator), collect([$slow, $ok]));
+
+    expect($summary['created'])->toBe(1);
 });
