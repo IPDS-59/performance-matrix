@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Kinetik\Contracts\StructureFlow;
 use App\Models\Employee;
 use App\Models\PerformancePlan;
 use App\Models\Project;
@@ -117,10 +118,17 @@ class PerformancePlanController extends Controller
             ]);
         }
 
-        PerformancePlan::create($validated);
+        $plan = PerformancePlan::create($validated);
 
-        return redirect()->route('performance-plans.index')
-            ->with('success', 'Rencana Kinerja berhasil ditambahkan.');
+        $redirect = redirect()->route('performance-plans.index')->with('success', 'Rencana Kinerja berhasil ditambahkan.');
+
+        // The RK Anggota is created in kipApp too. A failure keeps the local plan and can be sent again.
+        if (KipStructureController::enabled()) {
+            $error = KipStructureController::attempt(fn () => app(StructureFlow::class)->pushPlan($request->user(), $plan->fresh()));
+            $redirect->with($error ? 'error' : 'success', $error ? "Rencana Kinerja tersimpan di Kinetik, tetapi belum dibuat di kipApp: {$error}" : 'Rencana Kinerja dibuat di Kinetik dan kipApp.');
+        }
+
+        return $redirect;
     }
 
     public function update(Request $request, PerformancePlan $performancePlan): RedirectResponse

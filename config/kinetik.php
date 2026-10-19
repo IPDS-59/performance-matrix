@@ -50,6 +50,11 @@ return [
         // verified live (2026-10-08 and 2026-10-19).
         'edit_after_push' => (bool) env('KIP_EDIT_AFTER_PUSH', false),
 
+        // A new RK Ketua, proyek and RK Anggota made in Kinetik is also created in kipApp, with the tim leader's own
+        // token. The calls are read from kipApp's own code and never run live (no safe throwaway test), so keep it off
+        // until the first one is made together with a PJ and checked in kipApp.
+        'structure_write' => (bool) env('KIP_STRUCTURE_WRITE', false),
+
         // The atasan rates a quarter SKP inside Kinetik (Nilai SKP page): feedback per RK and per behaviour, then
         // "selesai menilai" (flag 7). The calls are read from kipApp's own code and never run live, because a test
         // would rate a real person's official SKP. Keep it off until the first rating is done together with the atasan.

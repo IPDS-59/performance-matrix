@@ -73,6 +73,8 @@ export interface PerformancePlan {
     period_type: 'year' | 'quarter';
     period?: number | null;
     pic_employee_id?: number | null;
+    kip_external_id?: string | null;
+    kip_rkproyek_id?: string | null;
     project?: Project | null;
     pic?: Employee | null;
     team?: Team | null;
@@ -792,6 +794,12 @@ export interface SkpOverview {
     year: number;
     yearly: SkpYearly | null;
     quarters: SkpQuarter[];
+}
+
+/** One row of a kipApp list a form picks from (RK Ketua, IKI JPT). */
+export interface KipChoice {
+    id: string;
+    text: string;
 }
 
 /** One SKP that waits for the atasan (Persetujuan SKP). */

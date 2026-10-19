@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import AppLayout from '@/Layouts/AppLayout.vue';
-import { Head, Link, router } from '@inertiajs/vue3';
+import { Head, Link, router, usePage } from '@inertiajs/vue3';
+import KipProjectPushDialog from '@/Components/Kinetik/KipProjectPushDialog.vue';
 import type { Project, Team } from '@/types';
 import { Button } from '@/Components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/Components/ui/select';
@@ -11,6 +12,7 @@ import { ref, computed } from 'vue';
 
 interface ProjectWithCount extends Project {
     members_count: number;
+    kip_external_id?: string | null;
     can_update: boolean;
     can_delete: boolean;
 }
@@ -22,6 +24,11 @@ const props = defineProps<{
     teamId: number;
     canCreate: boolean;
 }>();
+
+const writeKip = computed(() => Boolean((usePage().props as { can?: { write_kip_structure?: boolean } }).can?.write_kip_structure));
+const pushOpen = ref(false);
+const pushing = ref<ProjectWithCount | null>(null);
+function openPush(project: ProjectWithCount) { pushing.value = project; pushOpen.value = true; }
 
 const year = ref(props.year);
 const teamId = ref(props.teamId || null);
@@ -195,6 +202,7 @@ const teamGroups = computed(() => {
                                             <Button v-if="project.can_update" variant="outline" size="sm" as-child>
                                                 <Link :href="route('projects.edit', project.id)">Edit</Link>
                                             </Button>
+                                            <Button v-if="writeKip && project.can_update && !project.kip_external_id" variant="outline" size="sm" @click="openPush(project)">Kirim ke kipApp</Button>
                                             <Button v-if="project.can_delete" variant="destructive" size="sm" @click="confirmDelete(project.id, project.name)">
                                                 Hapus
                                             </Button>
@@ -207,6 +215,7 @@ const teamGroups = computed(() => {
                 </AccordionContent>
             </AccordionItem>
         </Accordion>
+        <KipProjectPushDialog v-model:open="pushOpen" :project-id="pushing?.id ?? null" :team-id="pushing?.team_id ?? null" />
         <ConfirmDialog
             v-model:open="deleteOpen"
             title="Hapus Proyek"

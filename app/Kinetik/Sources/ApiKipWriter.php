@@ -159,6 +159,58 @@ class ApiKipWriter
         ], 'nilai perilaku');
     }
 
+    /** @return array<string, mixed> the periode, wilayah and unit every structure list of kipApp asks for */
+    private function scope(): array
+    {
+        return ['periodeid' => config('kinetik.kip.periode_id'), 'wilayahid' => config('kinetik.kip.wilayah_id'), 'unitkerjaid' => config('kinetik.kip.unitkerja_id')];
+    }
+
+    /** RK Ketua of a tim (GET /rk/ketua): rkketuaid, rencanakinerjaketua. @return list<array<string, mixed>> */
+    public function rkKetuaList(string $timKerjaId): array
+    {
+        return $this->rows($this->get('v1/rk/ketua', [...$this->scope(), 'timkerjaid' => $timKerjaId, 'leveltim' => 2]), 'RK Ketua');
+    }
+
+    /** The "IKI JPT" a RK Ketua hangs on: proyek of the level-1 tim (GET /proyek?leveltim=1). @return list<array<string, mixed>> */
+    public function level1Proyek(): array
+    {
+        return $this->rows($this->get('v1/proyek', [...$this->scope(), 'leveltim' => 1]), 'proyek level 1');
+    }
+
+    /** Proyek of a tim with their members (GET /proyek): proyekid, namaproyek, rkketuaid, anggota[{pegawaiid, anggotaid}]. @return list<array<string, mixed>> */
+    public function proyekList(string $timKerjaId): array
+    {
+        return $this->rows($this->get('v1/proyek', [...$this->scope(), 'timkerjaid' => $timKerjaId, 'leveltim' => 2]), 'proyek');
+    }
+
+    /** RK Anggota of a proyek (GET /rk/proyek): rkproyekid, rencanakinerja, anggotaid, pegawaiid. @return list<array<string, mixed>> */
+    public function rkProyekList(string $timKerjaId, string $proyekId): array
+    {
+        return $this->rows($this->get('v1/rk/proyek', [...$this->scope(), 'timkerjaid' => $timKerjaId, 'proyekid' => $proyekId, 'leveltim' => 2]), 'RK Anggota');
+    }
+
+    /** Create an RK Ketua like kipApp's form (POST /rk/ketua), read from kipApp's own code. */
+    public function createRkKetua(string $timKerjaId, string $text, string $level1ProyekId, string $ketuaPegawaiId): void
+    {
+        $this->send('post', 'v1/rk/ketua', ['timkerjaid' => $timKerjaId, 'rencanakinerja' => $text, 'proyeklevel1id' => $level1ProyekId, 'pegawaiid' => $ketuaPegawaiId], 'RK Ketua');
+    }
+
+    /**
+     * Create a proyek under an RK Ketua (POST /proyek), read from kipApp's own code.
+     *
+     * @param  list<array{pegawaiid: string, isadmin: int}>  $members
+     */
+    public function createProyek(string $name, string $rkKetuaId, array $members): void
+    {
+        $this->send('post', 'v1/proyek', ['nama' => $name, 'rkketuaid' => $rkKetuaId, 'anggota' => $members, 'head' => ['nama' => $name]], 'proyek');
+    }
+
+    /** Create an RK Anggota (POST /rk/proyek): anggotaid is the member's id inside the proyek, not the pegawai id. */
+    public function createRkAnggota(string $anggotaId, string $text, string $proyekId): void
+    {
+        $this->send('post', 'v1/rk/proyek', ['anggotaid' => $anggotaId, 'rencanakinerja' => $text, 'proyekid' => $proyekId], 'RK Anggota');
+    }
+
     /** One SKP by its id (the header kipApp shows), or null. @return array<string, mixed>|null */
     public function skpById(string $skpId): ?array
     {

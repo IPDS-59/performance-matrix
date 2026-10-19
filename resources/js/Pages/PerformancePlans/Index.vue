@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import AppLayout from '@/Layouts/AppLayout.vue';
-import { Head, router } from '@inertiajs/vue3';
+import { Head, router, usePage } from '@inertiajs/vue3';
 import type { Employee, PerformancePlan } from '@/types';
 import type { ProjectChoice } from '@/types/crud';
 import PlanFormDialog from '@/Components/PerformancePlans/PlanFormDialog.vue';
@@ -8,7 +8,7 @@ import { Button } from '@/Components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/Components/ui/table';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/Components/ui/select';
 import ConfirmDialog from '@/Components/ConfirmDialog.vue';
-import { ref } from 'vue';
+import { computed, ref } from 'vue';
 
 interface ProjectOption {
     id: number;
@@ -26,6 +26,9 @@ const props = defineProps<{
     employees: Employee[];
     manager: boolean;
 }>();
+
+const writeKip = computed(() => Boolean((usePage().props as { can?: { write_kip_structure?: boolean } }).can?.write_kip_structure));
+const pushPlan = (id: number) => router.post(route('performance-plans.push', id), {}, { preserveScroll: true });
 
 const formOpen = ref(false);
 const editing = ref<PerformancePlan | null>(null);
@@ -116,6 +119,7 @@ const periodTypeLabel: Record<string, string> = {
                         <TableCell class="text-right">
                             <div v-if="plan.can_update || plan.can_delete" class="inline-flex gap-2">
                                 <Button v-if="plan.can_update" variant="outline" size="sm" @click="openForm(plan)">Edit</Button>
+                                <Button v-if="writeKip && plan.can_update && !plan.kip_rkproyek_id" variant="outline" size="sm" @click="pushPlan(plan.id)">Kirim ke kipApp</Button>
                                 <Button v-if="plan.can_delete" variant="destructive" size="sm" @click="confirmDelete(plan.id, plan.description)">
                                     Hapus
                                 </Button>
