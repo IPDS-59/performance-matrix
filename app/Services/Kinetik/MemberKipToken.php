@@ -25,7 +25,7 @@ class MemberKipToken
         $credential = $user->memberKipCredential;
 
         if ($credential === null || $credential->login_failed_at !== null) {
-            throw new RuntimeException('Akun SSO belum terhubung atau perlu diperbarui. Masuk ke Kinetik dengan kata sandi SSO Anda.');
+            throw new MemberLoginRequiredException('Akun SSO belum terhubung atau perlu diperbarui. Masuk ke Kinetik dengan kata sandi SSO Anda.');
         }
 
         if ($credential->hasValidToken()) {
@@ -36,10 +36,10 @@ class MemberKipToken
             $result = $this->login->login($user->kipUsername(), $credential->plainPassword());
         } catch (KipLoginException $e) {
             if ($e->needsOtp()) {
-                throw new RuntimeException('Token kipApp Anda kedaluwarsa dan akun SSO Anda memakai kode OTP. Keluar, lalu masuk lagi dengan kode OTP.');
+                throw new MemberLoginRequiredException('Token kipApp Anda kedaluwarsa dan akun SSO Anda memakai kode OTP. Keluar, lalu masuk lagi dengan kode OTP.');
             }
             if (! $e->rejected) {
-                throw new RuntimeException('SSO BPS tidak dapat dihubungi saat ini. Akan dicoba lagi.');
+                throw new SsoUnavailableException('SSO BPS tidak dapat dihubungi saat ini. Akan dicoba lagi.');
             }
 
             $credential->markFailed('Kata sandi SSO ditolak');
@@ -49,7 +49,7 @@ class MemberKipToken
                 route('kip.connect'),
             ));
 
-            throw new RuntimeException('Kata sandi SSO ditolak. Masuk lagi dengan kata sandi SSO yang baru.');
+            throw new MemberLoginRequiredException('Kata sandi SSO ditolak. Masuk lagi dengan kata sandi SSO yang baru.');
         }
 
         MemberKipCredential::remember($user, $credential->plainPassword(), $result->token, $result->expiresAt);

@@ -20,11 +20,12 @@ class SyncMemberActivitiesAction
     ) {}
 
     /**
+     * @param  bool  $allowAdminFallback  false for the scheduled sync: only the member's own token counts, so a member who must sign in again is noticed
      * @return int kegiatan rows upserted (0 when the member has no NIP Lama)
      *
      * @throws RuntimeException with a message for the user when no kipApp token is available
      */
-    public function execute(User $user): int
+    public function execute(User $user, bool $allowAdminFallback = true): int
     {
         $employee = $user->employee;
         if ($employee === null || empty($employee->nip_lama)) {
@@ -38,7 +39,7 @@ class SyncMemberActivitiesAction
             $token = $this->tokens->for($user);
         } catch (RuntimeException $e) {
             $token = null;
-            if (KipCredential::current() === null && empty(config('kinetik.kip.token'))) {
+            if (! $allowAdminFallback || (KipCredential::current() === null && empty(config('kinetik.kip.token')))) {
                 throw $e;
             }
         }
