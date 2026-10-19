@@ -121,6 +121,10 @@ function saveBase(row: CreditSummary) {
                                 </div>
                                 <span v-else class="text-xs text-gray-400">—</span>
                                 <p v-if="row.estimated" class="mt-0.5 text-xs text-amber-700">termasuk estimasi {{ formatAk(row.estimated) }}</p>
+                                <p v-if="row.quarters?.some(q => q.override)" class="mt-0.5 text-xs text-violet-700">
+                                    {{ row.quarters.filter(q => q.override).length }} triwulan diubah manual:
+                                    {{ row.quarters.filter(q => q.override).map(q => q.label).join(', ') }}
+                                </p>
                                 <p v-if="row.ak_base_source" class="mt-0.5 text-xs text-gray-500">PAK {{ row.ak_base_source === 'admin' ? 'dicek admin' : 'diisi pegawai, belum dicek' }}</p>
                             </TableCell>
                             <TableCell class="text-right tabular-nums">

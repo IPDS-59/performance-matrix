@@ -445,9 +445,23 @@ export interface Paginated<T> {
 /** ready: AK and 2 years done · ak_ready: AK done, waiting for 2 years · near: at most 2 quarters at Baik to go. */
 export type CreditStatus = 'ready' | 'ak_ready' | 'near' | 'progress' | 'top' | 'no_data' | 'non_jf';
 
+export interface CreditQuarterOverride {
+    reason: string;
+    by: string | null;
+    /** pegawai = the person edited it; admin = an admin did. */
+    role: 'pegawai' | 'admin';
+    at: string | null;
+}
+
 export interface CreditQuarter {
+    /** "2026-3" = TW III 2026. */
+    key: string;
     label: string;
+    /** The AK that counts: the manual one when `override` is set. */
     ak: number;
+    /** What the calculation says, kept next to a manual AK. */
+    computed_ak: number;
+    override: CreditQuarterOverride | null;
     predikat: string | null;
     /** false = at least one month has no predikat yet; counted as Baik. */
     final: boolean;

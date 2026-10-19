@@ -155,6 +155,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/angka-kredit', [CreditController::class, 'mine'])->name('credit.mine');
     Route::get('/angka-kredit/tim', [CreditController::class, 'team'])->name('credit.team');
     Route::put('/angka-kredit/{employee}/awal', [CreditController::class, 'updateBase'])->name('credit.base');
+    Route::put('/angka-kredit/{employee}/tw/{quarter}', [CreditController::class, 'updateQuarter'])->name('credit.quarter');
+    Route::delete('/angka-kredit/{employee}/tw/{quarter}', [CreditController::class, 'destroyQuarter'])->name('credit.quarter.destroy');
 
     // kipApp integration (admin: store token + centralized sync)
     Route::middleware('can:manage-kip-integration')->group(function () {

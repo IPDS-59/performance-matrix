@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Kinetik\Credit\CreditCalculator;
+use App\Models\CreditQuarterOverride;
 use App\Models\Employee;
 use App\Models\EmployeeCareer;
 use App\Models\Team;
@@ -29,7 +30,7 @@ class CreditController extends Controller
         abort_if($employee === null, 403, 'Akun tidak terhubung ke data pegawai.');
 
         return Inertia::render('Credit/Mine', [
-            'credit' => $this->calculator->forEmployee($employee->load(['career', 'performanceRatings'])),
+            'credit' => $this->calculator->forEmployee($employee->load(['career', 'performanceRatings', 'creditOverrides.editor'])),
         ]);
     }
 
@@ -42,7 +43,7 @@ class CreditController extends Controller
         $scope = $selected ? collect([$selected]) : $teams;
 
         $employees = Employee::query()
-            ->with(['career', 'performanceRatings'])
+            ->with(['career', 'performanceRatings', 'creditOverrides.editor'])
             ->where('is_active', true)
             ->whereHas('teams', fn ($q) => $q->whereIn('teams.id', $scope->pluck('id')))
             ->orderBy('name')
@@ -88,6 +89,45 @@ class CreditController extends Controller
         ]);
 
         return back()->with('success', $cleared ? 'AK dari PAK dihapus. Angka kembali ke estimasi.' : 'AK dari PAK disimpan.');
+    }
+
+    /**
+     * A manual AK for one quarter, with a reason. The calculated value stays on record, and the
+     * quarter is marked as edited for everyone who reads it (the employee, the PJ, the head).
+     */
+    public function updateQuarter(Request $request, Employee $employee, string $quarter): RedirectResponse
+    {
+        $isAdmin = $request->user()->hasRole('admin');
+        abort_unless($isAdmin || $employee->user_id === $request->user()->id, 403);
+        abort_unless(preg_match('/^\d{4}-[1-4]$/', $quarter) === 1, 404);
+
+        $validated = $request->validate([
+            'ak' => ['required', 'numeric', 'min:0', 'max:100'],
+            'reason' => ['required', 'string', 'min:5', 'max:500'],
+        ]);
+
+        $computed = collect($this->calculator->forEmployee($employee->load(['career', 'performanceRatings', 'creditOverrides']))['quarters'] ?? [])
+            ->firstWhere('key', $quarter);
+        abort_if($computed === null, 422, 'Triwulan ini tidak ada di perhitungan.');
+
+        CreditQuarterOverride::updateOrCreate(['employee_id' => $employee->id, 'quarter' => $quarter], [
+            'ak' => $validated['ak'],
+            'computed_ak' => $computed['computed_ak'],
+            'reason' => $validated['reason'],
+            'edited_by' => $request->user()->id,
+            'edited_by_role' => $isAdmin ? 'admin' : 'pegawai',
+        ]);
+
+        return back()->with('success', 'AK triwulan disimpan dan ditandai diubah manual.');
+    }
+
+    public function destroyQuarter(Request $request, Employee $employee, string $quarter): RedirectResponse
+    {
+        abort_unless($request->user()->hasRole('admin') || $employee->user_id === $request->user()->id, 403);
+
+        CreditQuarterOverride::where('employee_id', $employee->id)->where('quarter', $quarter)->delete();
+
+        return back()->with('success', 'AK triwulan kembali ke perhitungan otomatis.');
     }
 
     /**

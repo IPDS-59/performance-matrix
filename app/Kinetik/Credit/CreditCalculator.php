@@ -3,6 +3,7 @@
 namespace App\Kinetik\Credit;
 
 use App\Kinetik\Data\KipPositionData;
+use App\Models\CreditQuarterOverride;
 use App\Models\Employee;
 use App\Models\EmployeeCareer;
 use App\Models\KipPerformanceRating;
@@ -62,8 +63,11 @@ class CreditCalculator
         $months = $this->months($employee->performanceRatings, $today)
             ->filter(fn (array $m) => $m['month'] >= $countedFrom->startOfMonth()->format('Y-m'));
 
-        $earned = round(($career->ak_base ?? 0) + $months->sum('ak'), 3);
-        $estimated = round($months->where('final', false)->sum('ak'), 3);
+        $overrides = $employee->creditOverrides->keyBy('quarter');
+        $quarters = $this->quarters($months, $overrides);
+        $earned = round(($career->ak_base ?? 0) + collect($quarters)->sum('ak'), 3);
+        // A quarter with a manual AK is the person's own figure, so it is no estimate from kipApp.
+        $estimated = round($months->where('final', false)->reject(fn (array $m) => $overrides->has(self::quarterKey($m['month'])))->sum('ak'), 3);
         $quarterAtBaik = $level->yearlyCoefficient() / 4;
         $gap = $step['target'] === null ? null : max(0, round($step['target'] - $earned, 3));
         $eligibleFrom = $career->golongan_since
@@ -88,7 +92,7 @@ class CreditCalculator
             'ak_base_date' => $career->ak_base_date?->toDateString(),
             'ak_base_source' => $career->ak_base_source,
             'status' => $this->status($step['target'], $earned, $gap, $quarterAtBaik, $eligibleFrom, $today),
-            'quarters' => $this->quarters($months),
+            'quarters' => $quarters,
         ];
     }
 
@@ -158,22 +162,42 @@ class CreditCalculator
 
     /**
      * @param  Collection<string, array{month: string, ak: float, predikat: string|null, final: bool}>  $months
-     * @return list<array{label: string, ak: float, predikat: string|null, final: bool, formula: string}>
+     * @param  Collection<string, CreditQuarterOverride>  $overrides  keyed by quarter ("2026-3")
+     * @return list<array<string, mixed>>
      */
-    private function quarters(Collection $months): array
+    private function quarters(Collection $months, Collection $overrides): array
     {
         return $months
-            ->groupBy(fn (array $m) => substr($m['month'], 0, 4).'-'.intdiv((int) substr($m['month'], 5, 2) - 1, 3))
-            ->map(fn (Collection $group, string $key) => [
-                'label' => 'TW '.['I', 'II', 'III', 'IV'][(int) substr($key, 5)].' '.substr($key, 0, 4),
-                'ak' => round($group->sum('ak'), 3),
-                'predikat' => $group->pluck('predikat')->filter()->unique()->implode(' / ') ?: null,
-                'final' => $group->every(fn (array $m) => $m['final']),
-                'formula' => $this->formula($group),
-            ])
+            ->groupBy(fn (array $m) => self::quarterKey($m['month']))
+            ->map(function (Collection $group, string $key) use ($overrides) {
+                $computed = round($group->sum('ak'), 3);
+                $override = $overrides->get($key);
+
+                return [
+                    'key' => $key,
+                    'label' => 'TW '.['I', 'II', 'III', 'IV'][(int) substr($key, 5) - 1].' '.substr($key, 0, 4),
+                    'ak' => $override ? round($override->ak, 3) : $computed,
+                    'computed_ak' => $computed,
+                    'predikat' => $group->pluck('predikat')->filter()->unique()->implode(' / ') ?: null,
+                    'final' => $override !== null || $group->every(fn (array $m) => $m['final']),
+                    'formula' => $this->formula($group),
+                    'override' => $override ? [
+                        'reason' => $override->reason,
+                        'by' => $override->editor?->name,
+                        'role' => $override->edited_by_role,
+                        'at' => $override->updated_at?->toDateString(),
+                    ] : null,
+                ];
+            })
             ->reverse()
             ->values()
             ->all();
+    }
+
+    /** "2026-03" becomes "2026-1"; the quarter is 1 to 4. */
+    public static function quarterKey(string $month): string
+    {
+        return substr($month, 0, 4).'-'.(intdiv((int) substr($month, 5, 2) - 1, 3) + 1);
     }
 
     /**
