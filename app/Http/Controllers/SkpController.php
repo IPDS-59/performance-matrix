@@ -61,6 +61,31 @@ class SkpController extends Controller
         return $this->run($request, fn () => $this->flow->cancel($request->user(), $data['kind'], $data['quarter'] ?? null), 'Pengiriman SKP dibatalkan. SKP kembali ke Sedang dibuat.');
     }
 
+    public function addIki(Request $request): RedirectResponse
+    {
+        abort_unless(config('kinetik.kip.iki_write'), 404);
+        $data = $request->validate([
+            'kind' => ['required', 'in:yearly,quarter'],
+            'quarter' => ['required_if:kind,quarter', 'nullable', 'integer', 'between:1,4'],
+            'rk_id' => ['required', 'string'],
+            'text' => ['required', 'string', 'min:10', 'max:1000'],
+        ]);
+
+        return $this->run($request, fn () => $this->flow->addIki($request->user(), $data['kind'], $data['quarter'] ?? null, $data['rk_id'], $data['text']), 'IKI ditambahkan.');
+    }
+
+    public function deleteIki(Request $request): RedirectResponse
+    {
+        abort_unless(config('kinetik.kip.iki_write'), 404);
+        $data = $request->validate([
+            'kind' => ['required', 'in:yearly,quarter'],
+            'quarter' => ['required_if:kind,quarter', 'nullable', 'integer', 'between:1,4'],
+            'iki_id' => ['required', 'string'],
+        ]);
+
+        return $this->run($request, fn () => $this->flow->deleteIki($request->user(), $data['kind'], $data['quarter'] ?? null, $data['iki_id']), 'IKI dihapus.');
+    }
+
     /** @return array{kind: string, quarter?: int} */
     private function target(Request $request): array
     {

@@ -40,6 +40,8 @@ class MockSkpFlow implements SkpFlow
                 'blockers' => [],
                 'can_submit' => $draft,
                 'can_cancel' => $row !== null && $row['status_id'] === 5,
+                'can_edit_iki' => $draft && (bool) config('kinetik.kip.iki_write'),
+                'rk_list' => $draft ? $this->rkList($state, $q) : [],
                 'candidates' => $row === null || $draft
                     ? array_map(fn (array $r) => [...$r, 'in_skp' => in_array($r['id'], $inSkp, true), 'jmliki' => 1], self::RKS)
                     : [],
@@ -48,7 +50,7 @@ class MockSkpFlow implements SkpFlow
 
         return [
             'year' => (int) config('kinetik.kip.tahun'),
-            'yearly' => ['id' => 'mock-y', 'status_id' => 6, 'status' => 'Ditetapkan', 'jml_rk' => 4, 'atasan' => 'Atasan Contoh', 'blockers' => [], 'can_submit' => false, 'can_cancel' => false],
+            'yearly' => ['id' => 'mock-y', 'status_id' => 6, 'status' => 'Ditetapkan', 'jml_rk' => 4, 'atasan' => 'Atasan Contoh', 'blockers' => [], 'can_submit' => false, 'can_cancel' => false, 'can_edit_iki' => false, 'rk_list' => []],
             'quarters' => $quarters,
         ];
     }
@@ -78,6 +80,34 @@ class MockSkpFlow implements SkpFlow
     public function cancel(User $user, string $kind, ?int $quarter): void
     {
         $this->setStatus($user, (int) $quarter, 1, 'Sedang dibuat');
+    }
+
+    public function addIki(User $user, string $kind, ?int $quarter, string $rkId, string $text): void
+    {
+        $state = $this->state($user);
+        $state['iki'][$quarter][$rkId][] = ['id' => 'mock-iki-'.count($state['iki'][$quarter][$rkId] ?? []).$rkId, 'text' => trim($text), 'own' => true];
+        $this->save($user, $state);
+    }
+
+    public function deleteIki(User $user, string $kind, ?int $quarter, string $ikiId): void
+    {
+        $state = $this->state($user);
+        foreach ($state['iki'][$quarter] ?? [] as $rk => $list) {
+            $state['iki'][$quarter][$rk] = array_values(array_filter($list, fn ($i) => $i['id'] !== $ikiId));
+        }
+        $this->save($user, $state);
+    }
+
+    /** @return list<array{id: string, name: string, iki: list<array<string, mixed>>}> */
+    private function rkList(array $state, int $quarter): array
+    {
+        $names = array_column(self::RKS, 'rencanakinerja', 'id');
+
+        return array_map(fn (string $id) => [
+            'id' => $id,
+            'name' => $names[$id] ?? $id,
+            'iki' => [['id' => "base-{$id}", 'text' => 'Persentase pekerjaan selesai tepat waktu minimal 90 persen', 'own' => false], ...($state['iki'][$quarter][$id] ?? [])],
+        ], $state['quarters'][$quarter]['rks'] ?? []);
     }
 
     private function setStatus(User $user, int $quarter, int $id, string $text): void

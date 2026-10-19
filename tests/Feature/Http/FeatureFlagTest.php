@@ -8,7 +8,7 @@ beforeEach(fn () => seedRolesAndPermissions());
 
 it('is for admins only', function () {
     $this->actingAs(User::factory()->create())->get(route('admin.features'))->assertForbidden();
-    $this->actingAs(adminUser())->get(route('admin.features'))->assertOk()->assertInertia(fn ($p) => $p->component('Admin/Features')->has('flags', 4));
+    $this->actingAs(adminUser())->get(route('admin.features'))->assertOk()->assertInertia(fn ($p) => $p->component('Admin/Features')->has('flags', 5));
 });
 
 it('switches a flag on and the config follows at once, then back to the server value', function () {

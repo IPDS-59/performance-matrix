@@ -776,7 +776,16 @@ export interface SkpQuarter {
     blockers: string[];
     can_submit: boolean;
     can_cancel: boolean;
+    can_edit_iki: boolean;
+    rk_list: SkpRkWithIki[];
     candidates: SkpRkCandidate[];
+}
+
+/** One RK of a SKP with its IKI; `own` IKI can be deleted, the ones copied from the atasan cannot. */
+export interface SkpRkWithIki {
+    id: string;
+    name: string;
+    iki: Array<{ id: string; text: string; own: boolean }>;
 }
 
 export interface SkpYearly {
@@ -788,6 +797,8 @@ export interface SkpYearly {
     blockers: string[];
     can_submit: boolean;
     can_cancel: boolean;
+    can_edit_iki: boolean;
+    rk_list: SkpRkWithIki[];
 }
 
 export interface SkpOverview {

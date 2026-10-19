@@ -28,6 +28,12 @@ interface SkpFlow
     /** @param 'yearly'|'quarter' $kind */
     public function submit(User $user, string $kind, ?int $quarter): void;
 
+    /** Add an IKI to an RK of the member's SKP that is Sedang dibuat. @param 'yearly'|'quarter' $kind */
+    public function addIki(User $user, string $kind, ?int $quarter, string $rkId, string $text): void;
+
+    /** Remove an IKI the member added (not one copied from the atasan) from a SKP that is Sedang dibuat. @param 'yearly'|'quarter' $kind */
+    public function deleteIki(User $user, string $kind, ?int $quarter, string $ikiId): void;
+
     /** @param 'yearly'|'quarter' $kind */
     public function cancel(User $user, string $kind, ?int $quarter): void;
 }

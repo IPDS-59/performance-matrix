@@ -57,6 +57,8 @@ class ApiSkpFlow implements SkpFlow
                 'blockers' => $draft ? $this->blockers($rks) : [],
                 'can_submit' => $draft && $this->blockers($rks) === [],
                 'can_cancel' => $statusId === self::QUARTER_WAITING,
+                'can_edit_iki' => $draft && (bool) config('kinetik.kip.iki_write'),
+                'rk_list' => $draft ? $this->rkList($writer, (string) $skp['id'], $rks) : [],
                 'candidates' => ($skp === null && $yearlySet) || $draft
                     ? $this->candidates($writer, $pegawaiId, $periodeId, $yearly, $q, $skp)
                     : [],
@@ -77,6 +79,8 @@ class ApiSkpFlow implements SkpFlow
                 'blockers' => $yearlyStatus === self::DRAFT ? $this->blockers($yearlyRks) : [],
                 'can_submit' => $yearlyStatus === self::DRAFT && $this->blockers($yearlyRks) === [],
                 'can_cancel' => $yearlyStatus === self::YEARLY_WAITING,
+                'can_edit_iki' => $yearlyStatus === self::DRAFT && (bool) config('kinetik.kip.iki_write'),
+                'rk_list' => $yearlyStatus === self::DRAFT ? $this->rkList($writer, (string) $yearly['id'], $yearlyRks) : [],
             ],
             'quarters' => $quarters,
         ];
@@ -110,6 +114,37 @@ class ApiSkpFlow implements SkpFlow
         }
         $writer->submitSkp((string) $skp['id'], $flag);
         $this->remember($user, $kind, $quarter, $writer, $pegawaiId, sent: true);
+    }
+
+    public function addIki(User $user, string $kind, ?int $quarter, string $rkId, string $text): void
+    {
+        [$writer, $pegawaiId] = $this->writer($user);
+        [$skp] = $this->target($writer, $pegawaiId, $kind, $quarter, true);
+        $skpId = (string) $skp['id'];
+        if (! collect($writer->rks($skpId))->contains(fn (array $r) => (string) ($r['rkid'] ?? $r['id'] ?? '') === $rkId)) {
+            throw new RuntimeException('RK ini tidak ada di SKP tersebut.');
+        }
+
+        $before = count($writer->ikis($skpId));
+        $writer->createIki($rkId, trim($text));
+        if (count($writer->ikis($skpId)) <= $before) {
+            throw new RuntimeException('IKI dikirim, tetapi belum terlihat di kipApp. Muat ulang halaman ini.');
+        }
+    }
+
+    public function deleteIki(User $user, string $kind, ?int $quarter, string $ikiId): void
+    {
+        [$writer, $pegawaiId] = $this->writer($user);
+        [$skp] = $this->target($writer, $pegawaiId, $kind, $quarter, true);
+        $iki = collect($writer->ikis((string) $skp['id']))->first(fn (array $r) => (string) ($r['ikiid'] ?? $r['id'] ?? '') === $ikiId);
+        if ($iki === null) {
+            throw new RuntimeException('IKI ini tidak ada di SKP tersebut.');
+        }
+        if (! empty($iki['iscopied']) || ! empty($iki['isatasan'])) {
+            throw new RuntimeException('IKI dari atasan tidak bisa dihapus di sini.');
+        }
+
+        $writer->deleteIki($ikiId);
     }
 
     public function cancel(User $user, string $kind, ?int $quarter): void
@@ -185,6 +220,27 @@ class ApiSkpFlow implements SkpFlow
         $what = $row->kind === 'yearly' ? 'untuk ditetapkan' : 'untuk dinilai';
 
         Notification::send($recipients, new KinetikNotification('skp_sent', "{$name} mengirim {$row->label()} {$what}.", route('skp.approvals')));
+    }
+
+    /**
+     * The RK of a SKP with the IKI under each, so the member can add what is missing.
+     *
+     * @param  list<array<string, mixed>>  $rks
+     * @return list<array{id: string, name: string, iki: list<array{id: string, text: string, own: bool}>}>
+     */
+    private function rkList(ApiKipWriter $writer, string $skpId, array $rks): array
+    {
+        $ikis = collect($writer->ikis($skpId))->groupBy(fn (array $r) => (string) ($r['rkid'] ?? ''));
+
+        return collect($rks)->map(fn (array $r) => [
+            'id' => (string) ($r['rkid'] ?? $r['id'] ?? ''),
+            'name' => (string) ($r['rencanakinerja'] ?? ''),
+            'iki' => $ikis->get((string) ($r['rkid'] ?? $r['id'] ?? ''), collect())->map(fn (array $i) => [
+                'id' => (string) ($i['ikiid'] ?? $i['id'] ?? ''),
+                'text' => (string) ($i['iki'] ?? ''),
+                'own' => empty($i['iscopied']) && empty($i['isatasan']),
+            ])->values()->all(),
+        ])->values()->all();
     }
 
     /**

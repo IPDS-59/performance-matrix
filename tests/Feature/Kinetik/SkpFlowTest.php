@@ -181,3 +181,94 @@ it('stores the sent SKP for the atasan and tells them', function () {
     expect(SkpStatus::where('kind', 'yearly')->first())->atasan_pegawai_id->toBe('555')->kip_skp_id->toBe('100');
     expect($atasan->notifications->where('data.type', 'skp_sent'))->toHaveCount(1);
 });
+
+/** A fake kipApp whose Q4 SKP 401 is in $q4 with one RK; $copied makes the one IKI come from the atasan. $writes collects POST and DELETE. */
+function fakeIkiApi(int $q4 = 1, bool $copied = false): Closure
+{
+    Http::swap(new Factory);
+    $writes = [];
+    $extra = false;
+    Http::fake(function ($request) use (&$writes, &$extra, $q4, $copied) {
+        $path = parse_url($request->url(), PHP_URL_PATH);
+        if (in_array($request->method(), ['POST', 'DELETE'])) {
+            $writes[] = [$request->method(), $path, $request->data(), $request->header('x-auth')[0] ?? null];
+            $extra = $extra || $request->method() === 'POST';
+
+            return Http::response(['status' => true]);
+        }
+
+        return match (true) {
+            str_ends_with($path, '/v1/skp/iki') => Http::response(array_values(array_filter([
+                ['ikiid' => 'i1', 'rkid' => '1', 'iki' => 'Persentase entri tepat waktu 90 persen', 'iscopied' => $copied, 'isatasan' => false],
+                $extra ? ['ikiid' => 'i2', 'rkid' => '1', 'iki' => 'IKI baru dari anggota', 'iscopied' => false, 'isatasan' => false] : null,
+            ]))),
+            str_ends_with($path, '/v1/skp/rk/copy/bulanan') => Http::response(['rk' => []]),
+            str_ends_with($path, '/v1/skp/rk') => Http::response([['id' => '1', 'rencanakinerja' => 'RK Satu', 'jmliki' => 1]]),
+            str_ends_with($path, '/v1/skp') => Http::response(str_contains($request->url(), 'jenis=1')
+                ? [['id' => '100', 'periodeid' => 8, 'statusskpid' => 6, 'statusskp' => 'Ditetapkan', 'atasanid' => '555']]
+                : [['id' => '401', 'periodeid' => 8, 'periodepenilaianid' => 4, 'statusskpid' => $q4, 'statusskp' => $q4 === 1 ? 'Sedang dibuat' : 'Sedang diperiksa']]),
+            default => Http::response([], 404),
+        };
+    });
+
+    return function () use (&$writes) {
+        return $writes;
+    };
+}
+
+it('hides the IKI form while the flag is off', function () {
+    config(['kinetik.kip.iki_write' => false]);
+    $user = skpMember();
+    fakeIkiApi();
+
+    $this->actingAs($user)->post(route('skp.iki.store'), ['kind' => 'quarter', 'quarter' => 4, 'rk_id' => '1', 'text' => 'IKI yang cukup panjang'])->assertNotFound();
+    $this->actingAs($user)->get(route('skp.index'))->assertInertia(fn ($p) => $p->where('overview.quarters.3.can_edit_iki', false));
+});
+
+it('lists the RK of a draft SKP with their IKI', function () {
+    config(['kinetik.kip.iki_write' => true]);
+    $user = skpMember();
+    fakeIkiApi();
+
+    $this->actingAs($user)->get(route('skp.index'))->assertInertia(fn ($p) => $p
+        ->where('overview.quarters.3.can_edit_iki', true)
+        ->where('overview.quarters.3.rk_list.0.name', 'RK Satu')
+        ->where('overview.quarters.3.rk_list.0.iki.0.own', true));
+});
+
+it('adds an IKI to an RK with the keys kipApp uses and the member\'s own token', function () {
+    config(['kinetik.kip.iki_write' => true]);
+    $user = skpMember();
+    $writes = fakeIkiApi();
+
+    $this->actingAs($user)->post(route('skp.iki.store'), ['kind' => 'quarter', 'quarter' => 4, 'rk_id' => '1', 'text' => '  IKI baru dari anggota  '])->assertSessionHas('success');
+
+    $post = collect($writes())->firstWhere(1, '/api/v1/skp/iki');
+    expect($post[2])->toBe(['rkid' => '1', 'iki' => 'IKI baru dari anggota'])->and($post[3])->toBe('Bearer member-token');
+});
+
+it('refuses a short IKI, an RK that is not in the SKP, and a SKP that is no longer Sedang dibuat', function () {
+    config(['kinetik.kip.iki_write' => true]);
+    $user = skpMember();
+    $writes = fakeIkiApi();
+
+    $this->actingAs($user)->post(route('skp.iki.store'), ['kind' => 'quarter', 'quarter' => 4, 'rk_id' => '1', 'text' => 'pendek'])->assertSessionHasErrors('text');
+    $this->actingAs($user)->post(route('skp.iki.store'), ['kind' => 'quarter', 'quarter' => 4, 'rk_id' => '999', 'text' => 'IKI yang cukup panjang'])->assertSessionHas('error');
+
+    $writes = fakeIkiApi(q4: 5);
+    $this->actingAs($user)->post(route('skp.iki.store'), ['kind' => 'quarter', 'quarter' => 4, 'rk_id' => '1', 'text' => 'IKI yang cukup panjang'])->assertSessionHas('error');
+    expect($writes())->toBeEmpty();
+});
+
+it('deletes an IKI the member added but not one copied from the atasan', function () {
+    config(['kinetik.kip.iki_write' => true]);
+    $user = skpMember();
+
+    $writes = fakeIkiApi();
+    $this->actingAs($user)->delete(route('skp.iki.destroy'), ['kind' => 'quarter', 'quarter' => 4, 'iki_id' => 'i1'])->assertSessionHas('success');
+    expect(collect($writes())->firstWhere(0, 'DELETE')[2])->toBe(['id' => 'i1']);
+
+    $writes = fakeIkiApi(copied: true);
+    $this->actingAs($user)->delete(route('skp.iki.destroy'), ['kind' => 'quarter', 'quarter' => 4, 'iki_id' => 'i1'])->assertSessionHas('error');
+    expect($writes())->toBeEmpty();
+});
