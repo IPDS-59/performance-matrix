@@ -1,5 +1,8 @@
 <?php
 
+use App\Kinetik\Data\KipRkData;
+use App\Kinetik\Data\KipSkpTree;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Str;
 
 return [
@@ -125,6 +128,12 @@ return [
     |
     */
 
-    'serializable_classes' => false,
+    // The SKP tree is cached by SyncPerformanceAgreementAction. With false, a cache hit returns
+    // __PHP_Incomplete_Class and the sync fails with a TypeError (seen in production on 2026-10-18).
+    'serializable_classes' => [
+        KipSkpTree::class,
+        KipRkData::class,
+        Collection::class,
+    ],
 
 ];
