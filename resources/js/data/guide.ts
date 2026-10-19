@@ -74,6 +74,18 @@ export const SHOTS = {
             { n: 4, x: 92, y: 29.5, label: 'Kembalikan ke pegawai. SKP kembali ke Sedang dibuat.' },
         ],
     },
+    skpPersetujuanPj: {
+        src: '/images/pedoman/skp-persetujuan-pj.webp',
+        alt: 'Halaman Persetujuan SKP untuk ketua tim: SKP anggota tim yang menunggu, dengan tombol Tetapkan dan Kembalikan',
+        width: 1024, height: 860,
+        markers: [
+            { n: 1, x: 12.5, y: 63.1, label: 'Menu Persetujuan SKP muncul bila ada SKP anggota yang atasannya Anda.' },
+            { n: 2, x: 34.5, y: 29.5, label: 'Satu baris per SKP anggota tim yang menunggu Anda.' },
+            { n: 3, x: 82.4, y: 29.5, label: 'Tetapkan SKP Tahunan anggota. Kinetik bertanya dulu.' },
+            { n: 4, x: 92, y: 29.5, label: 'Kembalikan ke anggota untuk diperbaiki.' },
+            { n: 5, x: 79.4, y: 23.3, label: 'SKP triwulan dinilai di kipApp.' },
+        ],
+    },
     anggotaAngkaKredit: {
         src: '/images/pedoman/anggota-angka-kredit.webp',
         alt: 'Halaman Angka Kredit Saya dengan kemajuan, AK dari PAK dan rumus per triwulan',
@@ -395,6 +407,20 @@ export const GUIDE_FLOWS: GuideFlow[] = [
                     'Capaian terhadap target triwulan dan setahun dihitung otomatis dengan rumus Kertas Kerja (maksimal 120).',
                 ],
                 tip: 'Tidak ada pensil pada indikator tertentu? Minta admin menetapkan tim Anda sebagai pemilik indikator itu.',
+            },
+            {
+                title: 'Tetapkan atau kembalikan SKP anggota',
+                where: 'Menu Rekap Tim → Persetujuan SKP',
+                route: 'skp.approvals',
+                body: [
+                    'Di kipApp Anda adalah atasan anggota tim, jadi SKP anggota menunggu Anda. Saat anggota mengirim SKP lewat Kinetik, Anda mendapat notifikasi di lonceng.',
+                    'Halaman Persetujuan SKP mendaftar SKP anggota yang menunggu: SKP Tahunan yang menunggu ditetapkan dan SKP triwulan yang menunggu dinilai. Menunya hanya muncul bila ada SKP yang atasannya Anda.',
+                    '"Tetapkan" menetapkan SKP Tahunan anggota. "Kembalikan" mengirim SKP kembali ke anggota supaya diperbaiki. Kinetik bertanya dulu, lalu bekerja dengan akun kipApp Anda sendiri, jadi Anda harus sudah masuk ke Kinetik dengan kata sandi SSO.',
+                    'SKP triwulan dinilai di kipApp lewat "Nilai di kipApp". SKP Tahunan Anda sendiri ditetapkan oleh pimpinan, bukan oleh Anda.',
+                    'Anggota mendapat notifikasi saat SKP-nya ditetapkan atau dikembalikan. Tetapkan dan Kembalikan mengikuti kode kipApp dan belum diuji langsung, karena semua SKP Tahunan kantor ini sudah Ditetapkan.',
+                ],
+                shot: SHOTS.skpPersetujuanPj,
+                tip: 'Kalau daftar kosong, tidak ada SKP anggota yang menunggu Anda.',
             },
             {
                 title: 'Pantau Angka Kredit anggota',
