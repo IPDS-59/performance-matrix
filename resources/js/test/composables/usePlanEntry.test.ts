@@ -29,13 +29,20 @@ describe('usePlanEntry', () => {
 
     it('builds an empty form, an edit form and a copy form with the source as parent', () => {
         const empty = entryFormState(null, null, '2026-10-08', '2026-10-17');
-        expect(empty).toMatchObject({ use_range: false, use_time: false, progress: 100, is_capaian_skp: true, parent_id: null, time_start: '08:00', time_end: '16:00' });
+        expect(empty).toMatchObject({ use_range: false, use_time: false, progres: 100, is_capaian_skp: true, parent_id: null, time_start: '08:00', time_end: '16:00' });
 
         const edit = entryFormState(row({ date_end: '2026-10-07', time_start: '09:00', time_end: '11:00' }), null, '', '2026-10-17');
-        expect(edit).toMatchObject({ use_range: true, use_time: true, progress: 30, is_capaian_skp: false, parent_id: null });
+        expect(edit).toMatchObject({ use_range: true, use_time: true, progres: 30, is_capaian_skp: false, parent_id: null });
 
         const copy = entryFormState(null, row(), '', '2026-10-17');
-        expect(copy).toMatchObject({ description: 'Entri data SE2026', parent_id: 7, progress: 30 });
+        expect(copy).toMatchObject({ description: 'Entri data SE2026', parent_id: 7, progres: 30 });
+    });
+
+    it('keeps progres out of useForm\'s own progress property and sends it as progress', () => {
+        const form = entryFormState(null, null, '2026-10-08', '2026-10-17');
+        expect(form).not.toHaveProperty('progress');
+        expect(entryPayload({ ...form, progres: 40 })).toMatchObject({ progress: 40 });
+        expect(entryPayload({ ...form, progres: '' })).toMatchObject({ progress: 0 });
     });
 
     it('sends an end date and times only when their checkboxes are on', () => {

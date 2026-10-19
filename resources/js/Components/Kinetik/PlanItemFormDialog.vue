@@ -44,7 +44,7 @@ watch(() => [props.open, props.item, props.copyOf] as const, ([open, item, copyO
 
 // Logging past work starts at 100 (kipApp); planning starts at 0.
 watch(() => form.date_start, (date) => {
-    if (!props.item && !progressTouched.value) form.progress = defaultProgress(date, todayIso());
+    if (!props.item && !progressTouched.value) form.progres = defaultProgress(date, todayIso());
     if (!form.use_range || form.date_end < date) form.date_end = date;
 });
 watch(() => form.use_range, (on) => { form.date_end = dateEndAfterRangeToggle(on, form.date_start, form.date_end); });
@@ -139,7 +139,7 @@ function save() {
             <InputError :message="form.errors.target || form.errors.capaian" />
 
             <div class="grid grid-cols-2 gap-3">
-                <div class="space-y-1.5"><Label for="pi-prog">Progres (%)</Label><Input id="pi-prog" v-model="form.progress" type="number" min="0" max="100" @input="progressTouched = true" /><InputError :message="form.errors.progress" /></div>
+                <div class="space-y-1.5"><Label for="pi-prog">Progres (%)</Label><Input id="pi-prog" v-model="form.progres" type="number" min="0" max="100" @input="progressTouched = true" /><InputError :message="form.errors.progress" /></div>
                 <div class="space-y-1.5"><Label for="pi-url">Bukti dukung (tautan)</Label><Input id="pi-url" v-model="form.evidence_url" type="url" placeholder="https://…" /><InputError :message="form.errors.evidence_url" /></div>
             </div>
             <div class="space-y-1.5">

@@ -22,20 +22,21 @@ const { formatDate } = useDateFormat();
 const stage = computed(() => (props.item ? planStage(props.item, props.canSendToAtasan) : null));
 const percent = computed(() => (props.item ? achievementPercent(props.item.capaian, props.item.target) : null));
 
-const form = useForm({ capaian: '' as string | number, capaian_note: '', evidence_url: '', progress: 0 as string | number });
+// `progres`, not `progress`: useForm already has a `progress` property (upload progress) that would overwrite it.
+const form = useForm({ capaian: '' as string | number, capaian_note: '', evidence_url: '', progres: 0 as string | number });
 watch(() => props.item, (item) => {
     form.clearErrors();
     form.capaian = item?.capaian ?? '';
     form.capaian_note = item?.capaian_note ?? '';
     form.evidence_url = item?.evidence_url ?? '';
-    form.progress = item?.progress ?? 0;
+    form.progres = item?.progress ?? 0;
 }, { immediate: true });
 
 const payload = (data: Record<string, any>) => ({
     capaian: data.capaian === '' ? null : data.capaian,
     capaian_note: data.capaian_note || null,
     evidence_url: data.evidence_url || null,
-    progress: data.progress === '' ? null : data.progress,
+    progress: data.progres === '' ? null : data.progres,
 });
 
 function submit(method: 'patch' | 'post', name: string, transform = true) {
@@ -112,7 +113,7 @@ const waitsForStart = computed(() => stage.value?.action === 'push' && !props.it
                     </div>
                     <div class="space-y-1.5">
                         <Label for="pr-prog">Progres (%)</Label>
-                        <Input id="pr-prog" v-model="form.progress" type="number" min="0" max="100" />
+                        <Input id="pr-prog" v-model="form.progres" type="number" min="0" max="100" />
                         <InputError :message="form.errors.progress" />
                     </div>
                 </div>
