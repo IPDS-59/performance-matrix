@@ -87,12 +87,12 @@ const shiftYear = (delta: number) => to({ year: props.year + delta });
                     <Search class="pointer-events-none absolute left-3 top-2.5 h-4 w-4 text-gray-500" aria-hidden="true" />
                     <Input v-model="query" class="pl-9" placeholder="Cari kegiatan atau RK" aria-label="Cari kegiatan" />
                 </div>
-                <SyncMyActivitiesButton />
+                <span data-tour="sync-me" class="inline-flex"><SyncMyActivitiesButton /></span>
                 <template v-if="canSendToAtasan">
                     <Button variant="outline" :disabled="!selection.toSend.value.length" @click="bulk.ask('send')">Kirim ke atasan ({{ selection.toSend.value.length }})</Button>
                     <Button variant="outline" :disabled="!selection.toCancel.value.length" @click="bulk.ask('cancel')">Batalkan kirim ({{ selection.toCancel.value.length }})</Button>
                 </template>
-                <Button class="ml-auto" @click="add"><Plus class="mr-1 h-4 w-4" aria-hidden="true" /> Tambah</Button>
+                <Button class="ml-auto" data-tour="add-item" @click="add"><Plus class="mr-1 h-4 w-4" aria-hidden="true" /> Tambah</Button>
             </div>
 
             <p v-if="!rkSynced" class="mb-4 rounded-md border border-amber-200 bg-amber-50 px-4 py-2 text-sm text-amber-900">

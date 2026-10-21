@@ -3,9 +3,10 @@ import { Link, router, usePage } from '@inertiajs/vue3';
 import { computed, onMounted, onUnmounted, ref, type Component } from 'vue';
 import {
     Award, BadgeCheck, BookOpen, CalendarCheck, CalendarDays, CalendarRange, ClipboardCheck, Eye, FileCheck, FileChartColumn, FileSpreadsheet, FolderKanban,
-    House, LayoutGrid, LayoutList, ListChecks, ListTodo, LogOut, Menu, Network, PanelLeftClose, PanelLeftOpen, Target, ToggleRight, UserRound, Users, X, Zap,
+    CircleHelp, House, LayoutGrid, LayoutList, ListChecks, ListTodo, LogOut, Menu, Network, PanelLeftClose, PanelLeftOpen, Target, ToggleRight, UserRound, Users, X, Zap,
 } from 'lucide-vue-next';
 import { useSidebarStore } from '@/stores/sidebar';
+import { usePageTour } from '@/composables/usePageTour';
 import { Notivue, Notification, push } from 'notivue';
 import {
     AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
@@ -14,6 +15,7 @@ import {
 
 const page = usePage();
 const sidebar = useSidebarStore();
+const { hasTour, start: startTour } = usePageTour();
 
 const impersonating = computed(() => (page.props.impersonating ?? null) as { name: string; role: string } | null);
 const user = computed(() => page.props.auth.user as { name: string; email: string; role: string; position?: string | null });
@@ -328,6 +330,12 @@ onUnmounted(() => {
                 </div>
                 <div class="flex items-center gap-3 text-sm text-gray-500">
                     <span class="hidden sm:inline">BPS Provinsi Sulawesi Tengah</span>
+
+                    <button v-if="hasTour" type="button" class="flex h-9 items-center gap-1.5 rounded-full px-2.5 text-gray-600 transition-colors hover:bg-gray-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary" @click="startTour">
+                        <CircleHelp class="h-5 w-5" aria-hidden="true" />
+                        <span class="hidden text-sm md:inline">Panduan halaman</span>
+                        <span class="sr-only md:hidden">Panduan halaman</span>
+                    </button>
 
                     <!-- Notification bell -->
                     <div class="relative">

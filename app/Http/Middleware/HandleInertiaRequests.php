@@ -9,6 +9,7 @@ use App\Http\Controllers\SkpApprovalController;
 use App\Models\PerformanceIndicator;
 use App\Models\PerformancePlan;
 use App\Models\Project;
+use App\Models\TourCompletion;
 use Illuminate\Http\Request;
 use Inertia\Middleware;
 
@@ -61,6 +62,7 @@ class HandleInertiaRequests extends Middleware
                 'approve_skp' => rescue(fn () => SkpApprovalController::canApprove($request->user()), false),
                 'view_team_credits' => $request->user() ? rescue(fn () => CreditController::visibleTeams($request)->isNotEmpty(), false) : false,
             ],
+            'tours_done' => fn () => $request->user() ? rescue(fn () => TourCompletion::where('user_id', $request->user()->id)->pluck('tour_key')->all(), [], false) : [],
             'flash' => [
                 'success' => $request->session()->get('success'),
                 'error' => $request->session()->get('error'),
