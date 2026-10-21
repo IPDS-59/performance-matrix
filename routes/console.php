@@ -35,6 +35,9 @@ Schedule::command('queue:work --stop-when-empty --max-time=240 --tries=1')->ever
 // Where every SKP stands in kipApp, for the atasan's approval page. A member's own send updates its row at once.
 Schedule::command('kinetik:sync-skp-statuses')->dailyAt('05:15');
 
+// A current Mozilla CA bundle for outgoing HTTPS. The old file stays if the download or its checksum fails.
+Schedule::command('kinetik:update-ca-bundle')->monthlyOn(1, '03:00');
+
 // Angka Kredit: golongan and SKP predikat change a few times a year. About
 // three kipApp calls per employee, so once a week is enough.
 Schedule::command('kinetik:sync-careers')->weeklyOn(1, '05:30');
