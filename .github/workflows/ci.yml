@@ -21,6 +21,6 @@ jobs:
     secrets: inherit
     with:
       php-version: '8.5'
-      node-version: '20'
+      node-version: '22'
       run-coverage: false
       test-command: php artisan test --testsuite=Unit,Feature
