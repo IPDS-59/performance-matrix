@@ -23,6 +23,7 @@ use App\Services\Kinetik\MockSkpApproval;
 use App\Services\Kinetik\MockSkpFlow;
 use App\Services\Kinetik\MockSkpRating;
 use App\Services\Kinetik\MockStructureFlow;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Support\ServiceProvider;
 
 class KinetikServiceProvider extends ServiceProvider
@@ -30,6 +31,11 @@ class KinetikServiceProvider extends ServiceProvider
     public function boot(): void
     {
         FeatureFlags::apply();
+
+        $bundle = (string) config('kinetik.kip.ca_bundle');
+        if ($bundle !== '' && is_file($bundle)) {
+            Http::globalOptions(['verify' => $bundle]);
+        }
     }
 
     public function register(): void

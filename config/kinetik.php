@@ -23,6 +23,11 @@ return [
         // projects + members.
         'admin_niplama' => env('KIP_ADMIN_NIPLAMA'),
 
+        // CA bundle used for every outgoing HTTPS call (kipApp, BPS SSO). The hosting's own bundle is old (September
+        // 2025) and sits on OpenSSL 1.1.1, so a current Mozilla bundle ships with the app. Missing file: the server's own
+        // bundle is used. Refresh with `php artisan kinetik:update-ca-bundle` (also scheduled monthly).
+        'ca_bundle' => env('KIP_CA_BUNDLE', resource_path('certs/cacert.pem')),
+
         // Office scope for the team directory (monitoring/hirarki/daerah).
         'unitkerja_id' => env('KIP_UNITKERJA_ID', '100'),
         'wilayah_id' => env('KIP_WILAYAH_ID', '7200_11'),
