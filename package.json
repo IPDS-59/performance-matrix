@@ -36,6 +36,7 @@
         "@vueuse/core": "^15.0.0",
         "class-variance-authority": "^0.7.1",
         "clsx": "^2.1.1",
+        "driver.js": "^1.10.2",
         "lucide-vue-next": "^1.0.0",
         "notivue": "^2.4.5",
         "pinia": "^3.0.4",

@@ -54,6 +54,16 @@ export const SHOTS = {
             { n: 2, x: 68.2, y: 64.0, label: 'Buat SKP. Di kipApp SKP-nya langsung ada.' },
         ],
     },
+    panduanHalaman: {
+        src: '/images/pedoman/panduan-halaman.webp',
+        alt: 'Halaman Rekap Mingguan dengan panduan yang menyorot pilihan tahun dan kotak penjelasan Lanjut',
+        width: 1024, height: 700,
+        markers: [
+            { n: 1, x: 86.7, y: 4.4, label: 'Panduan halaman: membuka lagi panduan halaman ini kapan saja.' },
+            { n: 2, x: 42, y: 35.7, label: 'Bagian yang disorot dijelaskan di kotak ini.' },
+            { n: 3, x: 53.2, y: 45.3, label: 'Lanjut ke bagian berikutnya. Esc atau tanda silang menutup panduan.' },
+        ],
+    },
     skpIki: {
         src: '/images/pedoman/skp-iki.webp',
         alt: 'SKP TW 4 yang Sedang dibuat dengan daftar RK dan IKI, tombol Tambah IKI dan kotak untuk menulis IKI baru',
@@ -234,6 +244,17 @@ const SSO_LOGIN_STEP: GuideStep = {
     tip: 'Jika Anda mengganti kata sandi SSO di BPS, masuk ke Kinetik dengan kata sandi yang baru. Kinetik memperbaruinya otomatis. Akun admin tetap memakai kata sandi Kinetik sendiri.',
 };
 
+const PAGE_TOUR_STEP: GuideStep = {
+    title: 'Ikuti panduan di tiap halaman',
+    where: 'Tombol "Panduan halaman" di pojok kanan atas',
+    body: [
+        'Halaman utama Kinetik punya panduan singkat yang menyorot bagian penting satu per satu dan menjelaskannya. Panduan terbuka sendiri saat Anda pertama kali membuka halaman itu, sekali saja.',
+        'Ingin melihatnya lagi? Tekan "Panduan halaman" di pojok kanan atas. Tombol itu hanya ada di halaman yang punya panduan. Esc atau tanda silang menutupnya.',
+    ],
+    shot: SHOTS.panduanHalaman,
+    tip: 'Panduan ini menjelaskan layar yang sedang Anda lihat. Langkah kerja lengkap tiap peran ada di Buku Pedoman ini.',
+};
+
 export const GUIDE_OVERVIEW = [
     { who: 'Anggota', what: 'Merencanakan kegiatan dan mengisi capaian mingguan di Rekap Mingguan.' },
     { who: 'PJ / Ketua Tim', what: 'Meninjau rekap tim, mengisi solusi dan rencana tindak lanjut, menambah bukti rapat, lalu mengunci rekap sebelum rapat.' },
@@ -248,6 +269,7 @@ export const GUIDE_FLOWS: GuideFlow[] = [
         replaces: 'Sheet "Kegiatan Mingguan Anggota"',
         steps: [
             SSO_LOGIN_STEP,
+            PAGE_TOUR_STEP,
             {
                 title: 'Buka Rekap Mingguan',
                 where: 'Menu Kegiatan → Rekap Mingguan',
@@ -387,6 +409,7 @@ export const GUIDE_FLOWS: GuideFlow[] = [
         replaces: 'Sheet "Rapat Mingguan" dan "Rapat Bulanan"',
         steps: [
             SSO_LOGIN_STEP,
+            PAGE_TOUR_STEP,
             {
                 title: 'Isi Rekap Mingguan Anda sendiri',
                 where: 'Menu Kegiatan → Rekap Mingguan',
@@ -518,6 +541,7 @@ export const GUIDE_FLOWS: GuideFlow[] = [
         replaces: 'Membaca sheet "Rapat Mingguan" dan "Rapat Bulanan"',
         steps: [
             SSO_LOGIN_STEP,
+            PAGE_TOUR_STEP,
             {
                 title: 'Tetapkan atau kembalikan SKP',
                 where: 'Menu Rekap Tim → Persetujuan SKP',

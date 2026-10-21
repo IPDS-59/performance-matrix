@@ -33,6 +33,7 @@ use App\Http\Controllers\SkpRatingController;
 use App\Http\Controllers\TeamController;
 use App\Http\Controllers\TeamMemberController;
 use App\Http\Controllers\TeamRecapController;
+use App\Http\Controllers\TourController;
 use App\Http\Controllers\WeeklyPlanController;
 use App\Http\Controllers\WorkItemController;
 use App\Http\Controllers\WorkItemDetailController;
@@ -195,6 +196,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::put('/admin/fitur/{key}', [FeatureFlagController::class, 'update'])->name('admin.features.update');
         Route::delete('/admin/fitur/{key}', [FeatureFlagController::class, 'reset'])->name('admin.features.reset');
     });
+
+    Route::post('/tur/{key}', [TourController::class, 'complete'])->name('tour.complete');
+    Route::delete('/tur', [TourController::class, 'reset'])->name('tour.reset');
 
     // Profile
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
