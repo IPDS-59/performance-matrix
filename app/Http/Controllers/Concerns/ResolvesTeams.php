@@ -62,7 +62,7 @@ trait ResolvesTeams
      */
     private function isPj(Employee $employee, int $teamId): bool
     {
-        // The head reads and writes Catatan Pimpinan, but never writes a team's paraphrase, recap or lock, even when
+        // The head reads every team but never writes a team's paraphrase, recap or lock, even when
         // kipApp lists the head as the leader of a team or project.
         if ($employee->user?->hasRole('head')) {
             return false;

@@ -31,17 +31,6 @@ it('notifies the member when the PJ sets their weekly focus, once per change', f
         ->and($memberUser->notifications->first()->data['url'])->toContain('/rekap-mingguan');
 });
 
-it('notifies the team PJ when the head writes a note', function () {
-    [$pjUser, $team] = teamWithPjAndMember();
-    $period = ['team_id' => $team->id, 'period_type' => 'month', 'period_year' => 2026, 'period_month' => 6];
-
-    $this->actingAs(headUser())->post(route('team-recap.leadership-note'), [...$period, 'body' => 'Percepat pencacahan'])->assertRedirect();
-
-    expect($pjUser->notifications)->toHaveCount(1)
-        ->and($pjUser->notifications->first()->data['message'])->toContain('Catatan pimpinan untuk '.$team->name)->toContain('Percepat pencacahan')
-        ->and($pjUser->notifications->first()->data['url'])->toContain('rekap-semua-tim')->toContain('month=6');
-});
-
 it('lists, reads and deletes only the user own notifications', function () {
     $user = staffUser();
     $other = User::factory()->create();

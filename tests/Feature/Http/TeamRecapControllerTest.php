@@ -1,10 +1,8 @@
 <?php
 
 use App\Models\Employee;
-use App\Models\LeadershipNote;
 use App\Models\PerformancePlan;
 use App\Models\PlanItem;
-use App\Models\Project;
 use App\Models\RecapLock;
 use App\Models\RecapOverride;
 use App\Models\RkRecap;
@@ -259,60 +257,6 @@ it('does not let a non-PJ member lock a recap', function () {
     $this->actingAs($user)->post(route('team-recap.lock'), [
         'team_id' => $team->id, 'period_type' => 'quarter', 'period_year' => 2026, 'period_quarter' => 2, 'locked' => true,
     ])->assertForbidden();
-});
-
-it('lets the head write, update and clear a note on a locked team period', function () {
-    $team = Team::factory()->create();
-    $project = Project::factory()->create(['team_id' => $team->id, 'year' => 2026]);
-    RecapLock::create(['team_id' => $team->id, 'period_type' => 'month', 'period_year' => 2026, 'period_month' => 6]);
-    $head = headUser();
-    $period = ['team_id' => $team->id, 'period_type' => 'month', 'period_year' => 2026, 'period_month' => 6];
-
-    $this->actingAs($head)->post(route('team-recap.leadership-note'), [...$period, 'body' => 'Percepat pencacahan'])->assertRedirect();
-    $this->actingAs($head)->post(route('team-recap.leadership-note'), [...$period, 'body' => 'Sudah dibahas'])->assertRedirect();
-    $this->actingAs($head)->post(route('team-recap.leadership-note'), [...$period, 'project_id' => $project->id, 'body' => 'Cek PIC'])->assertRedirect();
-
-    expect(LeadershipNote::count())->toBe(2)
-        ->and(LeadershipNote::whereNull('project_id')->value('body'))->toBe('Sudah dibahas');
-
-    $this->actingAs($head)
-        ->get(route('team-recap.overview', ['period_type' => 'month', 'year' => 2026, 'month' => 6]))
-        ->assertInertia(fn ($page) => $page
-            ->where('canWriteNotes', true)
-            ->where('teams.0.note', 'Sudah dibahas')
-            ->where('teams.0.projects.0.note', 'Cek PIC')
-        );
-
-    $this->actingAs($head)->post(route('team-recap.leadership-note'), [...$period, 'body' => ''])->assertRedirect();
-    expect(LeadershipNote::whereNull('project_id')->exists())->toBeFalse();
-});
-
-it('keeps weekly notes on the monday of the week', function () {
-    $team = Team::factory()->create();
-    $period = ['team_id' => $team->id, 'period_type' => 'week', 'period_year' => 2026, 'week_start' => '2026-06-03'];
-
-    $this->actingAs(headUser())->post(route('team-recap.leadership-note'), [...$period, 'body' => 'A']);
-    $this->actingAs(headUser())->post(route('team-recap.leadership-note'), [...$period, 'body' => 'B']);
-
-    expect(LeadershipNote::count())->toBe(1)
-        ->and(LeadershipNote::first()->week_start)->toBe('2026-06-01');
-});
-
-it('forbids notes from anyone but the head', function () {
-    [$user, , $team] = pjOfTeam();
-
-    $this->actingAs($user)
-        ->post(route('team-recap.leadership-note'), ['team_id' => $team->id, 'period_type' => 'month', 'period_year' => 2026, 'period_month' => 6, 'body' => 'x'])
-        ->assertForbidden();
-});
-
-it('rejects a note on a project of another team', function () {
-    $team = Team::factory()->create();
-    $other = Project::factory()->create(['year' => 2026]);
-
-    $this->actingAs(headUser())
-        ->post(route('team-recap.leadership-note'), ['team_id' => $team->id, 'project_id' => $other->id, 'period_type' => 'month', 'period_year' => 2026, 'period_month' => 6, 'body' => 'x'])
-        ->assertStatus(422);
 });
 
 // ── Pre-fill from lower periods ──────────────────────────────────────────────
@@ -594,4 +538,41 @@ it('does not let the head write a paraphrase even when the head leads the team',
     $this->actingAs($user)->post(route('team-recap.rk.store'), rkPayload($team, $plan, ['paraphrase' => 'Dari Kepala']))->assertForbidden();
 
     expect(RkRecap::count())->toBe(0);
+});
+
+it('opens Review Bersama to a PJ with only their teams, and keeps it closed to a plain member', function () {
+    [$pj, , $team] = pjOfTeam();
+    Team::factory()->create(['name' => 'Tim Lain']);
+    [$member] = memberOfTeam();
+
+    $this->actingAs($pj)->get(route('team-recap.overview'))
+        ->assertOk()->assertInertia(fn ($page) => $page->has('teams', 1)->where('teams.0.id', $team->id)->missing('canWriteNotes'));
+    $this->actingAs($pj)->get(route('profile.edit'))->assertInertia(fn ($page) => $page->where('can.review_bersama', true));
+
+    $this->actingAs($member)->get(route('team-recap.overview'))->assertForbidden();
+    $this->actingAs($member)->get(route('profile.edit'))->assertInertia(fn ($page) => $page->where('can.review_bersama', false));
+});
+
+it('summarises the meetings of a month per team: written, locked, bukti rapat, and a week to come stays quiet', function () {
+    Carbon\Carbon::setTestNow('2026-10-14 09:00:00');
+    [$pj, , $team] = pjOfTeam();
+    $plan = PerformancePlan::factory()->create(['project_id' => null, 'team_id' => $team->id]);
+    RkRecap::create(['team_id' => $team->id, 'performance_plan_id' => $plan->id, 'period_type' => 'week', 'period_start' => '2026-10-05', 'paraphrase' => 'Selesai']);
+    RecapLock::create(['team_id' => $team->id, 'period_type' => 'week', 'period_year' => 2026, 'week_start' => '2026-10-05']);
+    RkRecap::create(['team_id' => $team->id, 'performance_plan_id' => $plan->id, 'period_type' => 'week', 'period_start' => '2026-10-12', 'paraphrase' => 'Berjalan']);
+    TeamRecapEvidence::create(['team_id' => $team->id, 'period_type' => 'week', 'period_year' => 2026, 'week_start' => '2026-10-05', 'type' => 'notulen', 'title' => 'Notulen', 'url' => 'https://example.test/n', 'uploaded_by' => $pj->employee->id]);
+
+    $this->actingAs($pj)->get(route('team-recap.meetings', ['year' => 2026, 'month' => 10]))->assertOk()->assertInertia(fn ($page) => $page
+        ->component('Kinetik/MeetingSummary')
+        ->where('teams.0.id', $team->id)
+        ->where('teams.0.weeks.0.status', 'none')      // 28 Sep, in October's first row
+        ->where('teams.0.weeks.1.status', 'locked')
+        ->where('teams.0.weeks.1.evidence', 1)
+        ->where('teams.0.weeks.2.status', 'written')
+        ->where('teams.0.weeks.3.status', 'upcoming')
+        ->where('teams.0.month.status', 'none'));
+
+    [$member] = memberOfTeam();
+    $this->actingAs($member)->get(route('team-recap.meetings'))->assertForbidden();
+    Carbon\Carbon::setTestNow();
 });

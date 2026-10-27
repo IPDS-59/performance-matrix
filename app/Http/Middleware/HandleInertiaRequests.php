@@ -6,6 +6,7 @@ use App\Http\Controllers\Admin\ImpersonationController;
 use App\Http\Controllers\CreditController;
 use App\Http\Controllers\PlanComplianceController;
 use App\Http\Controllers\SkpApprovalController;
+use App\Http\Controllers\TeamRecapController;
 use App\Models\PerformanceIndicator;
 use App\Models\PerformancePlan;
 use App\Models\Project;
@@ -59,6 +60,7 @@ class HandleInertiaRequests extends Middleware
                 'view_plans' => $request->user() ? rescue(fn () => $request->user()->can('viewAny', PerformancePlan::class), false) : false,
                 'view_plan_compliance' => rescue(fn () => PlanComplianceController::canView($request->user()), false),
                 'write_kip_structure' => (bool) config('kinetik.kip.structure_write'),
+                'review_bersama' => rescue(fn () => TeamRecapController::canReview($request->user()), false),
                 'approve_skp' => rescue(fn () => SkpApprovalController::canApprove($request->user()), false),
                 'view_team_credits' => $request->user() ? rescue(fn () => CreditController::visibleTeams($request)->isNotEmpty(), false) : false,
             ],

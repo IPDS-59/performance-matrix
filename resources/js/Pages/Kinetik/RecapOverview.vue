@@ -1,5 +1,4 @@
 <script setup lang="ts">
-import AttentionPanel from '@/Components/Kinetik/AttentionPanel.vue';
 import type { AttentionGroup } from '@/types';
 import AppLayout from '@/Layouts/AppLayout.vue';
 import { Head, Link, router } from '@inertiajs/vue3';
@@ -8,12 +7,11 @@ import type { OverviewTeam, RecapPeriodType, ReviewStatus } from '@/types';
 import { Button } from '@/Components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/Components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/Components/ui/table';
-import { ArrowRight, ChevronDown, ChevronLeft, ChevronRight, Download, Lock, LockOpen } from 'lucide-vue-next';
+import { ArrowDown, ArrowRight, ArrowUp, ArrowUpDown, ChevronDown, ChevronLeft, ChevronRight, Download, Lock, TriangleAlert } from 'lucide-vue-next';
 import { useDateFormat } from '@/composables/useDateFormat';
 import { useAchievementColor } from '@/composables/useAchievementColor';
 import { useRecapExport } from '@/composables/useRecapExport';
 import { REVIEW_STATUS_META, reviewStatus } from '@/composables/useReviewStatus';
-import LeadershipNoteCell from '@/Components/Kinetik/LeadershipNoteCell.vue';
 
 const props = defineProps<{
     periodType: RecapPeriodType;
@@ -23,7 +21,6 @@ const props = defineProps<{
     weekStart: string;
     weekEnd: string;
     teams: OverviewTeam[];
-    canWriteNotes: boolean;
     attention: AttentionGroup[];
 }>();
 
@@ -88,18 +85,24 @@ const teamFilter = ref('all');
 const statusFilter = ref<ReviewStatus | 'all'>('all');
 const statusCount = (status: ReviewStatus | 'all') =>
     status === 'all' ? props.teams.length : props.teams.filter(t => reviewStatus(t.avg_achievement) === status).length;
-const visibleTeams = computed(() => sortedTeams.value.filter(t =>
+// Sorting by capaian: first click highest first, second click lowest first, third click back to the default order.
+const capaianSort = ref<'desc' | 'asc' | null>(null);
+function cycleCapaianSort() {
+    capaianSort.value = capaianSort.value === null ? 'desc' : capaianSort.value === 'desc' ? 'asc' : null;
+}
+const filteredTeams = computed(() => sortedTeams.value.filter(t =>
     (teamFilter.value === 'all' || String(t.id) === teamFilter.value)
     && (statusFilter.value === 'all' || reviewStatus(t.avg_achievement) === statusFilter.value)));
+// A team without data goes last in either direction.
+const visibleTeams = computed(() => {
+    if (capaianSort.value === null) return filteredTeams.value;
+    const sign = capaianSort.value === 'desc' ? -1 : 1;
+    return [...filteredTeams.value].sort((a, b) => {
+        if (a.avg_achievement === null || b.avg_achievement === null) return Number(a.avg_achievement === null) - Number(b.avg_achievement === null);
+        return sign * (a.avg_achievement - b.avg_achievement);
+    });
+});
 
-// Store-endpoint fields for a note on this period.
-const periodPayload = computed(() => ({
-    period_type: props.periodType,
-    period_year: props.year,
-    week_start: props.periodType === 'week' ? props.weekStart : null,
-    period_month: props.periodType === 'month' ? props.month : null,
-    period_quarter: props.periodType === 'quarter' ? props.quarter : null,
-}));
 const withData = computed(() => props.teams.filter(t => t.rows > 0));
 const officeAverage = computed(() => {
     const values = withData.value.map(t => t.avg_achievement).filter((v): v is number => v !== null);
@@ -107,7 +110,9 @@ const officeAverage = computed(() => {
 });
 const lockedCount = computed(() => props.teams.filter(t => t.locked).length);
 const isWeek = computed(() => props.periodType === 'week');
-const columnCount = computed(() => (isWeek.value ? 9 : 8));
+const columnCount = computed(() => (isWeek.value ? 7 : 6));
+const confirmedTotal = computed(() => props.teams.reduce((n, t) => n + t.confirmed, 0));
+const rowsTotal = computed(() => props.teams.reduce((n, t) => n + t.rows, 0));
 
 // Expanded team rows (project breakdown with each project's PIC).
 const expanded = ref<Set<number>>(new Set());
@@ -123,7 +128,18 @@ function toggle(teamId: number) {
     <AppLayout>
         <template #title>Review Bersama</template>
 
-        <AttentionPanel :groups="attention" />
+        <!-- What needs a look: one chip per item, no detail (the Monitoring page has the detail) -->
+        <div v-if="attention.length" class="mb-3 flex flex-wrap items-center gap-2" aria-label="Perlu perhatian">
+            <TriangleAlert class="h-4 w-4 text-amber-600" aria-hidden="true" />
+            <Link
+                v-for="g in attention"
+                :key="g.key"
+                :href="route(g.route)"
+                :class="['inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-medium hover:underline', g.severity === 'high' ? 'border-red-200 bg-red-50 text-red-800' : g.severity === 'medium' ? 'border-amber-200 bg-amber-50 text-amber-900' : 'border-blue-200 bg-blue-50 text-blue-900']"
+            >
+                {{ g.title }} <span class="tabular-nums">{{ g.count }}</span>
+            </Link>
+        </div>
 
         <!-- Period controls -->
         <div class="mb-4 flex flex-col gap-3 rounded-lg border bg-white p-3 sm:p-4 lg:flex-row lg:items-center lg:justify-between">
@@ -160,26 +176,24 @@ function toggle(teamId: number) {
             </Button>
         </div>
 
-        <!-- Office summary -->
-        <dl class="mb-4 grid grid-cols-2 gap-3 lg:grid-cols-4">
-            <div class="rounded-lg border bg-white px-4 py-3">
-                <dt class="text-xs text-gray-500">Tim dengan rekap</dt>
-                <dd class="mt-1 text-xl font-semibold tabular-nums text-gray-900">{{ withData.length }}<span class="text-sm font-normal text-gray-500"> / {{ teams.length }}</span></dd>
+        <!-- Office summary: one strip, numbers first -->
+        <dl class="mb-4 grid grid-cols-2 divide-x divide-y divide-gray-100 overflow-hidden rounded-lg border bg-white sm:grid-cols-4 sm:divide-y-0">
+            <div class="px-4 py-3">
+                <dd class="text-2xl font-semibold tabular-nums text-gray-900">{{ withData.length }}<span class="text-sm font-normal text-gray-400"> / {{ teams.length }}</span></dd>
+                <dt class="text-xs text-gray-500">Tim punya rekap</dt>
             </div>
-            <div class="rounded-lg border bg-white px-4 py-3">
+            <div class="px-4 py-3">
+                <dd v-if="officeAverage !== null" :class="['text-2xl font-semibold tabular-nums', achievementColor(officeAverage)]">{{ officeAverage.toFixed(1) }}%</dd>
+                <dd v-else class="text-2xl font-semibold text-gray-300">—</dd>
                 <dt class="text-xs text-gray-500">Rata-rata capaian</dt>
-                <dd v-if="officeAverage !== null" :class="['mt-1 text-xl font-semibold tabular-nums', achievementColor(officeAverage)]">{{ officeAverage.toFixed(1) }}%</dd>
-                <dd v-else class="mt-1 text-xl font-semibold text-gray-300">—</dd>
             </div>
-            <div class="rounded-lg border bg-white px-4 py-3">
-                <dt class="text-xs text-gray-500">Rekap dikunci PJ</dt>
-                <dd class="mt-1 text-xl font-semibold tabular-nums text-gray-900">{{ lockedCount }}<span class="text-sm font-normal text-gray-500"> / {{ teams.length }}</span></dd>
+            <div class="px-4 py-3">
+                <dd class="text-2xl font-semibold tabular-nums text-gray-900">{{ lockedCount }}<span class="text-sm font-normal text-gray-400"> / {{ teams.length }}</span></dd>
+                <dt class="text-xs text-gray-500">Rekap dikunci</dt>
             </div>
-            <div class="rounded-lg border bg-white px-4 py-3">
+            <div class="px-4 py-3">
+                <dd class="text-2xl font-semibold tabular-nums text-gray-900">{{ confirmedTotal }}<span class="text-sm font-normal text-gray-400"> / {{ rowsTotal }}</span></dd>
                 <dt class="text-xs text-gray-500">Baris dikonfirmasi</dt>
-                <dd class="mt-1 text-xl font-semibold tabular-nums text-gray-900">
-                    {{ teams.reduce((n, t) => n + t.confirmed, 0) }}<span class="text-sm font-normal text-gray-500"> / {{ teams.reduce((n, t) => n + t.rows, 0) }}</span>
-                </dd>
             </div>
         </dl>
 
@@ -218,13 +232,17 @@ function toggle(teamId: number) {
                 <TableHeader>
                     <TableRow class="bg-gray-50 text-xs uppercase tracking-wide text-gray-500">
                         <TableHead class="min-w-[12rem]">Tim</TableHead>
-                        <TableHead class="min-w-[9rem]">PJ</TableHead>
-                        <TableHead class="text-right">Baris RK</TableHead>
-                        <TableHead class="min-w-[9rem]">Capaian</TableHead>
+                        <TableHead class="min-w-[10rem]" :aria-sort="capaianSort === 'desc' ? 'descending' : capaianSort === 'asc' ? 'ascending' : 'none'">
+                            <button type="button" class="inline-flex items-center gap-1 font-medium uppercase tracking-wide hover:text-gray-900" @click="cycleCapaianSort">
+                                Capaian
+                                <ArrowDown v-if="capaianSort === 'desc'" class="h-3.5 w-3.5" aria-hidden="true" />
+                                <ArrowUp v-else-if="capaianSort === 'asc'" class="h-3.5 w-3.5" aria-hidden="true" />
+                                <ArrowUpDown v-else class="h-3.5 w-3.5 opacity-50" aria-hidden="true" />
+                            </button>
+                        </TableHead>
                         <TableHead class="text-right">Dikonfirmasi</TableHead>
                         <TableHead v-if="isWeek" class="text-right">Anggota lengkap</TableHead>
                         <TableHead>Status</TableHead>
-                        <TableHead class="min-w-[14rem]">Catatan Pimpinan</TableHead>
                         <TableHead class="w-10"><span class="sr-only">Buka</span></TableHead>
                     </TableRow>
                 </TableHeader>
@@ -244,12 +262,10 @@ function toggle(teamId: number) {
                                 </button>
                                 <span class="min-w-0">
                                     <Link :href="teamHref(team)" class="text-gray-900 hover:text-primary hover:underline">{{ team.name }}</Link>
-                                    <span class="block text-xs font-normal text-gray-500">{{ team.projects.filter(p => p.id !== null).length }} projek</span>
+                                    <span class="block text-xs font-normal text-gray-500">{{ team.leader ?? '—' }}</span>
                                 </span>
                             </div>
                         </TableCell>
-                        <TableCell class="whitespace-normal text-sm leading-snug text-gray-700">{{ team.leader ?? '—' }}</TableCell>
-                        <TableCell class="text-right tabular-nums">{{ team.rows || '—' }}</TableCell>
                         <TableCell>
                             <div v-if="team.avg_achievement !== null" class="flex items-center gap-2">
                                 <div class="h-1.5 w-16 overflow-hidden rounded-full bg-gray-100">
@@ -271,15 +287,7 @@ function toggle(teamId: number) {
                             <span :class="['inline-flex whitespace-nowrap rounded-full px-2 py-0.5 text-xs font-medium', REVIEW_STATUS_META[reviewStatus(team.avg_achievement)].chip]">
                                 {{ REVIEW_STATUS_META[reviewStatus(team.avg_achievement)].label }}
                             </span>
-                            <span v-if="team.locked" class="mt-1 flex items-center gap-1 whitespace-nowrap text-xs font-medium text-amber-700">
-                                <Lock class="h-3 w-3" aria-hidden="true" /> Dikunci PJ
-                            </span>
-                            <span v-else class="mt-1 flex items-center gap-1 whitespace-nowrap text-xs text-gray-500">
-                                <LockOpen class="h-3 w-3" aria-hidden="true" /> Terbuka
-                            </span>
-                        </TableCell>
-                        <TableCell class="whitespace-normal">
-                            <LeadershipNoteCell :note="team.note" :can-write="canWriteNotes" :subject="team.name" :payload="{ ...periodPayload, team_id: team.id, project_id: null }" />
+                            <Lock v-if="team.locked" class="ml-1.5 inline h-3.5 w-3.5 text-amber-700" aria-label="Rekap dikunci PJ" role="img" />
                         </TableCell>
                         <TableCell>
                             <Link :href="teamHref(team)" class="flex h-8 w-8 items-center justify-center rounded-md text-gray-400 hover:bg-gray-100 hover:text-primary" :aria-label="`Buka rekap ${team.name}`">
@@ -299,7 +307,6 @@ function toggle(teamId: number) {
                                         <th class="pb-1.5 pr-4 text-right font-medium">Anggota</th>
                                         <th class="pb-1.5 pr-4 text-right font-medium">Baris RK</th>
                                         <th class="pb-1.5 pr-4 text-right font-medium">Capaian</th>
-                                        <th class="pb-1.5 font-medium">Catatan Pimpinan</th>
                                     </tr>
                                 </thead>
                                 <tbody class="divide-y divide-gray-200/70">
@@ -311,15 +318,6 @@ function toggle(teamId: number) {
                                         <td class="py-1.5 pr-4 text-right tabular-nums">
                                             <span v-if="project.avg_achievement !== null" :class="['font-semibold', achievementColor(project.avg_achievement)]">{{ project.avg_achievement.toFixed(1) }}%</span>
                                             <span v-else class="text-xs text-gray-400">Belum ada data</span>
-                                        </td>
-                                        <td class="min-w-[14rem] py-1.5">
-                                            <LeadershipNoteCell
-                                                v-if="project.id !== null"
-                                                :note="project.note"
-                                                :can-write="canWriteNotes"
-                                                :subject="project.name"
-                                                :payload="{ ...periodPayload, team_id: team.id, project_id: project.id }"
-                                            />
                                         </td>
                                     </tr>
                                 </tbody>
