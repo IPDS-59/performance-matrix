@@ -1,8 +1,8 @@
 <script setup lang="ts">
 import { Link, router, usePage } from '@inertiajs/vue3';
-import { computed, onMounted, onUnmounted, ref, type Component } from 'vue';
+import { computed, onMounted, onUnmounted, ref, watch, type Component } from 'vue';
 import {
-    Activity, Award, BadgeCheck, BookOpen, CalendarCheck, CalendarDays, CalendarRange, ClipboardCheck, Eye, FileCheck, FileChartColumn, FileSpreadsheet, FolderKanban,
+    Activity, Award, ChevronDown, BadgeCheck, BookOpen, CalendarCheck, CalendarDays, CalendarRange, ClipboardCheck, Eye, FileCheck, FileChartColumn, FileSpreadsheet, FolderKanban,
     CircleHelp, House, LayoutGrid, LayoutList, ListChecks, ListTodo, LogOut, Menu, Network, PanelLeftClose, PanelLeftOpen, Target, ToggleRight, UserRound, Users, X, Zap,
 } from 'lucide-vue-next';
 import { useSidebarStore } from '@/stores/sidebar';
@@ -96,6 +96,21 @@ const navSections = computed<NavSection[]>(() => {
         .map(section => ({ ...section, items: section.items.filter(item => item.show) }))
         .filter(section => section.items.length);
 });
+
+// Sidebar groups fold open and shut; the choice is remembered per browser. A group holding the current page stays open.
+const COLLAPSED_KEY = 'kinetik.nav.collapsed';
+const collapsed = ref<string[]>(JSON.parse(localStorage.getItem(COLLAPSED_KEY) ?? '[]'));
+const isOpen = (section: NavSection) => !section.title || !collapsed.value.includes(section.title);
+function toggleSection(section: NavSection) {
+    if (!section.title) return;
+    collapsed.value = isOpen(section) ? [...collapsed.value, section.title] : collapsed.value.filter(t => t !== section.title);
+    localStorage.setItem(COLLAPSED_KEY, JSON.stringify(collapsed.value));
+}
+
+watch(() => page.url, () => {
+    const active = navSections.value.filter(s => s.title && s.items.some(i => i.active)).map(s => s.title);
+    if (collapsed.value.some(t => active.includes(t))) collapsed.value = collapsed.value.filter(t => !active.includes(t));
+}, { immediate: true });
 
 // Labels are visible when the desktop sidebar is expanded, and always in the mobile drawer.
 const showLabels = computed(() => sidebar.isOpen || sidebar.mobileOpen);
@@ -252,15 +267,19 @@ onUnmounted(() => {
 
             <!-- Nav links -->
             <nav class="flex-1 overflow-y-auto px-2 pb-4">
-                <div v-for="(section, index) in navSections" :key="section.title ?? 'main'" :class="index > 0 ? 'mt-5' : 'mt-1'">
-                    <p
+                <div v-for="(section, index) in navSections" :key="section.title ?? 'main'" :class="index > 0 ? 'mt-3' : 'mt-1'">
+                    <button
                         v-if="section.title && showLabels"
-                        class="mb-1 px-3 text-[11px] font-semibold uppercase tracking-wider text-white/55"
+                        type="button"
+                        class="flex w-full items-center justify-between rounded-md px-3 py-1.5 text-[11px] font-semibold uppercase tracking-wider text-white/60 transition-colors hover:bg-white/10 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70"
+                        :aria-expanded="isOpen(section)"
+                        @click="toggleSection(section)"
                     >
                         {{ section.title }}
-                    </p>
+                        <ChevronDown :class="['h-3.5 w-3.5 transition-transform', isOpen(section) ? '' : '-rotate-90']" aria-hidden="true" />
+                    </button>
                     <div v-else-if="section.title" class="mx-3 mb-2 border-t border-white/15" aria-hidden="true" />
-                    <div class="space-y-0.5">
+                    <div v-show="!section.title || !showLabels || isOpen(section)" class="mt-0.5 space-y-0.5">
                         <Link
                             v-for="item in section.items"
                             :key="item.href"
