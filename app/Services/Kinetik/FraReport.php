@@ -16,12 +16,13 @@ class FraReport
      * @param  Collection<int, FraIndicator>  $indicators  with quarterValues loaded
      * @return array{indicators: list<array<string, mixed>>, summary: array<string, mixed>}
      */
-    public function build(Collection $indicators, int $quarter, ?float $sakipScore = null): array
+    public function build(Collection $indicators, int $quarter, ?float $sakipScore = null, ?int $month = null): array
     {
+        $month ??= $quarter * 3;
         $predicate = $this->calc->sakipPredicate($sakipScore);
         $correction = $this->calc->sakipCorrection($predicate);
 
-        $rows = $indicators->sortBy('sort_order')->values()->map(function (FraIndicator $ind) use ($quarter, $correction) {
+        $rows = $indicators->sortBy('sort_order')->values()->map(function (FraIndicator $ind) use ($month, $correction) {
             $yearTarget = $this->calc->value($ind, $ind->target_x, $ind->target_y);
             $byQuarter = $ind->quarterValues->keyBy('quarter');
             $byMonth = $ind->monthValues->keyBy('month');
@@ -42,16 +43,34 @@ class FraReport
                 ];
             }
 
-            // The final score of the indicator uses the capaian against the year target, capped at 110.
-            $now = $quarters[$quarter]['capaian_year'];
+            // Realisation up to the chosen month; before any month is entered, the quarter figure typed by hand.
+            $cum = $this->fromMonths($ind, $byMonth, $month) ?? [$byQuarter->get((int) ceil($month / 3))?->realization_x, $byQuarter->get((int) ceil($month / 3))?->realization_y];
+            $now = $this->calc->capaian($yearTarget, $this->calc->value($ind, $cum[0], $cum[1]));
+            $months = [];
+            for ($m = 1; $m <= 12; $m++) {
+                $upTo = $this->fromMonths($ind, $byMonth, $m);
+                $months[$m] = [
+                    ...($byMonth->get($m)?->only(['x', 'y', 'obstacle', 'solution', 'follow_up', 'pic', 'deadline', 'evidence_url', 'previous_follow_up_url']) ?? []),
+                    'value' => $byMonth->get($m) ? $this->calc->value($ind, $byMonth->get($m)->x, $byMonth->get($m)->y) : null,
+                    'cum_value' => $upTo === null ? null : $this->calc->value($ind, $upTo[0], $upTo[1]),
+                ];
+            }
+            // The LK_Prov export is quarterly: a quarter's analysis is the one written in its last month, else the quarter's own.
+            $analysis = [];
+            foreach ([1, 2, 3, 4] as $q) {
+                $own = $byQuarter->get($q)?->only(['obstacle', 'solution', 'follow_up', 'pic', 'deadline', 'evidence_url', 'previous_follow_up_url']) ?? [];
+                $fromMonth = $byMonth->get($q * 3)?->only(['obstacle', 'solution', 'follow_up', 'pic', 'deadline', 'evidence_url', 'previous_follow_up_url']) ?? [];
+                $analysis[$q] = [...$own, ...array_filter($fromMonth, fn ($v) => filled($v))];
+            }
             $normalized = $now === null ? null : min($now, 110.0);
 
             return [
                 ...$ind->only(['id', 'sort_order', 'tujuan', 'sasaran_code', 'sasaran_name', 'code', 'name', 'kind', 'period_type', 'unit_type', 'percent_label', 'unit', 'x_label', 'y_label', 'target_x', 'target_y', 'owner_team_id']),
                 'target_value' => $yearTarget,
                 'quarters' => $quarters,
-                'months' => $byMonth->map(fn ($m) => ['x' => $m->x, 'y' => $m->y])->all(),
-                'values' => $byQuarter->map(fn (FraQuarterValue $v) => $v->only(['allocation_x', 'allocation_y', 'realization_x', 'realization_y', 'obstacle', 'solution', 'follow_up', 'pic', 'deadline', 'evidence_url', 'previous_follow_up_url']))->all(),
+                'months' => $months,
+                'cum_capaian_year' => $now,
+                'values' => $byQuarter->map(fn (FraQuarterValue $v) => [...$v->only(['allocation_x', 'allocation_y', 'realization_x', 'realization_y']), ...$analysis[$v->quarter]])->all(),
                 'normalized' => $normalized,
                 'correction' => $correction,
                 'final' => $normalized === null ? null : $normalized * (1 - $correction),
@@ -67,7 +86,7 @@ class FraReport
             $sasaran[] = [
                 'code' => $code,
                 'name' => $group->first()['sasaran_name'],
-                'capaian_year' => $this->calc->average($group->map(fn ($r) => $r['quarters'][$quarter]['capaian_year'])->all()),
+                'capaian_year' => $this->calc->average($group->map(fn ($r) => $r['cum_capaian_year'])->all()),
             ];
         }
 
@@ -77,8 +96,9 @@ class FraReport
                 'quarter' => $quarter,
                 'sakip_score' => $sakipScore,
                 'sakip_predicate' => $predicate,
+                'month' => $month,
                 'iku_capaian_quarter' => $this->calc->average(array_map(fn ($r) => $r['quarters'][$quarter]['capaian_quarter'], $iku), skipZero: true),
-                'iku_capaian_year' => $this->calc->average(array_map(fn ($r) => $r['quarters'][$quarter]['capaian_year'], $iku)),
+                'iku_capaian_year' => $this->calc->average(array_map(fn ($r) => $r['cum_capaian_year'], $iku)),
                 'sasaran' => $sasaran,
                 'nko' => $nko,
                 'pko_predicate' => $nko === null ? null : $this->calc->pkoPredicate($nko),

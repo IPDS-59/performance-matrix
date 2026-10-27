@@ -2,22 +2,21 @@
 import AppLayout from '@/Layouts/AppLayout.vue';
 import { Head, router } from '@inertiajs/vue3';
 import { computed, ref } from 'vue';
-import { Download, Pencil } from 'lucide-vue-next';
+import { Download, MessageSquareText } from 'lucide-vue-next';
 import type { FraIndicatorRow, FraProps } from '@/types';
 import { Button } from '@/Components/ui/button';
 import { Input } from '@/Components/ui/input';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/Components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/Components/ui/select';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/Components/ui/table';
 import FraMonthlyTable from '@/Components/Kinetik/FraMonthlyTable.vue';
-import FraIndicatorForm from '@/Components/Kinetik/FraIndicatorForm.vue';
+import FraAnalysisDialog from '@/Components/Kinetik/FraAnalysisDialog.vue';
 import { downloadFraSheet, fmt } from '@/composables/useFra';
 
 const props = defineProps<FraProps>();
+const MONTHS = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
 const roman = ['I', 'II', 'III', 'IV'];
 const sakip = ref(props.summary.sakip_score?.toString() ?? '');
-const editing = ref<FraIndicatorRow | null>(null);
-const view = ref<'triwulan' | 'bulanan'>('triwulan');
+const analysing = ref<FraIndicatorRow | null>(null);
 
 const editable = computed(() => new Set(props.editableIds));
 const teamName = (id: number | null) => props.teams.find(t => t.id === id)?.name ?? null;
@@ -33,27 +32,32 @@ const groups = computed(() => {
 });
 
 function go(params: Record<string, string | number | undefined>) {
-    router.get(route('fra.index'), { year: props.year, quarter: props.quarter, sakip: sakip.value || undefined, ...params }, { preserveState: true, preserveScroll: true });
+    router.get(route('fra.index'), { year: props.year, month: props.month, sakip: sakip.value || undefined, ...params }, { preserveState: true, preserveScroll: true });
 }
 
 function setOwner(ind: FraIndicatorRow, teamId: number | null) {
     router.patch(route('fra.owner', ind.id), { owner_team_id: teamId }, { preserveScroll: true });
 }
+
+const note = (ind: FraIndicatorRow) => {
+    const m = ind.months[props.month];
+    return [['Kendala', m?.obstacle], ['Solusi', m?.solution], ['Tindak lanjut', m?.follow_up]].filter(([, v]) => v) as Array<[string, string]>;
+};
 </script>
 
 <template>
     <Head title="Kertas Kerja FRA" />
     <AppLayout>
-        <template #title>Kertas Kerja FRA (LK_Prov)</template>
+        <template #title>Kertas Kerja FRA</template>
 
         <div class="mb-4 flex flex-col gap-3 rounded-lg border bg-white p-3 sm:flex-row sm:flex-wrap sm:items-end sm:justify-between sm:p-4">
             <div class="flex flex-wrap items-end gap-3">
                 <div>
-                    <label class="mb-1 block text-xs text-gray-600" for="fra-quarter">Triwulan</label>
-                    <Select :model-value="quarter" @update:model-value="(v) => go({ quarter: Number(v) })">
-                        <SelectTrigger id="fra-quarter" class="w-36"><SelectValue /></SelectTrigger>
+                    <label class="mb-1 block text-xs text-gray-600" for="fra-month">Sampai bulan</label>
+                    <Select :model-value="month" @update:model-value="(v) => go({ month: Number(v) })">
+                        <SelectTrigger id="fra-month" class="w-44"><SelectValue /></SelectTrigger>
                         <SelectContent>
-                            <SelectItem v-for="n in 4" :key="n" :value="n">TW {{ roman[n - 1] }} {{ year }}</SelectItem>
+                            <SelectItem v-for="(name, i) in MONTHS" :key="name" :value="i + 1">{{ name }} {{ year }}</SelectItem>
                         </SelectContent>
                     </Select>
                 </div>
@@ -62,24 +66,14 @@ function setOwner(ind: FraIndicatorRow, teamId: number | null) {
                     <Input id="fra-sakip" v-model="sakip" type="number" step="any" class="w-32" placeholder="mis. 78,1" @change="go({})" />
                 </div>
             </div>
-            <div class="flex rounded-md border text-sm" role="tablist" aria-label="Tampilan">
-                <button v-for="v in (['triwulan', 'bulanan'] as const)" :key="v" role="tab" :aria-selected="view === v" type="button"
-                    :class="['px-3 py-1.5 capitalize first:rounded-l-md last:rounded-r-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary', view === v ? 'bg-primary text-white' : 'text-gray-600 hover:bg-gray-50']"
-                    @click="view = v">{{ v === 'triwulan' ? 'Per triwulan' : 'Data bulanan' }}</button>
-            </div>
             <Button variant="outline" size="sm" @click="downloadFraSheet(indicators, summary, year)">
-                <Download class="mr-1.5 h-4 w-4" aria-hidden="true" /> Unduh Excel
+                <Download class="mr-1.5 h-4 w-4" aria-hidden="true" /> Unduh Excel LK_Prov TW {{ roman[quarter - 1] }}
             </Button>
         </div>
 
-        <div class="mb-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        <div class="mb-6 grid gap-3 sm:grid-cols-3">
             <div class="rounded-lg border bg-white p-4">
-                <p class="text-xs font-semibold uppercase tracking-wide text-gray-500">Capaian IKU TW {{ roman[quarter - 1] }}</p>
-                <p class="mt-1 text-2xl font-semibold tabular-nums">{{ fmt(summary.iku_capaian_quarter) }}</p>
-                <p class="text-xs text-gray-500">terhadap target triwulanan</p>
-            </div>
-            <div class="rounded-lg border bg-white p-4">
-                <p class="text-xs font-semibold uppercase tracking-wide text-gray-500">Capaian IKU setahun</p>
+                <p class="text-xs font-semibold uppercase tracking-wide text-gray-500">Capaian IKU sampai {{ MONTHS[month - 1] }}</p>
                 <p class="mt-1 text-2xl font-semibold tabular-nums">{{ fmt(summary.iku_capaian_year) }}</p>
                 <p class="text-xs text-gray-500">terhadap target tahunan</p>
             </div>
@@ -99,72 +93,42 @@ function setOwner(ind: FraIndicatorRow, teamId: number | null) {
             Belum ada indikator untuk tahun {{ year }}.
         </div>
 
-        <template v-if="view === 'bulanan'">
-            <section v-for="group in groups" :key="group.code" class="mb-6">
-                <h2 class="mb-2 text-sm font-semibold text-gray-800">{{ group.code }} {{ group.name }}</h2>
-                <article v-for="ind in group.rows" :key="ind.id" class="mb-3 rounded-md border bg-white">
-                    <header class="border-b px-4 py-2">
+        <section v-for="group in groups" :key="group.code" class="mb-6">
+            <h2 class="mb-2 text-sm font-semibold text-gray-800">{{ group.code }} {{ group.name }}</h2>
+            <article v-for="ind in group.rows" :key="ind.id" class="mb-3 rounded-md border bg-white">
+                <header class="flex flex-wrap items-start justify-between gap-3 border-b px-4 py-2">
+                    <div class="min-w-0 flex-1">
                         <p class="text-sm text-gray-900">{{ ind.name }}</p>
-                        <p class="text-xs text-gray-500">{{ ind.code }} · {{ ind.kind }} · {{ teamName(ind.owner_team_id) ?? 'Tim pemilik belum ditentukan' }}</p>
-                    </header>
-                    <FraMonthlyTable :indicator="ind" :year="year" :editable="editable.has(ind.id)" />
-                </article>
-            </section>
-        </template>
-
-        <section v-else v-for="group in groups" :key="group.code" class="mb-5 overflow-x-auto rounded-md border bg-white">
-            <h2 class="border-b bg-gray-50 px-4 py-2 text-sm font-semibold text-gray-800">{{ group.code }} {{ group.name }}</h2>
-            <Table>
-                <TableHeader>
-                    <TableRow>
-                        <TableHead class="text-left">Indikator</TableHead>
-                        <TableHead class="text-right">Target</TableHead>
-                        <TableHead class="text-right">Alokasi</TableHead>
-                        <TableHead class="text-right">Realisasi</TableHead>
-                        <TableHead class="text-right">Capaian TW</TableHead>
-                        <TableHead class="text-right">Capaian tahun</TableHead>
-                        <TableHead class="text-left">Tim pemilik</TableHead>
-                        <TableHead><span class="sr-only">Aksi</span></TableHead>
-                    </TableRow>
-                </TableHeader>
-                <TableBody>
-                    <TableRow v-for="ind in group.rows" :key="ind.id">
-                        <TableCell class="w-[20rem] max-w-[20rem] whitespace-normal align-top">
-                            <p class="text-sm text-gray-900">{{ ind.name }}</p>
-                            <p class="text-xs text-gray-500">{{ ind.code }} · {{ ind.kind }} · {{ ind.period_type }}</p>
-                        </TableCell>
-                        <TableCell class="text-right tabular-nums">{{ fmt(ind.target_value) }} <span class="text-xs text-gray-400">{{ ind.unit }}</span></TableCell>
-                        <TableCell class="text-right tabular-nums">{{ fmt(ind.quarters[quarter].allocation_value) }}</TableCell>
-                        <TableCell class="text-right tabular-nums">{{ fmt(ind.quarters[quarter].realization_value) }}</TableCell>
-                        <TableCell class="text-right tabular-nums">{{ fmt(ind.quarters[quarter].capaian_quarter) }}</TableCell>
-                        <TableCell class="text-right tabular-nums">{{ fmt(ind.quarters[quarter].capaian_year) }}</TableCell>
-                        <TableCell class="min-w-[10rem] whitespace-normal text-sm">
-                            <Select v-if="isAdmin" :model-value="ind.owner_team_id" @update:model-value="(v) => setOwner(ind, v === null ? null : Number(v))">
-                                <SelectTrigger class="h-8 text-xs" :aria-label="`Tim pemilik ${ind.code}`"><SelectValue placeholder="Belum ditentukan" /></SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem :value="null">Belum ditentukan</SelectItem>
-                                    <SelectItem v-for="t in teams" :key="t.id" :value="t.id">{{ t.name }}</SelectItem>
-                                </SelectContent>
-                            </Select>
-                            <span v-else :class="teamName(ind.owner_team_id) ? 'text-gray-700' : 'text-gray-400'">{{ teamName(ind.owner_team_id) ?? 'Belum ditentukan' }}</span>
-                        </TableCell>
-                        <TableCell class="text-right">
-                            <Button v-if="editable.has(ind.id)" variant="ghost" size="sm" :aria-label="`Isi ${ind.code}`" @click="editing = ind">
-                                <Pencil class="h-4 w-4" aria-hidden="true" />
-                            </Button>
-                        </TableCell>
-                    </TableRow>
-                </TableBody>
-            </Table>
+                        <p class="text-xs text-gray-500">{{ ind.code }} · {{ ind.kind }} · target {{ fmt(ind.target_value) }} {{ ind.unit }} · capaian {{ fmt(ind.cum_capaian_year) }}%</p>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <Select v-if="isAdmin" :model-value="ind.owner_team_id" @update:model-value="(v) => setOwner(ind, v === null ? null : Number(v))">
+                            <SelectTrigger class="h-8 w-48 text-xs" :aria-label="`Tim pemilik ${ind.code}`"><SelectValue placeholder="Tim pemilik belum ditentukan" /></SelectTrigger>
+                            <SelectContent>
+                                <SelectItem :value="null">Belum ditentukan</SelectItem>
+                                <SelectItem v-for="t in teams" :key="t.id" :value="t.id">{{ t.name }}</SelectItem>
+                            </SelectContent>
+                        </Select>
+                        <span v-else class="text-xs text-gray-600">{{ teamName(ind.owner_team_id) ?? 'Tim pemilik belum ditentukan' }}</span>
+                        <Button v-if="editable.has(ind.id)" variant="outline" size="sm" class="h-8" @click="analysing = ind">
+                            <MessageSquareText class="mr-1.5 h-4 w-4" aria-hidden="true" /> Analisis {{ MONTHS[month - 1] }}
+                        </Button>
+                    </div>
+                </header>
+                <FraMonthlyTable :indicator="ind" :year="year" :month="month" :editable="editable.has(ind.id)" />
+                <dl v-if="note(ind).length" class="border-t px-4 py-2 text-xs text-gray-700">
+                    <div v-for="[label, text] in note(ind)" :key="label" class="flex gap-2"><dt class="w-24 shrink-0 font-medium text-gray-500">{{ label }}</dt><dd>{{ text }}</dd></div>
+                </dl>
+            </article>
         </section>
 
-        <Dialog :open="editing !== null" @update:open="(open) => { if (!open) editing = null; }">
+        <Dialog :open="analysing !== null" @update:open="(open) => { if (!open) analysing = null; }">
             <DialogContent class="max-h-[90vh] overflow-y-auto sm:max-w-2xl">
                 <DialogHeader>
-                    <DialogTitle>{{ editing?.code }} · TW {{ roman[quarter - 1] }} {{ year }}</DialogTitle>
-                    <DialogDescription>{{ editing?.name }}</DialogDescription>
+                    <DialogTitle>{{ analysing?.code }} · {{ MONTHS[month - 1] }} {{ year }}</DialogTitle>
+                    <DialogDescription>{{ analysing?.name }}</DialogDescription>
                 </DialogHeader>
-                <FraIndicatorForm v-if="editing" :key="`${editing.id}-${quarter}`" :indicator="editing" :quarter="quarter" @saved="editing = null" />
+                <FraAnalysisDialog v-if="analysing" :key="`${analysing.id}-${month}`" :indicator="analysing" :month="month" @saved="analysing = null" />
             </DialogContent>
         </Dialog>
     </AppLayout>

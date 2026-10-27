@@ -6,13 +6,13 @@ const quarter = (over = {}) => ({ allocation_value: 0, realization_value: 0, cap
 const indicator = (over: Partial<FraIndicatorRow> = {}): FraIndicatorRow => ({
     id: 1, sort_order: 0, tujuan: 'T1: Tujuan', sasaran_code: '2.6.1', sasaran_name: 'Edukasi', code: '2.6.1.1', name: 'Persentase kegiatan',
     kind: 'IKU', period_type: 'Triwulanan', unit_type: 'percent', percent_label: false, unit: 'Persen', x_label: 'Terlaksana', y_label: 'Direncanakan',
-    target_x: 32, target_y: 40, owner_team_id: null, target_value: 80, months: {},
+    target_x: 32, target_y: 40, owner_team_id: null, target_value: 80, months: {}, cum_capaian_year: 59.375,
     quarters: { 1: quarter(), 2: quarter({ allocation_value: 40, realization_value: 47.5, capaian_quarter: 118.75, capaian_year: 59.375 }), 3: quarter(), 4: quarter() },
     values: { 2: { allocation_x: 16, allocation_y: 40, realization_x: 19, realization_y: 40, obstacle: 'Kendala A', solution: null, follow_up: null, pic: 'Tim IPDS', deadline: null, evidence_url: null, previous_follow_up_url: null } },
     normalized: 59.375, correction: 0.1, final: 53.4375,
     ...over,
 });
-const summary: FraSummary = { quarter: 2, sakip_score: 78.1, sakip_predicate: 'BB/Sangat Baik', iku_capaian_quarter: 118.75, iku_capaian_year: 59.375, sasaran: [{ code: '2.6.1', name: 'Edukasi', capaian_year: 59.375 }], nko: 53.4375, pko_predicate: 'BURUK' };
+const summary: FraSummary = { quarter: 2, month: 6, sakip_score: 78.1, sakip_predicate: 'BB/Sangat Baik', iku_capaian_quarter: 118.75, iku_capaian_year: 59.375, sasaran: [{ code: '2.6.1', name: 'Edukasi', capaian_year: 59.375 }], nko: 53.4375, pko_predicate: 'BURUK' };
 
 describe('useFra', () => {
     it('formats numbers the Indonesian way and "-" for none', () => {

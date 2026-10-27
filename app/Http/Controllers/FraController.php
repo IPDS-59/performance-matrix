@@ -5,7 +5,6 @@ namespace App\Http\Controllers;
 use App\Models\Employee;
 use App\Models\FraIndicator;
 use App\Models\FraMonthValue;
-use App\Models\FraQuarterValue;
 use App\Models\Team;
 use App\Models\User;
 use App\Services\Kinetik\FraReport;
@@ -26,17 +25,19 @@ class FraController extends Controller
         abort_unless(PlanComplianceController::canView($request->user()), 403);
 
         $year = (int) $request->query('year', now()->year);
-        $quarter = min(4, max(1, (int) $request->query('quarter', now()->quarter)));
+        $month = min(12, max(1, (int) $request->query('month', now()->month)));
+        $quarter = (int) ceil($month / 3);
         $sakip = $request->filled('sakip') ? (float) $request->query('sakip') : null;
         $user = $request->user();
         $ledTeamIds = $this->ledTeamIds($user);
 
-        $built = $report->build(FraIndicator::with(['quarterValues', 'monthValues'])->where('year', $year)->get(), $quarter, $sakip);
+        $built = $report->build(FraIndicator::with(['quarterValues', 'monthValues'])->where('year', $year)->get(), $quarter, $sakip, $month);
         $teams = Team::orderBy('name')->get(['id', 'name']);
 
         return Inertia::render('Kinetik/Fra', [
             ...$built,
             'year' => $year,
+            'month' => $month,
             'quarter' => $quarter,
             'teams' => $teams,
             'isAdmin' => $user->hasRole('admin'),
@@ -46,16 +47,13 @@ class FraController extends Controller
         ]);
     }
 
-    public function updateValues(Request $request, FraIndicator $indicator, int $quarter): RedirectResponse
+    /** Kendala, solusi, tindak lanjut and the links of one indicator for one month. */
+    public function updateAnalysis(Request $request, FraIndicator $indicator, int $month): RedirectResponse
     {
-        abort_unless($quarter >= 1 && $quarter <= 4, 404);
+        abort_unless($month >= 1 && $month <= 12, 404);
         abort_unless($this->canEnter($request->user(), $indicator), 403, 'Hanya PJ tim pemilik indikator yang dapat mengisi.');
 
         $data = $request->validate([
-            'allocation_x' => ['nullable', 'numeric'],
-            'allocation_y' => ['nullable', 'numeric'],
-            'realization_x' => ['nullable', 'numeric'],
-            'realization_y' => ['nullable', 'numeric'],
             'obstacle' => ['nullable', 'string', 'max:3000'],
             'solution' => ['nullable', 'string', 'max:3000'],
             'follow_up' => ['nullable', 'string', 'max:3000'],
@@ -65,12 +63,12 @@ class FraController extends Controller
             'previous_follow_up_url' => ['nullable', 'string', 'max:2000'],
         ]);
 
-        FraQuarterValue::updateOrCreate(
-            ['fra_indicator_id' => $indicator->id, 'quarter' => $quarter],
+        FraMonthValue::updateOrCreate(
+            ['fra_indicator_id' => $indicator->id, 'month' => $month],
             [...$data, 'updated_by' => $request->user()->employee?->id],
         );
 
-        return back()->with('success', "Isian {$indicator->code} TW {$quarter} disimpan.");
+        return back()->with('success', "Analisis {$indicator->code} bulan {$month} disimpan.");
     }
 
     /** All twelve months of one indicator in one save, like filling the Data Monitoring sheet. */
@@ -88,11 +86,6 @@ class FraController extends Controller
             abort_unless((int) $month >= 1 && (int) $month <= 12, 422);
             $x = $cell['x'] ?? null;
             $y = $cell['y'] ?? null;
-            if ($x === null && $y === null) {
-                FraMonthValue::where(['fra_indicator_id' => $indicator->id, 'month' => (int) $month])->delete();
-
-                continue;
-            }
             FraMonthValue::updateOrCreate(
                 ['fra_indicator_id' => $indicator->id, 'month' => (int) $month],
                 ['x' => $x, 'y' => $y, 'updated_by' => $request->user()->employee?->id],

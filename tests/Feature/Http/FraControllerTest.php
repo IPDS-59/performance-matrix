@@ -2,7 +2,7 @@
 
 use App\Models\Employee;
 use App\Models\FraIndicator;
-use App\Models\FraQuarterValue;
+use App\Models\FraMonthValue;
 use App\Models\Team;
 use Database\Seeders\FraIndicatorSeeder;
 
@@ -21,7 +21,7 @@ it('shows the indicators to the head, admins and PJ, but not to members', functi
     [$pjUser] = fraPj();
 
     foreach ([$pjUser, headUser(), adminUser()] as $user) {
-        $this->actingAs($user)->get(route('fra.index', ['year' => 2026, 'quarter' => 2]))->assertOk()
+        $this->actingAs($user)->get(route('fra.index', ['year' => 2026, 'month' => 6]))->assertOk()
             ->assertInertia(fn ($page) => $page->component('Kinetik/Fra')->has('indicators', 20)->where('summary.quarter', 2));
     }
 
@@ -29,21 +29,27 @@ it('shows the indicators to the head, admins and PJ, but not to members', functi
     $this->actingAs($member->user)->get(route('fra.index'))->assertForbidden();
 });
 
-it('lets only the PJ of the owner team (and admins) enter figures', function () {
+it('lets only the PJ of the owner team (and admins) write the monthly analysis', function () {
     [$pjUser, $team] = fraPj();
     [$otherPjUser] = fraPj();
     $indicator = FraIndicator::where('code', '2.6.1.1')->first();
     $indicator->update(['owner_team_id' => $team->id]);
-    $payload = ['realization_x' => 25, 'realization_y' => 40, 'obstacle' => 'Kendala uji'];
+    $payload = ['obstacle' => 'Kendala uji', 'pic' => 'Tim IPDS'];
 
-    $this->actingAs($otherPjUser)->patch(route('fra.values', [$indicator, 2]), $payload)->assertForbidden();
-    $this->actingAs(headUser())->patch(route('fra.values', [$indicator, 2]), $payload)->assertForbidden();
+    $this->actingAs($otherPjUser)->patch(route('fra.analysis', [$indicator, 6]), $payload)->assertForbidden();
+    $this->actingAs(headUser())->patch(route('fra.analysis', [$indicator, 6]), $payload)->assertForbidden();
 
-    $this->actingAs($pjUser)->patch(route('fra.values', [$indicator, 2]), $payload)->assertSessionHas('success');
-    expect(FraQuarterValue::where(['fra_indicator_id' => $indicator->id, 'quarter' => 2])->first())
-        ->realization_x->toBe(25.0)->obstacle->toBe('Kendala uji')->updated_by->not->toBeNull();
+    $this->actingAs($pjUser)->patch(route('fra.analysis', [$indicator, 6]), $payload)->assertSessionHas('success');
+    expect(FraMonthValue::where(['fra_indicator_id' => $indicator->id, 'month' => 6])->first())
+        ->obstacle->toBe('Kendala uji')->updated_by->not->toBeNull();
 
-    $this->actingAs(adminUser())->patch(route('fra.values', [$indicator, 3]), ['realization_x' => 1])->assertSessionHas('success');
+    $this->actingAs(adminUser())->patch(route('fra.analysis', [$indicator, 13]), $payload)->assertNotFound();
+
+    // The quarterly export reads the analysis of the quarter's last month.
+    $this->actingAs($pjUser)->get(route('fra.index', ['year' => 2026, 'month' => 6]))->assertInertia(function ($page) {
+        $row = collect($page->toArray()['props']['indicators'])->firstWhere('code', '2.6.1.1');
+        expect($row['values'][2]['obstacle'])->toBe('Kendala uji');
+    });
 });
 
 it('marks only the owned indicators editable for a PJ', function () {
@@ -79,13 +85,16 @@ it('saves the monthly X and Y of the owner team and builds the quarter from them
     $this->actingAs($otherPjUser)->put(route('fra.months', $indicator), $payload)->assertForbidden();
     $this->actingAs($pjUser)->put(route('fra.months', $indicator), $payload)->assertRedirect();
 
-    expect($indicator->monthValues()->count())->toBe(3);
-    $this->actingAs($pjUser)->get(route('fra.index', ['year' => 2026, 'quarter' => 1]))->assertInertia(function ($page) {
+    expect($indicator->monthValues()->count())->toBe(4);
+    $this->actingAs($pjUser)->get(route('fra.index', ['year' => 2026, 'month' => 3]))->assertInertia(function ($page) {
         $row = collect($page->toArray()['props']['indicators'])->firstWhere('code', '2.6.1.1');
         expect($row['months'][2]['x'])->toEqual(8)                        // typed month comes back
             ->and($row['quarters'][1]['realization_value'])->toEqual(60); // (6+8+10)/(10+10+20) = 60%
     });
 
     $this->actingAs($pjUser)->put(route('fra.months', $indicator), ['months' => [1 => ['x' => null, 'y' => null]]])->assertRedirect();
-    expect($indicator->monthValues()->count())->toBe(2);
+    $this->actingAs($pjUser)->get(route('fra.index', ['year' => 2026, 'month' => 3]))->assertInertia(function ($page) {
+        $row = collect($page->toArray()['props']['indicators'])->firstWhere('code', '2.6.1.1');
+        expect($row['quarters'][1]['realization_value'])->toEqual(60); // (8+10)/(10+20) once month 1 is cleared
+    });
 });
