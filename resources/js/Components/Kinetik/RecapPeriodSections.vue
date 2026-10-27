@@ -51,7 +51,7 @@ function shortRange(start: string, end: string): string {
                                 </p>
                             </div>
                             <p class="whitespace-nowrap text-right text-xs tabular-nums text-gray-600">
-                                {{ row.realization }} / {{ row.target }} {{ row.target_unit ?? '' }} · <span class="font-semibold">{{ pct(row.achievement) }}</span>
+                                {{ $n(row.realization) }} / {{ $n(row.target) }} {{ row.target_unit ?? '' }} · <span class="font-semibold">{{ pct(row.achievement) }}</span>
                             </p>
                         </li>
                     </ul>

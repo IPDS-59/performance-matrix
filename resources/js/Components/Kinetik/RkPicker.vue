@@ -19,7 +19,7 @@ const mark = { locked: 'Terkunci', written: 'Sudah ditulis', empty: '' } as cons
             <SelectContent>
                 <SelectItem v-for="p in panels" :key="p.performance_plan_id" :value="p.performance_plan_id">
                     {{ p.rk_description }}
-                    <span class="text-gray-600">· {{ p.entry_count }} kegiatan<template v-if="mark[panelState(p)]"> · {{ mark[panelState(p)] }}</template></span>
+                    <span class="text-gray-600">· {{ $n(p.entry_count) }} kegiatan<template v-if="mark[panelState(p)]"> · {{ mark[panelState(p)] }}</template></span>
                 </SelectItem>
             </SelectContent>
         </Select>

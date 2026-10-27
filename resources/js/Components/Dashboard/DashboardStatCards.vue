@@ -40,7 +40,7 @@ const { achievementColor, progressVariant, avgIconBgColor, avgIconColor } = useA
                 </div>
                 <div class="min-w-0 flex-1">
                     <p class="text-sm font-medium text-gray-500 group-hover:text-primary">Tim Kerja</p>
-                    <p class="mt-1 text-2xl font-bold text-gray-900">{{ stats.teams_count }}</p>
+                    <p class="mt-1 text-2xl font-bold text-gray-900">{{ $n(stats.teams_count) }}</p>
                 </div>
             </div>
         </Link>
@@ -72,7 +72,7 @@ const { achievementColor, progressVariant, avgIconBgColor, avgIconColor } = useA
                 </div>
                 <div class="min-w-0 flex-1">
                     <p class="text-sm font-medium text-gray-500 group-hover:text-primary">Proyek</p>
-                    <p class="mt-1 text-2xl font-bold text-gray-900">{{ stats.projects_count }}</p>
+                    <p class="mt-1 text-2xl font-bold text-gray-900">{{ $n(stats.projects_count) }}</p>
                 </div>
             </div>
         </Link>
@@ -104,7 +104,7 @@ const { achievementColor, progressVariant, avgIconBgColor, avgIconColor } = useA
                 </div>
                 <div class="min-w-0 flex-1">
                     <p class="text-sm font-medium text-gray-500 group-hover:text-primary">Item Kerja</p>
-                    <p class="mt-1 text-2xl font-bold text-gray-900">{{ stats.items_count }}</p>
+                    <p class="mt-1 text-2xl font-bold text-gray-900">{{ $n(stats.items_count) }}</p>
                 </div>
             </div>
         </Link>

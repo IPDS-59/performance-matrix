@@ -247,15 +247,15 @@ function achievementColor(val: number | null) {
                                 <p v-if="emp.position" class="text-xs text-gray-400">{{ emp.position }}</p>
                             </TableCell>
                             <TableCell class="text-gray-600">{{ emp.team?.name ?? '—' }}</TableCell>
-                            <TableCell class="text-center font-medium">{{ emp.total_projects }}</TableCell>
+                            <TableCell class="text-center font-medium">{{ $n(emp.total_projects) }}</TableCell>
                             <TableCell class="text-center">
                                 <span class="rounded-full bg-blue-100 px-2 py-0.5 text-xs font-medium text-blue-700">
-                                    {{ emp.leader_count }}
+                                    {{ $n(emp.leader_count) }}
                                 </span>
                             </TableCell>
                             <TableCell class="text-center">
                                 <span class="rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-600">
-                                    {{ emp.member_count }}
+                                    {{ $n(emp.member_count) }}
                                 </span>
                             </TableCell>
                             <TableCell>

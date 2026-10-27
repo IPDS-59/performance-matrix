@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Actions\Kinetik\BuildHeadHomeAction;
+use App\Actions\Kinetik\BuildMemberHomeAction;
 use App\Models\Employee;
 use App\Models\PlanItem;
 use App\Models\Project;
@@ -18,11 +19,15 @@ use Inertia\Response;
 
 class DashboardController extends Controller
 {
-    public function index(Request $request, BuildHeadHomeAction $home): Response
+    public function index(Request $request, BuildHeadHomeAction $home, BuildMemberHomeAction $member): Response
     {
         $user = $request->user();
         $year = $request->integer('year', now()->year);
         $month = $request->integer('month', now()->month);
+
+        if ($user->hasRole('staff') && $user->employee !== null) {
+            return Inertia::render('MemberHome', $member->execute($user->employee, now(config('app.schedule_timezone', 'Asia/Makassar'))));
+        }
 
         if ($user->hasRole('staff')) {
             return $this->staffDashboard($user, $year, $month);
@@ -39,11 +44,14 @@ class DashboardController extends Controller
     public function monitoring(Request $request): Response
     {
         $user = $request->user();
-        abort_unless($user->hasAnyRole(['head', 'admin']), 403);
         $year = $request->integer('year', now()->year);
         $month = $request->integer('month', now()->month);
 
-        return $user->hasRole('head') ? $this->headDashboard($user, $year, $month) : $this->adminDashboard($year, $month);
+        return match (true) {
+            $user->hasRole('head') => $this->headDashboard($user, $year, $month),
+            $user->hasRole('staff') => $this->staffDashboard($user, $year, $month),
+            default => $this->adminDashboard($year, $month),
+        };
     }
 
     /**

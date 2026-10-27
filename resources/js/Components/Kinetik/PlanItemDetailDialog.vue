@@ -24,7 +24,16 @@ const percent = computed(() => (props.item ? achievementPercent(props.item.capai
 
 // `progres`, not `progress`: useForm already has a `progress` property (upload progress) that would overwrite it.
 const form = useForm({ capaian: '' as string | number, capaian_note: '', evidence_url: '', progres: 0 as string | number });
+// Progres follows capaian over target until the user types a progress of their own.
+const progressTyped = ref(false);
+function onCapaianInput() {
+    const target = Number(props.item?.target);
+    if (progressTyped.value || form.capaian === '' || !(target > 0)) return;
+    form.progres = Math.min(100, Math.max(0, Math.round((Number(form.capaian) / target) * 100)));
+}
+
 watch(() => props.item, (item) => {
+    progressTyped.value = false;
     form.clearErrors();
     form.capaian = item?.capaian ?? '';
     form.capaian_note = item?.capaian_note ?? '';
@@ -105,27 +114,29 @@ const waitsForStart = computed(() => stage.value?.action === 'push' && !props.it
             <p v-if="item.push_error" class="rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900">Belum terkirim ke kipApp: {{ item.push_error }}</p>
 
             <form id="plan-result" class="space-y-3 border-t pt-3" @submit.prevent="submit('patch', 'plan-items.result')">
+                <h3 class="text-sm font-semibold text-gray-900">Realisasi</h3>
                 <div class="grid grid-cols-2 gap-3">
                     <div class="space-y-1.5">
                         <Label for="pr-cap">Capaian (angka{{ item.target_unit ? `, satuan ${item.target_unit}` : '' }})</Label>
-                        <Input id="pr-cap" v-model="form.capaian" type="number" min="0" step="any" />
+                        <Input id="pr-cap" v-model="form.capaian" type="number" min="0" step="any" @input="onCapaianInput" />
                         <InputError :message="form.errors.capaian" />
                     </div>
                     <div class="space-y-1.5">
                         <Label for="pr-prog">Progres (%)</Label>
-                        <Input id="pr-prog" v-model="form.progres" type="number" min="0" max="100" />
+                        <Input id="pr-prog" v-model="form.progres" type="number" min="0" max="100" @input="progressTyped = true" />
+                        <p v-if="!progressTyped && Number(item.target) > 0" class="text-xs text-gray-600">Dihitung dari capaian dibagi target.</p>
                         <InputError :message="form.errors.progress" />
                     </div>
-                </div>
-                <div class="space-y-1.5">
-                    <Label for="pr-note">Uraian capaian (teks ke kipApp)</Label>
-                    <Textarea id="pr-note" v-model="form.capaian_note" :rows="2" />
-                    <InputError :message="form.errors.capaian_note" />
                 </div>
                 <div class="space-y-1.5">
                     <Label for="pr-url">Bukti dukung (tautan)</Label>
                     <Input id="pr-url" v-model="form.evidence_url" type="url" placeholder="https://…" />
                     <InputError :message="form.errors.evidence_url" />
+                </div>
+                <div class="space-y-1.5">
+                    <Label for="pr-note">Uraian (teks ke kipApp)</Label>
+                    <Textarea id="pr-note" v-model="form.capaian_note" :rows="3" />
+                    <InputError :message="form.errors.capaian_note" />
                 </div>
             </form>
 
@@ -133,7 +144,7 @@ const waitsForStart = computed(() => stage.value?.action === 'push' && !props.it
                 <Button v-if="item?.can_delete" type="button" variant="ghost" class="mr-auto text-red-700" @click="confirming = 'cancel'">{{ item.in_kipapp ? 'Hapus kegiatan' : 'Batalkan rencana' }}</Button>
                 <Button v-if="item?.status !== 'cancelled'" type="button" variant="outline" @click="item && emit('copy', item)">Salin kegiatan</Button>
                 <Button v-if="item?.can_edit" type="button" variant="outline" @click="item && emit('edit', item)">Ubah</Button>
-                <Button type="submit" form="plan-result" variant="outline" :disabled="form.processing || item?.status === 'cancelled'">Simpan capaian</Button>
+                <Button type="submit" form="plan-result" variant="outline" :disabled="form.processing || item?.status === 'cancelled'">Simpan realisasi</Button>
                 <Button v-if="stage?.action" type="button" :disabled="form.processing || waitsForStart" :title="waitsForStart ? 'Kegiatan belum bisa dikirim sebelum tanggal mulainya.' : undefined" @click="run">{{ stage?.actionLabel }}</Button>
             </DialogFooter>
             <p v-if="item?.sent" class="text-xs text-gray-600">Kegiatan yang sudah dikirim ke atasan tidak bisa dihapus. Batalkan kirim dulu, lalu hapus.</p>

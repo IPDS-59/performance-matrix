@@ -30,7 +30,6 @@ const props = defineProps<{
 const emit = defineEmits<{ 'update:open': [value: boolean] }>();
 
 const form = useForm(entryFormState(null, null, '', todayIso()));
-const progressTouched = ref(false);
 const presensiOpen = ref(false);
 // A kegiatan that was already sent only changes "Masukan ke capaian SKP", like kipApp.
 const sentOnly = computed(() => !!props.item?.sent);
@@ -39,12 +38,11 @@ watch(() => [props.open, props.item, props.copyOf] as const, ([open, item, copyO
     if (!open) return;
     form.clearErrors();
     Object.assign(form, entryFormState(item, copyOf, props.defaultDate, todayIso()));
-    progressTouched.value = !!(item ?? copyOf);
 }, { immediate: true });
 
 // Logging past work starts at 100 (kipApp); planning starts at 0.
 watch(() => form.date_start, (date) => {
-    if (!props.item && !progressTouched.value) form.progres = defaultProgress(date, todayIso());
+    if (!props.item) form.progres = defaultProgress(date, todayIso());
     if (!form.use_range || form.date_end < date) form.date_end = date;
 });
 watch(() => form.use_range, (on) => { form.date_end = dateEndAfterRangeToggle(on, form.date_start, form.date_end); });
@@ -161,13 +159,12 @@ function save() {
             </div>
             <InputError :message="form.errors.date_end || form.errors.time_end || form.errors.date_start" />
 
-            <div class="grid grid-cols-3 gap-3">
+            <div class="grid grid-cols-2 gap-3">
                 <div class="space-y-1.5"><Label for="pi-target">Target (angka)</Label><Input id="pi-target" v-model="form.target" type="number" min="0" step="any" /></div>
                 <div class="space-y-1.5"><Label for="pi-unit">Satuan</Label><Input id="pi-unit" v-model="form.target_unit" placeholder="blok" /></div>
-                <div class="space-y-1.5"><Label for="pi-prog">Progres (%)</Label><Input id="pi-prog" v-model="form.progres" type="number" min="0" max="100" @input="progressTouched = true" /><InputError :message="form.errors.progress" /></div>
             </div>
             <InputError :message="form.errors.target" />
-            <p class="text-xs text-gray-600">Capaian, bukti dukung, dan uraian capaian diisi nanti, lewat detail kegiatan, saat Anda memperbarui capaian.</p>
+            <p class="text-xs text-gray-600">Progres, capaian, bukti dukung, dan uraian diisi nanti di form Realisasi pada detail kegiatan.</p>
         </fieldset>
 
         <label class="flex items-center gap-1.5 text-sm"><input v-model="form.is_capaian_skp" type="checkbox" /> Masukan ke capaian SKP</label>

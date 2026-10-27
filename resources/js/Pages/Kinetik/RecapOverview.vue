@@ -192,7 +192,7 @@ function toggle(teamId: number) {
                 <dt class="text-xs text-gray-500">Rekap dikunci</dt>
             </div>
             <div class="px-4 py-3">
-                <dd class="text-2xl font-semibold tabular-nums text-gray-900">{{ confirmedTotal }}<span class="text-sm font-normal text-gray-400"> / {{ rowsTotal }}</span></dd>
+                <dd class="text-2xl font-semibold tabular-nums text-gray-900">{{ $n(confirmedTotal) }}<span class="text-sm font-normal text-gray-400"> / {{ rowsTotal }}</span></dd>
                 <dt class="text-xs text-gray-500">Baris dikonfirmasi</dt>
             </div>
         </dl>
@@ -276,7 +276,7 @@ function toggle(teamId: number) {
                             <span v-else class="text-xs text-gray-400">Belum ada data</span>
                         </TableCell>
                         <TableCell class="text-right tabular-nums">
-                            <template v-if="team.rows">{{ team.confirmed }}/{{ team.rows }}</template>
+                            <template v-if="team.rows">{{ $n(team.confirmed) }}/{{ $n(team.rows) }}</template>
                             <template v-else>—</template>
                         </TableCell>
                         <TableCell v-if="isWeek" class="text-right tabular-nums">

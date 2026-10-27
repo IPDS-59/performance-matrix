@@ -22,7 +22,7 @@ const count = (team: OrgTeam) => team.members.length + (team.leader ? 1 : 0);
             <div class="min-w-0">
                 <p class="truncate text-sm font-semibold">{{ tree.satker }}</p>
                 <p class="truncate text-xs opacity-80">
-                    <template v-if="tree.head">{{ tree.head.name }} · Kepala · </template>{{ tree.employee_count }} pegawai · {{ tree.teams.length }} tim kerja
+                    <template v-if="tree.head">{{ tree.head.name }} · Kepala · </template>{{ $n(tree.employee_count) }} pegawai · {{ tree.teams.length }} tim kerja
                 </p>
             </div>
         </header>

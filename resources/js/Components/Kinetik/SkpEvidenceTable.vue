@@ -24,7 +24,7 @@ const num = (n: number) => new Intl.NumberFormat('id-ID', { maximumFractionDigit
                     {{ r.rk }}
                     <span v-for="c in r.catatan" :key="c" class="mt-0.5 block text-xs text-gray-500">“{{ c }}”</span>
                 </td>
-                <td class="px-3 py-1.5 text-right tabular-nums">{{ r.kegiatan }}</td>
+                <td class="px-3 py-1.5 text-right tabular-nums">{{ $n(r.kegiatan) }}</td>
                 <td class="px-3 py-1.5 text-right tabular-nums">{{ r.selesai }}</td>
                 <td class="px-3 py-1.5 text-right tabular-nums">{{ r.terkirim }}</td>
                 <td class="px-3 py-1.5 text-right tabular-nums">
