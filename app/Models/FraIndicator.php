@@ -26,6 +26,11 @@ class FraIndicator extends Model
         return $this->hasMany(FraQuarterValue::class);
     }
 
+    public function monthValues(): HasMany
+    {
+        return $this->hasMany(FraMonthValue::class);
+    }
+
     public function isPercent(): bool
     {
         return $this->unit_type === 'percent';

@@ -66,3 +66,26 @@ it('lets only admins assign the owner team', function () {
     $this->actingAs(adminUser())->patch(route('fra.owner', $indicator), ['owner_team_id' => null]);
     expect($indicator->fresh()->owner_team_id)->toBeNull();
 });
+
+it('saves the monthly X and Y of the owner team and builds the quarter from them', function () {
+    [$pjUser, $team] = fraPj();
+    [$otherPjUser] = fraPj();
+    $indicator = FraIndicator::where('code', '2.6.1.1')->first();
+    $indicator->update(['owner_team_id' => $team->id]);
+    $payload = ['months' => [
+        1 => ['x' => 6, 'y' => 10], 2 => ['x' => 8, 'y' => 10], 3 => ['x' => 10, 'y' => 20], 4 => ['x' => null, 'y' => null],
+    ]];
+
+    $this->actingAs($otherPjUser)->put(route('fra.months', $indicator), $payload)->assertForbidden();
+    $this->actingAs($pjUser)->put(route('fra.months', $indicator), $payload)->assertRedirect();
+
+    expect($indicator->monthValues()->count())->toBe(3);
+    $this->actingAs($pjUser)->get(route('fra.index', ['year' => 2026, 'quarter' => 1]))->assertInertia(function ($page) {
+        $row = collect($page->toArray()['props']['indicators'])->firstWhere('code', '2.6.1.1');
+        expect($row['months'][2]['x'])->toEqual(8)                        // typed month comes back
+            ->and($row['quarters'][1]['realization_value'])->toEqual(60); // (6+8+10)/(10+10+20) = 60%
+    });
+
+    $this->actingAs($pjUser)->put(route('fra.months', $indicator), ['months' => [1 => ['x' => null, 'y' => null]]])->assertRedirect();
+    expect($indicator->monthValues()->count())->toBe(2);
+});

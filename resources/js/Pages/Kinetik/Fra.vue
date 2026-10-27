@@ -9,6 +9,7 @@ import { Input } from '@/Components/ui/input';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/Components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/Components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/Components/ui/table';
+import FraMonthlyTable from '@/Components/Kinetik/FraMonthlyTable.vue';
 import FraIndicatorForm from '@/Components/Kinetik/FraIndicatorForm.vue';
 import { downloadFraSheet, fmt } from '@/composables/useFra';
 
@@ -16,6 +17,7 @@ const props = defineProps<FraProps>();
 const roman = ['I', 'II', 'III', 'IV'];
 const sakip = ref(props.summary.sakip_score?.toString() ?? '');
 const editing = ref<FraIndicatorRow | null>(null);
+const view = ref<'triwulan' | 'bulanan'>('triwulan');
 
 const editable = computed(() => new Set(props.editableIds));
 const teamName = (id: number | null) => props.teams.find(t => t.id === id)?.name ?? null;
@@ -60,6 +62,11 @@ function setOwner(ind: FraIndicatorRow, teamId: number | null) {
                     <Input id="fra-sakip" v-model="sakip" type="number" step="any" class="w-32" placeholder="mis. 78,1" @change="go({})" />
                 </div>
             </div>
+            <div class="flex rounded-md border text-sm" role="tablist" aria-label="Tampilan">
+                <button v-for="v in (['triwulan', 'bulanan'] as const)" :key="v" role="tab" :aria-selected="view === v" type="button"
+                    :class="['px-3 py-1.5 capitalize first:rounded-l-md last:rounded-r-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary', view === v ? 'bg-primary text-white' : 'text-gray-600 hover:bg-gray-50']"
+                    @click="view = v">{{ v === 'triwulan' ? 'Per triwulan' : 'Data bulanan' }}</button>
+            </div>
             <Button variant="outline" size="sm" @click="downloadFraSheet(indicators, summary, year)">
                 <Download class="mr-1.5 h-4 w-4" aria-hidden="true" /> Unduh Excel
             </Button>
@@ -92,7 +99,20 @@ function setOwner(ind: FraIndicatorRow, teamId: number | null) {
             Belum ada indikator untuk tahun {{ year }}.
         </div>
 
-        <section v-for="group in groups" :key="group.code" class="mb-5 overflow-x-auto rounded-md border bg-white">
+        <template v-if="view === 'bulanan'">
+            <section v-for="group in groups" :key="group.code" class="mb-6">
+                <h2 class="mb-2 text-sm font-semibold text-gray-800">{{ group.code }} {{ group.name }}</h2>
+                <article v-for="ind in group.rows" :key="ind.id" class="mb-3 rounded-md border bg-white">
+                    <header class="border-b px-4 py-2">
+                        <p class="text-sm text-gray-900">{{ ind.name }}</p>
+                        <p class="text-xs text-gray-500">{{ ind.code }} · {{ ind.kind }} · {{ teamName(ind.owner_team_id) ?? 'Tim pemilik belum ditentukan' }}</p>
+                    </header>
+                    <FraMonthlyTable :indicator="ind" :year="year" :editable="editable.has(ind.id)" />
+                </article>
+            </section>
+        </template>
+
+        <section v-else v-for="group in groups" :key="group.code" class="mb-5 overflow-x-auto rounded-md border bg-white">
             <h2 class="border-b bg-gray-50 px-4 py-2 text-sm font-semibold text-gray-800">{{ group.code }} {{ group.name }}</h2>
             <Table>
                 <TableHeader>
