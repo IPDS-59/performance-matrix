@@ -2,7 +2,7 @@
 import { Link, router, usePage } from '@inertiajs/vue3';
 import { computed, onMounted, onUnmounted, ref, type Component } from 'vue';
 import {
-    Award, BadgeCheck, BookOpen, CalendarCheck, CalendarDays, CalendarRange, ClipboardCheck, Eye, FileCheck, FileChartColumn, FileSpreadsheet, FolderKanban,
+    Activity, Award, BadgeCheck, BookOpen, CalendarCheck, CalendarDays, CalendarRange, ClipboardCheck, Eye, FileCheck, FileChartColumn, FileSpreadsheet, FolderKanban,
     CircleHelp, House, LayoutGrid, LayoutList, ListChecks, ListTodo, LogOut, Menu, Network, PanelLeftClose, PanelLeftOpen, Target, ToggleRight, UserRound, Users, X, Zap,
 } from 'lucide-vue-next';
 import { useSidebarStore } from '@/stores/sidebar';
@@ -42,6 +42,7 @@ const navSections = computed<NavSection[]>(() => {
         {
             items: [
                 { label: 'Beranda', href: route('dashboard'), active: is('dashboard'), icon: House, show: true },
+                { label: 'Monitoring', href: route('monitoring'), active: is('monitoring'), icon: Activity, show: isHead.value },
                 { label: 'Matriks', href: route('matrix'), active: is('matrix'), icon: LayoutGrid, show: true },
                 { label: 'Struktur Organisasi', href: route('organization.index'), active: is('organization.*'), icon: Network, show: true },
             ],

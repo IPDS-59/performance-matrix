@@ -21,7 +21,7 @@ const props = defineProps<{
     team_progress?: Record<string, TeamProgress>;
     org_avg?: number;
     trend?: TrendPoint[];
-    top_employees_by_projects?: EmployeeRankItem[];
+    top_employees_by_consistency?: EmployeeRankItem[];
     top_employees_by_achievement?: EmployeeRankItem[];
     filters: { year: number; month: number };
 }>();
@@ -32,7 +32,7 @@ const year = ref(props.filters.year);
 const month = ref(props.filters.month);
 
 function applyFilters() {
-    router.get(route('dashboard'), { year: year.value, month: month.value }, { preserveState: true });
+    router.get(route(route().current('monitoring') ? 'monitoring' : 'dashboard'), { year: year.value, month: month.value }, { preserveState: true });
 }
 
 const months = [
@@ -113,7 +113,7 @@ const teamLeaderMap = computed(() => {
             :team-list="teamList"
             :team-leader-map="teamLeaderMap"
             :project-leaders-by-team="project_leaders_by_team"
-            :top-employees-by-projects="top_employees_by_projects ?? []"
+            :top-employees-by-projects="top_employees_by_consistency ?? []"
             :top-employees-by-achievement="top_employees_by_achievement ?? []"
             :period-label="`${monthLabel} ${filters.year}`"
         />
@@ -124,7 +124,7 @@ const teamLeaderMap = computed(() => {
             :projects="projects ?? []"
             :team-list="teamList"
             :project-leaders-by-team="project_leaders_by_team"
-            :top-employees-by-projects="top_employees_by_projects ?? []"
+            :top-employees-by-projects="top_employees_by_consistency ?? []"
             :top-employees-by-achievement="top_employees_by_achievement ?? []"
             :period-label="`${monthLabel} ${filters.year}`"
             :month-label="monthLabel"
@@ -134,7 +134,7 @@ const teamLeaderMap = computed(() => {
             :org-avg="org_avg ?? 0"
             :team-list="teamList"
             :project-leaders-by-team="project_leaders_by_team"
-            :top-employees-by-projects="top_employees_by_projects ?? []"
+            :top-employees-by-projects="top_employees_by_consistency ?? []"
             :top-employees-by-achievement="top_employees_by_achievement ?? []"
             :trend="trend ?? []"
             :year="filters.year"
