@@ -1,6 +1,7 @@
 <script setup lang="ts">
+import RowActions from '@/Components/RowActions.vue';
 import AppLayout from '@/Layouts/AppLayout.vue';
-import { Head, Link, router } from '@inertiajs/vue3';
+import { Head, router } from '@inertiajs/vue3';
 import type { Employee, Team } from '@/types';
 import EmployeeCreateDialog from '@/Components/Employees/EmployeeCreateDialog.vue';
 import { Button } from '@/Components/ui/button';
@@ -70,14 +71,10 @@ function executeDelete() {
                             </span>
                         </TableCell>
                         <TableCell class="text-right">
-                            <div class="inline-flex gap-2">
-                                <Button variant="outline" size="sm" as-child>
-                                    <Link :href="route('employees.edit', emp.id)">Edit</Link>
-                                </Button>
-                                <Button variant="destructive" size="sm" @click="confirmDelete(emp.id, emp.display_name || emp.name)">
-                                    Hapus
-                                </Button>
-                            </div>
+                            <RowActions :items="[
+                                { label: 'Edit', href: route('employees.edit', emp.id) },
+                                { label: 'Hapus', destructive: true, onSelect: () => confirmDelete(emp.id, emp.display_name || emp.name) },
+                            ]" />
                         </TableCell>
                     </TableRow>
                 </TableBody>

@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import RowActions from '@/Components/RowActions.vue';
 import AppLayout from '@/Layouts/AppLayout.vue';
 import { Head, router, usePage } from '@inertiajs/vue3';
 import type { Employee, PerformancePlan } from '@/types';
@@ -117,14 +118,11 @@ const periodTypeLabel: Record<string, string> = {
                         </TableCell>
                         <TableCell>{{ plan.pic?.display_name || plan.pic?.name || '—' }}</TableCell>
                         <TableCell class="text-right">
-                            <div v-if="plan.can_update || plan.can_delete" class="inline-flex gap-2">
-                                <Button v-if="plan.can_update" variant="outline" size="sm" @click="openForm(plan)">Edit</Button>
-                                <Button v-if="writeKip && plan.can_update && !plan.kip_rkproyek_id" variant="outline" size="sm" @click="pushPlan(plan.id)">Kirim ke kipApp</Button>
-                                <Button v-if="plan.can_delete" variant="destructive" size="sm" @click="confirmDelete(plan.id, plan.description)">
-                                    Hapus
-                                </Button>
-                            </div>
-                            <span v-else class="text-gray-400">—</span>
+                            <RowActions :items="[
+                                { label: 'Edit', onSelect: () => openForm(plan), hidden: !plan.can_update },
+                                { label: 'Kirim ke kipApp', onSelect: () => pushPlan(plan.id), hidden: !(writeKip && plan.can_update && !plan.kip_rkproyek_id) },
+                                { label: 'Hapus', destructive: true, onSelect: () => confirmDelete(plan.id, plan.description), hidden: !plan.can_delete },
+                            ]" />
                         </TableCell>
                     </TableRow>
                 </TableBody>

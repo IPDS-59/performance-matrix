@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import RowActions from '@/Components/RowActions.vue';
 import AppLayout from '@/Layouts/AppLayout.vue';
 import { Head, router } from '@inertiajs/vue3';
 import type { PerformanceIndicator, Team } from '@/types';
@@ -109,13 +110,10 @@ function executeDelete() {
                             <template v-else>—</template>
                         </TableCell>
                         <TableCell class="text-right">
-                            <div v-if="indicator.can_update || indicator.can_delete" class="inline-flex gap-2">
-                                <Button v-if="indicator.can_update" variant="outline" size="sm" @click="openForm(indicator)">Edit</Button>
-                                <Button v-if="indicator.can_delete" variant="destructive" size="sm" @click="confirmDelete(indicator.id, indicator.name)">
-                                    Hapus
-                                </Button>
-                            </div>
-                            <span v-else class="text-gray-400">—</span>
+                            <RowActions :items="[
+                                { label: 'Edit', onSelect: () => openForm(indicator), hidden: !indicator.can_update },
+                                { label: 'Hapus', destructive: true, onSelect: () => confirmDelete(indicator.id, indicator.name), hidden: !indicator.can_delete },
+                            ]" />
                         </TableCell>
                     </TableRow>
                 </TableBody>

@@ -287,13 +287,13 @@ export const GUIDE_FLOWS: GuideFlow[] = [
                 where: 'Menu Kegiatan → Rekap Mingguan',
                 route: 'weekly.index',
                 body: [
-                    'Tekan "Tambah". Isi seperti di kipApp: pilih RK (bisa dicari), tulis kegiatan (minimal 10 karakter), isi progres, tautan bukti dukung dan uraian capaian.',
+                    'Tekan "Tambah". Pilih projek lebih dulu, lalu RK: daftar RK hanya menampilkan RK projek itu (keduanya bisa dicari). Setelah RK dipilih, projek terkunci. Tekan "Ganti RK" bila ingin memilih projek lain, lalu pilih RK dari projek yang baru. Tulis kegiatan (minimal 10 karakter) dan isi progres. Capaian, bukti dukung, dan uraian capaian tidak ada di form ini: semuanya diisi nanti saat memperbarui capaian.',
                     'Ada dua kotak centang yang berdiri sendiri: "Gunakan periode tanggal" (tanggal mulai sampai selesai) dan "Gunakan jam" (jam mulai dan selesai, per 15 menit). Keduanya boleh dipakai bersamaan. Tanggal harus berada dalam satu triwulan.',
                     'Tidak yakin menulis apa? Tekan "List Aktivitas" di samping kolom Kegiatan. Pilih satu baris presensi dari kipApp (tekan tombol + atau klik dua kali). Kegiatan dan tanggalnya terisi, sisanya tetap Anda isi sendiri.',
                     'Kotak "Masukan ke capaian SKP" menentukan apakah kegiatan dihitung sebagai capaian SKP di kipApp. Biarkan menyala untuk sedikitnya satu kegiatan tiap RK.',
                     'Membuka form untuk tanggal yang sudah lewat membuat progres langsung 100, seperti di kipApp. Untuk rencana ke depan, progres mulai dari 0.',
-                    'Isi juga Target (angka) dan Satuan. Capaian (angka) boleh diisi nanti. Target dan capaian selalu angka; teks penjelasan ditulis di uraian capaian.',
-                    'Pilih Projek bila RK itu belum punya projek. Anda dapat mengubah atau membatalkan kegiatan selama belum dikirim ke kipApp. Untuk membuat kegiatan serupa, klik barisnya lalu tekan "Salin kegiatan": form terisi dari kegiatan itu.',
+                    'Isi juga Target (angka) dan Satuan. Capaian (angka), tautan bukti dukung, dan uraian capaian diisi nanti, lewat detail kegiatan, saat Anda memperbarui capaian. Target dan capaian selalu angka; teks penjelasan ditulis di uraian capaian.',
+                    'Anda dapat mengubah atau membatalkan kegiatan selama belum dikirim ke kipApp. Untuk membuat kegiatan serupa, klik barisnya lalu tekan "Salin kegiatan": form terisi dari kegiatan itu.',
                 ],
             },
             {
@@ -664,6 +664,18 @@ export const GUIDE_FLOWS: GuideFlow[] = [
                     'Tempel token dari langkah 1 di kolom Token x-auth, lalu tekan Simpan Token. Status berubah menjadi berlaku, lengkap dengan waktu kedaluwarsa.',
                 ],
                 shot: SHOTS.adminIntegrasi,
+            },
+            {
+                title: 'Bertindak sebagai pengguna lain',
+                where: 'Menu Data Master → Lihat sebagai',
+                route: 'admin.impersonate',
+                body: [
+                    'Pilih satu pegawai, PJ, atau pimpinan, lalu tekan "Lihat sebagai". Anda melihat aplikasi persis seperti yang ia lihat, dan bisa menyimpan, mengirim ke kipApp, atau menghapus atas namanya. Spanduk kuning di atas selalu mengingatkan Anda sedang bertindak sebagai siapa.',
+                    'Setiap perubahan dicatat dengan nama Anda dan nama akun yang dipakai. Kata sandi, profil, login kipApp, dan penghapusan akun tidak bisa diubah dari sini. Akun admin tidak bisa dipilih.',
+                    'Perubahan ke kipApp memakai sesi kipApp milik pegawai itu, jadi di kipApp tampil seolah ia sendiri yang mengerjakannya. Pakai untuk membantu pegawai yang kesulitan, dan beri tahu orangnya.',
+                    'Tekan "Kembali ke admin" di spanduk untuk kembali sebagai admin.',
+                ],
+                tip: 'Mau hanya melihat? Cukup jangan menyimpan apa pun. Tidak ada yang berubah sampai Anda menekan tombol simpan atau kirim.',
             },
             {
                 title: 'Nyalakan atau matikan fitur kipApp',

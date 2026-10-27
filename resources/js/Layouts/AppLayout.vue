@@ -415,7 +415,7 @@ onUnmounted(() => {
 
             <!-- Page content -->
             <div v-if="impersonating" class="flex flex-wrap items-center gap-3 border-b border-amber-300 bg-amber-100 px-4 py-2 text-sm text-amber-950" role="status">
-                <span>Anda melihat sebagai <strong>{{ impersonating.name }}</strong>. Mode hanya lihat: perubahan dinonaktifkan.</span>
+                <span>Anda bertindak sebagai <strong>{{ impersonating.name }}</strong>. Yang Anda simpan tercatat atas nama Anda dan berlaku untuk akun ini.</span>
                 <button type="button" class="ml-auto rounded-md border border-amber-400 bg-white px-3 py-1 font-medium hover:bg-amber-50" @click="router.post(route('admin.impersonate.stop'))">Kembali ke admin</button>
             </div>
             <main class="flex-1 overflow-auto p-4 sm:p-6 print:overflow-visible print:p-0">

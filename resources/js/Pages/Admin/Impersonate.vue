@@ -40,8 +40,8 @@ function start(user: Row) {
         <template #title>Lihat sebagai pengguna</template>
 
         <p class="mb-4 max-w-3xl rounded-md border border-amber-200 bg-amber-50 px-4 py-2 text-sm text-amber-900">
-            Pilih satu pengguna untuk melihat aplikasi seperti yang ia lihat, misalnya untuk menelusuri masalah. Mode ini
-            <strong>hanya lihat</strong>: simpan, kirim ke kipApp dan perubahan lain dinonaktifkan. Akun admin tidak dapat dipilih.
+            Pilih satu pengguna untuk bertindak sebagai dia: melihat aplikasi seperti yang ia lihat, dan menyimpan, mengirim ke kipApp, atau menghapus atas namanya.
+            <strong>Setiap perubahan tercatat</strong> dengan nama Anda. Kata sandi, profil, dan login kipApp tidak bisa diubah dari sini. Akun admin tidak dapat dipilih.
             Setiap awal dan akhir tercatat.
         </p>
 

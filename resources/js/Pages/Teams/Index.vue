@@ -1,6 +1,7 @@
 <script setup lang="ts">
+import RowActions from '@/Components/RowActions.vue';
 import AppLayout from '@/Layouts/AppLayout.vue';
-import { Head, Link, router } from '@inertiajs/vue3';
+import { Head, router } from '@inertiajs/vue3';
 import type { Employee, Team } from '@/types';
 import TeamFormDialog from '@/Components/Teams/TeamFormDialog.vue';
 import { Button } from '@/Components/ui/button';
@@ -71,15 +72,11 @@ function executeDelete() {
                             </span>
                         </TableCell>
                         <TableCell class="text-right">
-                            <div class="inline-flex gap-2">
-                                <Button v-if="manageableSet.has(team.id)" variant="outline" size="sm" as-child>
-                                    <Link :href="route('teams.members.edit', team.id)">Kelola Anggota</Link>
-                                </Button>
-                                <Button variant="outline" size="sm" @click="openForm(team)">Edit</Button>
-                                <Button variant="destructive" size="sm" @click="confirmDelete(team.id, team.name)">
-                                    Hapus
-                                </Button>
-                            </div>
+                            <RowActions :items="[
+                                { label: 'Kelola Anggota', href: route('teams.members.edit', team.id), hidden: !manageableSet.has(team.id) },
+                                { label: 'Edit', onSelect: () => openForm(team) },
+                                { label: 'Hapus', destructive: true, onSelect: () => confirmDelete(team.id, team.name) },
+                            ]" />
                         </TableCell>
                     </TableRow>
                 </TableBody>

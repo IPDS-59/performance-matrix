@@ -585,3 +585,13 @@ it('lists the four quarters with their counts and opens one on click', function 
     $this->actingAs($user)->get(route('team-recap.quarterly', ['year' => 2026, 'quarter' => 3]))->assertInertia(fn ($page) => $page
         ->where('view', 'detail')->where('quarter', 3)->where('periods', []));
 });
+
+it('does not let the head write a paraphrase even when the head leads the team', function () {
+    [$user, , $team] = pjOfTeam();
+    $user->assignRole('head');
+    $plan = PerformancePlan::factory()->create(['project_id' => null, 'team_id' => $team->id]);
+
+    $this->actingAs($user)->post(route('team-recap.rk.store'), rkPayload($team, $plan, ['paraphrase' => 'Dari Kepala']))->assertForbidden();
+
+    expect(RkRecap::count())->toBe(0);
+});

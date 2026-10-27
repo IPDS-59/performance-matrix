@@ -1,6 +1,7 @@
 <?php
 
 use App\Models\Employee;
+use App\Models\ImpersonationAudit;
 use App\Models\MemberKipCredential;
 use App\Models\SkpStatus;
 use App\Models\User;
@@ -160,14 +161,16 @@ it('does not send a SKP that has an RK without IKI, like kipApp, and does not se
     $this->actingAs($user)->post(route('skp.submit'), ['kind' => 'quarter', 'quarter' => 4])->assertSessionHas('error');
 });
 
-it('blocks the changes while an admin only views as the member', function () {
+it('lets an admin act as the member in kipApp with the member\'s own token, and audits it', function () {
     $member = skpMember();
     $admin = adminUser();
-    fakeSkpApi();
+    $posts = fakeSkpApi();
     $this->actingAs($admin)->post(route('admin.impersonate.start', $member));
 
-    $this->post(route('skp.quarter.create', 4), ['rk_ids' => ['900']])->assertSessionHas('error');
-    Http::assertNotSent(fn ($r) => $r->method() === 'POST' && str_contains($r->url(), '/skp/bulanan'));
+    $this->post(route('skp.quarter.create', 4), ['rk_ids' => ['900']])->assertSessionHas('success');
+
+    expect(collect($posts[0]())->firstWhere(0, '/api/v1/skp/bulanan'))->not->toBeNull();
+    expect(ImpersonationAudit::where(['admin_id' => $admin->id, 'user_id' => $member->id, 'route' => 'skp.quarter.create'])->exists())->toBeTrue();
 });
 
 it('stores the sent SKP for the atasan and tells them', function () {

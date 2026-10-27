@@ -13,8 +13,8 @@ use Inertia\Inertia;
 use Inertia\Response;
 
 /**
- * Lets an admin look at the app as a member, a PJ or the head, to reproduce what they see.
- * The view is read only (see BlockWritesWhileImpersonating) and admins cannot be impersonated.
+ * Lets an admin act as a member, a PJ or the head: what they see, and what they save, goes through as that person.
+ * Every write is audited (see AuditImpersonatedWrites). Admins cannot be impersonated.
  */
 class ImpersonationController extends Controller
 {

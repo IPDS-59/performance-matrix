@@ -44,9 +44,13 @@ export function quarterBounds(year: number, date: string): { min: string; max: s
     return { min: `${year}-${pad(first)}-01`, max: `${year}-${pad(first + 2)}-${pad(lastDay)}` };
 }
 
-/** Starting values of the form: empty (new), a kegiatan (edit) or a copy of one (copy keeps all fields, adds parent_id). */
+/**
+ * Starting values of the form: empty (new), a kegiatan (edit) or a copy of one (adds parent_id). A copy is a new kegiatan,
+ * so it starts without the capaian, link and note of the original: those are filled in later, when the capaian is updated.
+ */
 export function entryFormState(item: PlanItemRow | null, copyOf: PlanItemRow | null, defaultDate: string, today: string): EntryFormState {
     const source = item ?? copyOf;
+    const result = item; // capaian, bukti dukung and its note belong to the kegiatan being updated, never to a new one
     const start = source?.date_start ?? defaultDate;
     const end = source?.date_end ?? start;
     return {
@@ -62,10 +66,10 @@ export function entryFormState(item: PlanItemRow | null, copyOf: PlanItemRow | n
         time_end: source?.time_end ?? '16:00',
         target: source?.target ?? '',
         target_unit: source?.target_unit ?? '',
-        capaian: source?.capaian ?? '',
+        capaian: result?.capaian ?? '',
         progres: source ? source.progress : defaultProgress(start, today),
-        evidence_url: source?.evidence_url ?? '',
-        capaian_note: source?.capaian_note ?? '',
+        evidence_url: result?.evidence_url ?? '',
+        capaian_note: result?.capaian_note ?? '',
         is_capaian_skp: source?.is_capaian_skp ?? true,
         parent_id: copyOf && !item ? copyOf.id : null,
     };
