@@ -7,16 +7,12 @@ import { Label } from '@/Components/ui/label';
 import { Textarea } from '@/Components/ui/textarea';
 import InputError from '@/Components/InputError.vue';
 
-/** Quarter figures and the analysis columns of one indicator. */
-const props = defineProps<{ indicator: FraIndicatorRow; quarter: number }>();
+/** The analysis columns of the sheet for one indicator and one month. */
+const props = defineProps<{ indicator: FraIndicatorRow; month: number }>();
 const emit = defineEmits<{ saved: [] }>();
 
-const current = props.indicator.values[props.quarter];
+const current = props.indicator.months[props.month];
 const form = useForm({
-    allocation_x: current?.allocation_x ?? '',
-    allocation_y: current?.allocation_y ?? '',
-    realization_x: current?.realization_x ?? '',
-    realization_y: current?.realization_y ?? '',
     obstacle: current?.obstacle ?? '',
     solution: current?.solution ?? '',
     follow_up: current?.follow_up ?? '',
@@ -26,47 +22,18 @@ const form = useForm({
     previous_follow_up_url: current?.previous_follow_up_url ?? '',
 });
 
-const percent = props.indicator.unit_type === 'percent';
-
 function save() {
     form.transform((data: Record<string, unknown>) => Object.fromEntries(Object.entries(data).map(([k, v]) => [k, v === '' ? null : v])))
-        .patch(route('fra.values', [props.indicator.id, props.quarter]), { preserveScroll: true, onSuccess: () => emit('saved') });
+        .patch(route('fra.analysis', [props.indicator.id, props.month]), { preserveScroll: true, onSuccess: () => emit('saved') });
 }
 </script>
 
 <template>
     <form class="space-y-4" @submit.prevent="save">
-        <fieldset class="grid gap-3 sm:grid-cols-2">
-            <legend class="mb-1 text-sm font-semibold text-gray-800">Alokasi target (kumulatif sampai TW {{ quarter }})</legend>
-            <div>
-                <Label for="alloc-x" class="text-xs">{{ percent ? indicator.x_label : 'Nilai' }}</Label>
-                <Input id="alloc-x" v-model="form.allocation_x" type="number" step="any" class="mt-1" />
-                <InputError :message="form.errors.allocation_x" />
-            </div>
-            <div v-if="percent">
-                <Label for="alloc-y" class="text-xs">{{ indicator.y_label }}</Label>
-                <Input id="alloc-y" v-model="form.allocation_y" type="number" step="any" class="mt-1" />
-                <InputError :message="form.errors.allocation_y" />
-            </div>
-        </fieldset>
-
-        <fieldset class="grid gap-3 sm:grid-cols-2">
-            <legend class="mb-1 text-sm font-semibold text-gray-800">Realisasi (kumulatif sampai TW {{ quarter }})</legend>
-            <div>
-                <Label for="real-x" class="text-xs">{{ percent ? indicator.x_label : 'Nilai' }}</Label>
-                <Input id="real-x" v-model="form.realization_x" type="number" step="any" class="mt-1" />
-                <InputError :message="form.errors.realization_x" />
-            </div>
-            <div v-if="percent">
-                <Label for="real-y" class="text-xs">{{ indicator.y_label }}</Label>
-                <Input id="real-y" v-model="form.realization_y" type="number" step="any" class="mt-1" />
-                <InputError :message="form.errors.realization_y" />
-            </div>
-        </fieldset>
-
         <div>
-            <Label for="fra-obstacle" class="text-xs">Kendala pada triwulan berjalan</Label>
+            <Label for="fra-obstacle" class="text-xs">Kendala yang dihadapi</Label>
             <Textarea id="fra-obstacle" v-model="form.obstacle" :rows="2" class="mt-1 text-sm" />
+            <InputError :message="form.errors.obstacle" />
         </div>
         <div>
             <Label for="fra-solution" class="text-xs">Solusi yang sudah dilakukan</Label>
@@ -91,10 +58,10 @@ function save() {
             <Input id="fra-evidence" v-model="form.evidence_url" class="mt-1" />
         </div>
         <div>
-            <Label for="fra-prev" class="text-xs">Link bukti dukung tindak lanjut triwulan sebelumnya</Label>
+            <Label for="fra-prev" class="text-xs">Link bukti dukung tindak lanjut bulan sebelumnya</Label>
             <Input id="fra-prev" v-model="form.previous_follow_up_url" class="mt-1" />
         </div>
-
+        <p class="text-xs text-gray-600">Untuk file Excel triwulanan, analisis yang dipakai adalah yang ditulis pada bulan terakhir triwulan (Maret, Juni, September, Desember).</p>
         <div class="flex justify-end">
             <Button type="submit" :disabled="form.processing">{{ form.processing ? 'Menyimpan…' : 'Simpan' }}</Button>
         </div>

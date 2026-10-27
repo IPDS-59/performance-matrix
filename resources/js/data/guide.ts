@@ -185,12 +185,12 @@ export const SHOTS = {
     },
     fraBulanan: {
         src: '/images/pedoman/fra-bulanan.webp',
-        alt: 'Kertas Kerja FRA, tampilan Data bulanan: tabel Januari sampai Desember dengan baris X, baris Y, dan persen berwarna',
-        width: 1024, height: 427,
+        alt: 'Kertas Kerja FRA bulanan: tabel Januari sampai Desember dengan baris X, baris Y, dan persen berwarna',
+        width: 1024, height: 358,
         markers: [
-            { n: 1, x: 8, y: 6, label: 'Pilih tampilan Data bulanan di atas halaman.' },
-            { n: 2, x: 30, y: 25, label: 'Baris X dan Y per bulan. PJ tim pemilik mengisinya langsung di sel.' },
-            { n: 3, x: 40, y: 47, label: 'Persen dihitung otomatis. Hijau: target tercapai. Kuning: belum mencapai target. Merah: kosong atau nol pada bulan yang sudah lewat.' },
+            { n: 1, x: 30, y: 20, label: 'Baris X dan Y per bulan. PJ tim pemilik mengisinya langsung di sel.' },
+            { n: 2, x: 40, y: 62, label: 'Persen bulan itu, dihitung otomatis. Hijau: target tercapai. Kuning: belum. Merah: kosong atau nol pada bulan yang sudah lewat.' },
+            { n: 3, x: 80, y: 80, label: 'Kumulatif dari Januari terhadap target tahunan. Bingkai menandai bulan yang dipilih.' },
         ],
     },
     pimpinanReviewBersama: {
@@ -546,19 +546,17 @@ export const GUIDE_FLOWS: GuideFlow[] = [
                 body: ['"Unduh Excel" menghasilkan satu sheet dengan format Rapat Mingguan / Rapat Bulanan / FRA untuk semua tim yang dapat Anda lihat.'],
             },
             {
-                title: 'Isi Kertas Kerja FRA untuk indikator tim Anda',
+                title: 'Isi Kertas Kerja FRA tiap bulan',
                 where: 'Menu Rekap Tim → Kertas Kerja FRA',
                 route: 'fra.index',
                 body: [
-                    'Kertas Kerja FRA memuat IKU dan proksi tingkat provinsi (sheet LK_Prov). Indikator yang timnya Anda pimpin tampil dengan ikon pensil.',
-                    'Pilih triwulan, tekan pensil, lalu isi Alokasi target dan Realisasi (kumulatif sampai triwulan itu). Untuk indikator persen, isi X dan Y; Kinetik menghitung nilainya.',
-                    'Isi juga Kendala, Solusi, Rencana tindak lanjut, PIC, Batas waktu dan link bukti. Kolom ini sama dengan kolom analisis di Kertas Kerja.',
-                    'Capaian terhadap target triwulan dan setahun dihitung otomatis dengan rumus Kertas Kerja (maksimal 120).',
-                    'Atau isi per bulan: pilih tampilan "Data bulanan", ketik X dan Y tiap bulan, lalu tekan "Simpan bulanan". Realisasi triwulan lalu dihitung dari bulan yang sudah diisi: X dan Y dijumlahkan, lalu dibagi.',
-                    'Persen tiap bulan berwarna hijau bila target tercapai, kuning bila belum, dan merah bila kosong atau nol pada bulan yang sudah lewat.',
+                    'Kertas Kerja FRA memuat IKU dan proksi tingkat provinsi (sheet LK_Prov). Halaman ini bulanan: satu tabel per indikator, kolom Januari sampai Desember. Indikator yang timnya Anda pimpin bisa diisi.',
+                    'Ketik X dan Y tiap bulan (untuk indikator bukan persen, satu nilai), lalu tekan "Simpan bulanan". Kinetik menghitung persen bulan itu dan angka kumulatif dari Januari, dengan rumus Kertas Kerja.',
+                    'Warna: hijau bila target tercapai, kuning bila belum, merah bila kosong atau nol pada bulan yang sudah lewat, abu-abu untuk bulan yang belum tiba. Kotak berbingkai adalah bulan yang dipilih di kiri atas.',
+                    'Tekan "Analisis (bulan)" untuk menulis kendala, solusi, rencana tindak lanjut, PIC, batas waktu dan link bukti. Untuk Excel triwulanan, yang dipakai adalah analisis pada bulan terakhir triwulan.',
                 ],
                 shot: SHOTS.fraBulanan,
-                tip: 'Tidak ada pensil pada indikator tertentu? Minta admin menetapkan tim Anda sebagai pemilik indikator itu.',
+                tip: 'Tombol Analisis tidak muncul pada indikator tertentu? Minta admin menetapkan tim Anda sebagai pemilik indikator itu.',
             },
             {
                 title: 'Tetapkan atau kembalikan SKP anggota',
@@ -736,9 +734,9 @@ export const GUIDE_FLOWS: GuideFlow[] = [
                 where: 'Menu Rekap Tim → Kertas Kerja FRA',
                 route: 'fra.index',
                 body: [
-                    'Halaman ini menampilkan IKU dan proksi per sasaran, dengan alokasi, realisasi dan capaian terhadap target triwulan dan setahun, serta tim pemilik tiap indikator.',
-                    'Kartu di atas menunjukkan Capaian IKU triwulan dan setahun, NKO rata-rata capaian PK, dan predikat PKO. Isi Nilai SAKIP agar koreksi predikat ikut dihitung.',
-                    '"Unduh Excel" menghasilkan lembar LK_Prov dengan urutan baris dan kolom Kertas Kerja. Pimpinan hanya membaca; pengisian dilakukan PJ tim pemilik.',
+                    'Halaman ini menampilkan IKU dan proksi per sasaran dalam tabel bulanan: X, Y, persen tiap bulan dan angka kumulatif terhadap target tahunan, serta tim pemilik tiap indikator.',
+                    'Kartu di atas menunjukkan Capaian IKU sampai bulan yang dipilih, NKO rata-rata capaian PK, dan predikat SAKIP. Isi Nilai SAKIP agar koreksi predikat ikut dihitung.',
+                    '"Unduh Excel LK_Prov" menghasilkan lembar triwulanan untuk triwulan dari bulan yang dipilih, dengan urutan baris dan kolom Kertas Kerja. Pimpinan hanya membaca; pengisian dilakukan PJ tim pemilik.',
                 ],
             },
             {
@@ -851,7 +849,7 @@ export const GUIDE_FLOWS: GuideFlow[] = [
                 where: 'Menu Rekap Tim → Kertas Kerja FRA',
                 route: 'fra.index',
                 body: [
-                    'Setiap IKU dan proksi di Kertas Kerja FRA perlu tim pemilik. PJ tim itu yang mengisi alokasi, realisasi dan analisis triwulan.',
+                    'Setiap IKU dan proksi di Kertas Kerja FRA perlu tim pemilik. PJ tim itu yang mengisi X, Y dan analisis tiap bulan.',
                     'Pada kolom Tim pemilik, pilih tim dari daftar (dapat dicari). Indikator tanpa pemilik hanya dapat diisi admin.',
                     'Data awal berasal dari Kertas Kerja TW 2 2026. Jalankan seeder FraIndicatorSeeder satu kali setelah migrasi; menjalankannya lagi tidak menimpa angka yang sudah diisi.',
                 ],

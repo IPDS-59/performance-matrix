@@ -572,6 +572,20 @@ export interface FraQuarterInput {
     previous_follow_up_url: string | null;
 }
 
+export interface FraMonth {
+    x?: number | null;
+    y?: number | null;
+    value: number | null;
+    cum_value: number | null;
+    obstacle?: string | null;
+    solution?: string | null;
+    follow_up?: string | null;
+    pic?: string | null;
+    deadline?: string | null;
+    evidence_url?: string | null;
+    previous_follow_up_url?: string | null;
+}
+
 export interface FraIndicatorRow {
     id: number;
     sort_order: number;
@@ -594,7 +608,8 @@ export interface FraIndicatorRow {
     target_value: number;
     quarters: Record<number, FraQuarter>;
     values: Record<number, FraQuarterInput>;
-    months: Record<number, { x: number | null; y: number | null }>;
+    months: Record<number, FraMonth>;
+    cum_capaian_year: number | null;
     normalized: number | null;
     correction: number;
     final: number | null;
@@ -602,6 +617,7 @@ export interface FraIndicatorRow {
 
 export interface FraSummary {
     quarter: number;
+    month: number;
     sakip_score: number | null;
     sakip_predicate: string;
     iku_capaian_quarter: number | null;
@@ -615,6 +631,7 @@ export interface FraProps {
     indicators: FraIndicatorRow[];
     summary: FraSummary;
     year: number;
+    month: number;
     quarter: number;
     teams: Array<{ id: number; name: string }>;
     isAdmin: boolean;
