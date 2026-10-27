@@ -1,7 +1,9 @@
 <?php
 
 use App\Models\Employee;
+use App\Models\ImpersonationAudit;
 use App\Models\Team;
+use App\Models\TourCompletion;
 use App\Models\User;
 
 function memberUser(): User
@@ -54,21 +56,25 @@ it('refuses to impersonate an admin, to impersonate twice, or for a non admin', 
     $this->actingAs($member)->post(route('admin.impersonate.start', $other))->assertForbidden();
 
     $this->actingAs($admin)->post(route('admin.impersonate.start', $member))->assertRedirect();
-    // A second start while viewing as someone is a write, so the read only guard stops it.
-    $this->post(route('admin.impersonate.start', memberUser()))->assertSessionHas('error');
+    // While acting as a member the session user is the member, so a second start is refused.
+    $this->post(route('admin.impersonate.start', memberUser()))->assertForbidden();
     $this->assertAuthenticatedAs($member);
     $this->post(route('admin.impersonate.stop'))->assertRedirect();
     $this->post(route('admin.impersonate.stop'))->assertNotFound();
 });
 
-it('blocks every write while viewing as someone else, but allows leaving the view', function () {
+it('lets an admin save as the person, audits it, and still blocks account takeover', function () {
     $admin = adminUser();
     $member = memberUser();
     $this->actingAs($admin)->post(route('admin.impersonate.start', $member));
 
-    $this->from(route('dashboard'))->post(route('plan-items.store'), ['description' => 'x'])->assertRedirect(route('dashboard'))->assertSessionHas('error');
-    $this->patch(route('profile.update'), ['name' => 'Diubah'])->assertSessionHas('error');
-    expect($member->fresh()->name)->not->toBe('Diubah');
+    $this->from(route('dashboard'))->post(route('tour.complete', 'skp.index'))->assertNoContent();
+    expect(TourCompletion::where('user_id', $member->id)->exists())->toBeTrue();
+    $audit = ImpersonationAudit::sole();
+    expect($audit)->admin_id->toBe($admin->id)->user_id->toBe($member->id)->method->toBe('POST')->route->toBe('tour.complete');
+
+    $this->from(route('dashboard'))->patch(route('profile.update'), ['name' => 'Diubah'])->assertSessionHas('error');
+    expect($member->fresh()->name)->not->toBe('Diubah')->and(ImpersonationAudit::count())->toBe(1);
 
     $this->post(route('admin.impersonate.stop'))->assertRedirect(route('admin.impersonate'));
     $this->assertAuthenticatedAs($admin);

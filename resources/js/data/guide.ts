@@ -666,6 +666,18 @@ export const GUIDE_FLOWS: GuideFlow[] = [
                 shot: SHOTS.adminIntegrasi,
             },
             {
+                title: 'Bertindak sebagai pengguna lain',
+                where: 'Menu Data Master → Lihat sebagai',
+                route: 'admin.impersonate',
+                body: [
+                    'Pilih satu pegawai, PJ, atau pimpinan, lalu tekan "Lihat sebagai". Anda melihat aplikasi persis seperti yang ia lihat, dan bisa menyimpan, mengirim ke kipApp, atau menghapus atas namanya. Spanduk kuning di atas selalu mengingatkan Anda sedang bertindak sebagai siapa.',
+                    'Setiap perubahan dicatat dengan nama Anda dan nama akun yang dipakai. Kata sandi, profil, login kipApp, dan penghapusan akun tidak bisa diubah dari sini. Akun admin tidak bisa dipilih.',
+                    'Perubahan ke kipApp memakai sesi kipApp milik pegawai itu, jadi di kipApp tampil seolah ia sendiri yang mengerjakannya. Pakai untuk membantu pegawai yang kesulitan, dan beri tahu orangnya.',
+                    'Tekan "Keluar dari tampilan ini" di spanduk untuk kembali sebagai admin.',
+                ],
+                tip: 'Mau hanya melihat? Cukup jangan menyimpan apa pun. Tidak ada yang berubah sampai Anda menekan tombol simpan atau kirim.',
+            },
+            {
                 title: 'Nyalakan atau matikan fitur kipApp',
                 where: 'Menu Data Master → Fitur',
                 route: 'admin.features',
