@@ -7,7 +7,7 @@ import RecapPeriodSections from '@/Components/Kinetik/RecapPeriodSections.vue';
 import ProjectSummaries from '@/Components/Kinetik/ProjectSummaries.vue';
 import MeetingChecklist from '@/Components/Kinetik/MeetingChecklist.vue';
 import { periodChecklist } from '@/composables/useMeetingChecklist';
-import { Head, router } from '@inertiajs/vue3';
+import { Head, router, usePage } from '@inertiajs/vue3';
 import { computed, ref } from 'vue';
 import type { PeriodRow, RecapSection, RecapSegment, RecapRow, RecapSummaryText, TeamOption, RecapLockState } from '@/types';
 import RecapPeriodTable from '@/Components/Kinetik/RecapPeriodTable.vue';
@@ -38,6 +38,8 @@ const props = defineProps<{
     summaries: Record<string, RecapSummaryText>;
     currentEmployeeId: number | null;
 }>();
+
+const isHead = usePage().props.auth.user.role === 'head';
 
 const quarterLabel = computed(() => `Triwulan ${props.quarter} ${props.year}`);
 
@@ -441,7 +443,7 @@ function saveParaphrase(row: RecapRow) {
 
                                             <!-- Read-only paraphrase + FRA (no paraphrase permission) -->
                                             <template v-else>
-                                                <div v-if="row.pj_uraian">
+                                                <div v-if="row.pj_uraian && !isHead">
                                                     <p class="mb-1 text-xs font-medium text-gray-500">Uraian (PJ)</p>
                                                     <p class="whitespace-pre-line text-sm text-gray-700">{{ row.pj_uraian }}</p>
                                                 </div>

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { router, useForm } from '@inertiajs/vue3';
+import { router, useForm, usePage } from '@inertiajs/vue3';
 import { computed, reactive, ref, watch } from 'vue';
 import { Lock, LockOpen, Search } from 'lucide-vue-next';
 import type { RkPanel } from '@/types';
@@ -27,6 +27,9 @@ const props = defineProps<{
     /** The PJ or the RK's PIC. */
     canEdit: boolean;
 }>();
+
+// The head reads figures and status; the PJ's paraphrase is a working text for the team, not for the head.
+const isHead = usePage().props.auth.user.role === 'head';
 
 const form = useForm({ paraphrase: '', target: '' as string | number, target_unit: '', capaian: '' as string | number });
 watch(() => [props.panel.performance_plan_id, props.panel.recap] as const, () => {
@@ -87,14 +90,14 @@ const percent = computed(() => achievementPercent(form.capaian === '' ? null : N
                 {{ panel.rk_description }}
                 <span class="font-normal text-gray-600">{{ panel.project_name ? `${panel.project_name} · ` : '' }}{{ panel.entry_count }} kegiatan dari {{ panel.entries.length }} anggota</span>
             </h2>
-            <Button class="ml-auto" size="sm" :variant="panel.recap?.paraphrase || !canEdit ? 'outline' : 'default'" @click="dialogOpen = true">
+            <Button v-if="!isHead" class="ml-auto" size="sm" :variant="panel.recap?.paraphrase || !canEdit ? 'outline' : 'default'" @click="dialogOpen = true">
                 {{ locked || !canEdit ? 'Lihat parafrase' : panel.recap?.paraphrase ? 'Ubah parafrase' : 'Isi parafrase' }}
             </Button>
         </div>
 
         <!-- Summary of what the PJ wrote -->
-        <div class="grid gap-3 border-b px-4 py-3 text-sm sm:grid-cols-[1fr_auto]">
-            <div>
+        <div :class="['grid gap-3 border-b px-4 py-3 text-sm', isHead ? '' : 'sm:grid-cols-[1fr_auto]']">
+            <div v-if="!isHead">
                 <div class="text-xs font-semibold uppercase tracking-wide text-gray-600">Parafrase PJ</div>
                 <p v-if="panel.recap?.paraphrase" class="mt-1 whitespace-pre-line text-gray-900">{{ panel.recap.paraphrase }}</p>
                 <p v-else class="mt-1 text-gray-600">{{ canEdit ? 'Belum ada parafrase. Tekan “Isi parafrase”.' : 'Belum ada parafrase. PJ tim atau PIC RK yang mengisinya.' }}</p>
