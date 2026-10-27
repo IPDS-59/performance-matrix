@@ -153,18 +153,39 @@ export const SHOTS = {
     },
     pimpinanReviewBersama: {
         src: '/images/pedoman/pimpinan-review-bersama.webp',
-        alt: 'Halaman Review Bersama untuk pimpinan dengan status capaian dan Catatan Pimpinan',
-        width: 1024, height: 836,
+        alt: 'Halaman Review Bersama: ringkasan kantor dan tabel capaian per tim yang bisa diurutkan',
+        width: 1024, height: 576,
         markers: [
-            { n: 1, x: 5.2, y: 7.2, label: 'Pilih Mingguan, Bulanan atau Triwulanan.' },
-            { n: 2, x: 40.2, y: 7.2, label: 'Pindah periode dengan ‹ dan ›.' },
-            { n: 3, x: 3.5, y: 17.8, label: 'Ringkasan kantor: tim, capaian, rekap dikunci, baris dikonfirmasi.' },
-            { n: 4, x: 3.5, y: 26.3, label: 'Saring satu tim.' },
-            { n: 5, x: 32.4, y: 26.3, label: 'Saring per status: Tercapai, Progres, Rendah.' },
-            { n: 6, x: 67.5, y: 39.1, label: 'Status capaian tim dan status kunci PJ.' },
-            { n: 7, x: 76.1, y: 39.1, label: 'Catatan Pimpinan untuk tim pada periode ini.' },
-            { n: 8, x: 33.6, y: 57, label: 'Projek tim beserta PIC, capaian dan catatannya.' },
-            { n: 9, x: 77.3, y: 7.2, label: 'Unduh Excel semua tim untuk rapat.' },
+            { n: 1, x: 26.6, y: 17.9, label: 'Pilih Mingguan, Bulanan atau Triwulanan.' },
+            { n: 2, x: 59.7, y: 17.9, label: 'Pindah periode dengan ‹ dan ›.' },
+            { n: 3, x: 18.8, y: 27.8, label: 'Ringkasan kantor dalam satu deret angka.' },
+            { n: 4, x: 38.1, y: 35.8, label: 'Saring satu tim, atau per status capaian.' },
+            { n: 5, x: 43.4, y: 41.4, label: 'Klik Capaian untuk mengurutkan dari tertinggi atau terendah.' },
+            { n: 6, x: 85.5, y: 46.4, label: 'Status capaian tim. Gembok berarti rekap dikunci PJ.' },
+            { n: 7, x: 18.4, y: 45.8, label: 'Panah membuka daftar projek tim.' },
+            { n: 8, x: 91.6, y: 17.9, label: 'Unduh Excel semua tim untuk rapat.' },
+        ],
+    },
+    ringkasanRapat: {
+        src: '/images/pedoman/ringkasan-rapat.webp',
+        alt: 'Halaman Ringkasan Rapat: tabel tim dan minggu dengan status Terkunci, Ditulis, atau Belum, dan jumlah bukti rapat',
+        width: 1024, height: 576,
+        markers: [
+            { n: 1, x: 24.8, y: 11.8, label: 'Pindah bulan dengan ‹ dan ›.' },
+            { n: 2, x: 31.3, y: 21.1, label: 'Ringkasan: rekap mingguan terkunci, rekap bulanan terkunci, tim yang punya bukti rapat.' },
+            { n: 3, x: 51.9, y: 33.1, label: 'Terkunci: PJ sudah menyelesaikan rekap. Angka di sebelahnya jumlah bukti rapat.' },
+            { n: 4, x: 62.1, y: 33.2, label: 'Ditulis: ada parafrase tetapi belum dikunci.' },
+            { n: 5, x: 93, y: 33.2, label: 'Rapat bulanan tim itu.' },
+        ],
+    },
+    kepatuhanRencana: {
+        src: '/images/pedoman/kepatuhan-rencana.webp',
+        alt: 'Halaman Kepatuhan Rencana: tiga angka ringkasan, daftar anggota yang belum membuat rencana, dan tombol untuk melihat tabel',
+        width: 1024, height: 576,
+        markers: [
+            { n: 1, x: 30.6, y: 19.4, label: 'Tiga angka: rencana minggu ini, rencana triwulan, dan jumlah yang belum punya rencana.' },
+            { n: 2, x: 25, y: 29.2, label: 'Nama anggota yang belum membuat rencana, per tim.' },
+            { n: 3, x: 25.2, y: 57.8, label: 'Tombol untuk membuka tabel per tim dan minggu.' },
         ],
     },
     pimpinanAngkaKredit: {
@@ -258,7 +279,7 @@ const PAGE_TOUR_STEP: GuideStep = {
 export const GUIDE_OVERVIEW = [
     { who: 'Anggota', what: 'Merencanakan kegiatan dan mengisi capaian mingguan di Rekap Mingguan.' },
     { who: 'PJ / Ketua Tim', what: 'Meninjau rekap tim, mengisi solusi dan rencana tindak lanjut, menambah bukti rapat, lalu mengunci rekap sebelum rapat.' },
-    { who: 'Pimpinan', what: 'Membaca rekap semua tim di Review Bersama, menulis Catatan Pimpinan, dan mengunduh Excel untuk rapat.' },
+    { who: 'Pimpinan', what: 'Membaca rekap semua tim di Review Bersama dan mengunduh Excel untuk rapat.' },
 ];
 
 export const GUIDE_FLOWS: GuideFlow[] = [
@@ -523,6 +544,17 @@ export const GUIDE_FLOWS: GuideFlow[] = [
                 tip: 'Kolom RK Ketua boleh dikosongkan bila proyek hanya perlu ada di Kinetik.',
             },
             {
+                title: 'Bandingkan tim Anda di Review Bersama',
+                where: 'Menu Rekap Tim → Review Bersama',
+                route: 'team-recap.overview',
+                body: [
+                    'PJ juga punya Review Bersama, dengan tampilan yang sama seperti pimpinan, tetapi hanya untuk tim yang Anda ikuti. Pilih Mingguan, Bulanan, atau Triwulanan, lalu baca capaian, baris yang dikonfirmasi, dan status kunci tim Anda.',
+                    'Klik judul kolom Capaian untuk mengurutkan. Ringkasan Rapat di menu yang sama menunjukkan rekap mingguan dan bulanan tim Anda sudah ditulis atau dikunci, dan berapa bukti rapat yang sudah dilampirkan.',
+                    'Kepatuhan Rencana menampilkan ringkasan dulu (siapa yang belum membuat rencana minggu ini), lalu tabel lengkap bila Anda membukanya.',
+                ],
+                shot: SHOTS.pimpinanReviewBersama,
+            },
+            {
                 title: 'Pantau Angka Kredit anggota',
                 where: 'Menu Rekap Tim → Angka Kredit Tim',
                 route: 'credit.team',
@@ -537,7 +569,7 @@ export const GUIDE_FLOWS: GuideFlow[] = [
     {
         role: 'pimpinan',
         label: 'Pimpinan',
-        summary: 'Anda membaca rekap seluruh kantor per minggu, bulan atau triwulan dan menulis Catatan Pimpinan. Isi rekap tetap diubah oleh PJ.',
+        summary: 'Anda membaca rekap seluruh kantor per minggu, bulan atau triwulan. Isi rekap diubah oleh PJ, bukan oleh pimpinan.',
         replaces: 'Membaca sheet "Rapat Mingguan" dan "Rapat Bulanan"',
         steps: [
             SSO_LOGIN_STEP,
@@ -575,16 +607,18 @@ export const GUIDE_FLOWS: GuideFlow[] = [
                 where: 'Menu Rekap Tim → Review Bersama',
                 route: 'team-recap.overview',
                 body: [
-                    'Bagian "Perlu perhatian" di paling atas menunjukkan yang harus Anda lihat lebih dulu. Merah berarti perlu tindakan: kegiatan bulan ini yang belum punya target, kegiatan selesai tanpa capaian, anggota yang belum punya rencana minggu ini, dan kegiatan yang belum terkirim ke kipApp. Kuning berarti segera: tim yang rekap minggu lalunya belum dikunci. Biru memberi informasi: pegawai yang sudah siap atau hampir naik pangkat atau jenjang menurut Angka Kredit. Tiap kartu menampilkan beberapa nama dan tombol "Buka halamannya".',
+                    'Baris kecil di paling atas menunjukkan yang perlu dilihat lebih dulu, satu label untuk tiap hal beserta jumlahnya. Klik labelnya untuk membuka halamannya. Rinciannya ada di menu Monitoring.',
                     'Pilih Mingguan, Bulanan atau Triwulanan, lalu pilih periode dengan ‹ dan ›.',
-                    'Kotak ringkasan menunjukkan jumlah tim yang sudah punya rekap, rata-rata capaian kantor, jumlah rekap yang sudah dikunci PJ, dan jumlah baris yang sudah dikonfirmasi.',
+                    'Satu deret angka merangkum kantor: tim yang punya rekap, rata-rata capaian, rekap yang dikunci PJ, dan baris yang dikonfirmasi.',
+                    'Review Bersama juga ada di menu PJ: PJ melihat tim yang ia ikuti dengan tampilan yang sama.',
                 ],
                 shot: SHOTS.pimpinanReviewBersama,
             },
             {
                 title: 'Baca tabel per tim',
                 body: [
-                    'Setiap baris adalah satu tim: PJ (penanggung jawab), jumlah baris RK, rata-rata capaian, baris dikonfirmasi, dan status Dikunci / Terbuka.',
+                    'Setiap baris adalah satu tim, dengan nama PJ di bawah namanya, rata-rata capaian, baris dikonfirmasi, dan status. Ikon gembok berarti rekap sudah dikunci PJ.',
+                    'Klik judul kolom Capaian untuk mengurutkan: pertama dari tertinggi, kedua dari terendah, ketiga kembali ke urutan awal. Tim tanpa data selalu di bawah.',
                     'Klik panah di depan nama tim untuk melihat semua projek tim itu beserta PIC / ketua projek, jumlah anggota, baris RK dan capaian per projek.',
                     'Pada periode mingguan ada kolom "Anggota lengkap".',
                     'Kolom Status: Tercapai (capaian 100% atau lebih), Progres (70% sampai di bawah 100%), Rendah (di bawah 70%).',
@@ -594,20 +628,35 @@ export const GUIDE_FLOWS: GuideFlow[] = [
                 tip: 'Rekap yang sudah "Dikunci" berarti PJ sudah menyiapkannya untuk rapat dan isinya tidak berubah lagi.',
             },
             {
-                title: 'Tulis Catatan Pimpinan',
-                body: [
-                    'Klik "Tulis catatan" di kolom Catatan Pimpinan untuk tim, atau di tabel projek untuk satu projek.',
-                    'Catatan berlaku untuk periode yang sedang dibuka dan tetap bisa ditulis walaupun rekap sudah dikunci PJ.',
-                    'Untuk menghapus catatan, kosongkan isinya lalu klik Simpan.',
-                ],
-            },
-            {
                 title: 'Buka rekap sebuah tim',
                 body: ['Klik nama tim atau tanda panah untuk membaca rekap lengkap tim itu pada periode yang sama.'],
             },
             {
                 title: 'Unduh Excel semua tim',
                 body: ['"Unduh Excel semua tim" menghasilkan satu sheet untuk seluruh kantor, dengan format seperti spreadsheet rapat sebelumnya.'],
+            },
+            {
+                title: 'Lihat ringkasan rapat tiap tim',
+                where: 'Menu Rekap Tim → Ringkasan Rapat',
+                route: 'team-recap.meetings',
+                body: [
+                    'Satu tabel untuk satu bulan: tiap baris satu tim, tiap kolom satu minggu, ditambah kolom Rapat bulanan. Pindah bulan dengan ‹ dan ›.',
+                    'Terkunci berarti PJ sudah menyelesaikan rekap periode itu. Ditulis berarti ada parafrase tetapi belum dikunci. Belum berarti belum ada. Minggu yang belum terjadi tampil kosong, bukan Belum. Angka kecil di samping status adalah jumlah bukti rapat yang dilampirkan PJ.',
+                    'Tiga angka di atas merangkum bulan itu: rekap mingguan terkunci, rekap bulanan terkunci, dan tim yang punya bukti rapat. Klik satu status untuk membuka rekap tim itu.',
+                ],
+                shot: SHOTS.ringkasanRapat,
+                tip: 'Tim yang tidak mengunci rekap mingguan terlihat paling cepat di sini, sebelum rapat.',
+            },
+            {
+                title: 'Pantau kepatuhan rencana',
+                where: 'Menu Rekap Tim → Kepatuhan Rencana',
+                route: 'plan-compliance.index',
+                body: [
+                    'Halaman ini membuka dengan ringkasan: berapa persen anggota yang sudah membuat rencana minggu ini, berapa persen rencana minggu lalu yang selesai, dan berapa anggota yang belum punya rencana.',
+                    'Di bawahnya nama anggota yang belum membuat rencana, per tim. Batas membuat rencana adalah Senin pukul 09.00.',
+                    'Tabel lengkap per tim dan minggu tersembunyi dulu. Tekan "Lihat tabel per tim dan minggu" untuk membukanya. Merah berarti belum ada rencana.',
+                ],
+                shot: SHOTS.kepatuhanRencana,
             },
             {
                 title: 'Baca Kertas Kerja FRA dan unduh Excel',

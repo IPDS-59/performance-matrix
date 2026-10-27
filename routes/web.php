@@ -147,7 +147,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/rekap-triwulanan', [TeamRecapController::class, 'quarterly'])->name('team-recap.quarterly');
     Route::post('/rekap-tim/lock', [TeamRecapController::class, 'toggleLock'])->name('team-recap.lock');
     Route::get('/rekap-semua-tim', [TeamRecapController::class, 'overview'])->name('team-recap.overview');
-    Route::post('/rekap-semua-tim/catatan', [TeamRecapController::class, 'storeLeadershipNote'])->name('team-recap.leadership-note');
+    Route::get('/ringkasan-rapat', [TeamRecapController::class, 'meetings'])->name('team-recap.meetings');
     Route::get('/rekap-tim/export', [TeamRecapController::class, 'export'])->name('team-recap.export');
     Route::post('/rekap-tim/evidence', [TeamRecapController::class, 'storeEvidence'])->name('team-recap.evidence.store');
     Route::delete('/rekap-tim/evidence/{evidence}', [TeamRecapController::class, 'destroyEvidence'])->name('team-recap.evidence.destroy');

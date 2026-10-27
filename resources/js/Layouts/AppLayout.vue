@@ -25,6 +25,7 @@ const isStaff = computed(() => user.value.role === 'staff');
 const canViewProjects = computed(() => (page.props.can as Record<string, boolean>)?.view_projects ?? false);
 const canViewIndicators = computed(() => (page.props.can as Record<string, boolean>)?.view_indicators ?? false);
 const canViewPlans = computed(() => (page.props.can as Record<string, boolean>)?.view_plans ?? false);
+const canReview = computed(() => (page.props.can as Record<string, boolean>)?.review_bersama ?? false);
 const canApproveSkp = computed(() => (page.props.can as Record<string, boolean>)?.approve_skp ?? false);
 const canViewPlanCompliance = computed(() => (page.props.can as Record<string, boolean>)?.view_plan_compliance ?? false);
 const canViewTeamCredits = computed(() => (page.props.can as Record<string, boolean>)?.view_team_credits ?? false);
@@ -58,7 +59,8 @@ const navSections = computed<NavSection[]>(() => {
         {
             title: 'Rekap Tim',
             items: [
-                { label: 'Review Bersama', href: route('team-recap.overview'), active: is('team-recap.overview'), icon: LayoutList, show: isHead.value || isAdmin.value },
+                { label: 'Review Bersama', href: route('team-recap.overview'), active: is('team-recap.overview'), icon: LayoutList, show: canReview.value },
+                { label: 'Ringkasan Rapat', href: route('team-recap.meetings'), active: is('team-recap.meetings'), icon: CalendarCheck, show: canReview.value },
                 { label: 'Mingguan', href: route('team-recap.weekly'), active: is('team-recap.weekly'), icon: CalendarDays, show: hasEmployee.value || isHead.value || isAdmin.value },
                 { label: 'Bulanan', href: route('team-recap.monthly'), active: is('team-recap.monthly'), icon: CalendarRange, show: hasEmployee.value || isHead.value || isAdmin.value },
                 { label: 'Triwulanan (FRA)', href: route('team-recap.quarterly'), active: is('team-recap.quarterly'), icon: FileChartColumn, show: hasEmployee.value || isHead.value || isAdmin.value },

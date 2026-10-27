@@ -1,7 +1,9 @@
 <script setup lang="ts">
 import AppLayout from '@/Layouts/AppLayout.vue';
 import { Head } from '@inertiajs/vue3';
-import { computed } from 'vue';
+import { computed, ref } from 'vue';
+import { Button } from '@/Components/ui/button';
+import { ChevronDown } from 'lucide-vue-next';
 import type { PlanComplianceProps } from '@/types';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/Components/ui/table';
 import { planningRate, rateClass, usePlanCompliance } from '@/composables/usePlanCompliance';
@@ -14,6 +16,8 @@ const { thisWeekRate, quarterCompletion } = usePlanCompliance(() => props.teams)
 const teamsMissing = computed(() => props.teams.filter((t) => t.missing_this_week.length));
 const missingTotal = computed(() => new Set(teamsMissing.value.flatMap((t) => t.missing_this_week)).size);
 
+const showTable = ref(false);
+
 const pct = (value: number | null) => (value === null ? '—' : `${value}%`);
 </script>
 
@@ -22,26 +26,54 @@ const pct = (value: number | null) => (value === null ? '—' : `${value}%`);
     <AppLayout>
         <template #title>Kepatuhan Rencana</template>
 
-        <p class="mb-4 text-sm text-gray-600">
-            Berapa persen anggota yang sudah membuat rencana untuk setiap minggu di triwulan ini. Batas pengisian: Senin pukul 09.00.
-        </p>
+        <p class="mb-4 text-sm text-gray-600">Batas membuat rencana: Senin pukul 09.00.</p>
 
-        <div class="mb-6 grid gap-3 sm:grid-cols-2">
+        <div class="mb-6 grid gap-3 sm:grid-cols-3">
             <div class="rounded-lg border bg-white p-4">
                 <p class="text-xs font-semibold uppercase tracking-wide text-gray-500">Minggu ini</p>
                 <p class="mt-1 text-2xl font-semibold tabular-nums text-gray-900">{{ pct(thisWeekRate) }}</p>
-                <p class="text-sm text-gray-600">anggota yang sudah membuat rencana</p>
+                <p class="text-sm text-gray-600">anggota sudah punya rencana</p>
             </div>
             <div class="rounded-lg border bg-white p-4">
                 <p class="text-xs font-semibold uppercase tracking-wide text-gray-500">Triwulan ini</p>
                 <p class="mt-1 text-2xl font-semibold tabular-nums text-gray-900">{{ pct(quarterCompletion) }}</p>
-                <p class="text-sm text-gray-600">rencana minggu yang sudah lewat berakhir selesai (menurut kipApp dan koreksi PJ)</p>
+                <p class="text-sm text-gray-600">rencana minggu lalu yang selesai</p>
+            </div>
+            <div class="rounded-lg border bg-white p-4">
+                <p class="text-xs font-semibold uppercase tracking-wide text-gray-500">Belum ada rencana</p>
+                <p :class="['mt-1 text-2xl font-semibold tabular-nums', missingTotal ? 'text-red-700' : 'text-green-700']">{{ missingTotal }}</p>
+                <p class="text-sm text-gray-600">anggota{{ teamsMissing.length ? ` di ${teamsMissing.length} tim` : '' }} minggu ini</p>
             </div>
         </div>
 
+        <section v-if="teamsMissing.length" class="mb-6" aria-labelledby="belum-title">
+            <div class="mb-3 flex items-baseline justify-between gap-3">
+                <h2 id="belum-title" class="text-sm font-semibold text-gray-800">Belum membuat rencana minggu ini</h2>
+                <p class="text-xs text-gray-500">{{ missingTotal }} anggota di {{ teamsMissing.length }} tim</p>
+            </div>
+            <div class="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+                <div v-for="team in teamsMissing" :key="team.team_id" class="rounded-lg border bg-white p-4">
+                    <div class="mb-3 flex items-start justify-between gap-2">
+                        <p class="text-sm font-medium text-gray-800">{{ team.name }}</p>
+                        <span class="shrink-0 rounded-full bg-red-50 px-2 py-0.5 text-xs font-semibold tabular-nums text-red-700">{{ team.missing_this_week.length }} dari {{ team.weeks.at(-1)?.members ?? '-' }}</span>
+                    </div>
+                    <ul class="flex max-h-32 flex-wrap gap-1.5 overflow-y-auto">
+                        <li v-for="name in team.missing_this_week" :key="name" class="rounded-md bg-gray-100 px-2 py-1 text-xs text-gray-700">{{ name }}</li>
+                    </ul>
+                </div>
+            </div>
+        </section>
+
         <div v-if="!teams.length" class="rounded-md border border-dashed bg-gray-50 py-10 text-center text-sm text-gray-500">Belum ada tim.</div>
 
-        <div v-else class="overflow-x-auto rounded-md border bg-white">
+        <template v-else>
+            <Button variant="outline" size="sm" class="mb-3" :aria-expanded="showTable" @click="showTable = !showTable">
+                {{ showTable ? 'Sembunyikan tabel' : 'Lihat tabel per tim dan minggu' }}
+                <ChevronDown :class="['ml-1.5 h-4 w-4 transition-transform', showTable && 'rotate-180']" aria-hidden="true" />
+            </Button>
+        </template>
+
+        <div v-if="teams.length && showTable" class="mb-2 overflow-x-auto rounded-md border bg-white">
             <Table>
                 <TableHeader>
                     <TableRow>
@@ -63,22 +95,5 @@ const pct = (value: number | null) => (value === null ? '—' : `${value}%`);
             </Table>
         </div>
 
-        <section v-if="teamsMissing.length" class="mt-8" aria-labelledby="belum-title">
-            <div class="mb-3 flex items-baseline justify-between gap-3">
-                <h2 id="belum-title" class="text-sm font-semibold text-gray-800">Belum membuat rencana minggu ini</h2>
-                <p class="text-xs text-gray-500">{{ missingTotal }} anggota di {{ teamsMissing.length }} tim</p>
-            </div>
-            <div class="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
-                <div v-for="team in teamsMissing" :key="team.team_id" class="rounded-lg border bg-white p-4">
-                    <div class="mb-3 flex items-start justify-between gap-2">
-                        <p class="text-sm font-medium text-gray-800">{{ team.name }}</p>
-                        <span class="shrink-0 rounded-full bg-red-50 px-2 py-0.5 text-xs font-semibold tabular-nums text-red-700">{{ team.missing_this_week.length }} dari {{ team.weeks.at(-1)?.members ?? '-' }}</span>
-                    </div>
-                    <ul class="flex max-h-32 flex-wrap gap-1.5 overflow-y-auto">
-                        <li v-for="name in team.missing_this_week" :key="name" class="rounded-md bg-gray-100 px-2 py-1 text-xs text-gray-700">{{ name }}</li>
-                    </ul>
-                </div>
-            </div>
-        </section>
     </AppLayout>
 </template>

@@ -3,10 +3,10 @@
 namespace App\Http\Controllers;
 
 use App\Actions\Kinetik\BuildAttentionItemsAction;
+use App\Actions\Kinetik\BuildMeetingSummaryAction;
 use App\Actions\Kinetik\SaveRkRecapAction;
 use App\Http\Controllers\Concerns\ResolvesTeams;
 use App\Models\Employee;
-use App\Models\LeadershipNote;
 use App\Models\PerformancePlan;
 use App\Models\PlanItem;
 use App\Models\Project;
@@ -16,16 +16,16 @@ use App\Models\RecapSummary;
 use App\Models\RkRecap;
 use App\Models\Team;
 use App\Models\TeamRecapEvidence;
-use App\Notifications\KinetikNotification;
+use App\Models\User;
 use App\Services\Kinetik\RecapAggregator;
 use Carbon\Carbon;
+use Carbon\CarbonImmutable;
 use Illuminate\Http\Exceptions\HttpResponseException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Str;
 use Inertia\Inertia;
 use Inertia\Response;
 use RuntimeException;
@@ -329,8 +329,41 @@ class TeamRecapController extends Controller
 
     // ── All-teams overview (the head reads the whole office at once) ─────────
 
+    /** Review Bersama is for the head, an admin and every PJ (a team leader), who sees the teams they belong to. */
+    public static function canReview(?User $user): bool
+    {
+        if ($user === null) {
+            return false;
+        }
+        if ($user->hasAnyRole(['admin', 'head'])) {
+            return true;
+        }
+        $employee = $user->employee;
+
+        return $employee !== null && (Team::where('leader_id', $employee->id)->exists()
+            || $employee->teams()->wherePivot('role', 'leader')->exists());
+    }
+
+    /** One month of meetings for every team: written, locked, bukti rapat. For the head, an admin and PJ. */
+    public function meetings(Request $request, BuildMeetingSummaryAction $summary): Response
+    {
+        abort_unless(self::canReview($request->user()), 403);
+        $v = $request->validate(['year' => ['nullable', 'integer', 'between:2020,2100'], 'month' => ['nullable', 'integer', 'between:1,12']]);
+        $today = CarbonImmutable::now(config('app.schedule_timezone', 'Asia/Makassar'));
+        $year = (int) ($v['year'] ?? $today->year);
+        $month = (int) ($v['month'] ?? $today->month);
+
+        return Inertia::render('Kinetik/MeetingSummary', [
+            'year' => $year,
+            'month' => $month,
+            ...$summary->execute($this->teamsFor($request)->load('leader:id,name,display_name'), $year, $month, $today),
+        ]);
+    }
+
     public function overview(Request $request): Response
     {
+        abort_unless(self::canReview($request->user()), 403);
+
         $validated = $request->validate([
             'period_type' => ['nullable', 'in:week,month,quarter'],
             'week' => ['nullable', 'date'],
@@ -348,13 +381,7 @@ class TeamRecapController extends Controller
             $year = (int) Carbon::parse($weekStart)->year;
         }
 
-        // Head notes of this period keyed "team:project" (project 0 = the team).
-        $notes = LeadershipNote::forPeriod($type, $year, $month, $quarter, $weekStart)
-            ->get()
-            ->keyBy(fn (LeadershipNote $note) => $note->team_id.':'.($note->project_id ?? 0))
-            ->map(fn (LeadershipNote $note) => $note->body);
-
-        $teams = $this->teamsFor($request)->map(function (Team $team) use ($type, $year, $month, $quarter, $weekStart, $notes) {
+        $teams = $this->teamsFor($request)->map(function (Team $team) use ($type, $year, $month, $quarter, $weekStart) {
             $segments = match ($type) {
                 'week' => $this->aggregator->weekly($team, $weekStart),
                 'month' => $this->aggregator->monthly($team, $year, $month),
@@ -376,10 +403,7 @@ class TeamRecapController extends Controller
                 'members_active' => $activeMembers?->count(),
                 'members_complete' => $activeMembers?->where('status', 'complete')->count(),
                 'leader' => $team->leader?->display_name ?? $team->leader?->name,
-                'note' => $notes->get($team->id.':0'),
-                'projects' => collect($this->overviewProjects($team, $year, $bySegment))
-                    ->map(fn (array $project) => [...$project, 'note' => $project['id'] ? $notes->get($team->id.':'.$project['id']) : null])
-                    ->all(),
+                'projects' => $this->overviewProjects($team, $year, $bySegment),
             ];
         })->values();
 
@@ -391,85 +415,8 @@ class TeamRecapController extends Controller
             'weekStart' => $weekStart,
             'weekEnd' => Carbon::parse($weekStart)->endOfWeek(Carbon::SUNDAY)->toDateString(),
             'teams' => $teams,
-            'canWriteNotes' => $request->user()->hasRole('head'),
             'attention' => app(BuildAttentionItemsAction::class)->execute($this->teamsFor($request)),
         ]);
-    }
-
-    /**
-     * The head's note (Catatan Pimpinan) on a team or one of its projects for
-     * one period. Allowed on a locked period: the head writes it in the
-     * meeting, after the PJ locks the recap. An empty body removes the note.
-     */
-    public function storeLeadershipNote(Request $request): RedirectResponse
-    {
-        abort_unless($request->user()->hasRole('head'), 403);
-
-        $validated = $request->validate([
-            'team_id' => ['required', 'integer', 'exists:teams,id'],
-            'project_id' => ['nullable', 'integer', 'exists:projects,id'],
-            'period_type' => ['required', 'in:week,month,quarter'],
-            'period_year' => ['required', 'integer', 'between:2000,2100'],
-            'week_start' => ['nullable', 'date', 'required_if:period_type,week'],
-            'period_month' => ['nullable', 'integer', 'between:1,12', 'required_if:period_type,month'],
-            'period_quarter' => ['nullable', 'integer', 'between:1,4', 'required_if:period_type,quarter'],
-            'body' => ['nullable', 'string', 'max:2000'],
-        ]);
-
-        if (isset($validated['project_id'])) {
-            abort_unless(Project::whereKey($validated['project_id'])->where('team_id', $validated['team_id'])->exists(), 422);
-        }
-
-        $type = $validated['period_type'];
-        $key = [
-            'team_id' => $validated['team_id'],
-            'project_id' => $validated['project_id'] ?? null,
-            'period_type' => $type,
-            'period_year' => $validated['period_year'],
-            'week_start' => $type === 'week' ? Carbon::parse($validated['week_start'])->startOfWeek(Carbon::MONDAY)->toDateString() : null,
-            'period_month' => $type === 'month' ? $validated['period_month'] : null,
-            'period_quarter' => $type === 'quarter' ? $validated['period_quarter'] : null,
-        ];
-        $body = trim($validated['body'] ?? '');
-
-        if ($body === '') {
-            LeadershipNote::where($key)->delete();
-
-            return back()->with('success', 'Catatan pimpinan dihapus.');
-        }
-
-        $note = LeadershipNote::updateOrCreate($key, ['body' => $body, 'author_id' => $request->user()->id]);
-
-        if ($note->wasRecentlyCreated || $note->wasChanged('body')) {
-            $this->notifyPjOfNote(Team::findOrFail($validated['team_id']), $note, $request->user()->id);
-        }
-
-        return back()->with('success', 'Catatan pimpinan disimpan.');
-    }
-
-    /**
-     * The team's PJ read the head's note on Review Bersama for the same period.
-     */
-    private function notifyPjOfNote(Team $team, LeadershipNote $note, int $authorUserId): void
-    {
-        $leaders = Employee::whereKey($team->leader_id)
-            ->orWhereHas('teams', fn ($q) => $q->where('teams.id', $team->id)->where('employee_team.role', 'leader'))
-            ->with('user')
-            ->get();
-        $where = $note->project_id ? Project::find($note->project_id)?->name.' ('.$team->name.')' : $team->name;
-        $url = route('team-recap.overview', array_filter([
-            'period_type' => $note->period_type,
-            'year' => $note->period_year,
-            'month' => $note->period_month,
-            'quarter' => $note->period_quarter,
-            'week' => $note->week_start ? Carbon::parse($note->week_start)->toDateString() : null,
-        ]));
-
-        foreach ($leaders as $leader) {
-            if ($leader->user && $leader->user->id !== $authorUserId) {
-                $leader->user->notify(new KinetikNotification('leadership_note', 'Catatan pimpinan untuk '.$where.': '.Str::limit($note->body, 140), $url));
-            }
-        }
     }
 
     /**

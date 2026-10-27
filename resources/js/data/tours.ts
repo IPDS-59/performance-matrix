@@ -55,6 +55,26 @@ export const TOURS: Record<string, Tour> = {
             { element: '#bukti-rapat', title: 'Bukti dukung rapat', description: 'PJ menambahkan link notulen, daftar hadir, atau foto rapat sebagai bukti.' },
         ],
     },
+    'team-recap.overview': {
+        steps: [
+            { element: '[role="tablist"]', title: 'Mingguan, bulanan, triwulanan', description: 'Pilih jenis periode, lalu pindah periode dengan tombol panah.' },
+            { element: 'dl', title: 'Ringkasan kantor', description: 'Tim yang punya rekap, rata-rata capaian, rekap yang dikunci PJ, dan baris yang dikonfirmasi.' },
+            { element: 'th button', title: 'Urutkan menurut capaian', description: 'Klik sekali untuk tertinggi dulu, dua kali untuk terendah dulu, tiga kali untuk urutan awal.' },
+            { element: 'tbody tr button[aria-expanded]', title: 'Projek tiap tim', description: 'Panah membuka daftar projek tim beserta PIC dan capaiannya.' },
+        ],
+    },
+    'team-recap.meetings': {
+        steps: [
+            { element: 'dl', title: 'Ringkasan satu bulan', description: 'Berapa rekap mingguan dan bulanan yang sudah dikunci PJ, dan berapa tim yang melampirkan bukti rapat.' },
+            { element: 'tbody tr td:nth-child(2) a', title: 'Status tiap minggu', description: 'Terkunci: rekap selesai. Ditulis: ada parafrase, belum dikunci. Belum: belum ada. Angka kecil adalah jumlah bukti rapat. Klik untuk membuka rekap tim itu.' },
+        ],
+    },
+    'plan-compliance.index': {
+        steps: [
+            { element: '.grid.gap-3', title: 'Ringkasan dulu', description: 'Persentase anggota yang sudah membuat rencana minggu ini, rencana triwulan yang selesai, dan jumlah yang belum punya rencana.' },
+            { element: 'button[aria-expanded]', title: 'Tabel lengkap', description: 'Tekan untuk membuka tabel per tim dan minggu. Merah berarti belum ada rencana.' },
+        ],
+    },
     'projects.create': {
         steps: [
             { element: '#name', title: 'Nama proyek', description: 'Proyek mengelompokkan RK Anggota satu tim. Tulis nama seperti di kipApp.' },
