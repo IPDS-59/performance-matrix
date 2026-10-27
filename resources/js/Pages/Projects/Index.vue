@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import RowActions from '@/Components/RowActions.vue';
 import AppLayout from '@/Layouts/AppLayout.vue';
 import { Head, Link, router, usePage } from '@inertiajs/vue3';
 import KipProjectPushDialog from '@/Components/Kinetik/KipProjectPushDialog.vue';
@@ -198,15 +199,11 @@ const teamGroups = computed(() => {
                                         </span>
                                     </TableCell>
                                     <TableCell v-if="canCreate" class="text-right">
-                                        <div v-if="project.can_update || project.can_delete" class="inline-flex gap-2">
-                                            <Button v-if="project.can_update" variant="outline" size="sm" as-child>
-                                                <Link :href="route('projects.edit', project.id)">Edit</Link>
-                                            </Button>
-                                            <Button v-if="writeKip && project.can_update && !project.kip_external_id" variant="outline" size="sm" @click="openPush(project)">Kirim ke kipApp</Button>
-                                            <Button v-if="project.can_delete" variant="destructive" size="sm" @click="confirmDelete(project.id, project.name)">
-                                                Hapus
-                                            </Button>
-                                        </div>
+                                        <RowActions :items="[
+                                            { label: 'Edit', href: route('projects.edit', project.id), hidden: !project.can_update },
+                                            { label: 'Kirim ke kipApp', onSelect: () => openPush(project), hidden: !(writeKip && project.can_update && !project.kip_external_id) },
+                                            { label: 'Hapus', destructive: true, onSelect: () => confirmDelete(project.id, project.name), hidden: !project.can_delete },
+                                        ]" />
                                     </TableCell>
                                 </TableRow>
                             </TableBody>

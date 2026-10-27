@@ -50,20 +50,46 @@ watch(() => form.date_start, (date) => {
 watch(() => form.use_range, (on) => { form.date_end = dateEndAfterRangeToggle(on, form.date_start, form.date_end); });
 
 const rk = computed(() => props.rkOptions.find(o => o.id === form.performance_plan_id) ?? null);
-const rkChoices = computed(() => props.rkOptions.map(o => ({ value: o.id, label: o.description })));
 const needsProject = computed(() => !!rk.value && !rk.value.project_id && !rk.value.project_optional);
+
+/** Whether an RK belongs to a projek: its own projek, or one of the projek it can be linked to. */
+function rkFitsProject(option: PlanRkOption, projectId: number | null): boolean {
+    return projectId === null || option.project_id === projectId || (option.project_id === null && option.project_candidates.includes(projectId));
+}
+
+// Projek first, then only the RK of that projek. Once an RK is chosen the projek is fixed; "Ganti RK" frees it again.
+const rkChoices = computed(() => props.rkOptions.filter(o => rkFitsProject(o, form.project_id)).map(o => ({ value: o.id, label: o.description })));
 const projectChoices = computed(() => {
-    if (!rk.value || rk.value.project_id) return [];
-    const ids = rk.value.project_candidates;
+    const chosen = rk.value;
+    if (chosen?.project_id) return props.projectOptions.filter(p => p.id === chosen.project_id).map(p => ({ value: p.id, label: p.name }));
+    const ids = chosen?.project_candidates ?? [];
     return props.projectOptions.filter(p => !ids.length || ids.includes(p.id)).map(p => ({ value: p.id, label: p.name }));
 });
+const projectLocked = computed(() => !!props.item || (form.performance_plan_id !== null && form.project_id !== null));
 const bounds = computed(() => quarterBounds(props.skpYear, form.date_start));
 
 function pickRk(value: number | null) {
     form.performance_plan_id = value;
-    form.project_id = null;
     form.team_id = rk.value?.team_id ?? null;
+    // An RK that belongs to one projek brings it along; otherwise the projek chosen before stays if the RK fits it.
+    if (rk.value?.project_id) form.project_id = rk.value.project_id;
+    else if (rk.value && !rkFitsProject(rk.value, form.project_id)) form.project_id = null;
     if (rk.value && !form.target_unit) form.target_unit = rk.value.target_unit ?? '';
+}
+
+function pickProject(value: number | null) {
+    form.project_id = value;
+    // Another projek shows its own RK: an RK that does not fit it is cleared.
+    if (rk.value && !rkFitsProject(rk.value, value)) {
+        form.performance_plan_id = null;
+        form.team_id = null;
+    }
+}
+
+/** Clears the RK so the projek can be changed; the projek chosen stays until the user picks another. */
+function changeRk() {
+    form.performance_plan_id = null;
+    form.team_id = null;
 }
 
 function applyPresensi(row: PresensiRow) {
@@ -92,14 +118,18 @@ function save() {
     >
         <fieldset :disabled="sentOnly" class="min-w-0 space-y-3 border-0 p-0">
             <div class="space-y-1.5">
-                <Label>Rencana Kinerja (RK)</Label>
-                <SearchableSelect :model-value="form.performance_plan_id" :options="rkChoices" placeholder="Pilih RK" search-placeholder="Cari RK…" :disabled="!!item" @update:model-value="pickRk" />
-                <InputError :message="form.errors.performance_plan_id" />
-            </div>
-            <div v-if="rk && !rk.project_id && (needsProject || projectChoices.length)" class="space-y-1.5">
                 <Label>Projek</Label>
-                <SearchableSelect v-model="form.project_id" :options="projectChoices" :placeholder="needsProject ? 'Pilih projek' : '— Tanpa projek —'" search-placeholder="Cari projek…" :empty-label="needsProject ? undefined : '— Tanpa projek —'" />
+                <SearchableSelect :model-value="form.project_id" :options="projectChoices" :placeholder="needsProject ? 'Pilih projek' : 'Pilih projek (opsional)'" search-placeholder="Cari projek…" :empty-label="needsProject ? undefined : '— Tanpa projek —'" :disabled="projectLocked" @update:model-value="pickProject" />
+                <p v-if="projectLocked && !item" class="text-xs text-gray-600">Projek terkunci karena RK sudah dipilih. Tekan "Ganti RK" untuk memilih projek lain.</p>
                 <InputError :message="form.errors.project_id" />
+            </div>
+            <div class="space-y-1.5">
+                <div class="flex items-center justify-between gap-2">
+                    <Label>Rencana Kinerja (RK)</Label>
+                    <Button v-if="form.performance_plan_id !== null && !item" type="button" variant="ghost" size="sm" class="h-7 px-2 text-xs" @click="changeRk">Ganti RK</Button>
+                </div>
+                <SearchableSelect :model-value="form.performance_plan_id" :options="rkChoices" :placeholder="form.project_id !== null ? 'Pilih RK projek ini' : 'Pilih RK'" search-placeholder="Cari RK…" :disabled="!!item" @update:model-value="pickRk" />
+                <InputError :message="form.errors.performance_plan_id" />
             </div>
 
             <div class="space-y-1.5">
