@@ -13,7 +13,7 @@ import { Label } from '@/Components/ui/label';
 import { Textarea } from '@/Components/ui/textarea';
 import { type EntryFormState, dateEndAfterRangeToggle, defaultProgress, entryFormState, entryPayload, quarterBounds, todayIso } from '@/composables/usePlanEntry';
 
-/** Add, edit or copy one kegiatan, with the same fields as kipApp plus target, satuan and capaian. */
+/** Add, edit or copy one kegiatan, with the same fields as kipApp plus target and satuan. Capaian and bukti dukung are filled in later, from the kegiatan's detail, when the capaian is updated. */
 const props = defineProps<{
     open: boolean;
     /** The kegiatan to edit, or null to add one. */
@@ -134,19 +134,10 @@ function save() {
             <div class="grid grid-cols-3 gap-3">
                 <div class="space-y-1.5"><Label for="pi-target">Target (angka)</Label><Input id="pi-target" v-model="form.target" type="number" min="0" step="any" /></div>
                 <div class="space-y-1.5"><Label for="pi-unit">Satuan</Label><Input id="pi-unit" v-model="form.target_unit" placeholder="blok" /></div>
-                <div class="space-y-1.5"><Label for="pi-cap">Capaian (angka)</Label><Input id="pi-cap" v-model="form.capaian" type="number" min="0" step="any" /></div>
-            </div>
-            <InputError :message="form.errors.target || form.errors.capaian" />
-
-            <div class="grid grid-cols-2 gap-3">
                 <div class="space-y-1.5"><Label for="pi-prog">Progres (%)</Label><Input id="pi-prog" v-model="form.progres" type="number" min="0" max="100" @input="progressTouched = true" /><InputError :message="form.errors.progress" /></div>
-                <div class="space-y-1.5"><Label for="pi-url">Bukti dukung (tautan)</Label><Input id="pi-url" v-model="form.evidence_url" type="url" placeholder="https://…" /><InputError :message="form.errors.evidence_url" /></div>
             </div>
-            <div class="space-y-1.5">
-                <Label for="pi-note">Uraian capaian (teks ke kipApp)</Label>
-                <Textarea id="pi-note" v-model="form.capaian_note" :rows="2" placeholder="Apa yang sudah dicapai, dalam kalimat" />
-                <InputError :message="form.errors.capaian_note" />
-            </div>
+            <InputError :message="form.errors.target" />
+            <p class="text-xs text-gray-600">Capaian, bukti dukung, dan uraian capaian diisi nanti, lewat detail kegiatan, saat Anda memperbarui capaian.</p>
         </fieldset>
 
         <label class="flex items-center gap-1.5 text-sm"><input v-model="form.is_capaian_skp" type="checkbox" /> Masukan ke capaian SKP</label>
