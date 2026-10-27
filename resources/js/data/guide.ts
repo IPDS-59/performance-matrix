@@ -151,6 +151,27 @@ export const SHOTS = {
             { n: 8, x: 84.2, y: 79.2, label: 'Final atau Estimasi.' },
         ],
     },
+    pimpinanBeranda: {
+        src: '/images/pedoman/head-beranda.webp',
+        alt: 'Beranda pimpinan: empat kotak, yaitu rencana minggu ini, kegiatan ke atasan, rapat mingguan, dan SKP menunggu',
+        width: 1024, height: 576,
+        markers: [
+            { n: 1, x: 56, y: 16.5, label: 'Berapa anggota sudah membuat rencana minggu ini, dan siapa yang belum.' },
+            { n: 2, x: 97, y: 16.5, label: 'Berapa anggota sudah mengirim semua kegiatannya ke atasan, dan siapa yang belum.' },
+            { n: 3, x: 56, y: 41, label: 'Tim yang belum punya rekap rapat mingguan untuk minggu lalu.' },
+            { n: 4, x: 97, y: 41, label: 'SKP yang menunggu persetujuan Anda.' },
+        ],
+    },
+    pimpinanMonitoring: {
+        src: '/images/pedoman/head-monitoring.webp',
+        alt: 'Halaman Monitoring: capaian per tim, peringkat tim, konsistensi perencanaan dan capaian pegawai',
+        width: 1024, height: 576,
+        markers: [
+            { n: 1, x: 40, y: 25, label: 'Capaian tiap tim pada bulan yang dipilih.' },
+            { n: 2, x: 30, y: 71, label: 'Konsistensi perencanaan: berapa dari 8 minggu terakhir pegawai membuat rencana. Tertinggi atau Terendah.' },
+            { n: 3, x: 80, y: 71, label: 'Pegawai dengan capaian terbesar.' },
+        ],
+    },
     pimpinanReviewBersama: {
         src: '/images/pedoman/pimpinan-review-bersama.webp',
         alt: 'Halaman Review Bersama: ringkasan kantor dan tabel capaian per tim yang bisa diurutkan',
@@ -601,6 +622,24 @@ export const GUIDE_FLOWS: GuideFlow[] = [
                 ],
                 shot: SHOTS.skpNilai,
                 tip: 'Salah isi nilai? Simpan lagi baris itu sebelum menekan Selesai menilai.',
+            },
+            {
+                title: 'Baca Beranda dan Monitoring',
+                where: 'Menu Beranda dan Monitoring',
+                route: 'dashboard',
+                body: [
+                    'Beranda menjawab empat pertanyaan untuk minggu ini: siapa belum membuat rencana, siapa belum mengirim kegiatan ke atasan, tim mana belum punya rekap rapat mingguan, dan SKP mana menunggu Anda. Nama yang belum ditulis langsung di kotaknya.',
+                    'Capaian per tim dan peringkat pegawai ada di menu Monitoring. Konsistensi perencanaan menghitung berapa dari 8 minggu terakhir seorang pegawai membuat rencana. Angka ini tidak menunjukkan beban kerja: satu proyek besar bisa lebih berat daripada lima proyek kecil.',
+                ],
+                shot: SHOTS.pimpinanBeranda,
+                tip: 'Kotak yang hijau berarti tidak ada yang perlu ditindaklanjuti.',
+            },
+            {
+                title: 'Monitoring: capaian dan konsistensi',
+                where: 'Menu Monitoring',
+                route: 'monitoring',
+                body: ['Pilih bulan dan tahun di kiri atas. Grafik Konsistensi Perencanaan bisa diganti antara Tertinggi dan Terendah.'],
+                shot: SHOTS.pimpinanMonitoring,
             },
             {
                 title: 'Buka Review Bersama',

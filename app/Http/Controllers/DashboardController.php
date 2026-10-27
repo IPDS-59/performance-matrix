@@ -2,7 +2,9 @@
 
 namespace App\Http\Controllers;
 
+use App\Actions\Kinetik\BuildHeadHomeAction;
 use App\Models\Employee;
+use App\Models\PlanItem;
 use App\Models\Project;
 use App\Models\Team;
 use App\Models\User;
@@ -16,7 +18,7 @@ use Inertia\Response;
 
 class DashboardController extends Controller
 {
-    public function index(Request $request): Response
+    public function index(Request $request, BuildHeadHomeAction $home): Response
     {
         $user = $request->user();
         $year = $request->integer('year', now()->year);
@@ -27,10 +29,50 @@ class DashboardController extends Controller
         }
 
         if ($user->hasRole('head')) {
-            return $this->headDashboard($user, $year, $month);
+            return Inertia::render('HeadHome', $home->execute(now(config('app.schedule_timezone', 'Asia/Makassar')), $user));
         }
 
         return $this->adminDashboard($year, $month);
+    }
+
+    /** The full dashboard (team ranking, employee rankings) for the head and admins. */
+    public function monitoring(Request $request): Response
+    {
+        $user = $request->user();
+        abort_unless($user->hasAnyRole(['head', 'admin']), 403);
+        $year = $request->integer('year', now()->year);
+        $month = $request->integer('month', now()->month);
+
+        return $user->hasRole('head') ? $this->headDashboard($user, $year, $month) : $this->adminDashboard($year, $month);
+    }
+
+    /**
+     * How many of the last 8 weeks each active team member had a weekly plan. Workload is not measured: one big
+     * project can weigh more than five small ones, so the count of projects says nothing about it.
+     *
+     * @return list<array{id: int, name: string, display_name: ?string, weeks_planned: int}>
+     */
+    private function planningConsistency(): array
+    {
+        $thisMonday = Carbon::now(config('app.schedule_timezone', 'Asia/Makassar'))->startOfWeek(Carbon::MONDAY);
+        $weeks = collect(range(7, 0))->map(fn (int $back) => $thisMonday->copy()->subWeeks($back));
+        $from = $weeks->first()->toDateString();
+        $to = $thisMonday->copy()->endOfWeek(Carbon::SUNDAY)->toDateString();
+
+        $plans = PlanItem::duringWeek($from, $to)->get(['employee_id', 'date_start', 'date_end'])->groupBy('employee_id');
+
+        return Employee::where('is_active', true)->whereHas('teams')->get(['id', 'name', 'display_name'])
+            ->map(function (Employee $e) use ($plans, $weeks) {
+                $mine = $plans->get($e->id, collect());
+                $planned = $weeks->filter(function (Carbon $monday) use ($mine) {
+                    $start = $monday->toDateString();
+                    $end = $monday->copy()->endOfWeek(Carbon::SUNDAY)->toDateString();
+
+                    return $mine->contains(fn (PlanItem $p) => substr((string) $p->date_start, 0, 10) <= $end && substr((string) $p->date_end, 0, 10) >= $start);
+                })->count();
+
+                return ['id' => $e->id, 'name' => $e->name, 'display_name' => $e->display_name, 'weeks_planned' => $planned];
+            })->sortByDesc('weeks_planned')->values()->all();
     }
 
     public function matrix(Request $request): Response
@@ -342,22 +384,7 @@ class DashboardController extends Controller
             ->map(fn ($rows) => $rows->pluck('leader_id')->unique()->values()->all())
             ->toArray();
 
-        $topByProjects = DB::table('employees')
-            ->join('project_members', 'project_members.employee_id', '=', 'employees.id')
-            ->join('projects', 'projects.id', '=', 'project_members.project_id')
-            ->where('projects.year', $year)
-            ->where('employees.is_active', true)
-            ->groupBy('employees.id', 'employees.name', 'employees.display_name')
-            ->select(
-                'employees.id',
-                'employees.name',
-                'employees.display_name',
-                DB::raw('COUNT(DISTINCT project_members.project_id) as project_count'),
-                DB::raw("SUM(CASE WHEN project_members.role = 'leader' THEN 1 ELSE 0 END) as leader_count"),
-                DB::raw("SUM(CASE WHEN project_members.role = 'member' THEN 1 ELSE 0 END) as member_count"),
-            )
-            ->orderByDesc('project_count')
-            ->get();
+        $topByProjects = $this->planningConsistency();
 
         $topByAchievement = $this->topEmployeesByAchievement($year, $month);
 
@@ -370,7 +397,7 @@ class DashboardController extends Controller
             'teams' => $teams,
             'team_progress' => $teamProgress,
             'project_leaders_by_team' => $projectLeadersByTeam,
-            'top_employees_by_projects' => $topByProjects,
+            'top_employees_by_consistency' => $topByProjects,
             'top_employees_by_achievement' => $topByAchievement,
             'filters' => compact('year', 'month'),
         ]);
@@ -390,22 +417,7 @@ class DashboardController extends Controller
 
         $teams = $this->loadTeamsWithMembers($year);
 
-        $topByProjects = DB::table('employees')
-            ->join('project_members', 'project_members.employee_id', '=', 'employees.id')
-            ->join('projects', 'projects.id', '=', 'project_members.project_id')
-            ->where('projects.year', $year)
-            ->where('employees.is_active', true)
-            ->groupBy('employees.id', 'employees.name', 'employees.display_name')
-            ->select(
-                'employees.id',
-                'employees.name',
-                'employees.display_name',
-                DB::raw('COUNT(DISTINCT project_members.project_id) as project_count'),
-                DB::raw("SUM(CASE WHEN project_members.role = 'leader' THEN 1 ELSE 0 END) as leader_count"),
-                DB::raw("SUM(CASE WHEN project_members.role = 'member' THEN 1 ELSE 0 END) as member_count"),
-            )
-            ->orderByDesc('project_count')
-            ->get();
+        $topByProjects = $this->planningConsistency();
 
         $topByAchievement = $this->topEmployeesByAchievement($year, $month);
 
@@ -414,7 +426,7 @@ class DashboardController extends Controller
             'teams' => $teams,
             'team_progress' => $teamProgress,
             'project_leaders_by_team' => $projectLeadersByTeam,
-            'top_employees_by_projects' => $topByProjects,
+            'top_employees_by_consistency' => $topByProjects,
             'top_employees_by_achievement' => $topByAchievement,
             'filters' => compact('year', 'month'),
         ];

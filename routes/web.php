@@ -47,6 +47,7 @@ Route::get('/', function () {
 Route::middleware(['auth', 'verified'])->group(function () {
     // Dashboard — role-aware
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
+    Route::get('/monitoring', [DashboardController::class, 'monitoring'])->name('monitoring');
 
     // Matrix — head + admin
     Route::get('/matrix', [DashboardController::class, 'matrix'])->name('matrix');

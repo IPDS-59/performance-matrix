@@ -139,9 +139,7 @@ export interface EmployeeRankItem {
     id: number;
     name: string;
     display_name: string | null;
-    project_count?: number;
-    leader_count?: number;
-    member_count?: number;
+    weeks_planned?: number;
     avg_achievement?: number;
 }
 

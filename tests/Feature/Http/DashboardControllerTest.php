@@ -22,14 +22,64 @@ it('renders staff dashboard for staff user', function () {
         );
 });
 
-it('renders head dashboard for head user', function () {
+it('renders the monitoring dashboard for head user', function () {
     $this->actingAs(headUser())
-        ->get(route('dashboard'))
+        ->get(route('monitoring'))
         ->assertInertia(fn ($page) => $page
             ->component('Dashboard')
             ->where('role', 'head')
             ->has('teams')
         );
+});
+
+it('keeps monitoring away from staff', function () {
+    $this->actingAs(staffUser())->get(route('monitoring'))->assertForbidden();
+});
+
+it('shows the head the four questions on the beranda', function () {
+    $this->travelTo('2026-10-28 10:00:00');
+    $this->actingAs(headUser());
+    $team = Team::factory()->create();
+    [$planned, $sentAll, $silent] = Employee::factory()->count(3)->create(['is_active' => true]);
+    foreach ([$planned, $sentAll, $silent] as $e) {
+        $e->teams()->attach($team->id, ['role' => 'member', 'is_primary' => true]);
+    }
+    $plan = PerformancePlan::factory()->create(['project_id' => null, 'team_id' => $team->id]);
+    $item = fn (Employee $e, $sentAt) => PlanItem::create([
+        'team_id' => $team->id, 'employee_id' => $e->id, 'performance_plan_id' => $plan->id, 'description' => 'x',
+        'date_start' => '2026-10-27', 'date_end' => '2026-10-27', 'kip_sent_at' => $sentAt,
+    ]);
+    $item($planned, null);
+    $item($sentAll, now());
+
+    $this->get(route('dashboard'))->assertInertia(fn ($page) => $page
+        ->component('HeadHome')
+        ->where('plans.filled', 2)
+        ->where('plans.total', 3)
+        ->has('plans.missing', 1)
+        ->where('sent.sent', 1)
+        ->has('sent.pending', 1)
+        ->where('meetings.total', Team::count())
+        ->has('meetings.missing', Team::count())
+        ->where('skp.count', 0));
+});
+
+it('ranks employees by how many of the last 8 weeks they planned', function () {
+    $this->travelTo('2026-10-28 10:00:00');
+    $team = Team::factory()->create();
+    $a = Employee::factory()->create(['is_active' => true]);
+    $b = Employee::factory()->create(['is_active' => true]);
+    $a->teams()->attach($team->id, ['role' => 'member', 'is_primary' => true]);
+    $b->teams()->attach($team->id, ['role' => 'member', 'is_primary' => true]);
+    $plan = PerformancePlan::factory()->create(['project_id' => null, 'team_id' => $team->id]);
+    foreach (['2026-10-27', '2026-10-20', '2026-10-20'] as $date) {
+        PlanItem::create(['team_id' => $team->id, 'employee_id' => $a->id, 'performance_plan_id' => $plan->id, 'description' => 'x', 'date_start' => $date, 'date_end' => $date]);
+    }
+
+    $this->actingAs(headUser())->get(route('monitoring'))->assertInertia(fn ($page) => $page
+        ->where('top_employees_by_consistency.0.id', $a->id)
+        ->where('top_employees_by_consistency.0.weeks_planned', 2)
+        ->where('top_employees_by_consistency.1.weeks_planned', 0));
 });
 
 it('renders admin dashboard for admin user', function () {
@@ -85,7 +135,7 @@ it('hides personal cards for a head who is in no team', function () {
     Employee::factory()->create(['user_id' => $user->id]);
 
     $this->actingAs($user)
-        ->get(route('dashboard'))
+        ->get(route('monitoring'))
         ->assertInertia(fn ($page) => $page->missing('personal_stats'));
 });
 
