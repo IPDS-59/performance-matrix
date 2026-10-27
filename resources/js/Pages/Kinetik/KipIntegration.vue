@@ -198,7 +198,7 @@ onMounted(() => {
                         </div>
                         <div class="rounded-md bg-gray-50 p-3">
                             <dt class="text-xs text-gray-400">Total pegawai</dt>
-                            <dd class="mt-1 text-lg font-semibold text-gray-900">{{ stats.employees_total }}</dd>
+                            <dd class="mt-1 text-lg font-semibold text-gray-900">{{ $n(stats.employees_total) }}</dd>
                         </div>
                     </dl>
                 </div>
@@ -234,13 +234,13 @@ onMounted(() => {
 
                     <div v-else-if="activityRun?.status === 'completed'" class="mt-4 flex items-start gap-2 text-xs text-green-700">
                         <CheckCircle2 class="mt-0.5 h-3.5 w-3.5 shrink-0" />
-                        <span>Selesai: {{ activityRun.summary.activities ?? 0 }} kegiatan diperbarui untuk {{ activityRun.total }} pegawai.</span>
+                        <span>Selesai: {{ $n(activityRun.summary.activities ?? 0) }} kegiatan diperbarui untuk {{ activityRun.total }} pegawai.</span>
                     </div>
 
                     <dl class="mt-5 grid grid-cols-3 gap-4 text-sm">
                         <div class="rounded-md bg-gray-50 p-3">
                             <dt class="text-xs text-gray-400">Pegawai (punya NIP)</dt>
-                            <dd class="mt-1 text-lg font-semibold text-gray-900">{{ stats.employees_with_nip }} <span class="text-sm font-normal text-gray-400">/ {{ stats.employees_total }}</span></dd>
+                            <dd class="mt-1 text-lg font-semibold text-gray-900">{{ $n(stats.employees_with_nip) }} <span class="text-sm font-normal text-gray-400">/ {{ $n(stats.employees_total) }}</span></dd>
                         </div>
                         <div class="rounded-md bg-gray-50 p-3">
                             <dt class="text-xs text-gray-400">Kegiatan tersinkron</dt>
@@ -283,13 +283,13 @@ onMounted(() => {
 
                     <div v-else-if="careerRun?.status === 'completed'" class="mt-4 flex items-start gap-2 text-xs text-green-700">
                         <CheckCircle2 class="mt-0.5 h-3.5 w-3.5 shrink-0" />
-                        <span>Selesai: {{ careerRun.summary.employees ?? 0 }} pegawai, {{ careerRun.summary.ratings ?? 0 }} SKP<template v-if="careerRun.summary.failed">, {{ careerRun.summary.failed }} pegawai gagal</template>.</span>
+                        <span>Selesai: {{ $n(careerRun.summary.employees ?? 0) }} pegawai, {{ $n(careerRun.summary.ratings ?? 0) }} SKP<template v-if="careerRun.summary.failed">, {{ careerRun.summary.failed }} pegawai gagal</template>.</span>
                     </div>
 
                     <dl class="mt-5 grid grid-cols-2 gap-4 text-sm">
                         <div class="rounded-md bg-gray-50 p-3">
                             <dt class="text-xs text-gray-400">Pegawai dengan golongan</dt>
-                            <dd class="mt-1 text-lg font-semibold text-gray-900">{{ stats.careers_synced }} <span class="text-sm font-normal text-gray-400">/ {{ stats.employees_with_nip }}</span></dd>
+                            <dd class="mt-1 text-lg font-semibold text-gray-900">{{ stats.careers_synced }} <span class="text-sm font-normal text-gray-400">/ {{ $n(stats.employees_with_nip) }}</span></dd>
                         </div>
                         <div class="rounded-md bg-gray-50 p-3">
                             <dt class="text-xs text-gray-400">SKP periodik tersinkron</dt>

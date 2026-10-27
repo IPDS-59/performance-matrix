@@ -9,6 +9,7 @@ import { ZiggyVue } from 'ziggy-js';
 import { createNotivue } from 'notivue';
 import 'notivue/notification.css';
 import 'notivue/animations.css';
+import { formatNumber } from '@/composables/useNumber';
 
 const push = createNotivue({ notifications: { global: { duration: 4000 } } });
 
@@ -22,6 +23,7 @@ createInertiaApp({
             import.meta.glob<DefineComponent>('./Pages/**/*.vue'),
         ),
     withApp(app: App) {
+        app.config.globalProperties.$n = formatNumber;
         app.use(createPinia())
             .use(ZiggyVue)
             .use(push);

@@ -394,7 +394,7 @@ function memberName(employeeId: number): string {
                                     <div v-if="item.assignments.length" class="mt-1.5 space-y-0.5">
                                         <div v-for="a in item.assignments" :key="a.employee_id" class="flex items-center gap-2 text-xs text-gray-500">
                                             <span class="font-medium">{{ memberName(a.employee_id) }}</span>
-                                            <span>— {{ a.target }} {{ a.target_unit }}</span>
+                                            <span>— {{ $n(a.target) }} {{ a.target_unit }}</span>
                                         </div>
                                     </div>
                                     <p v-else class="mt-1 text-xs text-gray-400">Belum ada penugasan</p>

@@ -14,7 +14,7 @@ it('renders staff dashboard for staff user', function () {
     $employee = Employee::factory()->create(['user_id' => $user->id]);
 
     $this->actingAs($user)
-        ->get(route('dashboard'))
+        ->get(route('monitoring'))
         ->assertInertia(fn ($page) => $page
             ->component('Dashboard')
             ->where('role', 'staff')
@@ -30,10 +30,6 @@ it('renders the monitoring dashboard for head user', function () {
             ->where('role', 'head')
             ->has('teams')
         );
-});
-
-it('keeps monitoring away from staff', function () {
-    $this->actingAs(staffUser())->get(route('monitoring'))->assertForbidden();
 });
 
 it('shows the head the four questions on the beranda', function () {
@@ -155,7 +151,7 @@ it('computes achievement from the plan items of the month', function () {
     $item(['target' => 4, 'capaian' => 4, 'status' => 'cancelled']);
     $item(['target' => 4, 'capaian' => 4, 'date_start' => '2026-09-05', 'date_end' => '2026-09-05']); // another month
 
-    $this->actingAs($user)->get(route('dashboard', ['year' => 2026, 'month' => 10]))
+    $this->actingAs($user)->get(route('monitoring', ['year' => 2026, 'month' => 10]))
         ->assertInertia(fn ($page) => $page
             ->where('personal_stats.avg_achievement', 75)
             ->where('personal_stats.has_achievement', true)
@@ -163,4 +159,28 @@ it('computes achievement from the plan items of the month', function () {
             ->where('projects.0.achievement', 75)
             ->where('team_progress.'.$team->id.'.avg_achievement', 75)
             ->where('top_employees_by_achievement.0.avg_achievement', 75));
+});
+
+it('shows a member what to do this week on the beranda', function () {
+    $this->travelTo('2026-10-28 10:00:00');
+    $user = staffUser();
+    $me = Employee::factory()->create(['user_id' => $user->id]);
+    $team = Team::factory()->create();
+    $plan = PerformancePlan::factory()->create(['project_id' => null, 'team_id' => $team->id]);
+    $item = fn (string $date, array $extra = []) => PlanItem::create([
+        'team_id' => $team->id, 'employee_id' => $me->id, 'performance_plan_id' => $plan->id, 'description' => 'k', 'date_start' => $date, 'date_end' => $date, ...$extra,
+    ]);
+    $item('2026-10-27', ['kip_sent_at' => now()]);
+    $item('2026-10-20', ['capaian' => 3]);
+    $item('2026-10-21');
+
+    $this->actingAs($user)->get(route('dashboard'))->assertInertia(fn ($page) => $page
+        ->component('MemberHome')
+        ->where('plan.count', 1)
+        ->where('last_week.total', 2)
+        ->where('last_week.filled', 1)
+        ->has('last_week.missing', 1)
+        ->where('sent.sent', 1)
+        ->where('sent.total', 3)
+        ->has('sent.pending', 2));
 });

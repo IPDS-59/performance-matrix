@@ -113,7 +113,7 @@ const periodTypeLabel: Record<string, string> = {
                             <template v-if="plan.period"> TW{{ plan.period }}</template>
                         </TableCell>
                         <TableCell>
-                            <template v-if="plan.target != null">{{ plan.target }} {{ plan.target_unit }}</template>
+                            <template v-if="plan.target != null">{{ $n(plan.target) }} {{ plan.target_unit }}</template>
                             <template v-else>—</template>
                         </TableCell>
                         <TableCell>{{ plan.pic?.display_name || plan.pic?.name || '—' }}</TableCell>

@@ -51,8 +51,8 @@ const t = computed(() => TONES[tone.value]);
 
         <div class="px-5">
             <p class="flex items-baseline gap-1.5">
-                <span class="text-4xl font-semibold tabular-nums tracking-tight text-gray-900">{{ value }}</span>
-                <span v-if="total !== undefined" class="text-base font-medium text-gray-400 tabular-nums">dari {{ total }}</span>
+                <span class="text-4xl font-semibold tabular-nums tracking-tight text-gray-900">{{ $n(value) }}</span>
+                <span v-if="total !== undefined" class="text-base font-medium text-gray-400 tabular-nums">dari {{ $n(total) }}</span>
             </p>
             <div v-if="total" class="mt-3 h-2 overflow-hidden rounded-full bg-gray-100" role="progressbar" :aria-valuenow="value" aria-valuemin="0" :aria-valuemax="total">
                 <div :class="['h-full rounded-full transition-all', t.bar]" :style="{ width: `${Math.round(ratio * 100)}%` }" />

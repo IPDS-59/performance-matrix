@@ -92,7 +92,7 @@ const yearlyStep = computed(() => stepOf('yearly', props.overview.yearly?.status
                     </div>
 
                     <template v-if="q.exists">
-                        <p class="mt-1 text-sm text-gray-600">{{ q.jml_rk }} RK, {{ q.jml_kegiatan }} kegiatan.</p>
+                        <p class="mt-1 text-sm text-gray-600">{{ $n(q.jml_rk) }} RK, {{ $n(q.jml_kegiatan) }} kegiatan.</p>
                         <ol class="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs text-gray-500" :aria-label="`Tahap SKP TW ${q.quarter}`">
                             <li v-for="(label, i) in QUARTER_STEPS" :key="label" :class="i <= stepOf('quarter', q.status_id) ? 'font-medium text-gray-900' : ''">{{ i + 1 }}. {{ label }}</li>
                         </ol>

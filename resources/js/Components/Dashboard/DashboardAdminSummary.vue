@@ -39,7 +39,7 @@ const { achievementColor, progressVariant } = useAchievementColor();
             </CardHeader>
             <CardContent>
                 <p class="text-3xl font-bold text-green-600">{{ goodCount }}</p>
-                <p class="mt-1 text-xs text-gray-400">dari {{ total }} tim</p>
+                <p class="mt-1 text-xs text-gray-400">dari {{ $n(total) }} tim</p>
             </CardContent>
         </Card>
     </div>

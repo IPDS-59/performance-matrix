@@ -95,7 +95,7 @@ async function deleteAll() {
             <!-- Header actions -->
             <div class="mb-4 flex items-center justify-between">
                 <p class="text-sm text-gray-500">
-                    <template v-if="items.length">{{ notifications.total }} notifikasi</template>
+                    <template v-if="items.length">{{ $n(notifications.total) }} notifikasi</template>
                     <template v-else>Tidak ada notifikasi</template>
                 </p>
                 <div class="flex gap-3">

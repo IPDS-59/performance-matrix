@@ -78,9 +78,9 @@ function formatDate(iso: string | null): string {
 </script>
 
 <template>
-    <Head :title="canViewAll ? 'Kegiatan kipApp' : 'Kegiatan Saya'" />
+    <Head :title="canViewAll ? 'Kegiatan kipApp' : 'Pantau Kegiatan'" />
     <AppLayout>
-        <template #title>{{ canViewAll ? 'Kegiatan kipApp' : 'Kegiatan Saya' }}</template>
+        <template #title>{{ canViewAll ? 'Kegiatan kipApp' : 'Pantau Kegiatan' }}</template>
 
         <div class="mb-3 flex flex-wrap items-center gap-2">
             <div class="inline-flex rounded-md border bg-gray-50 p-0.5" role="tablist" aria-label="Periode">
@@ -112,7 +112,7 @@ function formatDate(iso: string | null): string {
 
         <div class="mb-4 flex flex-wrap items-center justify-between gap-3">
             <div class="text-sm text-gray-500">
-                {{ stats.sent }} dari {{ stats.total }} kegiatan sudah dikirim ke atasan<template v-if="periodLabel"> ({{ periodLabel }})</template>
+                {{ $n(stats.sent) }} dari {{ $n(stats.total) }} kegiatan sudah dikirim ke atasan<template v-if="periodLabel"> ({{ periodLabel }})</template>
             </div>
             <div class="flex items-center gap-2">
                 <Select v-model="status">

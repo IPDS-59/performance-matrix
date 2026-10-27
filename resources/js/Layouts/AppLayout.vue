@@ -42,7 +42,7 @@ const navSections = computed<NavSection[]>(() => {
         {
             items: [
                 { label: 'Beranda', href: route('dashboard'), active: is('dashboard'), icon: House, show: true },
-                { label: 'Monitoring', href: route('monitoring'), active: is('monitoring'), icon: Activity, show: isHead.value },
+                { label: 'Monitoring', href: route('monitoring'), active: is('monitoring'), icon: Activity, show: true },
                 { label: 'Matriks', href: route('matrix'), active: is('matrix'), icon: LayoutGrid, show: true },
                 { label: 'Struktur Organisasi', href: route('organization.index'), active: is('organization.*'), icon: Network, show: true },
             ],
@@ -52,7 +52,7 @@ const navSections = computed<NavSection[]>(() => {
             title: 'Kegiatan',
             items: [
                 { label: 'Rekap Mingguan', href: route('weekly.index'), active: is('weekly.index'), icon: CalendarCheck, show: hasEmployee.value && !isHead.value },
-                { label: isAdmin.value ? 'Kegiatan kipApp' : 'Kegiatan Saya', href: route('kip-activities.index'), active: is('kip-activities.*'), icon: ListChecks, show: isAdmin.value || (hasEmployee.value && !isHead.value) },
+                { label: isAdmin.value ? 'Kegiatan kipApp' : 'Pantau Kegiatan', href: route('kip-activities.index'), active: is('kip-activities.*'), icon: ListChecks, show: isAdmin.value || (hasEmployee.value && !isHead.value) },
                 { label: 'SKP Saya', href: route('skp.index'), active: is('skp.*'), icon: FileCheck, show: hasEmployee.value && !isHead.value },
                 { label: 'Angka Kredit Saya', href: route('credit.mine'), active: is('credit.mine'), icon: Award, show: hasEmployee.value },
             ],

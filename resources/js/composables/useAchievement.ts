@@ -1,4 +1,5 @@
 import type { PlanItemRow } from '@/types';
+import { formatNumber } from '@/composables/useNumber';
 
 /** Capaian against target as a whole percent, or null when either number is missing or the target is 0. */
 export function achievementPercent(capaian: number | null | undefined, target: number | null | undefined): number | null {
@@ -9,7 +10,7 @@ export function achievementPercent(capaian: number | null | undefined, target: n
 /** "9 blok" or "9,5 blok"; the unit is left out when empty. */
 export function withUnit(value: number | null | undefined, unit: string | null | undefined): string {
     if (value == null) return '–';
-    return [value.toLocaleString('id-ID'), unit].filter(Boolean).join(' ');
+    return [formatNumber(value), unit].filter(Boolean).join(' ');
 }
 
 /** The dates of a kegiatan as one short text; a clock time follows a one-day kegiatan. */

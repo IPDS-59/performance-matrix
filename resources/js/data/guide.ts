@@ -136,6 +136,17 @@ export const SHOTS = {
             { n: 5, x: 79.4, y: 23.3, label: 'SKP triwulan dinilai di kipApp.' },
         ],
     },
+    anggotaBeranda: {
+        src: '/images/pedoman/anggota-beranda.webp',
+        alt: 'Beranda anggota: empat kotak, yaitu rencana minggu ini, capaian minggu lalu, kegiatan ke atasan, dan SKP saya',
+        width: 1024, height: 576,
+        markers: [
+            { n: 1, x: 56, y: 17, label: 'Rencana minggu ini. Merah atau kuning bila belum ada rencana.' },
+            { n: 2, x: 97, y: 17, label: 'Berapa kegiatan minggu lalu yang capaiannya sudah diisi, dan mana yang belum.' },
+            { n: 3, x: 56, y: 47, label: 'Kegiatan bulan ini yang sudah dikirim ke atasan, dan yang belum.' },
+            { n: 4, x: 97, y: 47, label: 'SKP tahun ini yang belum selesai dinilai.' },
+        ],
+    },
     anggotaAngkaKredit: {
         src: '/images/pedoman/anggota-angka-kredit.webp',
         alt: 'Halaman Angka Kredit Saya dengan kemajuan, AK dari PAK dan rumus per triwulan',
@@ -323,6 +334,16 @@ export const GUIDE_FLOWS: GuideFlow[] = [
             SSO_LOGIN_STEP,
             PAGE_TOUR_STEP,
             {
+                title: 'Baca Beranda',
+                where: 'Menu Beranda',
+                route: 'dashboard',
+                body: [
+                    'Beranda menjawab empat hal untuk minggu ini: apakah rencana sudah ada, apakah capaian minggu lalu sudah diisi, apakah kegiatan sudah dikirim ke atasan, dan di mana posisi SKP Anda. Judul kotak memuat tombol langsung ke halaman yang perlu Anda buka.',
+                    'Capaian tim dan peringkat ada di menu Monitoring. Menu "Pantau Kegiatan" hanya untuk melihat kegiatan kipApp Anda, bukan untuk mengisi.',
+                ],
+                shot: SHOTS.anggotaBeranda,
+            },
+            {
                 title: 'Buka Rekap Mingguan',
                 where: 'Menu Kegiatan → Rekap Mingguan',
                 route: 'weekly.index',
@@ -353,7 +374,7 @@ export const GUIDE_FLOWS: GuideFlow[] = [
                 where: 'Menu Kegiatan → Rekap Mingguan',
                 route: 'weekly.index',
                 body: [
-                    'Pada rapat minggu kedua dan seterusnya, mulai dari tabel "Capaian minggu lalu". Klik baris untuk mengisi capaian (angka), uraian capaian dan tautan bukti. Persentase capaian terhadap target dihitung otomatis.',
+                    'Pada rapat minggu kedua dan seterusnya, mulai dari tabel "Capaian minggu lalu". Klik baris, lalu isi form Realisasi: capaian (angka), progres, tautan bukti dukung, dan uraian. Progres dihitung otomatis dari capaian dibagi target, dan bisa Anda ubah. Persentase capaian terhadap target juga dihitung otomatis.',
                     'Lalu tambahkan kegiatan untuk "Rencana minggu ini".',
                 ],
             },
@@ -368,7 +389,7 @@ export const GUIDE_FLOWS: GuideFlow[] = [
                     'Kalau SKP triwulan Anda sudah ada tetapi belum memuat RK kegiatan ini, Kinetik menambahkan RK itu dari SKP Tahunan, seperti mengedit SKP Periodik di kipApp. RK yang sudah ada tidak berubah.',
                     'Jika belum terkirim, alasannya tampil di detail kegiatan, misalnya "SKP Tahunan belum Ditetapkan". Kinetik mencoba lagi pada jam berikutnya sampai tanggal selesai dan memberi tahu Anda satu kali lewat lonceng.',
                     'Kinetik tidak mengirim kegiatan sebelum tanggal mulainya, karena kipApp tidak menerima tanggal yang belum tiba. Tombol "Kirim ke kipApp" aktif pada hari itu.',
-                    'Selesai mengerjakan? Tekan "Tandai selesai". Uraian capaian wajib minimal 10 karakter saat ini. Kinetik mengirim progres 100%, uraian capaian dan tautan bukti ke kipApp. Tombol "Simpan capaian" hanya menyimpan di Kinetik.',
+                    'Selesai mengerjakan? Tekan "Tandai selesai". Uraian capaian wajib minimal 10 karakter saat ini. Kinetik mengirim progres 100%, uraian capaian dan tautan bukti ke kipApp. Tombol "Simpan realisasi" hanya menyimpan di Kinetik.',
                     'Kegiatan yang sudah ada di kipApp dan belum dikirim ke atasan bisa diubah, atau dihapus lewat tombol "Hapus kegiatan" di detail. Kinetik menghapusnya juga di kipApp, setelah bertanya dulu. Kegiatan yang sudah dikirim ke atasan tidak bisa dihapus: tekan "Batalkan kirim" dulu, lalu hapus. Jika SKP triwulan sudah dikirim untuk dinilai, kegiatan terkunci dan alasannya tampil di detail.',
                     'Mengirim ke atasan: centang beberapa kegiatan di tabel, lalu tekan "Kirim ke atasan (n)". Kinetik bertanya dulu, lalu mengirim semuanya sekaligus. "Batalkan kirim (n)" mengembalikan kegiatan yang sudah terkirim. Kirim dan batal kirim sudah diuji langsung di kipApp. Aturannya sama dengan kipApp: hanya berlaku selama SKP triwulan berstatus "Sedang dibuat".',
                     'Jika progres diubah langsung di kipApp, Kinetik mengikuti kipApp pada sinkronisasi berikutnya.',
@@ -377,10 +398,10 @@ export const GUIDE_FLOWS: GuideFlow[] = [
             },
             {
                 title: 'Lihat hasilnya',
-                where: 'Menu Kegiatan → Kegiatan Saya, dan menu Rekap Tim',
+                where: 'Menu Kegiatan → Pantau Kegiatan, dan menu Rekap Tim',
                 route: 'kip-activities.index',
                 body: [
-                    'Kegiatan Saya menampilkan semua kegiatan kipApp Anda. Saring per Minggu, Bulan atau Triwulan, lalu pindah periode dengan ‹ dan ›.',
+                    'Pantau Kegiatan hanya untuk memantau: halaman ini menampilkan semua kegiatan kipApp Anda dan tidak dipakai untuk mengisi. Saring per Minggu, Bulan atau Triwulan, lalu pindah periode dengan ‹ dan ›.',
                     'Rekap Tim menampilkan rekap tim Anda. Anda dapat membaca, tetapi hanya PJ yang mengubah ringkasan.',
                 ],
             },

@@ -105,7 +105,7 @@ function executeDelete() {
                         <TableCell>{{ indicator.year }}</TableCell>
                         <TableCell>
                             <template v-if="indicator.target != null">
-                                {{ indicator.target }} {{ indicator.target_unit }}
+                                {{ $n(indicator.target) }} {{ indicator.target_unit }}
                             </template>
                             <template v-else>—</template>
                         </TableCell>

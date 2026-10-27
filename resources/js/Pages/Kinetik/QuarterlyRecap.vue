@@ -346,8 +346,8 @@ function saveParaphrase(row: RecapRow) {
                                         <p v-if="row.is_overridden" class="mt-0.5 text-xs italic text-blue-500">Telah diparafrase</p>
                                     </TableCell>
                                     <TableCell class="hidden min-w-[10rem] max-w-[16rem] whitespace-normal align-top md:table-cell text-xs leading-snug text-gray-600">{{ row.contributors.join(', ') || '—' }}</TableCell>
-                                    <TableCell class="text-right align-top tabular-nums text-gray-700">{{ row.target }} {{ row.target_unit ?? '' }}</TableCell>
-                                    <TableCell class="text-right align-top tabular-nums text-gray-700">{{ row.realization }}</TableCell>
+                                    <TableCell class="text-right align-top tabular-nums text-gray-700">{{ $n(row.target) }} {{ row.target_unit ?? '' }}</TableCell>
+                                    <TableCell class="text-right align-top tabular-nums text-gray-700">{{ $n(row.realization) }}</TableCell>
                                     <TableCell class="text-right align-top tabular-nums">
                                         <span v-if="row.achievement != null" :class="achievementColor(row.achievement)">{{ row.achievement.toFixed(2) }}%</span>
                                         <span v-else class="text-gray-400">—</span>
