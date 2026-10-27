@@ -125,6 +125,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/struktur-organisasi', [OrganizationController::class, 'index'])->name('organization.index');
     Route::get('/fra', [FraController::class, 'index'])->name('fra.index');
     Route::patch('/fra/{indicator}/triwulan/{quarter}', [FraController::class, 'updateValues'])->name('fra.values');
+    Route::put('/fra/{indicator}/bulanan', [FraController::class, 'updateMonths'])->name('fra.months');
     Route::patch('/fra/{indicator}/pemilik', [FraController::class, 'updateOwner'])->name('fra.owner');
     Route::get('/kepatuhan-rencana', [PlanComplianceController::class, 'index'])->name('plan-compliance.index');
     Route::post('/rencana-minggu/fokus', [WeeklyPlanController::class, 'storeFocus'])->name('weekly-plan.focus');

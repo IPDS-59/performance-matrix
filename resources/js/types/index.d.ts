@@ -594,6 +594,7 @@ export interface FraIndicatorRow {
     target_value: number;
     quarters: Record<number, FraQuarter>;
     values: Record<number, FraQuarterInput>;
+    months: Record<number, { x: number | null; y: number | null }>;
     normalized: number | null;
     correction: number;
     final: number | null;

@@ -3,6 +3,7 @@
 namespace App\Services\Kinetik;
 
 use App\Models\FraIndicator;
+use App\Models\FraMonthValue;
 use App\Models\FraQuarterValue;
 use Illuminate\Support\Collection;
 
@@ -23,13 +24,16 @@ class FraReport
         $rows = $indicators->sortBy('sort_order')->values()->map(function (FraIndicator $ind) use ($quarter, $correction) {
             $yearTarget = $this->calc->value($ind, $ind->target_x, $ind->target_y);
             $byQuarter = $ind->quarterValues->keyBy('quarter');
+            $byMonth = $ind->monthValues->keyBy('month');
 
             $quarters = [];
             foreach ([1, 2, 3, 4] as $q) {
                 /** @var FraQuarterValue|null $v */
                 $v = $byQuarter->get($q);
                 $allocation = $this->calc->value($ind, $v?->allocation_x, $v?->allocation_y);
-                $realization = $this->calc->value($ind, $v?->realization_x, $v?->realization_y);
+                // Months entered up to the end of the quarter win over the quarter figures typed by hand.
+                [$realX, $realY] = $this->fromMonths($ind, $byMonth, $q * 3) ?? [$v?->realization_x, $v?->realization_y];
+                $realization = $this->calc->value($ind, $realX, $realY);
                 $quarters[$q] = [
                     'allocation_value' => $allocation,
                     'realization_value' => $realization,
@@ -46,6 +50,7 @@ class FraReport
                 ...$ind->only(['id', 'sort_order', 'tujuan', 'sasaran_code', 'sasaran_name', 'code', 'name', 'kind', 'period_type', 'unit_type', 'percent_label', 'unit', 'x_label', 'y_label', 'target_x', 'target_y', 'owner_team_id']),
                 'target_value' => $yearTarget,
                 'quarters' => $quarters,
+                'months' => $byMonth->map(fn ($m) => ['x' => $m->x, 'y' => $m->y])->all(),
                 'values' => $byQuarter->map(fn (FraQuarterValue $v) => $v->only(['allocation_x', 'allocation_y', 'realization_x', 'realization_y', 'obstacle', 'solution', 'follow_up', 'pic', 'deadline', 'evidence_url', 'previous_follow_up_url']))->all(),
                 'normalized' => $normalized,
                 'correction' => $correction,
@@ -79,5 +84,25 @@ class FraReport
                 'pko_predicate' => $nko === null ? null : $this->calc->pkoPredicate($nko),
             ],
         ];
+    }
+
+    /**
+     * Realisation of the year so far, from the monthly figures up to $lastMonth: X and Y added up for a percent row; for
+     * a value row the sum, or the average when the row is itself a percentage.
+     *
+     * @param  Collection<int, FraMonthValue>  $months
+     * @return array{0: ?float, 1: ?float}|null null when no month is entered
+     */
+    private function fromMonths(FraIndicator $ind, Collection $months, int $lastMonth): ?array
+    {
+        $used = $months->filter(fn ($m) => $m->month <= $lastMonth && ($m->x !== null || $m->y !== null));
+        if ($used->isEmpty()) {
+            return null;
+        }
+        if ($ind->isPercent()) {
+            return [$used->sum('x'), $used->sum('y')];
+        }
+
+        return [$ind->percent_label ? $used->avg('x') : $used->sum('x'), null];
     }
 }

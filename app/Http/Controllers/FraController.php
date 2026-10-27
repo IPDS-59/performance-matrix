@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Employee;
 use App\Models\FraIndicator;
+use App\Models\FraMonthValue;
 use App\Models\FraQuarterValue;
 use App\Models\Team;
 use App\Models\User;
@@ -30,7 +31,7 @@ class FraController extends Controller
         $user = $request->user();
         $ledTeamIds = $this->ledTeamIds($user);
 
-        $built = $report->build(FraIndicator::with('quarterValues')->where('year', $year)->get(), $quarter, $sakip);
+        $built = $report->build(FraIndicator::with(['quarterValues', 'monthValues'])->where('year', $year)->get(), $quarter, $sakip);
         $teams = Team::orderBy('name')->get(['id', 'name']);
 
         return Inertia::render('Kinetik/Fra', [
@@ -70,6 +71,35 @@ class FraController extends Controller
         );
 
         return back()->with('success', "Isian {$indicator->code} TW {$quarter} disimpan.");
+    }
+
+    /** All twelve months of one indicator in one save, like filling the Data Monitoring sheet. */
+    public function updateMonths(Request $request, FraIndicator $indicator): RedirectResponse
+    {
+        abort_unless($this->canEnter($request->user(), $indicator), 403, 'Hanya PJ tim pemilik indikator yang dapat mengisi.');
+
+        $data = $request->validate([
+            'months' => ['required', 'array'],
+            'months.*.x' => ['nullable', 'numeric'],
+            'months.*.y' => ['nullable', 'numeric'],
+        ]);
+
+        foreach ($data['months'] as $month => $cell) {
+            abort_unless((int) $month >= 1 && (int) $month <= 12, 422);
+            $x = $cell['x'] ?? null;
+            $y = $cell['y'] ?? null;
+            if ($x === null && $y === null) {
+                FraMonthValue::where(['fra_indicator_id' => $indicator->id, 'month' => (int) $month])->delete();
+
+                continue;
+            }
+            FraMonthValue::updateOrCreate(
+                ['fra_indicator_id' => $indicator->id, 'month' => (int) $month],
+                ['x' => $x, 'y' => $y, 'updated_by' => $request->user()->employee?->id],
+            );
+        }
+
+        return back()->with('success', "Isian bulanan {$indicator->code} disimpan.");
     }
 
     public function updateOwner(Request $request, FraIndicator $indicator): RedirectResponse

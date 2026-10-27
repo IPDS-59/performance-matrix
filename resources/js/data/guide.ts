@@ -172,6 +172,16 @@ export const SHOTS = {
             { n: 3, x: 80, y: 71, label: 'Pegawai dengan capaian terbesar.' },
         ],
     },
+    fraBulanan: {
+        src: '/images/pedoman/fra-bulanan.webp',
+        alt: 'Kertas Kerja FRA, tampilan Data bulanan: tabel Januari sampai Desember dengan baris X, baris Y, dan persen berwarna',
+        width: 1024, height: 427,
+        markers: [
+            { n: 1, x: 8, y: 6, label: 'Pilih tampilan Data bulanan di atas halaman.' },
+            { n: 2, x: 30, y: 25, label: 'Baris X dan Y per bulan. PJ tim pemilik mengisinya langsung di sel.' },
+            { n: 3, x: 40, y: 47, label: 'Persen dihitung otomatis. Hijau: target tercapai. Kuning: belum mencapai target. Merah: kosong atau nol pada bulan yang sudah lewat.' },
+        ],
+    },
     pimpinanReviewBersama: {
         src: '/images/pedoman/pimpinan-review-bersama.webp',
         alt: 'Halaman Review Bersama: ringkasan kantor dan tabel capaian per tim yang bisa diurutkan',
@@ -523,7 +533,10 @@ export const GUIDE_FLOWS: GuideFlow[] = [
                     'Pilih triwulan, tekan pensil, lalu isi Alokasi target dan Realisasi (kumulatif sampai triwulan itu). Untuk indikator persen, isi X dan Y; Kinetik menghitung nilainya.',
                     'Isi juga Kendala, Solusi, Rencana tindak lanjut, PIC, Batas waktu dan link bukti. Kolom ini sama dengan kolom analisis di Kertas Kerja.',
                     'Capaian terhadap target triwulan dan setahun dihitung otomatis dengan rumus Kertas Kerja (maksimal 120).',
+                    'Atau isi per bulan: pilih tampilan "Data bulanan", ketik X dan Y tiap bulan, lalu tekan "Simpan bulanan". Realisasi triwulan lalu dihitung dari bulan yang sudah diisi: X dan Y dijumlahkan, lalu dibagi.',
+                    'Persen tiap bulan berwarna hijau bila target tercapai, kuning bila belum, dan merah bila kosong atau nol pada bulan yang sudah lewat.',
                 ],
+                shot: SHOTS.fraBulanan,
                 tip: 'Tidak ada pensil pada indikator tertentu? Minta admin menetapkan tim Anda sebagai pemilik indikator itu.',
             },
             {
