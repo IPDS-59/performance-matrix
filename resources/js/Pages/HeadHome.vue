@@ -1,10 +1,12 @@
 <script setup lang="ts">
 import AppLayout from '@/Layouts/AppLayout.vue';
-import { Head, Link } from '@inertiajs/vue3';
-import { CalendarCheck, CircleCheck, ClipboardCheck, FileCheck, Send } from 'lucide-vue-next';
+import HeadHomeCard from '@/Components/Kinetik/HeadHomeCard.vue';
+import { Head } from '@inertiajs/vue3';
+import { computed } from 'vue';
+import { CalendarCheck, CircleCheck, ClipboardCheck, FileCheck, Send, TriangleAlert } from 'lucide-vue-next';
 import { useDateFormat } from '@/composables/useDateFormat';
 
-defineProps<{
+const props = defineProps<{
     week: { start: string; end: string };
     plans: { total: number; filled: number; missing: string[] };
     sent: { total: number; sent: number; pending: string[] };
@@ -13,6 +15,9 @@ defineProps<{
 }>();
 
 const { formatDate } = useDateFormat();
+
+const skpItems = computed(() => props.skp.rows.map((r) => `${r.employee}, ${r.label}`));
+const open = computed(() => [props.plans.missing, props.sent.pending, props.meetings.missing].filter((l) => l.length).length + (props.skp.count ? 1 : 0));
 </script>
 
 <template>
@@ -20,57 +25,38 @@ const { formatDate } = useDateFormat();
     <AppLayout>
         <template #title>Beranda</template>
 
-        <p class="mb-4 text-sm text-gray-600">Minggu {{ formatDate(week.start) }} sampai {{ formatDate(week.end) }}.</p>
+        <div class="mb-5 flex flex-wrap items-center justify-between gap-3">
+            <div>
+                <p class="text-xs font-medium uppercase tracking-wide text-gray-500">Minggu ini</p>
+                <p class="text-lg font-semibold text-gray-900">{{ formatDate(week.start) }} sampai {{ formatDate(week.end) }}</p>
+            </div>
+            <p :class="['inline-flex items-center gap-2 rounded-full px-3.5 py-1.5 text-sm font-medium', open ? 'bg-amber-50 text-amber-800' : 'bg-green-50 text-green-700']">
+                <component :is="open ? TriangleAlert : CircleCheck" class="h-4 w-4" aria-hidden="true" />
+                {{ open ? `${open} dari 4 hal perlu ditindaklanjuti` : 'Semua aman minggu ini' }}
+            </p>
+        </div>
 
-        <div class="grid gap-4 md:grid-cols-2">
-            <section class="rounded-lg border bg-white p-4" data-tour="head-plans">
-                <header class="flex items-center gap-2 text-sm font-semibold text-gray-800"><ClipboardCheck class="h-4 w-4 text-primary" /> Rencana minggu ini</header>
-                <p class="mt-2 text-3xl font-semibold tabular-nums">{{ plans.filled }}<span class="text-lg text-gray-400">/{{ plans.total }}</span></p>
-                <p class="text-sm text-gray-600">anggota sudah membuat rencana</p>
-                <p v-if="!plans.missing.length" class="mt-3 flex items-center gap-1.5 text-sm text-green-700"><CircleCheck class="h-4 w-4" /> Semua sudah membuat rencana.</p>
-                <template v-else>
-                    <p class="mt-3 text-xs font-semibold uppercase tracking-wide text-gray-500">Belum ({{ plans.missing.length }})</p>
-                    <p class="mt-1 text-sm text-gray-800">{{ plans.missing.join(', ') }}</p>
-                </template>
-                <Link :href="route('plan-compliance.index')" class="mt-3 inline-block text-sm text-primary hover:underline">Kepatuhan Rencana</Link>
-            </section>
-
-            <section class="rounded-lg border bg-white p-4" data-tour="head-sent">
-                <header class="flex items-center gap-2 text-sm font-semibold text-gray-800"><Send class="h-4 w-4 text-primary" /> Kegiatan ke atasan</header>
-                <p class="mt-2 text-3xl font-semibold tabular-nums">{{ sent.sent }}<span class="text-lg text-gray-400">/{{ sent.total }}</span></p>
-                <p class="text-sm text-gray-600">anggota sudah mengirim semua kegiatannya</p>
-                <p v-if="!sent.pending.length" class="mt-3 flex items-center gap-1.5 text-sm text-green-700"><CircleCheck class="h-4 w-4" /> Tidak ada yang tertunda.</p>
-                <template v-else>
-                    <p class="mt-3 text-xs font-semibold uppercase tracking-wide text-gray-500">Belum kirim ({{ sent.pending.length }})</p>
-                    <p class="mt-1 text-sm text-gray-800">{{ sent.pending.join(', ') }}</p>
-                </template>
-            </section>
-
-            <section class="rounded-lg border bg-white p-4" data-tour="head-meetings">
-                <header class="flex items-center gap-2 text-sm font-semibold text-gray-800"><CalendarCheck class="h-4 w-4 text-primary" /> Rapat mingguan ({{ meetings.week_label }})</header>
-                <p class="mt-2 text-3xl font-semibold tabular-nums">{{ meetings.total - meetings.missing.length }}<span class="text-lg text-gray-400">/{{ meetings.total }}</span></p>
-                <p class="text-sm text-gray-600">tim sudah punya rekap minggu lalu</p>
-                <p v-if="!meetings.missing.length" class="mt-3 flex items-center gap-1.5 text-sm text-green-700"><CircleCheck class="h-4 w-4" /> Semua tim sudah merekap.</p>
-                <template v-else>
-                    <p class="mt-3 text-xs font-semibold uppercase tracking-wide text-gray-500">Belum ada rekap ({{ meetings.missing.length }})</p>
-                    <p class="mt-1 text-sm text-gray-800">{{ meetings.missing.join(', ') }}</p>
-                </template>
-                <Link :href="route('team-recap.meetings')" class="mt-3 inline-block text-sm text-primary hover:underline">Ringkasan Rapat</Link>
-            </section>
-
-            <section class="rounded-lg border bg-white p-4" data-tour="head-skp">
-                <header class="flex items-center gap-2 text-sm font-semibold text-gray-800"><FileCheck class="h-4 w-4 text-primary" /> SKP menunggu Anda</header>
-                <p class="mt-2 text-3xl font-semibold tabular-nums">{{ skp.count }}</p>
-                <p class="text-sm text-gray-600">SKP menunggu persetujuan</p>
-                <p v-if="!skp.count" class="mt-3 flex items-center gap-1.5 text-sm text-green-700"><CircleCheck class="h-4 w-4" /> Tidak ada yang menunggu.</p>
-                <ul v-else class="mt-3 divide-y text-sm">
-                    <li v-for="(r, i) in skp.rows" :key="i" class="flex justify-between gap-2 py-1.5">
-                        <span class="truncate text-gray-800">{{ r.employee }}</span>
-                        <span class="shrink-0 text-gray-500">{{ r.label }}</span>
-                    </li>
-                </ul>
-                <Link :href="route('skp.approvals')" class="mt-3 inline-block text-sm text-primary hover:underline">Persetujuan SKP</Link>
-            </section>
+        <div class="grid gap-5 lg:grid-cols-2">
+            <HeadHomeCard
+                :icon="ClipboardCheck" title="Rencana minggu ini" caption="Anggota yang sudah membuat rencana"
+                :value="plans.filled" :total="plans.total" :items="plans.missing" items-label="Belum membuat rencana"
+                ok-text="Semua anggota sudah membuat rencana." :href="route('plan-compliance.index')" href-label="Buka Kepatuhan Rencana"
+            />
+            <HeadHomeCard
+                :icon="Send" title="Kegiatan ke atasan" caption="Anggota yang sudah mengirim semua kegiatannya"
+                :value="sent.sent" :total="sent.total" :items="sent.pending" items-label="Masih ada yang belum dikirim"
+                ok-text="Tidak ada kegiatan yang tertunda." :href="route('team-recap.overview')" href-label="Buka Review Bersama"
+            />
+            <HeadHomeCard
+                :icon="CalendarCheck" :title="`Rapat mingguan, ${meetings.week_label}`" caption="Tim yang sudah punya rekap minggu lalu"
+                :value="meetings.total - meetings.missing.length" :total="meetings.total" :items="meetings.missing" items-label="Belum ada rekap"
+                ok-text="Semua tim sudah merekap." :href="route('team-recap.meetings')" href-label="Buka Ringkasan Rapat"
+            />
+            <HeadHomeCard
+                :icon="FileCheck" title="SKP menunggu Anda" caption="Menunggu persetujuan pimpinan"
+                :value="skp.count" :items="skpItems" items-label="Pegawai dan jenis SKP"
+                ok-text="Tidak ada SKP yang menunggu." :href="route('skp.approvals')" href-label="Buka Persetujuan SKP"
+            />
         </div>
     </AppLayout>
 </template>
