@@ -202,6 +202,7 @@ onMounted(() => {
         const flash = (event.detail.page.props as Record<string, unknown>).flash as Record<string, string> | undefined;
         if (flash?.success) push.success(flash.success);
         if (flash?.error) push.error(flash.error);
+        if (flash?.warning) push.warning({ message: flash.warning, duration: 10000 });
     });
 });
 
