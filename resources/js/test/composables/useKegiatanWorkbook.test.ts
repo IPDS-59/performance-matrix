@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { parseKegiatanRows } from '@/composables/useKegiatanWorkbook';
+import { attachNip, parseKegiatanRows, parsePegawaiRows } from '@/composables/useKegiatanWorkbook';
 
 const header = [null, 'No', 'Nama Anggota', 'Projek', 'Tanggal', 'Uraian', null, 'Target', 'Realisasi', 'Capaian Kinerja (%)', 'Permasalahan'];
 
@@ -45,5 +45,15 @@ describe('parseKegiatanRows', () => {
 
         expect(rows.map((r) => r.description)).toEqual(['Aktivitas Protokoler kunjungan tamu', 'Dokumentasi liputan kegiatan', 'Rapat koordinasi metodologi']);
         expect(rows[2]).toMatchObject({ member: 'Bayu Setyawan, SST', project: 'Metodologi', date_start: '2026-06-02', date_end: '2026-06-03', target: 3 });
+    });
+});
+
+describe('NIP from the pegawai list', () => {
+    const pegawai = parsePegawaiRows([['NIP BPS', 'NIP', 'Nama', 'Jabatan'], ['340059291', '199106182019031001', 'Yudha Subakti, S.Si', 'Fungsional'], ['340011', '199001012015011001', 'Maya Novita Sari, S.Tr.Stat.', 'Fungsional']]);
+    const row = (member: string) => ({ sheet: 'x', member, project: null, date_start: null, date_end: null, time_start: null, time_end: null, description: 'Kegiatan contoh', target: null, realization: null, percent: null, note: null, link: null });
+
+    it('finds the NIP by the whole name, however the titles are spaced', () => {
+        const rows = attachNip([row('Maya Novita Sari, S. Tr. Stat'), row('Yudha Subakti'), row('Orang Lain, SST')], pegawai);
+        expect(rows.map((r) => r.nip)).toEqual(['199001012015011001', '199106182019031001', null]);
     });
 });

@@ -9,7 +9,7 @@ import { Button } from '@/Components/ui/button';
 import { Input } from '@/Components/ui/input';
 import { Label } from '@/Components/ui/label';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/Components/ui/table';
-import { readKegiatanWorkbook } from '@/composables/useKegiatanWorkbook';
+import { attachNip, readKegiatanWorkbook, readPegawaiList } from '@/composables/useKegiatanWorkbook';
 import { useDateFormat } from '@/composables/useDateFormat';
 
 interface PreviewRow {
@@ -39,6 +39,7 @@ const { formatDate } = useDateFormat();
 
 const week = ref(props.defaultWeek);
 const file = ref<File | null>(null);
+const pegawaiFile = ref<File | null>(null);
 const rows = ref<PreviewRow[]>([]);
 const busy = ref(false);
 const error = ref('');
@@ -60,7 +61,8 @@ async function read() {
     error.value = '';
     result.value = null;
     try {
-        const parsed = await readKegiatanWorkbook(file.value, props.tahun);
+        let parsed = await readKegiatanWorkbook(file.value, props.tahun);
+        if (pegawaiFile.value) parsed = attachNip(parsed, await readPegawaiList(pegawaiFile.value));
         if (!parsed.length) throw new Error('Tidak ada baris kegiatan yang terbaca. Pastikan sheet punya kolom "Nama Anggota" dan "Uraian".');
         const { data } = await axios.post(route('admin.import-kegiatan.preview'), { week_start: week.value, rows: parsed });
         rows.value = (data.rows as PreviewRow[]).map((r) => ({ ...r, include: !r.blocked && !r.duplicate && r.performance_plan_id !== null }));
@@ -111,9 +113,13 @@ const num = (v: number | null) => (v === null ? '-' : v.toLocaleString('id-ID'))
                     <Label for="imp-file">File Excel (.xlsx)</Label>
                     <Input id="imp-file" type="file" accept=".xlsx" class="w-72" @change="(e: Event) => (file = (e.target as HTMLInputElement).files?.[0] ?? null)" />
                 </div>
+                <div class="space-y-1.5">
+                    <Label for="imp-pegawai">Daftar Pegawai (.xls, untuk pencocokan NIP)</Label>
+                    <Input id="imp-pegawai" type="file" accept=".xls,.xlsx" class="w-72" @change="(e: Event) => (pegawaiFile = (e.target as HTMLInputElement).files?.[0] ?? null)" />
+                </div>
                 <Button :disabled="!file || busy" @click="read"><FileUp class="mr-1.5 h-4 w-4" aria-hidden="true" /> {{ busy && !rows.length ? 'Membaca…' : 'Baca file' }}</Button>
             </div>
-            <p class="mt-3 text-xs text-gray-600">Baris tanpa tanggal menjadi rencana Senin sampai Jumat minggu yang dipilih. Kolom Permasalahan, Solusi, dan Rencana Tindak Lanjut tidak diimpor.</p>
+            <p class="mt-3 text-xs text-gray-600">Baris tanpa tanggal menjadi rencana Senin sampai Jumat minggu yang dipilih. Kolom Permasalahan, Solusi, dan Rencana Tindak Lanjut tidak diimpor. Sertakan Daftar Pegawai (ekspor NIP BPS, NIP, Nama) supaya pegawai dicocokkan lewat NIP, bukan lewat nama.</p>
         </div>
 
         <p v-if="error" class="mb-4 flex items-start gap-2 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800" role="alert"><CircleAlert class="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" /> {{ error }}</p>
