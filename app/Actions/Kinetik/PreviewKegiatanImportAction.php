@@ -86,19 +86,16 @@ class PreviewKegiatanImportAction
         })->all();
     }
 
-    /** "Aditya Saputra, SST, M.URP" and "Aditya Saputra" are the same person; a name shared by two people matches nobody. */
+    /** "Aditya Saputra, SST, M.URP", "Aditya Saputra" and "Aditya Saputra SST" are one person; a name shared by two people matches nobody. */
     private function employee(Collection $employees, string $name): ?Employee
     {
-        $full = self::norm($name);
-        $byFull = $employees->filter(fn (Employee $e) => in_array($full, [self::norm($e->name), self::norm($e->display_name), self::norm($e->full_name)], true));
-        if ($byFull->count() === 1) {
-            return $byFull->first();
+        $key = self::key($name);
+        if ($key === '') {
+            return null;
         }
+        $found = $employees->filter(fn (Employee $e) => in_array($key, array_map(self::key(...), array_filter([$e->name, $e->display_name, $e->full_name])), true));
 
-        $base = self::base($name);
-        $byBase = $employees->filter(fn (Employee $e) => $base !== '' && in_array($base, [self::base($e->name), self::base($e->display_name), self::base($e->full_name)], true));
-
-        return $byBase->count() === 1 ? $byBase->first() : null;
+        return $found->count() === 1 ? $found->first() : null;
     }
 
     private function project(Collection $teamIds, string $name): ?Project
@@ -159,9 +156,24 @@ class PreviewKegiatanImportAction
         return mb_strtolower(preg_replace('/\s+/', ' ', trim((string) $text)));
     }
 
-    /** The name before the first comma, without dots: the titles after it differ between the sheet and kipApp. */
-    private static function base(?string $name): string
+    /**
+     * The person's name without academic titles. Kinetik stores names like "Yudha Subakti S.Si." while the sheets write
+     * "Yudha Subakti, S.Si": text after a comma goes, and so does any word with a dot or a short all-capital word (SST, SE, MM).
+     */
+    private static function key(?string $name): string
     {
-        return self::norm(str_replace('.', '', explode(',', (string) $name)[0]));
+        $words = preg_split('/\s+/', trim(explode(',', (string) $name)[0]), -1, PREG_SPLIT_NO_EMPTY) ?: [];
+        $kept = [];
+        foreach ($words as $i => $word) {
+            $isTitle = $i > 0 && (str_contains($word, '.') || (mb_strtoupper($word) === $word && mb_strlen($word) <= 5 && ctype_alpha($word)));
+            if ($i === 0 && preg_match('/^(dr|drs|ir|prof|h|hj)\.?$/i', $word)) {
+                continue;
+            }
+            if (! $isTitle) {
+                $kept[] = mb_strtolower($word);
+            }
+        }
+
+        return implode(' ', $kept);
     }
 }
