@@ -78,3 +78,19 @@ it('keeps the import to admins', function () {
     $this->actingAs(headUser())->postJson(route('admin.import-kegiatan.preview'), ['week_start' => '2026-10-26', 'rows' => [sheetRow()]])->assertForbidden();
     $this->actingAs(adminUser())->get(route('admin.import-kegiatan'))->assertOk();
 });
+
+it('matches names the way Kinetik stores them, with the titles glued to the name', function () {
+    [$team] = importSetup();
+    $stored = Employee::factory()->create(['name' => 'Yudha Subakti S.Si.', 'display_name' => 'Yudha Subakti S.Si.', 'is_active' => true]);
+    $stored->teams()->attach($team->id, ['role' => 'member', 'is_primary' => true]);
+    $muhammad = Employee::factory()->create(['name' => 'Muhammad Zein SST, M.P.W', 'is_active' => true]);
+    $muhammad->teams()->attach($team->id, ['role' => 'member', 'is_primary' => true]);
+
+    $rows = $this->actingAs(adminUser())->postJson(route('admin.import-kegiatan.preview'), ['week_start' => '2026-10-26', 'rows' => [
+        sheetRow(['member' => 'Yudha Subakti, S.Si']),
+        sheetRow(['member' => 'Dr. Muhammad Zein, SST, M.P.W.P']),
+        sheetRow(['member' => 'Maya Novita Sari, S. Tr. Stat']),
+    ]])->json('rows');
+
+    expect($rows[0]['employee_id'])->toBe($stored->id)->and($rows[1]['employee_id'])->toBe($muhammad->id)->and($rows[2]['employee_id'])->toBeNull();
+});
