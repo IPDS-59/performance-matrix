@@ -2,7 +2,7 @@
 import { Link, router, usePage } from '@inertiajs/vue3';
 import { computed, onMounted, onUnmounted, ref, watch, type Component } from 'vue';
 import {
-    Activity, Award, ChevronDown, BadgeCheck, BookOpen, CalendarCheck, CalendarDays, CalendarRange, ClipboardCheck, Eye, FileCheck, FileChartColumn, FileSpreadsheet, FolderKanban,
+    Activity, Award, ChevronDown, BadgeCheck, BookOpen, CalendarCheck, CalendarDays, CalendarRange, ClipboardCheck, Eye, FileCheck, FileChartColumn, FileSpreadsheet, FileUp, FolderKanban,
     CircleHelp, House, LayoutGrid, LayoutList, ListChecks, ListTodo, LogOut, Menu, Network, PanelLeftClose, PanelLeftOpen, Target, ToggleRight, UserRound, Users, X, Zap,
 } from 'lucide-vue-next';
 import { useSidebarStore } from '@/stores/sidebar';
@@ -82,6 +82,7 @@ const navSections = computed<NavSection[]>(() => {
                 { label: 'Lihat sebagai', href: route('admin.impersonate'), active: is('admin.impersonate*'), icon: Eye, show: isAdmin.value && !impersonating.value },
                 { label: 'Integrasi kipApp', href: route('kip-integration.index'), active: is('kip-integration.*'), icon: Zap, show: isAdmin.value },
                 { label: 'Fitur', href: route('admin.features'), active: is('admin.features*'), icon: ToggleRight, show: isAdmin.value },
+                { label: 'Impor Kegiatan', href: route('admin.import-kegiatan'), active: is('admin.import-kegiatan*'), icon: FileUp, show: isAdmin.value },
             ],
         },
         {

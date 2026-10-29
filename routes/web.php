@@ -8,6 +8,7 @@ use App\Http\Controllers\EmployeeReportController;
 use App\Http\Controllers\FeatureFlagController;
 use App\Http\Controllers\FraController;
 use App\Http\Controllers\GuideController;
+use App\Http\Controllers\KegiatanImportController;
 use App\Http\Controllers\KipActivityController;
 use App\Http\Controllers\KipIntegrationController;
 use App\Http\Controllers\KipStructureController;
@@ -197,6 +198,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::get('/admin/fitur', [FeatureFlagController::class, 'index'])->name('admin.features');
         Route::put('/admin/fitur/{key}', [FeatureFlagController::class, 'update'])->name('admin.features.update');
         Route::delete('/admin/fitur/{key}', [FeatureFlagController::class, 'reset'])->name('admin.features.reset');
+        Route::get('/admin/impor-kegiatan', [KegiatanImportController::class, 'index'])->name('admin.import-kegiatan');
+        Route::post('/admin/impor-kegiatan/pratinjau', [KegiatanImportController::class, 'preview'])->name('admin.import-kegiatan.preview');
+        Route::post('/admin/impor-kegiatan/simpan', [KegiatanImportController::class, 'store'])->name('admin.import-kegiatan.store');
     });
 
     Route::post('/tur/{key}', [TourController::class, 'complete'])->name('tour.complete');

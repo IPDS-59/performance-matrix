@@ -193,6 +193,18 @@ export const SHOTS = {
             { n: 3, x: 80, y: 80, label: 'Kumulatif dari Januari terhadap target tahunan. Bingkai menandai bulan yang dipilih.' },
         ],
     },
+    imporKegiatan: {
+        src: '/images/pedoman/impor-kegiatan.webp',
+        alt: 'Halaman Impor Kegiatan dari Excel: pilihan minggu dan file, ringkasan baris, dan tabel pratinjau dengan pilihan RK',
+        width: 1024, height: 533,
+        markers: [
+            { n: 1, x: 14, y: 20, label: 'Minggu untuk baris yang tidak punya tanggal. Baris itu menjadi rencana Senin sampai Jumat minggu ini.' },
+            { n: 2, x: 52, y: 20, label: 'Pilih file Kegiatan Mingguan Anggota (.xlsx), lalu tekan Baca file.' },
+            { n: 3, x: 20, y: 38, label: 'Ringkasan: baris siap, perlu pilih RK, sudah ada, dan yang tidak bisa diimpor.' },
+            { n: 4, x: 83, y: 53, label: 'Pilih RK bila Kinetik tidak bisa menentukannya sendiri.' },
+            { n: 5, x: 95, y: 38, label: 'Impor kegiatan yang dicentang.' },
+        ],
+    },
     pimpinanReviewBersama: {
         src: '/images/pedoman/pimpinan-review-bersama.webp',
         alt: 'Halaman Review Bersama: ringkasan kantor dan tabel capaian per tim yang bisa diurutkan',
@@ -845,6 +857,19 @@ export const GUIDE_FLOWS: GuideFlow[] = [
                     'Kinetik hanya menyimpan pegawai BPS Provinsi Sulawesi Tengah. Setiap sinkronisasi memeriksa kantor pegawai di kipApp; pegawai kabupaten/kota atau provinsi lain otomatis dinonaktifkan dan dikeluarkan dari tim.',
                     'Ketua tim (PJ) diambil dari kipApp. Perbaiki di kipApp, lalu sinkronkan ulang.',
                 ],
+            },
+            {
+                title: 'Impor kegiatan dari file Excel',
+                where: 'Menu Data Master → Impor Kegiatan',
+                route: 'admin.import-kegiatan',
+                body: [
+                    'Untuk tim yang masih mencatat rencana di file Excel "Kegiatan Mingguan Anggota". Pilih minggu, pilih file, lalu tekan "Baca file". File dibaca di browser Anda, satu sheet per tim.',
+                    'Kinetik mencocokkan pegawai dari nama (gelar boleh berbeda), projek dari nama projek, dan RK dari projek itu. Bila RK tidak bisa ditentukan sendiri, pilih dari daftar di baris itu. Baris yang pegawainya tidak ditemukan tidak bisa diimpor.',
+                    'Baris tanpa tanggal menjadi rencana Senin sampai Jumat minggu yang dipilih. Capaian diambil dari kolom Realisasi, dan progres dihitung dari capaian dibagi target. Kolom Permasalahan, Solusi, dan Rencana Tindak Lanjut tidak diimpor.',
+                    'Periksa tabel, lalu tekan "Impor". Kegiatan yang sama (pegawai, tanggal, dan uraian) dilewati. Kegiatan masuk sebagai rencana, dan yang tanggalnya tiba dikirim ke kipApp otomatis seperti rencana biasa.',
+                ],
+                shot: SHOTS.imporKegiatan,
+                tip: 'Sinkronkan RK dan projek dari kipApp dulu. Pencocokan RK memakai RK yang sudah ada di Kinetik.',
             },
             {
                 title: 'Tetapkan tim pemilik indikator FRA',
