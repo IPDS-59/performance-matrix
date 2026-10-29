@@ -1,6 +1,7 @@
 <?php
 
 use App\Actions\Kinetik\CompletePlanItemAction;
+use App\Actions\Kinetik\FindMissingQuarterSkpsAction;
 use App\Actions\Kinetik\PushDuePlansAction;
 use App\Actions\Kinetik\PushPlanItemAction;
 use App\Actions\Kinetik\ReconcilePlanItemsAction;
@@ -299,4 +300,17 @@ it('stores the numeric capaian when a plan is completed', function () {
     app(CompletePlanItemAction::class)->execute($plan->load('employee.user', 'performancePlan'), 'Selesai semua', 'https://d.example/x', 12.0);
 
     expect($plan->fresh())->capaian->toBe('12.00')->capaian_note->toBe('Selesai semua')->progress->toBe(100)->evidence_url->toBe('https://d.example/x');
+});
+
+it('finds the quarters that have no SKP in kipApp yet', function () {
+    config(['kinetik.kip.source' => 'api']);
+    $plan = pushSetup(['date_start' => '2026-12-14', 'date_end' => '2026-12-15']);   // a TW 4 plan not sent yet
+    Http::fake(['*/v1/skp*' => Http::response([
+        ['id' => '11', 'periodeid' => 8, 'periodepenilaianid' => 3],
+        ['id' => '12', 'periodeid' => 8, 'periodepenilaianid' => 1],
+    ])]);
+
+    $missing = app(FindMissingQuarterSkpsAction::class)->execute($plan->employee->user);
+
+    expect($missing)->toBe([4]);   // the current quarter (TW 4 on 8 Oct) and the plan's both need it
 });
