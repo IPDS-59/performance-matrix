@@ -29,6 +29,7 @@ class KegiatanImportController extends Controller
             'rows.*.description' => ['required', 'string', 'max:2000'],
             'rows.*.member' => ['required', 'string', 'max:255'],
             'rows.*.project' => ['nullable', 'string', 'max:255'],
+            'rows.*.nip' => ['nullable', 'string', 'max:30'],
             'rows.*.sheet' => ['nullable', 'string', 'max:100'],
             'rows.*.date_start' => ['nullable', 'date'],
             'rows.*.date_end' => ['nullable', 'date'],

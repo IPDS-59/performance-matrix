@@ -10,6 +10,8 @@ export interface WorkbookRow {
     time_start: string | null;
     time_end: string | null;
     description: string;
+    /** NIP from the pegawai list, when one was given. */
+    nip?: string | null;
     target: number | null;
     realization: number | null;
     percent: number | null;
@@ -150,4 +152,45 @@ export async function readKegiatanWorkbook(file: File, year: number): Promise<Wo
     for (const name of book.SheetNames) cells[name] = XLSX.utils.sheet_to_json(book.Sheets[name], { header: 1, raw: true, defval: null }) as unknown[][];
 
     return parseKegiatanRows(cells, year);
+}
+
+/** The "Daftar Pegawai" export: NIP BPS, NIP, Nama. */
+export interface PegawaiNip { name: string; nip: string; nip_bps: string }
+
+export function parsePegawaiRows(grid: unknown[][]): PegawaiNip[] {
+    const at = grid.findIndex((r) => r.some((c) => clean(c).toLowerCase() === 'nama'));
+    if (at < 0) return [];
+    const head = grid[at].map((c) => clean(c).toLowerCase());
+    const [iNip, iBps, iName] = [head.indexOf('nip'), head.indexOf('nip bps'), head.indexOf('nama')];
+
+    return grid.slice(at + 1)
+        .map((r) => ({ name: clean(r[iName]), nip: clean(r[iNip]), nip_bps: clean(r[iBps]) }))
+        .filter((p) => p.name && (p.nip || p.nip_bps));
+}
+
+export async function readPegawaiList(file: File): Promise<PegawaiNip[]> {
+    const book = XLSX.read(await file.arrayBuffer());
+    return parsePegawaiRows(XLSX.utils.sheet_to_json(book.Sheets[book.SheetNames[0]], { header: 1, raw: false, defval: null }) as unknown[][]);
+}
+
+/** Letters and digits only, so "S. Tr. Stat" and "S.Tr.Stat." are the same text. */
+const squash = (name: string) => name.toLowerCase().replace(/[^a-z0-9]/g, '');
+/** The name without titles: before the comma, minus words with a dot or short all-capital words (SST, SE). */
+function bare(name: string): string {
+    const words = name.split(',')[0].trim().split(/\s+/).filter(Boolean);
+    return words.filter((w, i) => (i === 0 ? !/^(dr|drs|ir|prof|h|hj)\.?$/i.test(w) : !(w.includes('.') || (w === w.toUpperCase() && w.length <= 5 && /^[A-Za-z]+$/.test(w))))).join(' ').toLowerCase();
+}
+
+/** Puts the NIP of the pegawai list on each row: by the whole name first, then by the name without titles when that is unique. */
+export function attachNip(rows: WorkbookRow[], pegawai: PegawaiNip[]): WorkbookRow[] {
+    const full = new Map<string, PegawaiNip[]>();
+    const short = new Map<string, PegawaiNip[]>();
+    for (const p of pegawai) {
+        full.set(squash(p.name), [...(full.get(squash(p.name)) ?? []), p]);
+        short.set(bare(p.name), [...(short.get(bare(p.name)) ?? []), p]);
+    }
+    return rows.map((r) => {
+        const hit = [full.get(squash(r.member)), short.get(bare(r.member))].find((c) => c?.length === 1)?.[0];
+        return { ...r, nip: hit ? (hit.nip || hit.nip_bps) : null };
+    });
 }

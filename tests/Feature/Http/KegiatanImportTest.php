@@ -94,3 +94,22 @@ it('matches names the way Kinetik stores them, with the titles glued to the name
 
     expect($rows[0]['employee_id'])->toBe($stored->id)->and($rows[1]['employee_id'])->toBe($muhammad->id)->and($rows[2]['employee_id'])->toBeNull();
 });
+
+it('matches by NIP when the row has one, and never falls back to the name', function () {
+    [$team] = importSetup();
+    $a = Employee::factory()->create(['name' => 'Budi Santoso', 'nip_baru' => '199001012015011001', 'nip_lama' => '340000001', 'is_active' => true]);
+    $b = Employee::factory()->create(['name' => 'Budi Santoso', 'nip_baru' => '199202022016021002', 'nip_lama' => '340000002', 'is_active' => true]);
+    foreach ([$a, $b] as $e) {
+        $e->teams()->attach($team->id, ['role' => 'member', 'is_primary' => true]);
+    }
+
+    $rows = $this->actingAs(adminUser())->postJson(route('admin.import-kegiatan.preview'), ['week_start' => '2026-10-26', 'rows' => [
+        sheetRow(['member' => 'Budi Santoso, SST', 'nip' => '199202022016021002']),   // two people share the name: the NIP decides
+        sheetRow(['member' => 'Budi Santoso, SST']),                                    // no NIP: the name is ambiguous
+        sheetRow(['member' => 'Budi Santoso, SST', 'nip' => '340000001']),             // the short NIP BPS works too
+        sheetRow(['member' => 'Aditya Saputra, SST', 'nip' => '111111111111111111']),   // unknown NIP: no guessing by name
+    ]])->json('rows');
+
+    expect($rows[0]['employee_id'])->toBe($b->id)->and($rows[1]['employee_id'])->toBeNull()->and($rows[2]['employee_id'])->toBe($a->id)
+        ->and($rows[3]['employee_id'])->toBeNull()->and($rows[3]['notes'][0])->toContain('NIP 111111111111111111');
+});

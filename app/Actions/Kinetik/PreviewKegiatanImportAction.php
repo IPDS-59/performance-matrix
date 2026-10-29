@@ -23,14 +23,15 @@ class PreviewKegiatanImportAction
     public function execute(array $rows, Carbon $weekStart): array
     {
         $monday = $weekStart->copy()->startOfWeek(Carbon::MONDAY);
-        $employees = Employee::where('is_active', true)->get(['id', 'name', 'display_name', 'full_name']);
+        $employees = Employee::where('is_active', true)->get(['id', 'name', 'display_name', 'full_name', 'nip_baru', 'nip_lama']);
         $tahun = (int) config('kinetik.kip.tahun');
 
         return collect($rows)->values()->map(function (array $row, int $i) use ($employees, $monday, $tahun) {
             $notes = [];
-            $employee = $this->employee($employees, (string) ($row['member'] ?? ''));
+            $nip = trim((string) ($row['nip'] ?? ''));
+            $employee = $nip !== '' ? $this->employeeByNip($employees, $nip) : $this->employee($employees, (string) ($row['member'] ?? ''));
             if ($employee === null) {
-                $notes[] = 'Pegawai tidak ditemukan atau namanya kembar.';
+                $notes[] = $nip !== '' ? "NIP {$nip} tidak ada di Kinetik." : 'Pegawai tidak ditemukan atau namanya kembar. Unggah Daftar Pegawai agar dicocokkan lewat NIP.';
             }
 
             $teamIds = $employee?->teams()->pluck('teams.id') ?? collect();
@@ -84,6 +85,14 @@ class PreviewKegiatanImportAction
                 'duplicate' => $duplicate,
             ];
         })->all();
+    }
+
+    /** The NIP is the identity: a name can be spelled many ways, a NIP cannot. */
+    private function employeeByNip(Collection $employees, string $nip): ?Employee
+    {
+        $found = $employees->filter(fn (Employee $e) => $e->nip_baru === $nip || $e->nip_lama === $nip);
+
+        return $found->count() === 1 ? $found->first() : null;
     }
 
     /** "Aditya Saputra, SST, M.URP", "Aditya Saputra" and "Aditya Saputra SST" are one person; a name shared by two people matches nobody. */
