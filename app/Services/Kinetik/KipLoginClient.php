@@ -4,6 +4,7 @@ namespace App\Services\Kinetik;
 
 use Carbon\CarbonImmutable;
 use GuzzleHttp\Cookie\CookieJar;
+use Illuminate\Http\Client\PendingRequest;
 use Illuminate\Http\Client\Response;
 use Illuminate\Support\Facades\Http;
 use Throwable;
@@ -14,6 +15,8 @@ use Throwable;
  */
 class KipLoginClient
 {
+    private const USER_AGENT = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36';
+
     /**
      * @throws KipLoginException
      */
@@ -24,13 +27,13 @@ class KipLoginClient
         $timeout = (int) config('kinetik.kip.timeout', 15);
 
         try {
-            $page = Http::withOptions(['cookies' => $jar])->timeout($timeout)->get($base.'/login');
+            $page = $this->http($jar)->timeout($timeout)->get($base.'/login');
 
             if (! preg_match('/<form[^>]*\baction="([^"]+)"/i', $page->body(), $form)) {
                 throw KipLoginException::unavailable('SSO login form not found');
             }
 
-            $submit = Http::withOptions(['cookies' => $jar])->withoutRedirecting()->timeout($timeout)
+            $submit = $this->http($jar)->withoutRedirecting()->timeout($timeout)
                 ->asForm()->post(html_entity_decode($form[1]), [
                     'username' => $username,
                     'password' => $password,
@@ -66,7 +69,7 @@ class KipLoginClient
         $timeout = (int) config('kinetik.kip.timeout', 15);
 
         try {
-            $submit = Http::withOptions(['cookies' => $jar])->withoutRedirecting()->timeout($timeout)
+            $submit = $this->http($jar)->withoutRedirecting()->timeout($timeout)
                 ->asForm()->post($pending['action'], ['otp' => $code, 'login' => 'Log In']);
 
             if ($submit->status() === 200) {
@@ -81,6 +84,15 @@ class KipLoginClient
         } catch (Throwable $e) {
             throw KipLoginException::unavailable($e::class);
         }
+    }
+
+    /**
+     * The BPS perimeter WAF answers "Perimeter WAF Block" to clients whose User-Agent
+     * contains "curl/" (Guzzle's default does), so the SSO calls identify as a browser.
+     */
+    private function http(CookieJar $jar): PendingRequest
+    {
+        return Http::withOptions(['cookies' => $jar])->withUserAgent(self::USER_AGENT);
     }
 
     private function hasOtpForm(string $html): bool
@@ -108,7 +120,7 @@ class KipLoginClient
                 throw KipLoginException::unavailable('SSO answered '.$submit->status());
             }
 
-            $callback = Http::withOptions(['cookies' => $jar])->withoutRedirecting()->timeout($timeout)
+            $callback = $this->http($jar)->withoutRedirecting()->timeout($timeout)
                 ->get($submit->header('Location'));
         } catch (KipLoginException $e) {
             throw $e;

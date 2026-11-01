@@ -5,6 +5,7 @@ namespace App\Services\Kinetik;
 use App\Models\MemberKipCredential;
 use App\Models\User;
 use App\Notifications\KinetikNotification;
+use Illuminate\Support\Facades\Log;
 use RuntimeException;
 
 /**
@@ -39,6 +40,7 @@ class MemberKipToken
                 throw new MemberLoginRequiredException('Token kipApp Anda kedaluwarsa dan akun SSO Anda memakai kode OTP. Keluar, lalu masuk lagi dengan kode OTP.');
             }
             if (! $e->rejected) {
+                Log::warning('kipApp SSO re-login unavailable', ['user_id' => $user->id, 'reason' => $e->getMessage()]);
                 throw new SsoUnavailableException('SSO BPS tidak dapat dihubungi saat ini. Akan dicoba lagi.');
             }
 
