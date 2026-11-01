@@ -1,5 +1,7 @@
 <?php
 
+use App\Actions\Kinetik\PushDuePlansAction;
+use App\Actions\Kinetik\PushPlanItemAction;
 use App\Models\Employee;
 use App\Models\PerformancePlan;
 use App\Models\PlanItem;
@@ -52,12 +54,11 @@ it('flags unknown members, short uraian and rows that already exist', function (
 
 it('saves the confirmed rows as planned kegiatan and skips duplicates', function () {
     [, $project, $plan, $member] = importSetup();
-    $admin = adminUser();
-    Employee::factory()->create(['user_id' => $admin->id]);
+    $admin = adminUser();   // no employee record: the import must still work
     $row = ['employee_id' => $member->id, 'performance_plan_id' => $plan->id, 'project_id' => $project->id, 'description' => 'Penyiapan kuesioner PDRB triwulanan', 'date_start' => '2026-10-26', 'date_end' => '2026-10-30', 'target' => 4, 'capaian' => 3, 'progress' => 75];
 
     $this->actingAs($admin)->postJson(route('admin.import-kegiatan.store'), ['rows' => [$row]])->assertOk()->assertJsonPath('created', 1);
-    expect(PlanItem::first())->source->toBe('import')->status->toBe('planned')->progress->toBe(75)->target_unit->toBe('dokumen');
+    expect(PlanItem::first())->source->toBe('import')->created_by->toBeNull()->status->toBe('planned')->progress->toBe(75)->target_unit->toBe('dokumen');
 
     $this->actingAs($admin)->postJson(route('admin.import-kegiatan.store'), ['rows' => [$row]])->assertOk()->assertJsonPath('created', 0)->assertJsonPath('skipped.0.reason', 'Sudah ada di Kinetik.');
 });
@@ -112,4 +113,36 @@ it('matches by NIP when the row has one, and never falls back to the name', func
 
     expect($rows[0]['employee_id'])->toBe($b->id)->and($rows[1]['employee_id'])->toBeNull()->and($rows[2]['employee_id'])->toBe($a->id)
         ->and($rows[3]['employee_id'])->toBeNull()->and($rows[3]['notes'][0])->toContain('NIP 111111111111111111');
+});
+
+it('falls back to the RK of the member teams when the matched projek has none', function () {
+    [$team, , $plan, $member] = importSetup();
+    $empty = Project::factory()->create(['team_id' => $team->id, 'name' => 'Pengembangan Inovasi', 'year' => (int) config('kinetik.kip.tahun')]);
+
+    $row = $this->actingAs(adminUser())->postJson(route('admin.import-kegiatan.preview'), ['week_start' => '2026-10-26', 'rows' => [sheetRow(['project' => 'Pengembangan Inovasi'])]])->json('rows.0');
+
+    expect($row['project_id'])->toBe($empty->id)->and($row['blocked'])->toBeFalse()->and(collect($row['rk_options'])->pluck('id')->all())->toContain($plan->id);
+});
+
+it('never pushes imported kegiatan to kipApp by itself', function () {
+    [, , $plan, $member] = importSetup();
+    PlanItem::create(['team_id' => $plan->team_id, 'employee_id' => $member->id, 'performance_plan_id' => $plan->id, 'description' => 'Diimpor dari Excel mingguan', 'date_start' => now('Asia/Makassar')->toDateString(), 'date_end' => now('Asia/Makassar')->toDateString(), 'source' => 'import', 'status' => 'planned']);
+    $normal = PlanItem::create(['team_id' => $plan->team_id, 'employee_id' => $member->id, 'performance_plan_id' => $plan->id, 'description' => 'Dibuat sendiri oleh pegawai', 'date_start' => now('Asia/Makassar')->toDateString(), 'date_end' => now('Asia/Makassar')->toDateString(), 'source' => 'member', 'status' => 'planned']);
+
+    $spy = new class extends PushPlanItemAction
+    {
+        public array $seen = [];
+
+        public function __construct() {}
+
+        public function execute(PlanItem $plan): bool
+        {
+            $this->seen[] = $plan->description;
+
+            return true;
+        }
+    };
+    (new PushDuePlansAction($spy))->execute();
+
+    expect($spy->seen)->toBe([$normal->description]);
 });

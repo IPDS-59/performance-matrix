@@ -18,6 +18,8 @@ class PushDuePlansAction
 
         PlanItem::with(['employee.user', 'performancePlan'])
             ->where('status', 'planned')
+            // Imported from Excel: the list is only made in Kinetik. The member sends it from the kegiatan's detail.
+            ->where('source', '!=', 'import')
             ->whereDate('date_start', '<=', $today)
             ->whereDate('date_end', '>=', $today)
             ->orderBy('date_start')

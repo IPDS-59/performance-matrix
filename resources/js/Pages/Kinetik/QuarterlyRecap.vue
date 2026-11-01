@@ -39,7 +39,7 @@ const props = defineProps<{
     currentEmployeeId: number | null;
 }>();
 
-const isHead = usePage().props.auth.user.role === 'head';
+const isHead = usePage().props.auth.user.role === 'head' || !(props.canManage || usePage().props.auth.user.role === 'admin');
 
 const quarterLabel = computed(() => `Triwulan ${props.quarter} ${props.year}`);
 

@@ -91,7 +91,7 @@ class TeamRecapController extends Controller
             'periods' => [],
             'year' => $monday->year,
             'month' => $monday->month,
-            'panels' => $team ? $this->aggregator->panels($team, 'week', $monday) : [],
+            'panels' => $team ? $this->visiblePanels($this->aggregator->panels($team, 'week', $monday), $employee, $team, $request) : [],
             'evidences' => $evidences,
             'weekStart' => $weekStart,
             'weekEnd' => $monday->copy()->endOfWeek(Carbon::SUNDAY)->toDateString(),
@@ -170,7 +170,7 @@ class TeamRecapController extends Controller
             'months' => [],
             'teams' => $this->teamOptions($teams),
             'selectedTeamId' => $team?->id,
-            'panels' => $team ? $this->aggregator->panels($team, 'month', Carbon::create($year, $month, 1)) : [],
+            'panels' => $team ? $this->visiblePanels($this->aggregator->panels($team, 'month', Carbon::create($year, $month, 1)), $employee, $team, $request) : [],
             'year' => $year,
             'month' => $month,
             'canManage' => $team !== null && $employee !== null && $this->isPj($employee, $team->id),
@@ -952,5 +952,32 @@ class TeamRecapController extends Controller
             403,
             'Hanya PJ atau PIC RK yang dapat membuat parafrase rekap.',
         );
+    }
+
+    /**
+     * The paraphrase is the PJ's working text. Only the PJ, the RK's PIC and admins get it; for everyone else the text
+     * (and the weekly texts under a month) never leaves the server, so hiding it in the page is not the only guard.
+     *
+     * @param  list<array<string, mixed>>  $panels
+     * @return list<array<string, mixed>>
+     */
+    private function visiblePanels(array $panels, ?Employee $employee, Team $team, Request $request): array
+    {
+        if ($request->user()->hasRole('admin')) {
+            return $panels;
+        }
+        $isPj = $employee !== null && $this->isPj($employee, $team->id);
+
+        return array_map(function (array $panel) use ($employee, $isPj) {
+            if ($isPj || ($employee !== null && $panel['pic_employee_id'] === $employee->id)) {
+                return $panel;
+            }
+            if ($panel['recap'] !== null) {
+                $panel['recap']['paraphrase'] = null;
+            }
+            $panel['weeks'] = [];
+
+            return $panel;
+        }, $panels);
     }
 }

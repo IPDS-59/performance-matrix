@@ -47,7 +47,6 @@ class KegiatanImportController extends Controller
 
     public function store(Request $request, ImportKegiatanAction $import): JsonResponse
     {
-        abort_if($request->user()->employee === null, 403, 'Akun tidak terhubung ke data pegawai.');
         $data = $request->validate([
             'rows' => ['required', 'array', 'min:1', 'max:3000'],
             'rows.*.employee_id' => ['required', 'integer', 'exists:employees,id'],

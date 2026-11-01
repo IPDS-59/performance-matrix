@@ -15,7 +15,7 @@ class ImportKegiatanAction
      * @param  list<array<string, mixed>>  $rows
      * @return array{created: int, skipped: list<array{description: string, reason: string}>}
      */
-    public function execute(array $rows, Employee $admin): array
+    public function execute(array $rows, ?Employee $admin): array
     {
         $created = 0;
         $skipped = [];
@@ -58,7 +58,7 @@ class ImportKegiatanAction
                     'is_capaian_skp' => true,
                     'status' => 'planned',
                     'source' => 'import',
-                    'created_by' => $admin->id,
+                    'created_by' => $admin?->id,
                 ]);
                 $created++;
             }

@@ -123,13 +123,17 @@ class PreviewKegiatanImportAction
         return $near->count() === 1 ? $near->first() : null;
     }
 
-    /** RK of the matched projek, else every RK of the member's teams; the member's own kipApp RK come first. @return Collection<int, array<string, mixed>> */
+    /**
+     * RK of the matched projek; when that projek has none in Kinetik (its RK may hang on another projek, or not be synced),
+     * every RK of the member's teams. The member's own kipApp RK come first. @return Collection<int, array<string, mixed>>
+     */
     private function rkOptions(Employee $employee, Collection $teamIds, ?Project $project): Collection
     {
-        $plans = PerformancePlan::query()
-            ->when($project !== null, fn ($q) => $q->where('project_id', $project->id))
-            ->when($project === null, fn ($q) => $q->where(fn ($w) => $w->whereIn('team_id', $teamIds)->orWhereHas('project', fn ($p) => $p->whereIn('team_id', $teamIds))))
-            ->orderBy('description')->get(['id', 'description']);
+        $inTeams = fn ($q) => $q->where(fn ($w) => $w->whereIn('team_id', $teamIds)->orWhereHas('project', fn ($p) => $p->whereIn('team_id', $teamIds)));
+        $plans = $project !== null ? PerformancePlan::where('project_id', $project->id)->orderBy('description')->get(['id', 'description']) : collect();
+        if ($plans->isEmpty()) {
+            $plans = PerformancePlan::query()->tap($inTeams)->orderBy('description')->get(['id', 'description']);
+        }
 
         $own = EmployeeRk::where('employee_id', $employee->id)->where('year', (int) config('kinetik.kip.tahun'))->pluck('name')->map(self::norm(...))->flip();
 

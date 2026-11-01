@@ -866,7 +866,7 @@ export const GUIDE_FLOWS: GuideFlow[] = [
                     'Untuk tim yang masih mencatat rencana di file Excel "Kegiatan Mingguan Anggota". Pilih minggu, pilih file, lalu tekan "Baca file". File dibaca di browser Anda, satu sheet per tim.',
                     'Unggah juga file Daftar Pegawai (ekspor NIP BPS, NIP, Nama) bila ada. Kinetik mencari NIP tiap nama di daftar itu, lalu mencocokkan pegawai lewat NIP, bukan lewat nama, jadi gelar yang berbeda atau nama kembar tidak jadi masalah. Tanpa daftar itu, Kinetik mencocokkan lewat nama tanpa gelar. Projek dicocokkan dari nama projek, dan RK dari projek itu. Bila RK tidak bisa ditentukan sendiri, pilih dari daftar di baris itu. Baris yang pegawainya tidak ditemukan tidak bisa diimpor.',
                     'Baris tanpa tanggal menjadi rencana Senin sampai Jumat minggu yang dipilih. Capaian diambil dari kolom Realisasi, dan progres dihitung dari capaian dibagi target. Kolom Permasalahan, Solusi, dan Rencana Tindak Lanjut tidak diimpor.',
-                    'Periksa tabel, lalu tekan "Impor". Kegiatan yang sama (pegawai, tanggal, dan uraian) dilewati. Kegiatan masuk sebagai rencana, dan yang tanggalnya tiba dikirim ke kipApp otomatis seperti rencana biasa.',
+                    'Periksa tabel, lalu tekan "Impor". Kegiatan yang sama (pegawai, tanggal, dan uraian) dilewati. Kegiatan masuk ke daftar pegawai sebagai rencana dan tidak dikirim ke kipApp. Pegawai mengirimnya sendiri dari detail kegiatan, saat sudah siap.',
                 ],
                 shot: SHOTS.imporKegiatan,
                 tip: 'Sinkronkan RK dan projek dari kipApp dulu. Pencocokan RK memakai RK yang sudah ada di Kinetik.',

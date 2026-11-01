@@ -102,7 +102,7 @@ const num = (v: number | null) => (v === null ? '-' : v.toLocaleString('id-ID'))
         <div class="mb-5 rounded-xl border bg-white p-5">
             <p class="text-sm text-gray-700">
                 Unggah file <b>Kegiatan Mingguan Anggota</b> (satu sheet per tim). Kinetik membacanya di browser, mencocokkan pegawai, projek, dan RK, lalu Anda memeriksa hasilnya sebelum menyimpan.
-                Kegiatan masuk sebagai <b>rencana</b>. Kegiatan yang tanggalnya tiba dikirim ke kipApp otomatis, seperti rencana biasa.
+                Kegiatan masuk ke daftar pegawai di Kinetik sebagai <b>rencana</b>, dan <b>tidak dikirim ke kipApp</b>. Pegawai mengirimnya sendiri dari detail kegiatan.
             </p>
             <div class="mt-4 flex flex-wrap items-end gap-4">
                 <div class="space-y-1.5">
