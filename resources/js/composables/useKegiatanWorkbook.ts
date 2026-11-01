@@ -48,15 +48,34 @@ function toIso(v: unknown): string | null {
     return m ? `${m[1]}-${m[2]}-${m[3]}` : null;
 }
 
-/** Dates typed as text: "12 Juni", "12 Juni 2026", and ranges such as "2-3 Juni". The sheet has no year, so the deck year is used. */
-function textDates(v: unknown, year: number): [string, string] | null {
-    const m = /^(\d{1,2})(?:\s*[-–]\s*(\d{1,2}))?\s+([A-Za-z]+)\.?(?:\s+(\d{4}))?$/.exec(clean(v));
-    const month = m ? monthOf(m[3].toLowerCase()) : 0;
-    if (!m || !month) return null;
-    const y = Number(m[4] ?? year);
-    const iso = (d: string) => `${y}-${pad(month)}-${pad(Number(d))}`;
+const lastDay = (y: number, m: number) => new Date(y, m, 0).getDate();
 
-    return [iso(m[1]), iso(m[2] ?? m[1])];
+/**
+ * Dates typed as text: "12 Juni", "2-3 Juni", "1 Oktober - 30 Oktober", and a whole month ("Oktober", "Oktober 2026", "Sepanjang Oktober").
+ * The sheet often has no year, so the deck year is used.
+ */
+function textDates(v: unknown, year: number): [string, string] | null {
+    const text = clean(v).replace(/^sepanjang\s+/i, '').replace(/\./g, ' ').replace(/\s+/g, ' ').trim();
+    const iso = (y: number, m: number, d: number) => `${y}-${pad(m)}-${pad(d)}`;
+
+    const whole = /^([A-Za-z]+)(?:\s+(\d{4}))?$/.exec(text);
+    if (whole && monthOf(whole[1].toLowerCase())) {
+        const [m, y] = [monthOf(whole[1].toLowerCase()), Number(whole[2] ?? year)];
+        return [iso(y, m, 1), iso(y, m, lastDay(y, m))];
+    }
+
+    const two = /^(\d{1,2})\s+([A-Za-z]+)(?:\s+(\d{4}))?\s*[-–]\s*(\d{1,2})\s+([A-Za-z]+)(?:\s+(\d{4}))?$/.exec(text);
+    if (two && monthOf(two[2].toLowerCase()) && monthOf(two[5].toLowerCase())) {
+        const y2 = Number(two[6] ?? two[3] ?? year);
+        return [iso(Number(two[3] ?? y2), monthOf(two[2].toLowerCase()), Number(two[1])), iso(y2, monthOf(two[5].toLowerCase()), Number(two[4]))];
+    }
+
+    const one = /^(\d{1,2})(?:\s*[-–]\s*(\d{1,2}))?\s+([A-Za-z]+)(?:\s+(\d{4}))?$/.exec(text);
+    const month = one ? monthOf(one[3].toLowerCase()) : 0;
+    if (!one || !month) return null;
+    const y = Number(one[4] ?? year);
+
+    return [iso(y, month, Number(one[1])), iso(y, month, Number(one[2] ?? one[1]))];
 }
 
 function toTime(v: unknown): string | null {

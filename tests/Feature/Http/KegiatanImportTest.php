@@ -7,6 +7,7 @@ use App\Models\PerformancePlan;
 use App\Models\PlanItem;
 use App\Models\Project;
 use App\Models\Team;
+use App\Models\User;
 
 function importSetup(): array
 {
@@ -145,4 +146,30 @@ it('never pushes imported kegiatan to kipApp by itself', function () {
     (new PushDuePlansAction($spy))->execute();
 
     expect($spy->seen)->toBe([$normal->description]);
+});
+
+it('splits a kegiatan that crosses a quarter, and a month-long one shows in every week', function () {
+    [, , $plan, $member] = importSetup();
+    $admin = adminUser();
+
+    $rows = $this->actingAs($admin)->postJson(route('admin.import-kegiatan.preview'), ['week_start' => '2026-10-26', 'rows' => [
+        sheetRow(['date_start' => '2026-09-21', 'date_end' => '2026-10-09']),
+    ]])->json('rows');
+
+    expect($rows)->toHaveCount(2)
+        ->and([$rows[0]['date_start'], $rows[0]['date_end'], $rows[0]['target']])->toEqual(['2026-09-21', '2026-09-30', 4])
+        ->and([$rows[1]['date_start'], $rows[1]['date_end'], $rows[1]['target']])->toEqual(['2026-10-01', '2026-10-09', null]);
+
+    // A full-month kegiatan is one item that every week of the month lists.
+    $this->actingAs($admin)->postJson(route('admin.import-kegiatan.store'), ['rows' => [[
+        'employee_id' => $member->id, 'performance_plan_id' => $plan->id, 'description' => 'Pengembangan aplikasi sepanjang Oktober',
+        'date_start' => '2026-10-01', 'date_end' => '2026-10-30',
+    ]]])->assertJsonPath('created', 1);
+
+    $user = User::factory()->create();
+    $member->update(['user_id' => $user->id]);
+    $user->assignRole('staff');
+    foreach (['2026-10-05', '2026-10-12', '2026-10-19', '2026-10-26'] as $week) {
+        $this->actingAs($user)->get(route('weekly.index', ['week' => $week]))->assertInertia(fn ($page) => $page->has('thisWeek', 1));
+    }
 });
