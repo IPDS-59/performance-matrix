@@ -89,12 +89,15 @@ class KipLoginClient
     }
 
     /**
-     * The BPS perimeter WAF answers "Perimeter WAF Block" to clients whose User-Agent
-     * contains "curl/" (Guzzle's default does), so the SSO calls identify as a browser.
+     * The BPS WAF blocks "curl/" User-Agents and Cloudflare in front of SSO answers 403 "Just a
+     * moment..." to Laravel's default JSON Accept/Content-Type headers (verified on the prod host
+     * 2026-11-02), so the SSO calls look like a browser page load.
      */
     private function http(CookieJar $jar): PendingRequest
     {
-        return Http::withOptions(['cookies' => $jar])->withUserAgent(self::USER_AGENT);
+        return Http::withOptions(['cookies' => $jar])->withUserAgent(self::USER_AGENT)
+            ->withHeaders(['Accept' => 'text/html,application/xhtml+xml', 'Accept-Language' => 'id,en;q=0.8'])
+            ->bodyFormat('body');
     }
 
     private function hasOtpForm(string $html): bool

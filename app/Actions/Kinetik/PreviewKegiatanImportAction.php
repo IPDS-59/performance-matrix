@@ -39,6 +39,9 @@ class PreviewKegiatanImportAction
             $options = $employee ? $this->rkOptions($employee, $teamIds, $project) : collect();
             $rk = $options->count() === 1 ? $options->first() : $options->firstWhere('own', true);
             $rk = $options->where('own', true)->count() === 1 ? $options->firstWhere('own', true) : $rk;
+            if ($employee && $project === null && filled($row['project'] ?? null)) {
+                $notes[] = 'Projek "'.$row['project'].'" tidak ditemukan di tim pegawai ini. Pilih RK yang sesuai secara manual.';
+            }
             if ($employee && $options->isEmpty()) {
                 $notes[] = 'Tidak ada RK untuk pegawai ini.';
             }
@@ -145,7 +148,18 @@ class PreviewKegiatanImportAction
         }
         $near = $projects->filter(fn (Project $p) => str_contains(self::norm($p->name), $needle) || str_contains($needle, self::norm($p->name)));
 
-        return $near->count() === 1 ? $near->first() : null;
+        if ($near->count() === 1) {
+            return $near->first();
+        }
+
+        // Sheets often write the projek a little differently ("Manajemen Mitra" for "Manajemen Mitra Statistik"):
+        // take the one projek that shares most of the words, if it clearly beats the others.
+        $words = fn (string $t) => collect(preg_split('/[^a-z0-9]+/', self::norm($t), -1, PREG_SPLIT_NO_EMPTY))->reject(fn ($w) => mb_strlen($w) < 3 || in_array($w, ['dan', 'yang', 'dari', 'pada', 'dalam', 'untuk', 'data'], true))->unique();
+        $mine = $words($name);
+        $scored = $projects->map(fn (Project $p) => ['p' => $p, 'score' => $mine->isEmpty() ? 0 : $mine->intersect($words($p->name))->count() / max($mine->count(), $words($p->name)->count(), 1)])
+            ->sortByDesc('score')->values();
+
+        return ($scored->first()['score'] ?? 0) >= 0.6 && (($scored[1]['score'] ?? 0) <= $scored->first()['score'] - 0.2) ? $scored->first()['p'] : null;
     }
 
     /**
@@ -162,8 +176,9 @@ class PreviewKegiatanImportAction
 
         $own = EmployeeRk::where('employee_id', $employee->id)->where('year', (int) config('kinetik.kip.tahun'))->pluck('name')->map(self::norm(...))->flip();
 
+        // The same RK text exists once per projek and per member in kipApp: show it once.
         return $plans->map(fn (PerformancePlan $p) => ['id' => $p->id, 'description' => $p->description, 'own' => $own->has(self::norm($p->description))])
-            ->sortByDesc('own')->values();
+            ->sortByDesc('own')->unique(fn (array $o) => self::norm($o['description']))->values();
     }
 
     /** A row with no date is a plan for the chosen week (Monday to Friday); a range keeps its real end. @return array{0: Carbon, 1: Carbon} */
