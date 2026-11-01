@@ -26,7 +26,7 @@ class PreviewKegiatanImportAction
         $employees = Employee::where('is_active', true)->get(['id', 'name', 'display_name', 'full_name', 'nip_baru', 'nip_lama']);
         $tahun = (int) config('kinetik.kip.tahun');
 
-        return collect($rows)->values()->map(function (array $row, int $i) use ($employees, $monday, $tahun) {
+        return collect($rows)->values()->flatMap(function (array $row) use ($employees, $monday, $tahun) {
             $notes = [];
             $nip = trim((string) ($row['nip'] ?? ''));
             $employee = $nip !== '' ? $this->employeeByNip($employees, $nip) : $this->employee($employees, (string) ($row['member'] ?? ''));
@@ -54,14 +54,9 @@ class PreviewKegiatanImportAction
 
             $target = isset($row['target']) && $row['target'] > 0 ? (float) $row['target'] : null;
             $capaian = isset($row['realization']) ? (float) $row['realization'] : null;
-            $duplicate = $employee !== null && PlanItem::where('employee_id', $employee->id)->whereDate('date_start', $start->toDateString())
-                ->whereRaw('lower(description) = ?', [mb_strtolower($description)])->exists();
-            if ($duplicate) {
-                $notes[] = 'Sudah ada di Kinetik.';
-            }
 
-            return [
-                'index' => $i,
+            $segments = $this->segments($start, $end);
+            $base = [
                 'sheet' => $row['sheet'] ?? null,
                 'member' => $row['member'] ?? null,
                 'employee_id' => $employee?->id,
@@ -70,21 +65,51 @@ class PreviewKegiatanImportAction
                 'project_id' => $project?->id,
                 'performance_plan_id' => $rk['id'] ?? null,
                 'rk_options' => $options->map(fn (array $o) => ['id' => $o['id'], 'description' => $o['description']])->values()->all(),
-                'date_start' => $start->toDateString(),
-                'date_end' => $end->toDateString(),
                 'time_start' => $row['time_start'] ?? null,
                 'time_end' => $row['time_end'] ?? null,
                 'description' => $description,
-                'target' => $target,
-                'capaian' => $capaian,
                 'progress' => $this->progress($row, $target, $capaian),
                 'evidence_url' => $row['link'] ?? null,
                 'capaian_note' => $row['note'] ?? null,
-                'notes' => $notes,
-                'blocked' => $employee === null || $options->isEmpty() || $start->year !== $tahun || mb_strlen($description) < 10,
-                'duplicate' => $duplicate,
             ];
-        })->all();
+
+            // An SKP is one quarter, so a kegiatan that crosses a quarter becomes one kegiatan per quarter. Each shows in every week it spans.
+            return collect($segments)->map(function (array $segment, int $k) use ($base, $notes, $employee, $description, $options, $tahun, $target, $capaian, $segments) {
+                $duplicate = $employee !== null && PlanItem::where('employee_id', $employee->id)->whereDate('date_start', $segment[0]->toDateString())
+                    ->whereRaw('lower(description) = ?', [mb_strtolower($description)])->exists();
+                $own = $notes;
+                if (count($segments) > 1) {
+                    $own[] = 'Dipecah per triwulan ('.($k + 1).'/'.count($segments).'); target dan capaian ada di bagian pertama.';
+                }
+                if ($duplicate) {
+                    $own[] = 'Sudah ada di Kinetik.';
+                }
+
+                return [
+                    ...$base,
+                    'date_start' => $segment[0]->toDateString(),
+                    'date_end' => $segment[1]->toDateString(),
+                    'target' => $k === 0 ? $target : null,
+                    'capaian' => $k === 0 ? $capaian : null,
+                    'notes' => $own,
+                    'blocked' => $employee === null || $options->isEmpty() || $segment[0]->year !== $tahun || mb_strlen($description) < 10,
+                    'duplicate' => $duplicate,
+                ];
+            });
+        })->values()->map(fn (array $r, int $i) => ['index' => $i, ...$r])->all();
+    }
+
+    /** @return list<array{0: Carbon, 1: Carbon}> the range cut at quarter ends */
+    private function segments(Carbon $start, Carbon $end): array
+    {
+        $out = [];
+        for ($from = $start->copy(); $from->lte($end); $from = $to->copy()->addDay()) {
+            $to = $from->copy()->endOfQuarter()->startOfDay();
+            $to = $to->gt($end) ? $end->copy() : $to;
+            $out[] = [$from->copy(), $to->copy()];
+        }
+
+        return $out;
     }
 
     /** The NIP is the identity: a name can be spelled many ways, a NIP cannot. */
@@ -123,13 +148,17 @@ class PreviewKegiatanImportAction
         return $near->count() === 1 ? $near->first() : null;
     }
 
-    /** RK of the matched projek, else every RK of the member's teams; the member's own kipApp RK come first. @return Collection<int, array<string, mixed>> */
+    /**
+     * RK of the matched projek; when that projek has none in Kinetik (its RK may hang on another projek, or not be synced),
+     * every RK of the member's teams. The member's own kipApp RK come first. @return Collection<int, array<string, mixed>>
+     */
     private function rkOptions(Employee $employee, Collection $teamIds, ?Project $project): Collection
     {
-        $plans = PerformancePlan::query()
-            ->when($project !== null, fn ($q) => $q->where('project_id', $project->id))
-            ->when($project === null, fn ($q) => $q->where(fn ($w) => $w->whereIn('team_id', $teamIds)->orWhereHas('project', fn ($p) => $p->whereIn('team_id', $teamIds))))
-            ->orderBy('description')->get(['id', 'description']);
+        $inTeams = fn ($q) => $q->where(fn ($w) => $w->whereIn('team_id', $teamIds)->orWhereHas('project', fn ($p) => $p->whereIn('team_id', $teamIds)));
+        $plans = $project !== null ? PerformancePlan::where('project_id', $project->id)->orderBy('description')->get(['id', 'description']) : collect();
+        if ($plans->isEmpty()) {
+            $plans = PerformancePlan::query()->tap($inTeams)->orderBy('description')->get(['id', 'description']);
+        }
 
         $own = EmployeeRk::where('employee_id', $employee->id)->where('year', (int) config('kinetik.kip.tahun'))->pluck('name')->map(self::norm(...))->flip();
 
@@ -137,16 +166,13 @@ class PreviewKegiatanImportAction
             ->sortByDesc('own')->values();
     }
 
-    /** A row with no date is a plan for the chosen week (Monday to Friday); a range never crosses into the next quarter. @return array{0: Carbon, 1: Carbon} */
+    /** A row with no date is a plan for the chosen week (Monday to Friday); a range keeps its real end. @return array{0: Carbon, 1: Carbon} */
     private function dates(array $row, Carbon $monday): array
     {
         $start = filled($row['date_start'] ?? null) ? Carbon::parse($row['date_start']) : $monday->copy();
         $end = filled($row['date_end'] ?? null) ? Carbon::parse($row['date_end']) : (filled($row['date_start'] ?? null) ? $start->copy() : $monday->copy()->addDays(4));
         if ($end->lt($start)) {
             $end = $start->copy();
-        }
-        if ($end->quarter !== $start->quarter || $end->year !== $start->year) {
-            $end = $start->copy()->endOfQuarter()->startOfDay();
         }
 
         return [$start, $end];

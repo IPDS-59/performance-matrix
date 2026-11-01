@@ -48,6 +48,17 @@ describe('parseKegiatanRows', () => {
     });
 });
 
+describe('dates typed as text', () => {
+    const at = (value: string) => parseKegiatanRows({ Umum: [[null, 'No', 'Nama Anggota', 'Tanggal', 'Uraian'], [null, 1, 'Budi, SST', value, 'Kegiatan sepanjang bulan']] }, 2026)[0];
+
+    it('reads a whole month and a range of full dates', () => {
+        expect(at('Oktober')).toMatchObject({ date_start: '2026-10-01', date_end: '2026-10-31' });
+        expect(at('Sepanjang Oktober 2026')).toMatchObject({ date_start: '2026-10-01', date_end: '2026-10-31' });
+        expect(at('1 Oktober - 30 Oktober')).toMatchObject({ date_start: '2026-10-01', date_end: '2026-10-30' });
+        expect(at('15 Sep – 5 Okt 2026')).toMatchObject({ date_start: '2026-09-15', date_end: '2026-10-05' });
+    });
+});
+
 describe('NIP from the pegawai list', () => {
     const pegawai = parsePegawaiRows([['NIP BPS', 'NIP', 'Nama', 'Jabatan'], ['340059291', '199106182019031001', 'Yudha Subakti, S.Si', 'Fungsional'], ['340011', '199001012015011001', 'Maya Novita Sari, S.Tr.Stat.', 'Fungsional']]);
     const row = (member: string) => ({ sheet: 'x', member, project: null, date_start: null, date_end: null, time_start: null, time_end: null, description: 'Kegiatan contoh', target: null, realization: null, percent: null, note: null, link: null });

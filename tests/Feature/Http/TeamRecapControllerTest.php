@@ -576,3 +576,22 @@ it('summarises the meetings of a month per team: written, locked, bukti rapat, a
     $this->actingAs($member)->get(route('team-recap.meetings'))->assertForbidden();
     Carbon\Carbon::setTestNow();
 });
+
+it('keeps the paraphrase text from everyone but the PJ, the RK PIC and admins', function () {
+    [$memberUser, $member, $team] = memberOfTeam();
+    $pj = Employee::factory()->create();
+    $team->update(['leader_id' => $pj->id]);
+    $pj->teams()->attach($team->id, ['role' => 'leader', 'is_primary' => true]);
+    $plan = PerformancePlan::factory()->create(['project_id' => null, 'team_id' => $team->id, 'pic_employee_id' => null]);
+    RkRecap::create(['team_id' => $team->id, 'performance_plan_id' => $plan->id, 'period_type' => 'week', 'period_start' => '2026-10-12', 'paraphrase' => 'Teks rahasia PJ', 'target' => 5]);
+    $url = route('team-recap.weekly', ['team' => $team->id, 'week' => '2026-10-12']);
+    $text = fn ($page) => json_encode($page->toArray()['props']['panels']);
+
+    $this->actingAs($memberUser)->get($url)->assertInertia(fn ($page) => expect($text($page))->not->toContain('Teks rahasia PJ')->toContain('"target":5'));
+    $this->actingAs(headUser())->get($url)->assertInertia(fn ($page) => expect($text($page))->not->toContain('Teks rahasia PJ'));
+    $this->actingAs($pj->user ?? User::factory()->create(['id' => 9999]))->get($url);   // the PJ below
+    $pjUser = staffUser();
+    $pj->update(['user_id' => $pjUser->id]);
+    $this->actingAs($pjUser)->get($url)->assertInertia(fn ($page) => expect($text($page))->toContain('Teks rahasia PJ'));
+    $this->actingAs(adminUser())->get($url)->assertInertia(fn ($page) => expect($text($page))->toContain('Teks rahasia PJ'));
+});

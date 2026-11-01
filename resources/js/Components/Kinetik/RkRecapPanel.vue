@@ -29,7 +29,9 @@ const props = defineProps<{
 }>();
 
 // The head reads figures and status; the PJ's paraphrase is a working text for the team, not for the head.
-const isHead = usePage().props.auth.user.role === 'head';
+const role = usePage().props.auth.user.role;
+// Only whoever may edit the paraphrase (PJ, the RK's PIC) and admins see it; the server holds the text back for everyone else.
+const isHead = !(props.canEdit || role === 'admin');
 
 const form = useForm({ paraphrase: '', target: '' as string | number, target_unit: '', capaian: '' as string | number });
 watch(() => [props.panel.performance_plan_id, props.panel.recap] as const, () => {
