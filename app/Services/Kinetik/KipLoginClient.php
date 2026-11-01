@@ -30,7 +30,9 @@ class KipLoginClient
             $page = $this->http($jar)->timeout($timeout)->get($base.'/login');
 
             if (! preg_match('/<form[^>]*\baction="([^"]+)"/i', $page->body(), $form)) {
-                throw KipLoginException::unavailable('SSO login form not found');
+                $title = preg_match('/<title>\s*([^<]{0,80})/i', $page->body(), $t) ? trim($t[1]) : substr(strip_tags($page->body()), 0, 80);
+
+                throw KipLoginException::unavailable('SSO login form not found (HTTP '.$page->status().', '.$title.', '.$page->effectiveUri().')');
             }
 
             $submit = $this->http($jar)->withoutRedirecting()->timeout($timeout)
