@@ -15,6 +15,8 @@ import { REVIEW_STATUS_META, reviewStatus } from '@/composables/useReviewStatus'
 
 const props = defineProps<{
     periodType: RecapPeriodType;
+    /** The head only reviews by month. */
+    monthlyOnly?: boolean;
     year: number;
     month: number;
     quarter: number;
@@ -143,7 +145,7 @@ function toggle(teamId: number) {
 
         <!-- Period controls -->
         <div class="mb-4 flex flex-col gap-3 rounded-lg border bg-white p-3 sm:p-4 lg:flex-row lg:items-center lg:justify-between">
-            <div class="inline-flex rounded-md border bg-gray-50 p-0.5" role="tablist" aria-label="Jenis periode">
+            <div v-if="!monthlyOnly" class="inline-flex rounded-md border bg-gray-50 p-0.5" role="tablist" aria-label="Jenis periode">
                 <button
                     v-for="tab in TABS"
                     :key="tab.type"
@@ -177,7 +179,7 @@ function toggle(teamId: number) {
         </div>
 
         <!-- Office summary: one strip, numbers first -->
-        <dl class="mb-4 grid grid-cols-2 divide-x divide-y divide-gray-100 overflow-hidden rounded-lg border bg-white sm:grid-cols-4 sm:divide-y-0">
+        <dl class="mb-4 grid grid-cols-2 divide-x divide-y divide-gray-100 overflow-hidden rounded-lg border bg-white sm:divide-y-0" :class="periodType === 'quarter' ? 'sm:grid-cols-4' : 'sm:grid-cols-3'">
             <div class="px-4 py-3">
                 <dd class="text-2xl font-semibold tabular-nums text-gray-900">{{ withData.length }}<span class="text-sm font-normal text-gray-400"> / {{ teams.length }}</span></dd>
                 <dt class="text-xs text-gray-500">Tim punya rekap</dt>
@@ -187,13 +189,13 @@ function toggle(teamId: number) {
                 <dd v-else class="text-2xl font-semibold text-gray-300">—</dd>
                 <dt class="text-xs text-gray-500">Rata-rata capaian</dt>
             </div>
-            <div class="px-4 py-3">
+            <div v-if="periodType === 'quarter'" class="px-4 py-3">
                 <dd class="text-2xl font-semibold tabular-nums text-gray-900">{{ lockedCount }}<span class="text-sm font-normal text-gray-400"> / {{ teams.length }}</span></dd>
                 <dt class="text-xs text-gray-500">Rekap dikunci</dt>
             </div>
             <div class="px-4 py-3">
                 <dd class="text-2xl font-semibold tabular-nums text-gray-900">{{ $n(confirmedTotal) }}<span class="text-sm font-normal text-gray-400"> / {{ rowsTotal }}</span></dd>
-                <dt class="text-xs text-gray-500">Baris dikonfirmasi</dt>
+                <dt class="text-xs text-gray-500">{{ periodType === 'quarter' ? 'Baris dikonfirmasi' : 'RK sudah ada parafrase' }}</dt>
             </div>
         </dl>
 
@@ -240,7 +242,7 @@ function toggle(teamId: number) {
                                 <ArrowUpDown v-else class="h-3.5 w-3.5 opacity-50" aria-hidden="true" />
                             </button>
                         </TableHead>
-                        <TableHead class="text-right">Dikonfirmasi</TableHead>
+                        <TableHead class="text-right">{{ periodType === 'quarter' ? 'Dikonfirmasi' : 'Parafrase ditulis' }}</TableHead>
                         <TableHead v-if="isWeek" class="text-right">Anggota lengkap</TableHead>
                         <TableHead>Status</TableHead>
                         <TableHead class="w-10"><span class="sr-only">Buka</span></TableHead>
@@ -287,7 +289,7 @@ function toggle(teamId: number) {
                             <span :class="['inline-flex whitespace-nowrap rounded-full px-2 py-0.5 text-xs font-medium', REVIEW_STATUS_META[reviewStatus(team.avg_achievement)].chip]">
                                 {{ REVIEW_STATUS_META[reviewStatus(team.avg_achievement)].label }}
                             </span>
-                            <Lock v-if="team.locked" class="ml-1.5 inline h-3.5 w-3.5 text-amber-700" aria-label="Rekap dikunci PJ" role="img" />
+                            <Lock v-if="team.locked && periodType === 'quarter'" class="ml-1.5 inline h-3.5 w-3.5 text-amber-700" aria-label="Rekap dikunci PJ" role="img" />
                         </TableCell>
                         <TableCell>
                             <Link :href="teamHref(team)" class="flex h-8 w-8 items-center justify-center rounded-md text-gray-400 hover:bg-gray-100 hover:text-primary" :aria-label="`Buka rekap ${team.name}`">

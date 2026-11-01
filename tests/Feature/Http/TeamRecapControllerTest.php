@@ -320,19 +320,18 @@ it('validates the RK numbers and keeps them numeric', function () {
     expect(RkRecap::count())->toBe(0);
 });
 
-it('locks an RK with Simpan dan Kunci, blocks edits, and opens it again', function () {
+it('saves an RK paraphrase, lets the PJ edit it again, and ignores an old lock', function () {
     [$user, $pj, $team] = pjOfTeam();
     $plan = PerformancePlan::factory()->create(['project_id' => null, 'team_id' => $team->id]);
 
-    $this->actingAs($user)->post(route('team-recap.rk.store'), rkPayload($team, $plan, ['paraphrase' => 'Final', 'lock' => true]))->assertSessionHas('success');
-    expect(RkRecap::sole())->locked_at->not->toBeNull()->locked_by->toBe($pj->id);
+    $this->actingAs($user)->post(route('team-recap.rk.store'), rkPayload($team, $plan, ['paraphrase' => 'Awal']))->assertSessionHas('success');
+    $this->actingAs($user)->post(route('team-recap.rk.store'), rkPayload($team, $plan, ['paraphrase' => 'Diubah']))->assertSessionHas('success');
+    expect(RkRecap::sole()->paraphrase)->toBe('Diubah');
 
-    $this->actingAs($user)->post(route('team-recap.rk.store'), rkPayload($team, $plan, ['paraphrase' => 'Ubah']))->assertSessionHas('error');
-    expect(RkRecap::sole()->paraphrase)->toBe('Final');
-
-    $this->actingAs($user)->post(route('team-recap.rk.unlock'), rkPayload($team, $plan))->assertSessionHas('success');
-    expect(RkRecap::sole()->isLocked())->toBeFalse();
-    $this->actingAs($user)->post(route('team-recap.rk.store'), rkPayload($team, $plan, ['paraphrase' => 'Ubah']))->assertSessionHas('success');
+    // A recap that was locked before the lock was removed can still be edited.
+    RkRecap::sole()->update(['locked_at' => now(), 'locked_by' => $pj->id]);
+    $this->actingAs($user)->post(route('team-recap.rk.store'), rkPayload($team, $plan, ['paraphrase' => 'Setelah kunci lama']))->assertSessionHas('success');
+    expect(RkRecap::sole()->paraphrase)->toBe('Setelah kunci lama');
 });
 
 it('lets the RK PIC write but not a plain member or a stranger', function () {
@@ -463,12 +462,12 @@ it('lists the months of the year with their counts and opens one month on click'
     recapItem($team, $pj, $plan, ['date_start' => '2026-09-16', 'date_end' => '2026-09-16']);
     recapItem($team, $pj, $plan, ['date_start' => '2026-09-18', 'date_end' => '2026-09-18']);
     recapItem($team, $pj, $plan, ['date_start' => '2026-10-05', 'date_end' => '2026-10-05']);
-    RkRecap::create(['team_id' => $team->id, 'performance_plan_id' => $plan->id, 'period_type' => 'month', 'period_start' => '2026-09-01', 'paraphrase' => 'Ringkasan', 'locked_at' => now()]);
+    RkRecap::create(['team_id' => $team->id, 'performance_plan_id' => $plan->id, 'period_type' => 'month', 'period_start' => '2026-09-01', 'paraphrase' => 'Ringkasan']);
 
     $this->actingAs($user)->get(route('team-recap.monthly', ['year' => 2026]))->assertInertia(fn ($page) => $page
         ->where('view', 'list')
         ->where('panels', [])
-        ->where('months.8.label', 'September')->where('months.8.activities', 2)->where('months.8.written', 1)->where('months.8.locked', 1)
+        ->where('months.8.label', 'September')->where('months.8.activities', 2)->where('months.8.written', 1)->where('months.8.rks', 1)
         ->where('months.9.activities', 1)
         ->where('months.0.activities', 0));
 
@@ -553,22 +552,25 @@ it('opens Review Bersama to a PJ with only their teams, and keeps it closed to a
     $this->actingAs($member)->get(route('profile.edit'))->assertInertia(fn ($page) => $page->where('can.review_bersama', false));
 });
 
-it('summarises the meetings of a month per team: written, locked, bukti rapat, and a week to come stays quiet', function () {
+it('summarises the meetings of a month per team: complete, partial, bukti rapat, and a week to come stays quiet', function () {
     Carbon\Carbon::setTestNow('2026-10-14 09:00:00');
-    [$pj, , $team] = pjOfTeam();
+    [$pj, $pjEmployee, $team] = pjOfTeam();
     $plan = PerformancePlan::factory()->create(['project_id' => null, 'team_id' => $team->id]);
+    $other = PerformancePlan::factory()->create(['project_id' => null, 'team_id' => $team->id]);
+    recapItem($team, $pjEmployee, $plan, ['date_start' => '2026-10-05', 'date_end' => '2026-10-05']);
+    recapItem($team, $pjEmployee, $plan, ['date_start' => '2026-10-12', 'date_end' => '2026-10-12']);
+    recapItem($team, $pjEmployee, $other, ['date_start' => '2026-10-12', 'date_end' => '2026-10-12']);
     RkRecap::create(['team_id' => $team->id, 'performance_plan_id' => $plan->id, 'period_type' => 'week', 'period_start' => '2026-10-05', 'paraphrase' => 'Selesai']);
-    RecapLock::create(['team_id' => $team->id, 'period_type' => 'week', 'period_year' => 2026, 'week_start' => '2026-10-05']);
     RkRecap::create(['team_id' => $team->id, 'performance_plan_id' => $plan->id, 'period_type' => 'week', 'period_start' => '2026-10-12', 'paraphrase' => 'Berjalan']);
-    TeamRecapEvidence::create(['team_id' => $team->id, 'period_type' => 'week', 'period_year' => 2026, 'week_start' => '2026-10-05', 'type' => 'notulen', 'title' => 'Notulen', 'url' => 'https://example.test/n', 'uploaded_by' => $pj->employee->id]);
+    TeamRecapEvidence::create(['team_id' => $team->id, 'period_type' => 'week', 'period_year' => 2026, 'week_start' => '2026-10-05', 'type' => 'notulen', 'title' => 'Notulen', 'url' => 'https://example.test/n', 'uploaded_by' => $pjEmployee->id]);
 
     $this->actingAs($pj)->get(route('team-recap.meetings', ['year' => 2026, 'month' => 10]))->assertOk()->assertInertia(fn ($page) => $page
         ->component('Kinetik/MeetingSummary')
         ->where('teams.0.id', $team->id)
         ->where('teams.0.weeks.0.status', 'none')      // 28 Sep, in October's first row
-        ->where('teams.0.weeks.1.status', 'locked')
+        ->where('teams.0.weeks.1.status', 'done')      // every RK with kegiatan has a paraphrase
         ->where('teams.0.weeks.1.evidence', 1)
-        ->where('teams.0.weeks.2.status', 'written')
+        ->where('teams.0.weeks.2.status', 'partial')   // one of two RK written
         ->where('teams.0.weeks.3.status', 'upcoming')
         ->where('teams.0.month.status', 'none'));
 
@@ -594,4 +596,13 @@ it('keeps the paraphrase text from everyone but the PJ, the RK PIC and admins', 
     $pj->update(['user_id' => $pjUser->id]);
     $this->actingAs($pjUser)->get($url)->assertInertia(fn ($page) => expect($text($page))->toContain('Teks rahasia PJ'));
     $this->actingAs(adminUser())->get($url)->assertInertia(fn ($page) => expect($text($page))->toContain('Teks rahasia PJ'));
+});
+
+it('keeps Review Bersama monthly for the head, while the PJ and admins still choose the period', function () {
+    $this->actingAs(headUser())->get(route('team-recap.overview', ['period_type' => 'week']))
+        ->assertInertia(fn ($page) => $page->where('periodType', 'month')->where('monthlyOnly', true));
+
+    [$pj] = pjOfTeam();
+    $this->actingAs($pj)->get(route('team-recap.overview', ['period_type' => 'week']))
+        ->assertInertia(fn ($page) => $page->where('periodType', 'week')->where('monthlyOnly', false));
 });

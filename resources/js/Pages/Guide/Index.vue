@@ -5,7 +5,8 @@ import { ref } from 'vue';
 import { Button } from '@/Components/ui/button';
 import { ArrowRight, BookOpen, Lightbulb, Printer } from 'lucide-vue-next';
 import AnnotatedShot from '@/Components/Guide/AnnotatedShot.vue';
-import { GUIDE_FAQ, GUIDE_FLOWS, GUIDE_OVERVIEW, type GuideRole } from '@/data/guide';
+import StatusFlow from '@/Components/Guide/StatusFlow.vue';
+import { GUIDE_FAQ, GUIDE_FLOWS, GUIDE_OVERVIEW, GUIDE_STATUS, type GuideRole } from '@/data/guide';
 
 const props = defineProps<{ defaultRole: GuideRole }>();
 
@@ -128,6 +129,18 @@ function print() {
                         </div>
                     </li>
                 </ol>
+            </section>
+
+            <!-- Status flows -->
+            <section class="mb-6 print:break-before-page" aria-labelledby="status-title">
+                <h2 id="status-title" class="text-lg font-semibold text-gray-900">Arti status</h2>
+                <p class="mt-1 text-sm text-gray-600">Setiap status yang bisa Anda lihat di Kinetik: artinya, urutannya, dan apa yang terjadi berikutnya. Kinetik tidak mengubah status di balik layar tanpa alasan; setiap perubahan datang dari langkah seseorang atau dari jadwal otomatis yang tertulis di sini.</p>
+                <nav class="mt-3 flex flex-wrap gap-2 print:hidden" aria-label="Loncat ke status">
+                    <a v-for="flow in GUIDE_STATUS" :key="flow.id" :href="`#status-${flow.id}`" class="rounded-full border bg-white px-3 py-1 text-xs font-medium text-gray-700 hover:bg-gray-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary">{{ flow.title }}</a>
+                </nav>
+                <div class="mt-4 space-y-4">
+                    <StatusFlow v-for="flow in GUIDE_STATUS" :key="flow.id" :flow="flow" />
+                </div>
             </section>
 
             <!-- FAQ -->

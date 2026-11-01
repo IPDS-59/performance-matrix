@@ -207,29 +207,28 @@ export const SHOTS = {
     },
     pimpinanReviewBersama: {
         src: '/images/pedoman/pimpinan-review-bersama.webp',
-        alt: 'Halaman Review Bersama: ringkasan kantor dan tabel capaian per tim yang bisa diurutkan',
+        alt: 'Halaman Review Bersama untuk pimpinan: ringkasan kantor per bulan dan tabel capaian per tim yang bisa diurutkan',
         width: 1024, height: 576,
         markers: [
-            { n: 1, x: 26.6, y: 17.9, label: 'Pilih Mingguan, Bulanan atau Triwulanan.' },
-            { n: 2, x: 59.7, y: 17.9, label: 'Pindah periode dengan ‹ dan ›.' },
-            { n: 3, x: 18.8, y: 27.8, label: 'Ringkasan kantor dalam satu deret angka.' },
-            { n: 4, x: 38.1, y: 35.8, label: 'Saring satu tim, atau per status capaian.' },
-            { n: 5, x: 43.4, y: 41.4, label: 'Klik Capaian untuk mengurutkan dari tertinggi atau terendah.' },
-            { n: 6, x: 85.5, y: 46.4, label: 'Status capaian tim. Gembok berarti rekap dikunci PJ.' },
-            { n: 7, x: 18.4, y: 45.8, label: 'Panah membuka daftar projek tim.' },
-            { n: 8, x: 91.6, y: 17.9, label: 'Unduh Excel semua tim untuk rapat.' },
+            { n: 1, x: 27, y: 17.9, label: 'Pindah bulan dengan ‹ dan ›. Review Bersama untuk pimpinan selalu per bulan.' },
+            { n: 2, x: 20, y: 29, label: 'Ringkasan kantor dalam satu deret angka.' },
+            { n: 3, x: 38, y: 35.8, label: 'Saring satu tim, atau per status capaian.' },
+            { n: 4, x: 49.2, y: 41.4, label: 'Klik Capaian untuk mengurutkan dari tertinggi atau terendah.' },
+            { n: 5, x: 87.7, y: 46.6, label: 'Status capaian tim: Tercapai, Progres, Rendah, atau Belum ada data.' },
+            { n: 6, x: 18.4, y: 45.8, label: 'Panah membuka daftar projek tim.' },
+            { n: 7, x: 91, y: 17.9, label: 'Unduh Excel semua tim untuk rapat.' },
         ],
     },
     ringkasanRapat: {
         src: '/images/pedoman/ringkasan-rapat.webp',
-        alt: 'Halaman Ringkasan Rapat: tabel tim dan minggu dengan status Terkunci, Ditulis, atau Belum, dan jumlah bukti rapat',
+        alt: 'Halaman Ringkasan Rapat: tabel tim dan minggu dengan status Lengkap, Sebagian, atau Belum, dan jumlah bukti rapat',
         width: 1024, height: 576,
         markers: [
             { n: 1, x: 24.8, y: 11.8, label: 'Pindah bulan dengan ‹ dan ›.' },
-            { n: 2, x: 31.3, y: 21.1, label: 'Ringkasan: rekap mingguan terkunci, rekap bulanan terkunci, tim yang punya bukti rapat.' },
-            { n: 3, x: 51.9, y: 33.1, label: 'Terkunci: PJ sudah menyelesaikan rekap. Angka di sebelahnya jumlah bukti rapat.' },
-            { n: 4, x: 62.1, y: 33.2, label: 'Ditulis: ada parafrase tetapi belum dikunci.' },
-            { n: 5, x: 93, y: 33.2, label: 'Rapat bulanan tim itu.' },
+            { n: 2, x: 31.3, y: 21.1, label: 'Ringkasan: rekap mingguan lengkap, rekap bulanan lengkap, tim yang punya bukti rapat.' },
+            { n: 3, x: 51.4, y: 33.2, label: 'Lengkap: semua RK yang punya kegiatan sudah ada parafrasenya. Angka kecil di sebelahnya jumlah bukti rapat.' },
+            { n: 4, x: 71.7, y: 33.2, label: 'Sebagian: baru sebagian RK yang ada parafrasenya.' },
+            { n: 5, x: 92.9, y: 33.2, label: 'Rapat bulanan tim itu.' },
         ],
     },
     kepatuhanRencana: {
@@ -507,7 +506,7 @@ export const GUIDE_FLOWS: GuideFlow[] = [
                 where: 'Menu Rekap Tim → Mingguan',
                 route: 'team-recap.weekly',
                 body: [
-                    'Halaman ini dibuka dengan daftar bulan untuk tim yang dipilih. Pilih satu bulan, lalu satu minggu. Tiap baris menunjukkan jumlah kegiatan, berapa RK yang parafrasenya sudah ditulis, berapa yang terkunci, dan statusnya. Pemilih tim dan tahun ada di atas daftar.',
+                    'Halaman ini dibuka dengan daftar bulan untuk tim yang dipilih. Pilih satu bulan, lalu satu minggu. Tiap baris menunjukkan jumlah kegiatan, berapa RK yang punya kegiatan, berapa yang parafrasenya sudah ditulis, dan statusnya (Belum ada kegiatan, Belum ditulis, Sedang ditulis, atau Selesai ditulis; artinya ada di bagian "Arti status"). Pemilih tim dan tahun ada di atas daftar.',
                     'Di dalam sebuah minggu, bagian "Kelengkapan anggota" menunjukkan siapa yang belum mengisi capaian di Rekap Mingguan. Ingatkan mereka sebelum rapat.',
                 ],
             },
@@ -523,20 +522,20 @@ export const GUIDE_FLOWS: GuideFlow[] = [
             {
                 title: 'Baca kontribusi anggota dan tulis parafrase',
                 body: [
-                    'Tiap RK tampil sebagai kartu ringkas: parafrase PJ, target RK, capaian RK, status kunci, dan tabel pendek anggota yang mengerjakannya. Tekan "Isi parafrase" (atau "Ubah parafrase") untuk membuka popup. Mengklik nama anggota di tabel juga membuka popup itu untuk anggota tersebut.',
+                    'Tiap RK tampil sebagai kartu ringkas: parafrase PJ, target RK, capaian RK, status parafrase, dan tabel pendek anggota yang mengerjakannya. Tekan "Isi parafrase" (atau "Ubah parafrase") untuk membuka popup. Mengklik nama anggota di tabel juga membuka popup itu untuk anggota tersebut.',
                     'Di kiri popup ada kegiatan anggota untuk RK itu, satu baris per anggota. Klik nama untuk membukanya. Kolom cari dan "Belum dibaca saja" membantu menelusuri tim yang besar; "Dibaca n/m" menghitung yang sudah Anda buka. Filter "Lihat" menampilkan satu anggota saja.',
                     'Di kanan ada kotak Parafrase PJ yang kosong. Tulis sendiri, atau tekan "Sisipkan" pada satu kalimat anggota untuk mengambilnya. Kinetik tidak mengisi otomatis dari semua anggota.',
                     'Target dan capaian setiap anggota berasal dari Rekap Mingguan mereka dan tidak dapat diubah di sini.',
                 ],
             },
             {
-                title: 'Isi target, satuan dan capaian RK, lalu simpan atau kunci',
+                title: 'Isi target, satuan dan capaian RK, lalu simpan',
                 body: [
                     'Masih di popup yang sama, isi satu Target (angka), satu Satuan dan satu Capaian (angka) untuk seluruh RK. Persentase capaian dihitung otomatis.',
-                    '"Simpan" menyimpan tanpa mengunci dan menutup popup; hasilnya langsung tampil di kartu RK. "Simpan dan kunci" menyimpan lalu mengunci RK itu, sehingga tidak berubah lagi. "Buka kunci" membukanya kembali.',
+                    '"Simpan" menyimpan dan menutup popup; hasilnya langsung tampil di kartu RK. Tidak ada kunci: parafrase, target dan capaian boleh diubah lagi kapan saja.',
                     'PJ dan PIC RK dapat menulis. Anggota lain hanya membaca.',
                 ],
-                tip: 'Kunci tiap RK setelah rapat selesai. Tekan "Buka kunci" jika masih ada koreksi.',
+                tip: 'Parafrase hanya terlihat oleh PJ, PIC RK, dan admin. Anggota dan pimpinan hanya melihat angka dan statusnya.',
             },
             {
                 title: 'Tambah bukti rapat',
@@ -614,8 +613,8 @@ export const GUIDE_FLOWS: GuideFlow[] = [
                 where: 'Menu Rekap Tim → Review Bersama',
                 route: 'team-recap.overview',
                 body: [
-                    'PJ juga punya Review Bersama, dengan tampilan yang sama seperti pimpinan, tetapi hanya untuk tim yang Anda ikuti. Pilih Mingguan, Bulanan, atau Triwulanan, lalu baca capaian, baris yang dikonfirmasi, dan status kunci tim Anda.',
-                    'Klik judul kolom Capaian untuk mengurutkan. Ringkasan Rapat di menu yang sama menunjukkan rekap mingguan dan bulanan tim Anda sudah ditulis atau dikunci, dan berapa bukti rapat yang sudah dilampirkan.',
+                    'PJ juga punya Review Bersama, dengan tampilan yang sama seperti pimpinan, tetapi hanya untuk tim yang Anda ikuti. Pilih Mingguan, Bulanan, atau Triwulanan, lalu baca capaian, dan baris yang sudah ditulis parafrasenya.',
+                    'Klik judul kolom Capaian untuk mengurutkan. Ringkasan Rapat di menu yang sama menunjukkan rekap mingguan dan bulanan tim Anda sudah lengkap, sebagian, atau belum, dan berapa bukti rapat yang sudah dilampirkan.',
                     'Kepatuhan Rencana menampilkan ringkasan dulu (siapa yang belum membuat rencana minggu ini), lalu tabel lengkap bila Anda membukanya.',
                 ],
                 shot: SHOTS.pimpinanReviewBersama,
@@ -692,8 +691,8 @@ export const GUIDE_FLOWS: GuideFlow[] = [
                 route: 'team-recap.overview',
                 body: [
                     'Baris kecil di paling atas menunjukkan yang perlu dilihat lebih dulu, satu label untuk tiap hal beserta jumlahnya. Klik labelnya untuk membuka halamannya. Rinciannya ada di menu Monitoring.',
-                    'Pilih Mingguan, Bulanan atau Triwulanan, lalu pilih periode dengan ‹ dan ›.',
-                    'Satu deret angka merangkum kantor: tim yang punya rekap, rata-rata capaian, rekap yang dikunci PJ, dan baris yang dikonfirmasi.',
+                    'Review Bersama untuk pimpinan selalu per bulan. Pindah bulan dengan ‹ dan ›. (PJ dan admin masih bisa memilih Mingguan, Bulanan atau Triwulanan.)',
+                    'Satu deret angka merangkum kantor: tim yang punya rekap, rata-rata capaian, dan RK yang sudah ada parafrasenya.',
                     'Review Bersama juga ada di menu PJ: PJ melihat tim yang ia ikuti dengan tampilan yang sama.',
                 ],
                 shot: SHOTS.pimpinanReviewBersama,
@@ -701,7 +700,7 @@ export const GUIDE_FLOWS: GuideFlow[] = [
             {
                 title: 'Baca tabel per tim',
                 body: [
-                    'Setiap baris adalah satu tim, dengan nama PJ di bawah namanya, rata-rata capaian, baris dikonfirmasi, dan status. Ikon gembok berarti rekap sudah dikunci PJ.',
+                    'Setiap baris adalah satu tim, dengan nama PJ di bawah namanya, rata-rata capaian, jumlah parafrase yang sudah ditulis, dan status.',
                     'Klik judul kolom Capaian untuk mengurutkan: pertama dari tertinggi, kedua dari terendah, ketiga kembali ke urutan awal. Tim tanpa data selalu di bawah.',
                     'Klik panah di depan nama tim untuk melihat semua projek tim itu beserta PIC / ketua projek, jumlah anggota, baris RK dan capaian per projek.',
                     'Pada periode mingguan ada kolom "Anggota lengkap".',
@@ -709,7 +708,7 @@ export const GUIDE_FLOWS: GuideFlow[] = [
                     'Saring dengan pilihan tim dan tombol status di atas tabel, misalnya hanya tim yang Rendah.',
                     '"Belum ada data" berarti belum ada rekap atau kegiatan pada periode itu, bukan capaian 0%.',
                 ],
-                tip: 'Rekap yang sudah "Dikunci" berarti PJ sudah menyiapkannya untuk rapat dan isinya tidak berubah lagi.',
+                tip: 'Arti semua status ada di bagian "Arti status" di Buku Pedoman ini.',
             },
             {
                 title: 'Buka rekap sebuah tim',
@@ -725,8 +724,8 @@ export const GUIDE_FLOWS: GuideFlow[] = [
                 route: 'team-recap.meetings',
                 body: [
                     'Satu tabel untuk satu bulan: tiap baris satu tim, tiap kolom satu minggu, ditambah kolom Rapat bulanan. Pindah bulan dengan ‹ dan ›.',
-                    'Terkunci berarti PJ sudah menyelesaikan rekap periode itu. Ditulis berarti ada parafrase tetapi belum dikunci. Belum berarti belum ada. Minggu yang belum terjadi tampil kosong, bukan Belum. Angka kecil di samping status adalah jumlah bukti rapat yang dilampirkan PJ.',
-                    'Tiga angka di atas merangkum bulan itu: rekap mingguan terkunci, rekap bulanan terkunci, dan tim yang punya bukti rapat. Klik satu status untuk membuka rekap tim itu.',
+                    'Lengkap berarti semua RK yang punya kegiatan sudah ada parafrasenya. Sebagian berarti baru sebagian. Belum berarti belum ada. Minggu yang belum terjadi tampil tanda strip, bukan Belum. Angka kecil di samping status adalah jumlah bukti rapat yang dilampirkan PJ.',
+                    'Tiga angka di atas merangkum bulan itu: rekap mingguan lengkap, rekap bulanan lengkap, dan tim yang punya bukti rapat. Klik satu status untuk membuka rekap tim itu.',
                     'Teks parafrase PJ tidak ditampilkan kepada pimpinan. Pimpinan membaca angka, status, dan bukti rapat.',
                 ],
                 shot: SHOTS.ringkasanRapat,
@@ -846,7 +845,7 @@ export const GUIDE_FLOWS: GuideFlow[] = [
                     'Sinkronisasi Angka Kredit juga berjalan otomatis setiap Senin pukul 05.30 WITA.',
                     'Token kipApp berlaku sekitar 24 jam. Kinetik mengirim notifikasi ke admin tiga jam sebelum token kedaluwarsa dan sekali lagi saat sudah kedaluwarsa. Simpan token baru di halaman Integrasi kipApp.',
                 ],
-                tip: 'Sinkronisasi hanya menambah dan memperbarui data. Kegiatan Anda, parafrase, konfirmasi, kunci dan bukti rapat tidak pernah dihapus. Satu pengecualian: anggota projek disamakan dengan daftar di kipApp.',
+                tip: 'Sinkronisasi hanya menambah dan memperbarui data. Kegiatan Anda, parafrase, konfirmasi, kunci triwulan dan bukti rapat tidak pernah dihapus. Satu pengecualian: anggota projek disamakan dengan daftar di kipApp.',
             },
             {
                 title: 'Kelola tim dan pegawai',
@@ -896,6 +895,170 @@ export const GUIDE_FLOWS: GuideFlow[] = [
     },
 ];
 
+export type StatusTone = 'gray' | 'blue' | 'amber' | 'green' | 'emerald' | 'red';
+
+export interface GuideStatusStage {
+    label: string;
+    tone: StatusTone;
+    /** What the status means, in plain words. */
+    meaning: string;
+    /** What the reader does, or what happens next. */
+    next: string;
+}
+
+export interface GuideStatusFlow {
+    id: string;
+    title: string;
+    /** Who sees these statuses, and where. */
+    where: string;
+    intro: string;
+    /** The statuses in the order they normally happen. They are drawn as a chain. */
+    stages: GuideStatusStage[];
+    /** Statuses off the main chain, or rules that change the chain. */
+    sides?: GuideStatusStage[];
+    /** True when the stages are separate states instead of a chain (colour scales). */
+    scale?: boolean;
+    note?: string;
+}
+
+/** Every status a person can see in Kinetik, with what it means and what happens next. */
+export const GUIDE_STATUS: GuideStatusFlow[] = [
+    {
+        id: 'kegiatan',
+        title: 'Kegiatan Anda',
+        where: 'Anggota · Rekap Mingguan, detail kegiatan',
+        intro: 'Satu kegiatan melewati lima status. Status berganti sendiri saat Anda atau Kinetik melakukan langkah berikutnya.',
+        stages: [
+            { label: 'Direncanakan', tone: 'gray', meaning: 'Kegiatan ada di Kinetik, belum ada di kipApp.', next: 'Pada tanggal mulainya Kinetik membuatnya di kipApp otomatis, dimulai pukul 05.10 WITA dan diulang tiap jam kerja. Atau tekan "Kirim ke kipApp". Kegiatan hasil impor Excel tidak dikirim otomatis: Anda yang menekan tombolnya.' },
+            { label: 'Ada di kipApp', tone: 'blue', meaning: 'Kegiatan sudah dibuat di kipApp dengan progres 0.', next: 'Kerjakan, lalu isi form Realisasi (capaian, progres, bukti, uraian).' },
+            { label: 'Berjalan', tone: 'amber', meaning: 'Progres sudah di atas 0 tetapi belum 100.', next: 'Lanjutkan mengisi Realisasi. Saat selesai, tekan "Tandai selesai".' },
+            { label: 'Selesai, belum dikirim', tone: 'green', meaning: 'Progres 100 dan uraian sudah ada, tetapi belum dikirim ke atasan.', next: 'Tekan "Kirim ke atasan" di detail, atau centang beberapa kegiatan lalu "Kirim ke atasan (n)".' },
+            { label: 'Terkirim ke atasan', tone: 'emerald', meaning: 'Atasan sudah menerima kegiatan untuk dinilai.', next: 'Kegiatan tidak bisa diubah atau dihapus. Hanya "Masukan ke capaian SKP" yang boleh diubah. Salah kirim? Tekan "Batalkan kirim".' },
+        ],
+        sides: [
+            { label: 'Belum terkirim ke kipApp: (alasan)', tone: 'red', meaning: 'Pengiriman otomatis gagal, misalnya SKP Tahunan belum Ditetapkan atau sesi kipApp berakhir. Alasannya tertulis di detail kegiatan.', next: 'Perbaiki penyebabnya. Kinetik mencoba lagi tiap jam sampai tanggal selesai dan memberi tahu Anda satu kali lewat lonceng.' },
+            { label: 'Dibatalkan', tone: 'gray', meaning: 'Rencana yang belum dikirim ke kipApp dibatalkan atau dihapus.', next: 'Tidak dihitung di rekap. Kegiatan yang sudah ada di kipApp dihapus lewat "Hapus kegiatan", dan Kinetik menghapusnya juga di kipApp.' },
+            { label: 'Terkunci (ada keterangan)', tone: 'amber', meaning: 'SKP triwulan kegiatan itu sudah meninggalkan "Sedang dibuat" di kipApp, jadi kipApp tidak menerima perubahan.', next: 'Minta atasan mengembalikan SKP ke "Sedang dibuat", atau ubah langsung di kipApp.' },
+        ],
+    },
+    {
+        id: 'daftar-saya',
+        title: 'Daftar bulan dan minggu Anda',
+        where: 'Anggota · Rekap Mingguan, daftar bulan dan daftar minggu',
+        intro: 'Tiap baris adalah satu bulan atau satu minggu. Statusnya dihitung dari kegiatan Anda pada periode itu: berapa yang capaiannya sudah terisi dan berapa yang sudah terkirim ke atasan.',
+        stages: [
+            { label: 'Belum ada kegiatan', tone: 'gray', meaning: 'Anda belum punya kegiatan pada periode itu.', next: 'Tekan "Tambah" bila ada yang perlu dicatat atau direncanakan.' },
+            { label: 'Belum ditulis', tone: 'amber', meaning: 'Ada kegiatan, tetapi belum ada satu pun capaian yang terisi.', next: 'Buka kegiatan, isi form Realisasi.' },
+            { label: 'Sedang ditulis', tone: 'blue', meaning: 'Sebagian kegiatan sudah ada capaiannya, dan belum semuanya terkirim ke atasan.', next: 'Lengkapi capaian kegiatan yang tersisa, lalu kirim ke atasan.' },
+            { label: 'Terkirim ke atasan', tone: 'emerald', meaning: 'Semua kegiatan yang capaiannya terisi sudah terkirim ke atasan.', next: 'Selesai untuk periode itu.' },
+        ],
+    },
+    {
+        id: 'skp',
+        title: 'SKP Anda',
+        where: 'Anggota, PJ dan pimpinan · SKP Saya dan Persetujuan SKP',
+        intro: 'SKP Tahunan dan SKP triwulan punya jalur sendiri. Keduanya dimulai dari "Sedang dibuat".',
+        stages: [
+            { label: 'Sedang dibuat', tone: 'gray', meaning: 'SKP masih milik pegawai dan bisa diubah.', next: 'Susun RK, tambah IKI, lalu tekan Kirim.' },
+            { label: 'Menunggu ditetapkan atasan  /  Diperiksa atasan (di kipApp: Sedang diperiksa)', tone: 'amber', meaning: 'SKP Tahunan menunggu atasan menetapkannya. SKP triwulan sedang diperiksa atasan untuk dinilai.', next: 'Atasan membukanya di Persetujuan SKP. Pegawai bisa "Batalkan pengiriman" selama belum diproses.' },
+            { label: 'Ditetapkan  /  Dinilai', tone: 'emerald', meaning: 'SKP Tahunan sudah ditetapkan. SKP triwulan sudah dinilai.', next: 'Selesai. Nilai SKP triwulan ikut ke Angka Kredit.' },
+        ],
+        sides: [
+            { label: 'Dikembalikan', tone: 'red', meaning: 'Atasan mengembalikan SKP ke pegawai.', next: 'SKP kembali ke "Sedang dibuat". Pegawai memperbaiki lalu mengirim lagi.' },
+            { label: 'SKP TW belum ada', tone: 'gray', meaning: 'Awal triwulan baru belum ada SKP triwulannya di kipApp.', next: 'Kinetik membuatnya otomatis dari SKP Tahunan saat kegiatan pertama triwulan itu dikirim. "Sinkronkan data saya" memberi peringatan bila SKP itu belum ada.' },
+        ],
+    },
+    {
+        id: 'rekap',
+        title: 'Rekap mingguan dan bulanan tim',
+        where: 'PJ · Rekap Tim → Mingguan dan Bulanan (daftar minggu atau bulan)',
+        intro: 'Status dihitung dari RK yang punya kegiatan pada minggu atau bulan itu, dan apakah PJ sudah menulis parafrasenya. Tidak ada kunci: parafrase boleh diubah kapan saja.',
+        stages: [
+            { label: 'Belum ada kegiatan', tone: 'gray', meaning: 'Belum ada anggota yang punya kegiatan pada periode itu.', next: 'Tidak ada yang perlu ditulis.' },
+            { label: 'Belum ditulis', tone: 'amber', meaning: 'Ada kegiatan, tetapi belum ada satu pun parafrase RK.', next: 'Buka periodenya, pilih RK, tekan "Isi parafrase".' },
+            { label: 'Sedang ditulis', tone: 'blue', meaning: 'Sebagian RK yang punya kegiatan sudah ada parafrasenya, sebagian belum.', next: 'Lanjutkan RK yang masih "Belum ditulis". Kolom "RK sudah ditulis" dibanding "RK dengan kegiatan" menunjukkan sisanya.' },
+            { label: 'Selesai ditulis', tone: 'emerald', meaning: 'Semua RK yang punya kegiatan sudah ada parafrasenya.', next: 'Siap untuk rapat. Tambahkan bukti rapat bila ada.' },
+        ],
+        note: 'Hanya PJ, PIC RK, dan admin yang bisa membaca teks parafrase. Anggota dan pimpinan hanya melihat angka dan statusnya.',
+    },
+    {
+        id: 'ringkasan',
+        title: 'Ringkasan Rapat',
+        where: 'Pimpinan dan PJ · Rekap Tim → Ringkasan Rapat',
+        intro: 'Satu tabel per bulan: tiap tim, tiap minggu, dan rapat bulanan. Isinya status rekap dan jumlah bukti rapat.',
+        scale: true,
+        stages: [
+            { label: 'Lengkap', tone: 'emerald', meaning: 'Semua RK yang punya kegiatan pada periode itu sudah ada parafrasenya.', next: 'Tidak perlu ditindaklanjuti.' },
+            { label: 'Sebagian', tone: 'amber', meaning: 'Baru sebagian RK yang ada parafrasenya.', next: 'Klik untuk membuka rekap timnya.' },
+            { label: 'Belum', tone: 'red', meaning: 'Minggu atau bulan itu sudah lewat dan belum ada parafrase.', next: 'Tanyakan ke PJ tim.' },
+            { label: '—', tone: 'gray', meaning: 'Minggu atau bulannya belum tiba.', next: 'Tidak dihitung.' },
+        ],
+        note: 'Angka kecil dengan ikon dokumen di sebelah status adalah jumlah bukti rapat (notula, foto, daftar hadir) yang diunggah PJ.',
+    },
+    {
+        id: 'triwulan',
+        title: 'Rekap triwulan (FRA)',
+        where: 'PJ · Rekap Tim → Triwulanan (FRA)',
+        intro: 'Rekap triwulan dikonfirmasi baris demi baris, lalu dikunci setelah rapat. Kunci ini hanya ada di triwulan.',
+        stages: [
+            { label: 'Belum', tone: 'amber', meaning: 'Baris RK belum dikonfirmasi PJ.', next: 'Periksa angkanya, isi kendala, solusi dan RTL, lalu konfirmasi. "Konfirmasi semua capaian 100%" mengonfirmasi sekaligus semua baris yang sudah 100%.' },
+            { label: 'Terkonfirmasi', tone: 'green', meaning: 'PJ sudah memeriksa baris itu.', next: 'Setelah semua baris terkonfirmasi, kunci triwulan dari bagian atas halaman.' },
+            { label: 'Rekap dikunci', tone: 'emerald', meaning: 'Triwulan ditutup. Isinya tidak berubah sampai kunci dibuka.', next: 'RTL pada rekap yang dikunci menjadi rencana kegiatan di triwulan berikutnya.' },
+        ],
+    },
+    {
+        id: 'capaian',
+        title: 'Capaian tim',
+        where: 'Pimpinan · Review Bersama',
+        intro: 'Warna capaian rata-rata satu tim pada periode yang dipilih.',
+        scale: true,
+        stages: [
+            { label: 'Tercapai', tone: 'emerald', meaning: 'Capaian 100% atau lebih.', next: '—' },
+            { label: 'Progres', tone: 'amber', meaning: 'Capaian 70% sampai di bawah 100%.', next: '—' },
+            { label: 'Rendah', tone: 'red', meaning: 'Capaian di bawah 70%.', next: 'Buka baris timnya untuk melihat projek dan RK penyebabnya.' },
+            { label: 'Belum ada data', tone: 'gray', meaning: 'Belum ada kegiatan dengan target dan capaian. Ini bukan capaian 0%.', next: 'Minta tim mengisi target dan capaian.' },
+        ],
+    },
+    {
+        id: 'rencana',
+        title: 'Kepatuhan rencana dan hasil rencana',
+        where: 'Pimpinan dan PJ · Kepatuhan Rencana',
+        intro: 'Dua hal berbeda. Warna sel menunjukkan berapa anggota yang membuat rencana. Hasil rencana menunjukkan apa jadinya rencana minggu yang sudah lewat.',
+        scale: true,
+        stages: [
+            { label: 'Hijau (80% atau lebih)', tone: 'emerald', meaning: 'Hampir semua anggota sudah membuat rencana minggu itu.', next: 'Batas membuat rencana: Senin pukul 09.00.' },
+            { label: 'Kuning (50% sampai 79%)', tone: 'amber', meaning: 'Sebagian anggota belum membuat rencana.', next: 'Nama yang belum tampil di halaman yang sama.' },
+            { label: 'Merah (di bawah 50%)', tone: 'red', meaning: 'Banyak anggota belum membuat rencana.', next: 'Ingatkan lewat PJ.' },
+            { label: 'Selesai / Berjalan / Belum mulai', tone: 'blue', meaning: 'Hasil rencana minggu lalu. Selesai: semua kegiatan kipApp untuk RK itu pada tanggalnya progres 100. Berjalan: ada kegiatan tetapi belum semua 100. Belum mulai: tidak ada kegiatan kipApp untuk rencana itu.', next: 'PJ bisa mengubah hasil dengan alasan tertulis bila hitungan otomatis tidak tepat.' },
+        ],
+    },
+    {
+        id: 'beranda',
+        title: 'Kartu di Beranda',
+        where: 'Anggota dan pimpinan · Beranda',
+        intro: 'Setiap kartu punya satu tanda di pojok kanan atas. Tanda itu dihitung dari yang tertinggal pada kartu itu.',
+        scale: true,
+        stages: [
+            { label: 'Aman', tone: 'emerald', meaning: 'Tidak ada yang tertinggal.', next: 'Tidak perlu tindakan.' },
+            { label: 'Perlu dicek', tone: 'amber', meaning: 'Ada yang tertinggal, tetapi separuh atau lebih sudah beres.', next: 'Nama atau kegiatan yang tertinggal tertulis di kartu.' },
+            { label: 'Perlu tindakan', tone: 'red', meaning: 'Kurang dari separuh yang beres.', next: 'Buka halaman lewat tautan di bawah kartu.' },
+        ],
+    },
+    {
+        id: 'fra',
+        title: 'Warna Kertas Kerja FRA',
+        where: 'PJ, pimpinan dan admin · Kertas Kerja FRA',
+        intro: 'Warna persen tiap bulan dan angka kumulatif dibanding target tahunan indikator.',
+        scale: true,
+        stages: [
+            { label: 'Hijau', tone: 'emerald', meaning: 'Target tahunan tercapai atau terlampaui.', next: '—' },
+            { label: 'Kuning', tone: 'amber', meaning: 'Ada hasil tetapi belum mencapai target.', next: '—' },
+            { label: 'Merah', tone: 'red', meaning: 'Kosong atau nol pada bulan yang sudah lewat.', next: 'PJ tim pemilik mengisi X dan Y bulan itu.' },
+            { label: 'Abu-abu', tone: 'gray', meaning: 'Bulan yang belum tiba.', next: '—' },
+        ],
+    },
+];
+
 export const GUIDE_FAQ = [
     {
         q: 'Mengapa Kinetik meminta kata sandi SSO saya?',
@@ -914,8 +1077,8 @@ export const GUIDE_FAQ = [
         a: 'Tekan "Sinkronkan data saya" di Rekap Mingguan untuk menarik RK Anda dari kipApp. Jika RK Anda masih tidak ada di daftar, minta admin menjalankan Sinkronisasi Struktur.',
     },
     {
-        q: 'PJ tidak bisa menyimpan parafrase RK: "Rekap RK ini sudah dikunci".',
-        a: 'RK itu sudah dikunci setelah rapat. Tekan "Buka kunci" pada panel RK, simpan koreksi, lalu kunci lagi.',
+        q: 'Apa arti "Sedang ditulis" di daftar minggu atau bulan?',
+        a: 'Sebagian RK yang punya kegiatan sudah ada parafrasenya, sebagian belum. Lanjutkan RK yang masih "Belum ditulis" sampai statusnya menjadi "Selesai ditulis". Semua status ada di bagian "Arti status" di Buku Pedoman ini.',
     },
     {
         q: 'Apa arti "Belum ada data"?',

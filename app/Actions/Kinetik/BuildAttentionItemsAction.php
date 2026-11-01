@@ -13,7 +13,7 @@ use Illuminate\Support\Collection;
 
 /**
  * What the head or a PJ should look at first: kegiatan without a target, ended kegiatan without a
- * capaian, members without a plan this week, promotions near, last week's recap not locked, and
+ * capaian, members without a plan this week, promotions near, last week's recap not written, and
  * pushes to kipApp that failed. Only groups with something in them are returned, most urgent first.
  */
 class BuildAttentionItemsAction
@@ -66,7 +66,7 @@ class BuildAttentionItemsAction
                 || PlanItem::where('team_id', $t->id)->where('status', '!=', 'cancelled')
                     ->whereDate('date_start', '<=', Carbon::parse($lastMonday)->endOfWeek(Carbon::SUNDAY)->toDateString())->whereDate('date_end', '>=', $lastMonday)->exists();
 
-            return $has && ! RkRecap::where('team_id', $t->id)->where('period_type', 'week')->whereDate('period_start', $lastMonday)->whereNotNull('locked_at')->exists();
+            return $has && ! RkRecap::where('team_id', $t->id)->where('period_type', 'week')->whereDate('period_start', $lastMonday)->whereNotNull('paraphrase')->exists();
         });
 
         $statusText = ['ready' => 'siap diusulkan', 'ak_ready' => 'AK cukup, menunggu syarat waktu', 'near' => 'hampir'];
@@ -76,7 +76,7 @@ class BuildAttentionItemsAction
             ['missing_capaian', 'Kegiatan selesai tanpa capaian', '60 hari terakhir. Capaian diisi saat rapat mingguan.', 'high', $missingCapaian->count(), $missingCapaian->take(self::SAMPLES)->map($name)->all(), 'team-recap.weekly'],
             ['failed_push', 'Belum terkirim ke kipApp', 'Alasannya tampil di rencana anggota.', 'high', $failed->count(), $failed->take(self::SAMPLES)->map($name)->all(), 'plan-compliance.index'],
             ['no_plan', 'Belum ada rencana minggu ini', 'Anggota tanpa satu pun kegiatan pada minggu berjalan.', 'high', $silent->count(), $silent->take(10)->map(fn (Employee $e) => $e->display_name ?? $e->name)->all(), 'plan-compliance.index'],
-            ['recap_open', 'Rekap minggu lalu belum dikunci', 'Tim yang punya kegiatan minggu lalu tetapi belum ada RK terkunci.', 'medium', $lastWeekTeams->count(), $lastWeekTeams->take(self::SAMPLES)->map(fn (Team $t) => $t->name)->values()->all(), 'team-recap.weekly'],
+            ['recap_open', 'Rekap minggu lalu belum ditulis', 'Tim yang punya kegiatan minggu lalu tetapi belum ada RK yang parafrasenya ditulis.', 'medium', $lastWeekTeams->count(), $lastWeekTeams->take(self::SAMPLES)->map(fn (Team $t) => $t->name)->values()->all(), 'team-recap.weekly'],
             ['promotion', 'Kenaikan pangkat atau jenjang', 'Dari Angka Kredit: siap, AK cukup, atau hampir.', 'info', $promotions->count(), $promotions->take(self::SAMPLES)->map(fn (array $r) => $r['name'].': '.$statusText[$r['status']])->all(), 'credit.team'],
         ];
 

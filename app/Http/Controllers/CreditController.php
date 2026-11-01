@@ -51,6 +51,8 @@ class CreditController extends Controller
 
         $rows = $employees
             ->map(fn (Employee $e) => $this->calculator->forEmployee($e))
+            // Pelaksana and structural officials (such as the head) earn no angka kredit, so they are not listed.
+            ->reject(fn (array $row) => $row['status'] === 'non_jf')
             ->sortBy([
                 fn (array $a, array $b) => self::STATUS_ORDER[$a['status']] <=> self::STATUS_ORDER[$b['status']],
                 fn (array $a, array $b) => ($a['gap'] ?? INF) <=> ($b['gap'] ?? INF),

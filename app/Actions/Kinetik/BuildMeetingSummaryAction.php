@@ -2,16 +2,17 @@
 
 namespace App\Actions\Kinetik;
 
-use App\Models\RecapLock;
+use App\Models\PlanItem;
 use App\Models\RkRecap;
 use App\Models\Team;
 use App\Models\TeamRecapEvidence;
+use Carbon\Carbon;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Collection;
 
 /**
- * Per team, how far the weekly meetings and the monthly meeting of one month got: the PJ wrote a paraphrase, locked the
- * recap, attached a bukti rapat. A week still to come is "upcoming", not "none".
+ * Per team, how far the weekly meetings and the monthly meeting of one month got: how many RK have a paraphrase, and the
+ * bukti rapat. A week still to come is "upcoming", not "none".
  */
 class BuildMeetingSummaryAction
 {
@@ -31,10 +32,18 @@ class BuildMeetingSummaryAction
         $recaps = RkRecap::whereIn('team_id', $teams->pluck('id'))
             ->where(fn ($q) => $q->where(fn ($w) => $w->where('period_type', 'week')->whereIn('period_start', $starts))
                 ->orWhere(fn ($m) => $m->where('period_type', 'month')->whereDate('period_start', $first->toDateString())))
-            ->get(['team_id', 'period_type', 'period_start', 'paraphrase', 'locked_at'])
+            ->get(['team_id', 'period_type', 'period_start', 'paraphrase'])
             ->groupBy(fn (RkRecap $r) => $r->team_id.'|'.$r->period_type.'|'.$r->period_start->toDateString());
-        $locks = RecapLock::whereIn('team_id', $teams->pluck('id'))->get()
-            ->mapWithKeys(fn (RecapLock $l) => [$l->team_id.'|'.$l->period_type.'|'.($l->period_type === 'week' ? $l->week_start?->toDateString() : $l->period_year.'-'.$l->period_month) => true]);
+        // The RK with kegiatan in each period, to tell a recap that is still being written from one that is complete.
+        $rks = PlanItem::whereIn('team_id', $teams->pluck('id'))->where('status', '!=', 'cancelled')
+            ->whereDate('date_start', '>=', $starts[0])->whereDate('date_start', '<=', $first->endOfMonth()->toDateString())
+            ->get(['team_id', 'date_start', 'performance_plan_id']);
+        $rkCount = function (int $teamId, string $type, string $start) use ($rks, $first): int {
+            return $rks->filter(fn (PlanItem $p) => $p->team_id === $teamId && ($type === 'month'
+                ? Carbon::parse($p->date_start)->isSameMonth($first)
+                : Carbon::parse($p->date_start)->startOfWeek(Carbon::MONDAY)->toDateString() === $start))->pluck('performance_plan_id')->unique()->count();
+        };
+
         $evidence = TeamRecapEvidence::whereIn('team_id', $teams->pluck('id'))
             ->where(fn ($q) => $q->where(fn ($w) => $w->where('period_type', 'week')->whereDate('week_start', '>=', $starts[0])->whereDate('week_start', '<=', end($starts)))
                 ->orWhere(fn ($m) => $m->where('period_type', 'month')->where('period_year', $year)->where('period_month', $month)))
@@ -42,14 +51,15 @@ class BuildMeetingSummaryAction
             ->groupBy(fn (TeamRecapEvidence $e) => $e->team_id.'|'.$e->period_type.'|'.($e->period_type === 'week' ? $e->week_start->toDateString() : 'month'))
             ->map->count();
 
-        $cell = function (Team $team, string $type, string $startDate, string $lockKey, bool $upcoming) use ($recaps, $locks, $evidence): array {
+        $cell = function (Team $team, string $type, string $startDate, bool $upcoming) use ($recaps, $evidence, $rkCount): array {
             $rows = $recaps->get($team->id.'|'.$type.'|'.$startDate, collect());
             $written = $rows->filter(fn (RkRecap $r) => trim((string) $r->paraphrase) !== '')->count();
-            $locked = $locks->has($team->id.'|'.$type.'|'.$lockKey) || ($written > 0 && $rows->every(fn (RkRecap $r) => $r->locked_at !== null));
+            $total = $rkCount($team->id, $type, $startDate);
 
             return [
-                'status' => $locked ? 'locked' : ($written > 0 ? 'written' : ($upcoming ? 'upcoming' : 'none')),
+                'status' => $written > 0 ? ($written >= $total ? 'done' : 'partial') : ($upcoming ? 'upcoming' : 'none'),
                 'written' => $written,
+                'rks' => $total,
                 'evidence' => (int) $evidence->get($team->id.'|'.$type.'|'.($type === 'week' ? $startDate : 'month'), 0),
             ];
         };
@@ -60,8 +70,8 @@ class BuildMeetingSummaryAction
                 'id' => $team->id,
                 'name' => $team->name,
                 'leader' => $team->leader?->display_name ?? $team->leader?->name,
-                'weeks' => array_map(fn (string $s) => ['start' => $s, ...$cell($team, 'week', $s, $s, $s > $thisMonday)], $starts),
-                'month' => $cell($team, 'month', $first->toDateString(), $year.'-'.$month, $first > $today),
+                'weeks' => array_map(fn (string $s) => ['start' => $s, ...$cell($team, 'week', $s, $s > $thisMonday)], $starts),
+                'month' => $cell($team, 'month', $first->toDateString(), $first > $today),
             ])->values()->all(),
         ];
     }

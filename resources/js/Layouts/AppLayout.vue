@@ -28,6 +28,7 @@ const canViewPlans = computed(() => (page.props.can as Record<string, boolean>)?
 const canReview = computed(() => (page.props.can as Record<string, boolean>)?.review_bersama ?? false);
 const canApproveSkp = computed(() => (page.props.can as Record<string, boolean>)?.approve_skp ?? false);
 const canViewPlanCompliance = computed(() => (page.props.can as Record<string, boolean>)?.view_plan_compliance ?? false);
+const canViewMyCredit = computed(() => (page.props.can as Record<string, boolean>)?.view_my_credit ?? false);
 const canViewTeamCredits = computed(() => (page.props.can as Record<string, boolean>)?.view_team_credits ?? false);
 const hasEmployee = computed(() => !!(page.props.auth as { has_employee?: boolean })?.has_employee);
 
@@ -54,7 +55,7 @@ const navSections = computed<NavSection[]>(() => {
                 { label: 'Rekap Mingguan', href: route('weekly.index'), active: is('weekly.index'), icon: CalendarCheck, show: hasEmployee.value && !isHead.value },
                 { label: isAdmin.value ? 'Kegiatan kipApp' : 'Pantau Kegiatan', href: route('kip-activities.index'), active: is('kip-activities.*'), icon: ListChecks, show: isAdmin.value || (hasEmployee.value && !isHead.value) },
                 { label: 'SKP Saya', href: route('skp.index'), active: is('skp.*'), icon: FileCheck, show: hasEmployee.value && !isHead.value },
-                { label: 'Angka Kredit Saya', href: route('credit.mine'), active: is('credit.mine'), icon: Award, show: hasEmployee.value },
+                { label: 'Angka Kredit Saya', href: route('credit.mine'), active: is('credit.mine'), icon: Award, show: canViewMyCredit.value },
             ],
         },
         {

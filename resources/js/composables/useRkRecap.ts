@@ -21,11 +21,10 @@ export function appendSentence(text: string, line: string): string {
     return current ? `${current} ${line.trim()}` : line.trim();
 }
 
-export type PanelState = 'locked' | 'written' | 'empty';
+export type PanelState = 'written' | 'empty';
 
-/** Where an RK stands in the meeting: locked, written but open, or nothing yet. */
+/** Where an RK stands in the meeting: paraphrase written, or nothing yet. */
 export function panelState(panel: Pick<RkPanel, 'recap'>): PanelState {
-    if (panel.recap?.locked) return 'locked';
     return panel.recap?.paraphrase ? 'written' : 'empty';
 }
 
