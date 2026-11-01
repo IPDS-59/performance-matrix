@@ -137,3 +137,21 @@ it('returns a quarter to the calculation and shows the edit to a PJ', function (
     $this->actingAs($member->user)->delete(route('credit.quarter.destroy', [$member, '2026-1']))->assertSessionHasNoErrors();
     $this->actingAs($member->user)->get(route('credit.mine'))->assertInertia(fn ($page) => $page->where('credit.quarters.0.override', null)->where('credit.quarters.0.ak', 3.125));
 });
+
+it('leaves out officials who earn no angka kredit, and hides the menu for them', function () {
+    $team = Team::factory()->create();
+    $fungsional = Employee::factory()->create(['is_active' => true]);
+    careerFor($fungsional);
+    $kepala = Employee::factory()->create(['is_active' => true, 'user_id' => headUser()->id]);
+    EmployeeCareer::create(['employee_id' => $kepala->id, 'jabatan' => 'Kepala BPS Provinsi', 'golongan' => 'IV/d']);
+    foreach ([$fungsional, $kepala] as $e) {
+        $e->teams()->attach($team->id, ['role' => 'member']);
+    }
+
+    $this->actingAs(adminUser())->get(route('credit.team'))
+        ->assertInertia(fn ($page) => $page->has('rows', 1)->where('rows.0.employee_id', $fungsional->id));
+
+    $this->actingAs($kepala->user)->get(route('dashboard'))->assertInertia(fn ($page) => $page->where('can.view_my_credit', false));
+    $this->actingAs($fungsional->fresh()->user ?? tap(staffUser(), fn ($u) => $fungsional->update(['user_id' => $u->id])))->get(route('dashboard'))
+        ->assertInertia(fn ($page) => $page->where('can.view_my_credit', true));
+});

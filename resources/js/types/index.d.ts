@@ -253,8 +253,6 @@ export interface RkRecapState {
     target: number | null;
     target_unit: string | null;
     capaian: number | null;
-    locked: boolean;
-    locked_by: string | null;
 }
 
 /** One RK of the team in a week or month (GET team-recap.weekly / monthly `panels`). */
@@ -705,7 +703,10 @@ export interface PeriodRow {
     label: string;
     activities: number;
     written: number;
-    locked: number;
+    /** RK with kegiatan in the period; the PJ's weekly and monthly pages compare it with `written`. */
+    rks?: number;
+    /** Quarter rows only: the quarter was signed off. */
+    locked?: number;
     /** True for the month or week that contains today. */
     current: boolean;
 }

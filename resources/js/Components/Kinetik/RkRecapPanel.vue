@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { router, useForm, usePage } from '@inertiajs/vue3';
 import { computed, reactive, ref, watch } from 'vue';
-import { Lock, LockOpen, Search } from 'lucide-vue-next';
+import { Search } from 'lucide-vue-next';
 import type { RkPanel } from '@/types';
 import { Button } from '@/Components/ui/button';
 import { Input } from '@/Components/ui/input';
@@ -43,8 +43,7 @@ watch(() => [props.panel.performance_plan_id, props.panel.recap] as const, () =>
 }, { immediate: true });
 
 const dialogOpen = ref(false);
-const locked = computed(() => props.panel.recap?.locked === true);
-const editable = computed(() => props.canEdit && !locked.value);
+const editable = computed(() => props.canEdit);
 
 // Reading state lives in the browser for this meeting; nothing is stored.
 const read = reactive(new Set<number>());
@@ -67,19 +66,14 @@ function insert(line: string) {
 
 const key = () => ({ team_id: props.teamId, performance_plan_id: props.panel.performance_plan_id, period_type: props.periodType, period_start: props.periodStart });
 
-function save(lock = false) {
+function save() {
     form.transform((data: Record<string, any>) => ({
         ...key(),
         paraphrase: data.paraphrase || null,
         target: data.target === '' ? null : data.target,
         target_unit: data.target_unit || null,
         capaian: data.capaian === '' ? null : data.capaian,
-        lock,
     })).post(route('team-recap.rk.store'), { preserveScroll: true, onSuccess: () => (dialogOpen.value = false) });
-}
-
-function unlock() {
-    router.post(route('team-recap.rk.unlock'), key(), { preserveScroll: true });
 }
 
 const percent = computed(() => achievementPercent(form.capaian === '' ? null : Number(form.capaian), form.target === '' ? null : Number(form.target)));
@@ -93,7 +87,7 @@ const percent = computed(() => achievementPercent(form.capaian === '' ? null : N
                 <span class="font-normal text-gray-600">{{ panel.project_name ? `${panel.project_name} · ` : '' }}{{ panel.entry_count }} kegiatan dari {{ panel.entries.length }} anggota</span>
             </h2>
             <Button v-if="!isHead" class="ml-auto" size="sm" :variant="panel.recap?.paraphrase || !canEdit ? 'outline' : 'default'" @click="dialogOpen = true">
-                {{ locked || !canEdit ? 'Lihat parafrase' : panel.recap?.paraphrase ? 'Ubah parafrase' : 'Isi parafrase' }}
+                {{ !canEdit ? 'Lihat parafrase' : panel.recap?.paraphrase ? 'Ubah parafrase' : 'Isi parafrase' }}
             </Button>
         </div>
 
@@ -107,7 +101,7 @@ const percent = computed(() => achievementPercent(form.capaian === '' ? null : N
             <dl class="grid grid-cols-[auto_auto] gap-x-4 gap-y-0.5 tabular-nums sm:text-right">
                 <dt class="text-gray-600">Target RK</dt><dd>{{ withUnit(panel.recap?.target ?? null, panel.recap?.target_unit ?? panel.default_unit ?? null) }}</dd>
                 <dt class="text-gray-600">Capaian RK</dt><dd>{{ withUnit(panel.recap?.capaian ?? null, panel.recap?.target_unit ?? panel.default_unit ?? null) }}<template v-if="achievementPercent(panel.recap?.capaian ?? null, panel.recap?.target ?? null) !== null"> ({{ achievementPercent(panel.recap?.capaian ?? null, panel.recap?.target ?? null) }}%)</template></dd>
-                <dt class="text-gray-600">Status</dt><dd>{{ locked ? 'Terkunci' : 'Belum dikunci' }}</dd>
+                <dt class="text-gray-600">Parafrase</dt><dd>{{ panel.recap?.paraphrase ? 'Sudah ditulis' : 'Belum ditulis' }}</dd>
             </dl>
         </div>
 
@@ -184,7 +178,7 @@ const percent = computed(() => achievementPercent(form.capaian === '' ? null : N
                         <p v-if="!shown.length" class="py-6 text-center text-sm text-gray-600">{{ panel.entries.length ? 'Tidak ada anggota yang cocok.' : 'Belum ada kegiatan anggota untuk RK ini.' }}</p>
                     </div>
 
-                    <form class="min-w-0 space-y-3 p-4" @submit.prevent="save(false)">
+                    <form class="min-w-0 space-y-3 p-4" @submit.prevent="save()">
                         <div class="text-xs font-semibold uppercase tracking-wide text-gray-600">Parafrase PJ</div>
                         <Textarea v-model="form.paraphrase" :rows="6" :disabled="!editable" placeholder="Tulis parafrase sendiri. Pakai “Sisipkan” di kiri untuk mengambil satu kalimat." />
                         <InputError :message="form.errors.paraphrase" />
@@ -197,9 +191,7 @@ const percent = computed(() => achievementPercent(form.capaian === '' ? null : N
                         <p v-if="percent !== null" class="text-sm tabular-nums text-gray-700">Capaian {{ percent }}% dari target.</p>
                         <div class="flex flex-wrap items-center gap-2">
                             <Button type="submit" :disabled="!editable || form.processing">Simpan</Button>
-                            <Button v-if="!locked" type="button" variant="outline" :disabled="!editable || form.processing" @click="save(true)"><Lock class="mr-1.5 h-4 w-4" aria-hidden="true" /> Simpan dan kunci</Button>
-                            <Button v-else-if="canEdit" type="button" variant="outline" @click="unlock"><LockOpen class="mr-1.5 h-4 w-4" aria-hidden="true" /> Buka kunci</Button>
-                            <span class="ml-auto text-sm text-gray-600">{{ locked ? `Terkunci${panel.recap?.locked_by ? ` oleh ${panel.recap.locked_by}` : ''}` : canEdit ? 'Belum dikunci' : 'Hanya PJ atau PIC RK yang dapat mengubah' }}</span>
+                            <span class="ml-auto text-sm text-gray-600">{{ canEdit ? '' : 'Hanya PJ atau PIC RK yang dapat mengubah' }}</span>
                         </div>
                     </form>
                 </div>

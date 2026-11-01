@@ -30,7 +30,7 @@ class RecapAggregator
     {
         [$from, $to] = $this->range($type, $start);
         $items = $this->items($team, $type, $from, $to)->groupBy('performance_plan_id');
-        $recaps = RkRecap::forPeriod($team->id, $type, $from->toDateString())->with('lockedBy')->get()->keyBy('performance_plan_id');
+        $recaps = RkRecap::forPeriod($team->id, $type, $from->toDateString())->get()->keyBy('performance_plan_id');
         $context = $type === 'month' ? $this->weekParaphrases($team, $from, $to) : collect();
 
         return $this->teamPlans($team)
@@ -51,8 +51,6 @@ class RecapAggregator
                         'target' => $recap->target !== null ? (float) $recap->target : null,
                         'target_unit' => $recap->target_unit,
                         'capaian' => $recap->capaian !== null ? (float) $recap->capaian : null,
-                        'locked' => $recap->isLocked(),
-                        'locked_by' => $recap->lockedBy?->display_name ?? $recap->lockedBy?->name,
                     ] : null,
                     'default_unit' => $planItems->pluck('target_unit')->filter()->first() ?? $plan->target_unit,
                     'weeks' => $context->get($plan->id, []),
@@ -279,7 +277,7 @@ class RecapAggregator
         $items = $this->items($team, $type, $from, $to)->groupBy('performance_plan_id');
         $recaps = $type === 'quarter'
             ? $this->monthRecaps($team, $from, $to)
-            : RkRecap::forPeriod($team->id, $type, $from->toDateString())->with('lockedBy')->get()->groupBy('performance_plan_id');
+            : RkRecap::forPeriod($team->id, $type, $from->toDateString())->get()->groupBy('performance_plan_id');
 
         $planIds = $items->keys()->merge($recaps->keys())->unique();
         $plans = PerformancePlan::with('project', 'team')->whereIn('id', $planIds)->get();
@@ -341,7 +339,8 @@ class RecapAggregator
         $paraphrase = $type === 'quarter'
             ? $override?->uraian
             : $recaps->first()?->paraphrase;
-        $locked = $type === 'quarter' ? $override?->confirmed_at !== null : $recaps->first()?->isLocked() === true;
+        // A quarter row is confirmed by the PJ; a week or month row counts as done once its paraphrase is written.
+        $locked = $type === 'quarter' ? $override?->confirmed_at !== null : filled($paraphrase);
 
         $row = [
             'row_key' => self::rowKey($plan->id, $projectId),
@@ -361,7 +360,7 @@ class RecapAggregator
             'is_confirmed' => $locked,
             'confirmed_by' => $type === 'quarter'
                 ? ($override?->confirmedBy?->display_name ?? $override?->confirmedBy?->name)
-                : ($recaps->first()?->lockedBy?->display_name ?? $recaps->first()?->lockedBy?->name),
+                : null,
             'contributors' => $items->map(fn (PlanItem $i) => $i->employee?->display_name ?? $i->employee?->name)->filter()->unique()->values()->all(),
             'obstacle' => $override?->obstacle,
             'solution' => $override?->solution,

@@ -28,7 +28,6 @@ use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
 use Inertia\Response;
-use RuntimeException;
 
 class TeamRecapController extends Controller
 {
@@ -179,21 +178,21 @@ class TeamRecapController extends Controller
     }
 
     /**
-     * One row per month of the year: how many kegiatan the members planned, how many RK have a
-     * paraphrase, and how many are locked.
+     * One row per month of the year: how many kegiatan the members planned, how many RK they
+     * touch, and how many of those RK have a paraphrase.
      *
-     * @return list<array{month: int, key: int, current: bool, label: string, activities: int, written: int, locked: int}>
+     * @return list<array{month: int, key: int, current: bool, label: string, activities: int, rks: int, written: int}>
      */
     private function monthRows(Team $team, int $year): array
     {
-        $activities = PlanItem::where('team_id', $team->id)->where('status', '!=', 'cancelled')
+        $planItems = PlanItem::where('team_id', $team->id)->where('status', '!=', 'cancelled')
             ->whereDate('date_start', '>=', "{$year}-01-01")->whereDate('date_start', '<=', "{$year}-12-31")
-            ->pluck('date_start')
-            ->countBy(fn ($d) => (int) Carbon::parse($d)->month);
+            ->get(['date_start', 'performance_plan_id'])
+            ->groupBy(fn ($p) => (int) Carbon::parse($p->date_start)->month);
 
         $recaps = RkRecap::where('team_id', $team->id)->where('period_type', 'month')
             ->whereDate('period_start', '>=', "{$year}-01-01")->whereDate('period_start', '<=', "{$year}-12-31")
-            ->get(['period_start', 'paraphrase', 'locked_at'])
+            ->get(['period_start', 'paraphrase'])
             ->groupBy(fn ($r) => (int) Carbon::parse($r->period_start)->month);
 
         return collect(range(1, 12))->map(fn (int $m) => [
@@ -201,16 +200,16 @@ class TeamRecapController extends Controller
             'key' => $m,
             'current' => $year === now()->year && $m === now()->month,
             'label' => Carbon::create($year, $m, 1)->locale('id')->translatedFormat('F'),
-            'activities' => (int) ($activities[$m] ?? 0),
+            'activities' => ($planItems[$m] ?? collect())->count(),
+            'rks' => ($planItems[$m] ?? collect())->pluck('performance_plan_id')->unique()->count(),
             'written' => ($recaps[$m] ?? collect())->filter(fn ($r) => filled($r->paraphrase))->count(),
-            'locked' => ($recaps[$m] ?? collect())->filter(fn ($r) => $r->locked_at !== null)->count(),
         ])->all();
     }
 
     /**
      * The weeks (Monday to Sunday) that touch a month, with the same counts as monthRows().
      *
-     * @return list<array{key: string, label: string, current: bool, activities: int, written: int, locked: int}>
+     * @return list<array{key: string, label: string, current: bool, activities: int, rks: int, written: int}>
      */
     private function weekRows(Team $team, int $year, int $month): array
     {
@@ -223,11 +222,11 @@ class TeamRecapController extends Controller
 
         $items = PlanItem::where('team_id', $team->id)->where('status', '!=', 'cancelled')
             ->whereDate('date_start', '>=', $starts[0])->whereDate('date_start', '<=', Carbon::parse(end($starts))->endOfWeek(Carbon::SUNDAY)->toDateString())
-            ->pluck('date_start')
-            ->countBy(fn ($d) => Carbon::parse($d)->startOfWeek(Carbon::MONDAY)->toDateString());
+            ->get(['date_start', 'performance_plan_id'])
+            ->groupBy(fn ($p) => Carbon::parse($p->date_start)->startOfWeek(Carbon::MONDAY)->toDateString());
 
         $recaps = RkRecap::where('team_id', $team->id)->where('period_type', 'week')->whereIn('period_start', $starts)
-            ->get(['period_start', 'paraphrase', 'locked_at'])
+            ->get(['period_start', 'paraphrase'])
             ->groupBy(fn ($r) => Carbon::parse($r->period_start)->toDateString());
 
         $thisWeek = now()->startOfWeek(Carbon::MONDAY)->toDateString();
@@ -236,9 +235,9 @@ class TeamRecapController extends Controller
             'key' => $start,
             'label' => Carbon::parse($start)->locale('id')->translatedFormat('j M').' – '.Carbon::parse($start)->endOfWeek(Carbon::SUNDAY)->locale('id')->translatedFormat('j M Y'),
             'current' => $start === $thisWeek,
-            'activities' => (int) ($items[$start] ?? 0),
+            'activities' => ($items[$start] ?? collect())->count(),
+            'rks' => ($items[$start] ?? collect())->pluck('performance_plan_id')->unique()->count(),
             'written' => ($recaps[$start] ?? collect())->filter(fn ($r) => filled($r->paraphrase))->count(),
-            'locked' => ($recaps[$start] ?? collect())->filter(fn ($r) => $r->locked_at !== null)->count(),
         ])->all();
     }
 
@@ -344,7 +343,7 @@ class TeamRecapController extends Controller
             || $employee->teams()->wherePivot('role', 'leader')->exists());
     }
 
-    /** One month of meetings for every team: written, locked, bukti rapat. For the head, an admin and PJ. */
+    /** One month of meetings for every team: written, bukti rapat. For the head, an admin and PJ. */
     public function meetings(Request $request, BuildMeetingSummaryAction $summary): Response
     {
         abort_unless(self::canReview($request->user()), 403);
@@ -372,7 +371,9 @@ class TeamRecapController extends Controller
             'quarter' => ['nullable', 'integer', 'between:1,4'],
         ]);
 
-        $type = $validated['period_type'] ?? 'month';
+        // The head reviews the office once a month: weekly and quarterly belong to the PJ and admins.
+        $monthlyOnly = $request->user()->hasRole('head') && ! $request->user()->hasRole('admin');
+        $type = $monthlyOnly ? 'month' : ($validated['period_type'] ?? 'month');
         $year = (int) ($validated['year'] ?? now()->year);
         $month = (int) ($validated['month'] ?? now()->month);
         $quarter = (int) ($validated['quarter'] ?? intdiv(now()->month - 1, 3) + 1);
@@ -399,7 +400,7 @@ class TeamRecapController extends Controller
                 'rows' => $rows->count(),
                 'confirmed' => $rows->where('is_confirmed', true)->count(),
                 'avg_achievement' => $achievements->isEmpty() ? null : round($achievements->avg(), 1),
-                'locked' => RecapLock::forPeriod($team->id, $type, $year, $month, $quarter, $weekStart) !== null,
+                'locked' => $type === 'quarter' && RecapLock::forPeriod($team->id, $type, $year, $month, $quarter, $weekStart) !== null,
                 'members_active' => $activeMembers?->count(),
                 'members_complete' => $activeMembers?->where('status', 'complete')->count(),
                 'leader' => $team->leader?->display_name ?? $team->leader?->name,
@@ -409,6 +410,7 @@ class TeamRecapController extends Controller
 
         return Inertia::render('Kinetik/RecapOverview', [
             'periodType' => $type,
+            'monthlyOnly' => $monthlyOnly,
             'year' => $year,
             'month' => $month,
             'quarter' => $quarter,
@@ -603,23 +605,11 @@ class TeamRecapController extends Controller
             'target' => ['nullable', 'numeric', 'min:0', 'max:9999999999'],
             'target_unit' => ['nullable', 'string', 'max:100'],
             'capaian' => ['nullable', 'numeric', 'min:0', 'max:9999999999'],
-            'lock' => ['sometimes', 'boolean'],
         ]);
 
-        try {
-            $action->save($request->user()->employee, $data, (bool) ($data['lock'] ?? false));
-        } catch (RuntimeException $e) {
-            return back()->with('error', $e->getMessage());
-        }
+        $action->save($request->user()->employee, $data);
 
-        return back()->with('success', ! empty($data['lock']) ? 'Rekap RK disimpan dan dikunci.' : 'Rekap RK disimpan.');
-    }
-
-    public function unlockRk(Request $request, SaveRkRecapAction $action): RedirectResponse
-    {
-        $action->unlock($this->validatedRk($request));
-
-        return back()->with('success', 'Kunci rekap RK dibuka.');
+        return back()->with('success', 'Rekap RK disimpan.');
     }
 
     /**

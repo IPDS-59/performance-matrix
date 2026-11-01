@@ -34,10 +34,10 @@ describe('appendSentence', () => {
 });
 
 describe('panelState', () => {
-    it('tells locked, written and empty apart', () => {
-        const recap = (over: object) => ({ recap: { paraphrase: null, target: null, target_unit: null, capaian: null, locked: false, locked_by: null, ...over } });
+    it('tells written and empty apart', () => {
+        const recap = (over: object) => ({ recap: { paraphrase: null, target: null, target_unit: null, capaian: null, ...over } });
         expect(panelState({ recap: null })).toBe('empty');
         expect(panelState(recap({ paraphrase: 'x' }))).toBe('written');
-        expect(panelState(recap({ paraphrase: 'x', locked: true }))).toBe('locked');
+        expect(panelState(recap({ paraphrase: null }))).toBe('empty');
     });
 });

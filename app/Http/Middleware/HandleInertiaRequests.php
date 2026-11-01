@@ -7,6 +7,7 @@ use App\Http\Controllers\CreditController;
 use App\Http\Controllers\PlanComplianceController;
 use App\Http\Controllers\SkpApprovalController;
 use App\Http\Controllers\TeamRecapController;
+use App\Kinetik\Credit\FunctionalLevel;
 use App\Models\PerformanceIndicator;
 use App\Models\PerformancePlan;
 use App\Models\Project;
@@ -62,6 +63,7 @@ class HandleInertiaRequests extends Middleware
                 'write_kip_structure' => (bool) config('kinetik.kip.structure_write'),
                 'review_bersama' => rescue(fn () => TeamRecapController::canReview($request->user()), false),
                 'approve_skp' => rescue(fn () => SkpApprovalController::canApprove($request->user()), false),
+                'view_my_credit' => $request->user()?->employee ? rescue(fn () => ($career = $request->user()->employee->career) === null || FunctionalLevel::fromJabatan($career->jabatan) !== null, true) : false,
                 'view_team_credits' => $request->user() ? rescue(fn () => CreditController::visibleTeams($request)->isNotEmpty(), false) : false,
             ],
             'tours_done' => fn () => $request->user() ? rescue(fn () => TourCompletion::where('user_id', $request->user()->id)->pluck('tour_key')->all(), [], false) : [],

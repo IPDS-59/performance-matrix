@@ -28,7 +28,7 @@ function changeTeam(value: unknown) {
 
 // ── Status filter (client side) ─────────────────────────────────────────────
 
-const STATUS_FILTERS: Array<CreditStatus | 'all'> = ['all', 'ready', 'ak_ready', 'near', 'progress', 'top', 'no_data', 'non_jf'];
+const STATUS_FILTERS: Array<CreditStatus | 'all'> = ['all', 'ready', 'ak_ready', 'near', 'progress', 'top', 'no_data'];
 const statusFilter = ref<CreditStatus | 'all'>('all');
 const countOf = (status: CreditStatus | 'all') => (status === 'all' ? props.rows.length : props.rows.filter(r => r.status === status).length);
 const visibleRows = computed(() => (statusFilter.value === 'all' ? props.rows : props.rows.filter(r => r.status === statusFilter.value)));

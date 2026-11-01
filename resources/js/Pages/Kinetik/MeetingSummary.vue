@@ -2,12 +2,12 @@
 import AppLayout from '@/Layouts/AppLayout.vue';
 import { Head, Link, router } from '@inertiajs/vue3';
 import { computed } from 'vue';
-import { ChevronLeft, ChevronRight, FileText, Lock } from 'lucide-vue-next';
+import { ChevronLeft, ChevronRight, FileText } from 'lucide-vue-next';
 import { Button } from '@/Components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/Components/ui/table';
 
-type Status = 'locked' | 'written' | 'none' | 'upcoming';
-interface Cell { status: Status; written: number; evidence: number }
+type Status = 'done' | 'partial' | 'none' | 'upcoming';
+interface Cell { status: Status; written: number; rks: number; evidence: number }
 interface TeamRow { id: number; name: string; leader: string | null; weeks: Array<Cell & { start: string }>; month: Cell }
 
 const props = defineProps<{ year: number; month: number; weeks: Array<{ start: string; label: string }>; teams: TeamRow[] }>();
@@ -21,16 +21,16 @@ function go(shift: number) {
 }
 
 const META: Record<Status, { label: string; chip: string }> = {
-    locked: { label: 'Terkunci', chip: 'bg-green-100 text-green-800' },
-    written: { label: 'Ditulis', chip: 'bg-amber-100 text-amber-800' },
+    done: { label: 'Lengkap', chip: 'bg-green-100 text-green-800' },
+    partial: { label: 'Sebagian', chip: 'bg-amber-100 text-amber-800' },
     none: { label: 'Belum', chip: 'bg-red-100 text-red-800' },
     upcoming: { label: '—', chip: 'bg-gray-50 text-gray-400' },
 };
 
 // Counted over the weeks that already happened, so a week to come does not drag the numbers down.
 const pastCells = computed(() => props.teams.flatMap((t) => t.weeks).filter((w) => w.status !== 'upcoming'));
-const weeksDone = computed(() => pastCells.value.filter((w) => w.status === 'locked').length);
-const monthDone = computed(() => props.teams.filter((t) => t.month.status === 'locked').length);
+const weeksDone = computed(() => pastCells.value.filter((w) => w.status === 'done').length);
+const monthDone = computed(() => props.teams.filter((t) => t.month.status === 'done').length);
 const withEvidence = computed(() => props.teams.filter((t) => t.month.evidence > 0 || t.weeks.some((w) => w.evidence > 0)).length);
 
 const href = (team: TeamRow, type: 'week' | 'month', start?: string) =>
@@ -48,17 +48,17 @@ const href = (team: TeamRow, type: 'week' | 'month', start?: string) =>
                 <span class="min-w-40 px-2 text-center text-sm font-semibold tabular-nums">{{ title }}</span>
                 <Button variant="ghost" size="icon" class="h-9 w-9" aria-label="Bulan berikutnya" @click="go(1)"><ChevronRight class="h-4 w-4" /></Button>
             </div>
-            <p class="hidden text-xs text-gray-500 sm:block">Terkunci: rekap selesai. Ditulis: ada parafrase, belum dikunci.</p>
+            <p class="hidden text-xs text-gray-500 sm:block">Lengkap: semua RK yang punya kegiatan sudah ada parafrasenya. Sebagian: baru sebagian. Belum: belum ada.</p>
         </div>
 
         <dl class="mb-4 grid grid-cols-3 divide-x divide-gray-100 overflow-hidden rounded-lg border bg-white">
             <div class="px-4 py-3">
                 <dd class="text-2xl font-semibold tabular-nums text-gray-900">{{ weeksDone }}<span class="text-sm font-normal text-gray-400"> / {{ pastCells.length }}</span></dd>
-                <dt class="text-xs text-gray-500">Rekap mingguan terkunci</dt>
+                <dt class="text-xs text-gray-500">Rekap mingguan lengkap</dt>
             </div>
             <div class="px-4 py-3">
                 <dd class="text-2xl font-semibold tabular-nums text-gray-900">{{ monthDone }}<span class="text-sm font-normal text-gray-400"> / {{ teams.length }}</span></dd>
-                <dt class="text-xs text-gray-500">Rekap bulanan terkunci</dt>
+                <dt class="text-xs text-gray-500">Rekap bulanan lengkap</dt>
             </div>
             <div class="px-4 py-3">
                 <dd class="text-2xl font-semibold tabular-nums text-gray-900">{{ withEvidence }}<span class="text-sm font-normal text-gray-400"> / {{ teams.length }}</span></dd>
@@ -83,13 +83,13 @@ const href = (team: TeamRow, type: 'week' | 'month', start?: string) =>
                         </TableCell>
                         <TableCell v-for="w in team.weeks" :key="w.start" class="text-center">
                             <Link :href="href(team, 'week', w.start)" :class="['inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium', META[w.status].chip]" :aria-label="`${team.name}, minggu ${w.start}: ${META[w.status].label}, ${w.evidence} bukti`">
-                                <Lock v-if="w.status === 'locked'" class="h-3 w-3" aria-hidden="true" />{{ META[w.status].label }}
+                                {{ META[w.status].label }}
                                 <span v-if="w.evidence" class="inline-flex items-center gap-0.5 tabular-nums"><FileText class="h-3 w-3" aria-hidden="true" />{{ w.evidence }}</span>
                             </Link>
                         </TableCell>
                         <TableCell class="text-center">
                             <Link :href="href(team, 'month')" :class="['inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium', META[team.month.status].chip]" :aria-label="`${team.name}, rapat bulanan: ${META[team.month.status].label}, ${team.month.evidence} bukti`">
-                                <Lock v-if="team.month.status === 'locked'" class="h-3 w-3" aria-hidden="true" />{{ META[team.month.status].label }}
+                                {{ META[team.month.status].label }}
                                 <span v-if="team.month.evidence" class="inline-flex items-center gap-0.5 tabular-nums"><FileText class="h-3 w-3" aria-hidden="true" />{{ team.month.evidence }}</span>
                             </Link>
                         </TableCell>

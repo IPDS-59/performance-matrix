@@ -8,7 +8,7 @@ import { panelState } from '@/composables/useRkRecap';
 defineProps<{ panels: RkPanel[] }>();
 const selected = defineModel<number | null>({ required: true });
 
-const mark = { locked: 'Terkunci', written: 'Sudah ditulis', empty: '' } as const;
+const mark = { written: 'Sudah ditulis', empty: '' } as const;
 </script>
 
 <template>
