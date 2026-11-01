@@ -173,3 +173,16 @@ it('splits a kegiatan that crosses a quarter, and a month-long one shows in ever
         $this->actingAs($user)->get(route('weekly.index', ['week' => $week]))->assertInertia(fn ($page) => $page->has('thisWeek', 1));
     }
 });
+
+it('shows an RK once even when kipApp holds it under several projek, and matches a projek by shared words', function () {
+    [$team, $project, $plan, $member] = importSetup();
+    $other = Project::factory()->create(['team_id' => $team->id, 'name' => 'Proyek Lain', 'year' => (int) config('kinetik.kip.tahun')]);
+    PerformancePlan::factory()->create(['project_id' => $project->id, 'team_id' => $team->id, 'description' => 'MENYUSUN  publikasi PDRB']);
+    $project->update(['name' => 'Manajemen Mitra Statistik']);
+
+    $row = $this->actingAs(adminUser())->postJson(route('admin.import-kegiatan.preview'), ['week_start' => '2026-10-26', 'rows' => [sheetRow(['project' => 'Manajemen Mitra'])]])->json('rows.0');
+    expect($row['rk_options'])->toHaveCount(1)->and($row['project_id'])->toBe($project->id)->and($other->id)->not->toBe($row['project_id']);
+
+    $none = $this->actingAs(adminUser())->postJson(route('admin.import-kegiatan.preview'), ['week_start' => '2026-10-26', 'rows' => [sheetRow(['project' => 'Penyusunan Daftar Risiko'])]])->json('rows.0');
+    expect($none['notes'])->toContain('Projek "Penyusunan Daftar Risiko" tidak ditemukan di tim pegawai ini. Pilih RK yang sesuai secara manual.');
+});
