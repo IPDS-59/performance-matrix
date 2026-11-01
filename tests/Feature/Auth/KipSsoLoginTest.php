@@ -9,6 +9,8 @@ use App\Models\KipActivity;
 use App\Models\KipCredential;
 use App\Models\MemberKipCredential;
 use App\Models\User;
+use App\Services\Kinetik\KipLoginClient;
+use App\Services\Kinetik\KipLoginException;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Hash;
@@ -348,5 +350,18 @@ class KipSsoLoginTest extends TestCase
         $this->post('/login', ['email' => 'sukma', 'password' => 'sso-secret']);
 
         $this->assertSame(0, KipCredential::count());
+    }
+
+    public function test_sso_calls_identify_as_a_browser_so_the_waf_lets_them_through(): void
+    {
+        Http::fake(['*' => Http::response('', 500)]);
+
+        try {
+            app(KipLoginClient::class)->login('sukma', 'secret');
+        } catch (KipLoginException) {
+        }
+
+        Http::assertSent(fn ($request) => str_starts_with($request->header('User-Agent')[0] ?? '', 'Mozilla/5.0')
+            && ! str_contains($request->header('User-Agent')[0], 'curl/'));
     }
 }
