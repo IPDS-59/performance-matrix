@@ -362,6 +362,8 @@ class KipSsoLoginTest extends TestCase
         }
 
         Http::assertSent(fn ($request) => str_starts_with($request->header('User-Agent')[0] ?? '', 'Mozilla/5.0')
-            && ! str_contains($request->header('User-Agent')[0], 'curl/'));
+            && ! str_contains($request->header('User-Agent')[0], 'curl/')
+            && str_starts_with($request->header('Accept')[0], 'text/html')
+            && $request->header('Content-Type') === []);
     }
 }
