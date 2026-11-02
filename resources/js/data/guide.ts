@@ -1081,6 +1081,14 @@ export const GUIDE_STATUS: GuideStatusFlow[] = [
 
 export const GUIDE_FAQ = [
     {
+        q: 'Bagaimana menyimpan riwayat kerja saya bila kipApp ditinggalkan?',
+        a: 'Buka menu "Arsip kipApp", pilih tahun, lalu tekan "Unduh Excel". File berisi dua lembar: Kegiatan (tim, projek, RK, uraian, tanggal, target, progres, uraian capaian, bukti dukung, ID kipApp) dan RK. Admin bisa mengunduh arsip pegawai mana pun. Kinetik belum mengirim data ke e-Kinerja BKN secara otomatis, karena BKN belum membuka akses resmi untuk aplikasi lain. File ini dipakai untuk mengisi atau memeriksa e-Kinerja secara manual.',
+    },
+    {
+        q: 'Mengapa kegiatan saya tidak terkirim ke kipApp dan muncul pesan "RK ini belum punya projek"?',
+        a: 'RK itu seharusnya berada di sebuah projek, tetapi Kinetik belum tahu projek yang mana. Buka kegiatannya dan pilih projek, atau minta admin menjalankan Sinkronisasi Struktur. Setelah projeknya jelas, kegiatan terkirim pada percobaan berikutnya.',
+    },
+    {
         q: 'Ada yang tidak berjalan. Bagaimana melaporkannya ke admin?',
         a: 'Tekan "Laporkan masalah" di bagian atas halaman tempat masalahnya muncul. Tulis ringkasan dan apa yang Anda lakukan. Laporan sampai ke admin bersama alamat halamannya, jadi tidak perlu mengirim tangkapan layar terpisah, tetapi sebutkan pesan yang muncul.',
     },

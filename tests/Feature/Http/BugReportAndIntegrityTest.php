@@ -61,3 +61,15 @@ it('holds a kegiatan back from kipApp while its RK has no projek', function () {
     expect(app(PushPlanItemAction::class)->execute($item))->toBeFalse();
     expect($item->fresh()->push_error)->toContain('belum punya projek');
 });
+
+it('gives a member their own archive and refuses someone else\'s', function () {
+    $mine = Employee::factory()->create(['user_id' => ($user = User::factory()->create())->id]);
+    $other = Employee::factory()->create();
+    $team = Team::factory()->create();
+    PlanItem::create(['team_id' => $team->id, 'employee_id' => $mine->id, 'performance_plan_id' => PerformancePlan::factory()->create(['team_id' => $team->id])->id, 'description' => 'Kegiatan arsip saya', 'date_start' => '2026-03-10', 'date_end' => '2026-03-10']);
+
+    $this->actingAs($user)->getJson(route('archive.data', ['employee_id' => $mine->id, 'year' => 2026]))
+        ->assertOk()->assertJsonPath('kegiatan.0.kegiatan', 'Kegiatan arsip saya');
+    $this->actingAs($user)->getJson(route('archive.data', ['employee_id' => $other->id, 'year' => 2026]))->assertForbidden();
+    $this->actingAs($user)->get(route('archive'))->assertOk();
+});
