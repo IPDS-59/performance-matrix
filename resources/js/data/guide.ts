@@ -1081,6 +1081,10 @@ export const GUIDE_STATUS: GuideStatusFlow[] = [
 
 export const GUIDE_FAQ = [
     {
+        q: 'Mengapa target kegiatan saya tampil "-"?',
+        a: 'kipApp tidak menyimpan target untuk kegiatan. Target adalah isian Kinetik, jadi kegiatan yang masuk dari kipApp (bukan dibuat di Kinetik) belum punya target dan menampilkan "-". Ini bukan kesalahan. Isi target dan satuannya saat mengubah kegiatan bila Anda ingin rekap menghitungnya.',
+    },
+    {
         q: 'Bagaimana menyimpan riwayat kerja saya bila kipApp ditinggalkan?',
         a: 'Buka menu "Arsip kipApp", pilih tahun, lalu tekan "Unduh Excel". File berisi dua lembar: Kegiatan (tim, projek, RK, uraian, tanggal, target, progres, uraian capaian, bukti dukung, ID kipApp) dan RK. Admin bisa mengunduh arsip pegawai mana pun. Kinetik belum mengirim data ke e-Kinerja BKN secara otomatis, karena BKN belum membuka akses resmi untuk aplikasi lain. File ini dipakai untuk mengisi atau memeriksa e-Kinerja secara manual.',
     },

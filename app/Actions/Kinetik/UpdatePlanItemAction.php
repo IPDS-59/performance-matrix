@@ -29,15 +29,15 @@ class UpdatePlanItemAction
 
         try {
             $writer = new ApiKipWriter($this->tokens->for($user));
-            $row = collect($writer->activities((string) $plan->kip_skp_id))
-                ->first(fn (array $r) => (string) $r['kegiatanperhariid'] === (string) $plan->kip_external_id);
+            $found = app(LocatePlanItemActivityAction::class)->execute($writer, $plan);
+            $row = $found['row'] ?? null;
             if ($row === null) {
                 throw new RuntimeException('Kegiatan ini sudah tidak ada di kipApp. Hubungi PJ atau buat rencana baru.');
             }
 
             $fields = $next->kipFields();
             $writer->updateActivity((string) $plan->kip_external_id, [
-                'skpid' => (string) $plan->kip_skp_id,
+                'skpid' => $found['skp_id'],
                 'rkid' => (string) $row['rkid'],
                 'rencanakinerja' => (string) $row['rencanakinerja'],
                 'kegiatan' => $next->description,

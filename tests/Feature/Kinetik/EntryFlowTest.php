@@ -212,6 +212,20 @@ it('edits a pushed kegiatan in kipApp first and then in Kinetik', function () {
     expect($plan->fresh())->description->toBe('Deskripsi sudah diubah')->status->toBe('in_progress')->progress->toBe(50);
 });
 
+it('edits a kegiatan that came in from kipApp, which has no SKP stored, by finding its SKP first', function () {
+    config(['kinetik.kip.edit_after_push' => true, 'kinetik.kip.null_times' => true]);
+    $plan = entryInKip(['kip_skp_id' => null, 'source' => 'kipapp']);
+    Http::fake([
+        '*/v1/skp*' => Http::response([['id' => '1460709', 'periodeid' => 8, 'periodepenilaianid' => 4, 'statusskpid' => 1, 'statusskp' => 'Sedang dibuat']]),
+        '*/v1/kegiatan*' => Http::sequence([Http::response(kipRow()), Http::response(['status' => true])]),
+    ]);
+
+    $this->actingAs($plan->employee->user)->patch(route('plan-items.update', $plan), editPayload($plan))->assertSessionHas('success');
+
+    Http::assertSent(fn ($r) => $r->method() === 'PUT' && $r['skpid'] === '1460709' && $r['id'] === '5550001');
+    expect($plan->fresh())->kip_skp_id->toBe('1460709')->description->toBe('Deskripsi sudah diubah');
+});
+
 it('keeps Kinetik unchanged and shows the message when kipApp refuses an edit', function () {
     config(['kinetik.kip.edit_after_push' => true]);
     $plan = entryInKip();
