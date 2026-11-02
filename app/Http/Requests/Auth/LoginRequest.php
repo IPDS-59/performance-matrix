@@ -91,6 +91,13 @@ class LoginRequest extends FormRequest
                 throw new HttpResponseException(app(KipOtpChallenge::class)->start($e->pending, $user, $password, $this->boolean('remember'), 'login'));
             }
             if ($e->rejected) {
+                Log::info('kipApp SSO login rejected', ['email' => $email, 'first_time' => $user->needsKipConnection()]);
+                if ($user->needsKipConnection()) {
+                    // First sign in: the usual causes are the Kinetik password typed instead of the SSO one, or an SSO
+                    // username that differs from the part of the email before the @ (which is what Kinetik sends).
+                    throw ValidationException::withMessages(['email' => 'SSO BPS menolak login ini. Masuk dengan kata sandi akun SSO BPS Anda (bukan kata sandi Kinetik). Kinetik memakai username SSO "'.$user->kipUsername().'" (bagian email sebelum @). Bila username SSO Anda berbeda, hubungi admin.']);
+                }
+
                 return false;
             }
             Log::warning('kipApp SSO login unavailable', ['email' => $email, 'reason' => $e->getMessage()]);

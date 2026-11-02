@@ -366,4 +366,17 @@ class KipSsoLoginTest extends TestCase
             && str_starts_with($request->header('Accept')[0], 'text/html')
             && $request->header('Content-Type') === []);
     }
+
+    public function test_a_first_time_sso_rejection_tells_which_username_was_used(): void
+    {
+        config(['kinetik.kip.default_password_until' => now()->subDay()->toDateString()]);
+        $this->fakeSso('rejected');
+        $this->staff();
+
+        $response = $this->post('/login', ['email' => 'sukma', 'password' => 'wrong']);
+
+        $response->assertSessionHasErrors('email');
+        $this->assertStringContainsString('username SSO "sukma"', session('errors')->first('email'));
+        $this->assertGuest();
+    }
 }
