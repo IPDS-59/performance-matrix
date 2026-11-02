@@ -12,7 +12,7 @@ return [
         // Official server-to-server credentials are pending — paste here when granted.
         'token' => env('KIP_TOKEN'),
 
-        'timeout' => (int) env('KIP_TIMEOUT', 15),
+        'timeout' => (int) env('KIP_TIMEOUT', 30),
         // SSO login steps are slower than API reads (observed 15 s timeouts on 2026-11-02).
         'login_timeout' => (int) env('KIP_LOGIN_TIMEOUT', 30),
 
