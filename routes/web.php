@@ -1,6 +1,8 @@
 <?php
 
+use App\Http\Controllers\Admin\DataIntegrityController;
 use App\Http\Controllers\Admin\ImpersonationController;
+use App\Http\Controllers\BugReportController;
 use App\Http\Controllers\CreditController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\EmployeeController;
@@ -184,6 +186,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::put('/angka-kredit/{employee}/tw/{quarter}', [CreditController::class, 'updateQuarter'])->name('credit.quarter');
     Route::delete('/angka-kredit/{employee}/tw/{quarter}', [CreditController::class, 'destroyQuarter'])->name('credit.quarter.destroy');
 
+    Route::post('/laporan-masalah', [BugReportController::class, 'store'])->name('bug-reports.store');
+
     // kipApp integration (admin: store token + centralized sync)
     Route::middleware('can:manage-kip-integration')->group(function () {
         Route::get('/integrasi-kipapp', [KipIntegrationController::class, 'index'])->name('kip-integration.index');
@@ -200,6 +204,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::get('/admin/impor-kegiatan', [KegiatanImportController::class, 'index'])->name('admin.import-kegiatan');
         Route::post('/admin/impor-kegiatan/pratinjau', [KegiatanImportController::class, 'preview'])->name('admin.import-kegiatan.preview');
         Route::post('/admin/impor-kegiatan/simpan', [KegiatanImportController::class, 'store'])->name('admin.import-kegiatan.store');
+        Route::get('/admin/integritas-data', [DataIntegrityController::class, 'index'])->name('admin.data-integrity');
+        Route::get('/admin/laporan-masalah', [BugReportController::class, 'index'])->name('admin.bug-reports');
+        Route::put('/admin/laporan-masalah/{report}', [BugReportController::class, 'update'])->name('admin.bug-reports.update');
     });
 
     Route::post('/tur/{key}', [TourController::class, 'complete'])->name('tour.complete');

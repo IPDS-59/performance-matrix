@@ -37,6 +37,8 @@ class PushPlanItemAction
                 throw new RuntimeException('Pegawai belum punya akun atau ID kipApp.');
             }
 
+            $this->requireProject($plan);
+
             $writer = new ApiKipWriter($this->tokens->for($user));
             [$skpId, $rk] = $this->skpAndRk($writer, $plan);
 
@@ -62,6 +64,15 @@ class PushPlanItemAction
             $this->fail($plan, $user, $e);
 
             return false;
+        }
+    }
+
+    /** Same rule as the entry form: an RK that belongs to a projek must not go to kipApp without one. */
+    private function requireProject(PlanItem $plan): void
+    {
+        $rk = $plan->performancePlan;
+        if ($rk !== null && $rk->project_id === null && $plan->project_id === null && ! (new LinkPlansToProjectsAction)->projectOptional($rk)) {
+            throw new RuntimeException('RK ini belum punya projek. Pilih projek pada kegiatan ini, atau sinkronkan struktur supaya RK terhubung ke projeknya.');
         }
     }
 

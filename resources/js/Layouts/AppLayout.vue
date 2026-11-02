@@ -2,11 +2,12 @@
 import { Link, router, usePage } from '@inertiajs/vue3';
 import { computed, onMounted, onUnmounted, ref, watch, type Component } from 'vue';
 import {
-    Activity, Award, ChevronDown, BadgeCheck, BookOpen, CalendarCheck, CalendarDays, CalendarRange, ClipboardCheck, Eye, FileCheck, FileChartColumn, FileSpreadsheet, FileUp, FolderKanban,
+    Activity, Award, ChevronDown, BadgeCheck, BookOpen, CalendarCheck, CalendarDays, CalendarRange, ClipboardCheck, Eye, FileCheck, FileChartColumn, FileSpreadsheet, FileUp, FolderKanban, Bug, ShieldAlert,
     CircleHelp, House, LayoutGrid, LayoutList, ListChecks, ListTodo, LogOut, Menu, Network, PanelLeftClose, PanelLeftOpen, Target, ToggleRight, UserRound, Users, X, Zap,
 } from 'lucide-vue-next';
 import { useSidebarStore } from '@/stores/sidebar';
 import { usePageTour } from '@/composables/usePageTour';
+import ReportBugDialog from '@/Components/Kinetik/ReportBugDialog.vue';
 import { Notivue, Notification, push } from 'notivue';
 import {
     AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
@@ -14,6 +15,7 @@ import {
 } from '@/Components/ui/alert-dialog';
 
 const page = usePage();
+const reportOpen = ref(false);
 const sidebar = useSidebarStore();
 const { hasTour, start: startTour } = usePageTour();
 
@@ -84,6 +86,8 @@ const navSections = computed<NavSection[]>(() => {
                 { label: 'Integrasi kipApp', href: route('kip-integration.index'), active: is('kip-integration.*'), icon: Zap, show: isAdmin.value },
                 { label: 'Fitur', href: route('admin.features'), active: is('admin.features*'), icon: ToggleRight, show: isAdmin.value },
                 { label: 'Impor Kegiatan', href: route('admin.import-kegiatan'), active: is('admin.import-kegiatan*'), icon: FileUp, show: isAdmin.value },
+                { label: 'Integritas data', href: route('admin.data-integrity'), active: is('admin.data-integrity'), icon: ShieldAlert, show: isAdmin.value },
+                { label: 'Laporan masalah', href: route('admin.bug-reports'), active: is('admin.bug-reports*'), icon: Bug, show: isAdmin.value },
             ],
         },
         {
@@ -356,6 +360,12 @@ onUnmounted(() => {
                 <div class="flex items-center gap-3 text-sm text-gray-500">
                     <span class="hidden sm:inline">BPS Provinsi Sulawesi Tengah</span>
 
+                    <button type="button" class="flex h-9 items-center gap-1.5 rounded-full px-2.5 text-gray-600 transition-colors hover:bg-gray-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary" @click="reportOpen = true">
+                        <Bug class="h-5 w-5" aria-hidden="true" />
+                        <span class="hidden text-sm md:inline">Laporkan masalah</span>
+                        <span class="sr-only md:hidden">Laporkan masalah</span>
+                    </button>
+
                     <button v-if="hasTour" type="button" class="flex h-9 items-center gap-1.5 rounded-full px-2.5 text-gray-600 transition-colors hover:bg-gray-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary" @click="startTour">
                         <CircleHelp class="h-5 w-5" aria-hidden="true" />
                         <span class="hidden text-sm md:inline">Panduan halaman</span>
@@ -445,6 +455,7 @@ onUnmounted(() => {
             </div>
             <main class="flex-1 overflow-auto p-4 sm:p-6 print:overflow-visible print:p-0">
                 <slot />
+                <ReportBugDialog v-model:open="reportOpen" />
             </main>
         </div>
     </div>
