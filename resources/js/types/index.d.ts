@@ -666,6 +666,8 @@ export interface PlanRkOption {
     team_name: string | null;
     project_id: number | null;
     project_candidates: number[];
+    /** The only projek this RK can belong to for this member, when kipApp's hierarchy makes it certain. */
+    project_suggested: number | null;
     project_optional: boolean;
     target_unit: string | null;
 }

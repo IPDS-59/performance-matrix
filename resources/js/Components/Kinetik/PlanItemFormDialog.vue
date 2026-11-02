@@ -71,6 +71,7 @@ function pickRk(value: number | null) {
     form.team_id = rk.value?.team_id ?? null;
     // An RK that belongs to one projek brings it along; otherwise the projek chosen before stays if the RK fits it.
     if (rk.value?.project_id) form.project_id = rk.value.project_id;
+    else if (rk.value?.project_suggested) form.project_id = rk.value.project_suggested;
     else if (rk.value && !rkFitsProject(rk.value, form.project_id)) form.project_id = null;
     if (rk.value && !form.target_unit) form.target_unit = rk.value.target_unit ?? '';
 }
