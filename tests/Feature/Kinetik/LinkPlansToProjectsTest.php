@@ -1,7 +1,9 @@
 <?php
 
+use App\Actions\Kinetik\LinkPlansFromKipProyekAction;
 use App\Actions\Kinetik\LinkPlansToProjectsAction;
 use App\Kinetik\Data\KipRkData;
+use App\Kinetik\Sources\MockKipStructureSource;
 use App\Models\Employee;
 use App\Models\EmployeeRk;
 use App\Models\PerformancePlan;
@@ -61,4 +63,28 @@ it('narrows the candidates to the Projek the member works in, and learns the lea
 
     $stranger = Employee::factory()->create();
     expect((new LinkPlansToProjectsAction)->candidatesFor(PerformancePlan::all(), $stranger)->get($known->id))->toEqualCanonicalizing([$mine->id, $other->id]);
+});
+
+it('links an RK to the projek kipApp lists it under, and leaves a text found under two projek alone', function () {
+    $team = Team::factory()->create(['kip_external_id' => '500']);
+    [$a, $b] = Project::factory()->count(2)->create(['team_id' => $team->id, 'kip_external_id' => null]);
+    $a->update(['kip_external_id' => 'A']);
+    $b->update(['kip_external_id' => 'B']);
+    $only = PerformancePlan::factory()->create(['team_id' => $team->id, 'project_id' => null, 'description' => 'Tersedianya  Inovasi yang Bermanfaat']);
+    $both = PerformancePlan::factory()->create(['team_id' => $team->id, 'project_id' => null, 'description' => 'Melakukan Pengelolaan Mitra']);
+    $set = PerformancePlan::factory()->create(['team_id' => $team->id, 'project_id' => $b->id, 'description' => 'tersedianya inovasi yang bermanfaat']);
+
+    $source = new class extends MockKipStructureSource
+    {
+        public function fetchProjectRkTexts(string $timkerjaId, string $proyekId): array
+        {
+            return $proyekId === 'A' ? ['tersedianya inovasi yang bermanfaat', 'Melakukan Pengelolaan Mitra'] : ['Melakukan Pengelolaan Mitra'];
+        }
+    };
+    Cache::forget('kinetik.rk_proyek_map');
+
+    expect((new LinkPlansFromKipProyekAction)->execute($source, $team))->toBe(1)
+        ->and($only->fresh()->project_id)->toBe($a->id)
+        ->and($both->fresh()->project_id)->toBeNull()
+        ->and($set->fresh()->project_id)->toBe($b->id);
 });

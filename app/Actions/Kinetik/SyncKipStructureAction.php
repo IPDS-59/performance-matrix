@@ -160,6 +160,7 @@ class SyncKipStructureAction
         $this->assignHomeTeam($team, $teamEmployees);
 
         // RK whose leader RK owns exactly one Projek now belong to that Projek.
+        $this->counts['plans_linked'] += (new LinkPlansFromKipProyekAction)->execute($source, $team);
         $this->counts['plans_linked'] += (new LinkPlansToProjectsAction)->execute($team->id);
 
         // IKU of each Projek from the Kepala's Perjanjian Kinerja. A kipApp

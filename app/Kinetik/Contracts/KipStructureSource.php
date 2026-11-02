@@ -31,6 +31,14 @@ interface KipStructureSource
     public function fetchTeamProjects(string $timkerjaId): Collection;
 
     /**
+     * The RK Anggota texts that hang under one projek (rk/proyek). This is kipApp's own answer to "which projek is this
+     * RK in", used to fill the projek of RK that have none.
+     *
+     * @return list<string>
+     */
+    public function fetchProjectRkTexts(string $timkerjaId, string $proyekId): array;
+
+    /**
      * Fetch one team's members (timkerja/anggota?id=).
      *
      * @return Collection<int, KipMemberData>
