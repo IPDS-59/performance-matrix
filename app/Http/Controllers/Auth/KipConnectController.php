@@ -53,7 +53,7 @@ class KipConnectController extends Controller
                 RateLimiter::hit($key);
                 throw ValidationException::withMessages(['password' => 'Kata sandi SSO BPS salah.']);
             }
-            Log::warning('kipApp SSO connect unavailable', ['reason' => $e->getMessage()]);
+            Log::warning('kipApp SSO connect unavailable', ['user_id' => $request->user()?->id, 'reason' => $e->getMessage()]);
             throw ValidationException::withMessages(['password' => 'SSO BPS tidak dapat dihubungi saat ini. Coba lagi nanti.']);
         }
 

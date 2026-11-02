@@ -24,7 +24,7 @@ class KipLoginClient
     {
         $jar = new CookieJar;
         $base = rtrim((string) config('kinetik.kip.base_url'), '/');
-        $timeout = (int) config('kinetik.kip.timeout', 15);
+        $timeout = (int) config('kinetik.kip.login_timeout', 30);
 
         try {
             $page = $this->http($jar)->timeout($timeout)->get($base.'/login');
@@ -68,7 +68,7 @@ class KipLoginClient
     public function loginWithOtp(array $pending, string $code): KipLoginResult
     {
         $jar = new CookieJar(false, $pending['cookies']);
-        $timeout = (int) config('kinetik.kip.timeout', 15);
+        $timeout = (int) config('kinetik.kip.login_timeout', 30);
 
         try {
             $submit = $this->http($jar)->withoutRedirecting()->timeout($timeout)

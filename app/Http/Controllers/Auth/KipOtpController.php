@@ -51,7 +51,7 @@ class KipOtpController extends Controller
             }
             $challenge->clear();
             if (! $e->otpInvalid) {
-                Log::warning('kipApp SSO OTP unavailable', ['reason' => $e->getMessage()]);
+                Log::warning('kipApp SSO OTP unavailable', ['user_id' => $user->id, 'reason' => $e->getMessage()]);
             }
 
             return redirect()->route(Auth::check() ? 'kip.connect' : 'login')

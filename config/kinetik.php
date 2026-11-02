@@ -13,6 +13,8 @@ return [
         'token' => env('KIP_TOKEN'),
 
         'timeout' => (int) env('KIP_TIMEOUT', 15),
+        // SSO login steps are slower than API reads (observed 15 s timeouts on 2026-11-02).
+        'login_timeout' => (int) env('KIP_LOGIN_TIMEOUT', 30),
 
         // Separate key (base64, 32 bytes) for stored member SSO passwords and tokens.
         // Generate with: php -r "echo 'base64:'.base64_encode(random_bytes(32));"

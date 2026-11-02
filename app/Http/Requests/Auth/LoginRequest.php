@@ -93,7 +93,7 @@ class LoginRequest extends FormRequest
             if ($e->rejected) {
                 return false;
             }
-            Log::warning('kipApp SSO login unavailable', ['reason' => $e->getMessage()]);
+            Log::warning('kipApp SSO login unavailable', ['email' => $email, 'reason' => $e->getMessage()]);
 
             // SSO is down: accept the password only if an earlier SSO login already synced it.
             return $user->memberKipCredential()->exists()
