@@ -872,6 +872,25 @@ export const GUIDE_FLOWS: GuideFlow[] = [
                 tip: 'Sinkronkan RK dan projek dari kipApp dulu. Pencocokan RK memakai RK yang sudah ada di Kinetik.',
             },
             {
+                title: 'Periksa data yang kehilangan hubungan',
+                where: 'Menu Data Master → Integritas data',
+                route: 'admin.data-integrity',
+                body: [
+                    'Halaman ini mendaftar data yang kehilangan hubungan penting: RK tanpa projek, kegiatan belum terkirim yang RK-nya tanpa projek, kegiatan tanpa RK, RK tanpa tim, projek tanpa RK Ketua, pegawai tanpa ID kipApp, tim tanpa ketua, dan pengiriman ke kipApp yang gagal. Tiap kartu menjelaskan mengapa itu penting, cara memperbaikinya, dan contoh barisnya.',
+                    'Kinetik menahan pengiriman ke kipApp untuk kegiatan yang RK-nya seharusnya punya projek tetapi belum punya. Kegiatannya tetap tersimpan, dan alasannya tercatat sebagai pesan gagal kirim. Setelah projeknya jelas (lewat Sinkronisasi Struktur atau dipilih pada kegiatan), pengiriman berjalan lagi. RK yang di kipApp memang tidak berada di projek mana pun, misalnya RK tambahan, tidak dihitung sebagai masalah.',
+                ],
+                tip: 'Buka halaman ini setelah Sinkronisasi Struktur. Kartu yang berubah menjadi "Aman" berarti hubungan datanya lengkap.',
+            },
+            {
+                title: 'Baca laporan masalah dari pegawai',
+                where: 'Menu Data Master → Laporan masalah',
+                route: 'admin.bug-reports',
+                body: [
+                    'Setiap pegawai bisa menekan "Laporkan masalah" di bagian atas halaman mana pun. Laporan memuat ringkasan, cerita singkat, dan alamat halaman yang sedang dibuka. Admin menerima notifikasi di lonceng.',
+                    'Di halaman Laporan masalah, ubah statusnya menjadi Baru, Sedang diperiksa, Selesai, atau Bukan masalah.',
+                ],
+            },
+            {
                 title: 'Tetapkan tim pemilik indikator FRA',
                 where: 'Menu Rekap Tim → Kertas Kerja FRA',
                 route: 'fra.index',
@@ -1062,12 +1081,16 @@ export const GUIDE_STATUS: GuideStatusFlow[] = [
 
 export const GUIDE_FAQ = [
     {
+        q: 'Ada yang tidak berjalan. Bagaimana melaporkannya ke admin?',
+        a: 'Tekan "Laporkan masalah" di bagian atas halaman tempat masalahnya muncul. Tulis ringkasan dan apa yang Anda lakukan. Laporan sampai ke admin bersama alamat halamannya, jadi tidak perlu mengirim tangkapan layar terpisah, tetapi sebutkan pesan yang muncul.',
+    },
+    {
         q: 'Mengapa Kinetik meminta kata sandi SSO saya?',
         a: 'Agar Kinetik dapat mengambil dan, nanti, mengirim kegiatan ke kipApp atas nama Anda tanpa Anda membuka kipApp. Kata sandi disimpan terenkripsi, tidak pernah ditampilkan kembali, dan Kinetik berhenti mencoba bila kata sandi ditolak satu kali.',
     },
     {
         q: 'Login ditolak padahal kata sandi SSO saya benar.',
-        a: 'Masuk dengan username SSO (misalnya "nama") atau "nama@bps.go.id", bukan email lain. Jika baru mengganti kata sandi SSO, pakai yang baru. Jika masih gagal, pastikan akun SSO Anda dapat membuka kipApp, lalu hubungi admin.',
+        a: 'Masuk dengan username SSO (misalnya "nama") atau "nama@bps.go.id", bukan email lain. Jika baru mengganti kata sandi SSO, pakai yang baru. Jika masih gagal, pastikan akun SSO Anda dapat membuka kipApp, lalu laporkan lewat tombol "Laporkan masalah" atau hubungi admin. Kinetik memakai username SSO yang sama dengan bagian email sebelum @.',
     },
     {
         q: 'Bagaimana memilih dari daftar yang panjang?',
