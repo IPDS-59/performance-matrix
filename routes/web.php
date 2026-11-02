@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Admin\DataIntegrityController;
 use App\Http\Controllers\Admin\ImpersonationController;
+use App\Http\Controllers\ArchiveController;
 use App\Http\Controllers\BugReportController;
 use App\Http\Controllers\CreditController;
 use App\Http\Controllers\DashboardController;
@@ -186,6 +187,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::put('/angka-kredit/{employee}/tw/{quarter}', [CreditController::class, 'updateQuarter'])->name('credit.quarter');
     Route::delete('/angka-kredit/{employee}/tw/{quarter}', [CreditController::class, 'destroyQuarter'])->name('credit.quarter.destroy');
 
+    Route::get('/arsip-kipapp', [ArchiveController::class, 'index'])->name('archive');
+    Route::get('/arsip-kipapp/data', [ArchiveController::class, 'data'])->name('archive.data');
     Route::post('/laporan-masalah', [BugReportController::class, 'store'])->name('bug-reports.store');
 
     // kipApp integration (admin: store token + centralized sync)
