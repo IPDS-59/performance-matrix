@@ -103,7 +103,7 @@ class BuildMemberWeekAction
         $mine = $plans->filter(fn (PerformancePlan $p) => $own->has(self::norm($p->description)));
         $plans = $mine->isEmpty() ? $plans : $mine;
 
-        $candidates = $this->links->candidates($plans);
+        $candidates = $this->links->candidatesFor($plans, $employee);
 
         return $plans->map(fn (PerformancePlan $plan) => [
             'id' => $plan->id,
@@ -112,6 +112,7 @@ class BuildMemberWeekAction
             'team_name' => $plan->project?->team?->name ?? $plan->team?->name,
             'project_id' => $plan->project_id,
             'project_candidates' => $candidates->get($plan->id, []),
+            'project_suggested' => count($candidates->get($plan->id, [])) === 1 ? $candidates->get($plan->id)[0] : null,
             'project_optional' => $this->links->projectOptional($plan),
             'target_unit' => $plan->target_unit,
         ])->values()->all();

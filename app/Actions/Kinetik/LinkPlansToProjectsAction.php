@@ -3,6 +3,8 @@
 namespace App\Actions\Kinetik;
 
 use App\Kinetik\Data\KipRkData;
+use App\Models\Employee;
+use App\Models\EmployeeRk;
 use App\Models\PerformancePlan;
 use App\Models\Project;
 use App\Models\Team;
@@ -97,6 +99,42 @@ class LinkPlansToProjectsAction
                 $plan->id => $byLeader->get(self::key($plan->team_id, $plan->leader_rk), collect())->values()->all(),
             ])
             ->filter(fn (array $ids) => count($ids) > 1);
+    }
+
+    /**
+     * Projek this member can pick for each RK that has none. kipApp puts an RK Anggota in a Projek the member works in, so the
+     * candidates under the leader RK are narrowed to the Projek the member belongs to; the leader RK is taken from the
+     * member's own kipApp RK when the local RK does not know it. One candidate left means the Projek is certain.
+     *
+     * @param  Collection<int, PerformancePlan>  $plans
+     * @return Collection<int, list<int>> keyed by RK id, only RK with at least one candidate
+     */
+    public function candidatesFor(Collection $plans, Employee $employee): Collection
+    {
+        $teamIds = $plans->pluck('team_id')->filter()->unique();
+        if ($teamIds->isEmpty()) {
+            return collect();
+        }
+
+        $byLeader = $this->projectsByLeaderRk(null, $teamIds->all());
+        $mine = $employee->projects()->pluck('projects.id')->flip();
+        $ownLeader = EmployeeRk::where('employee_id', $employee->id)->whereNotNull('leader_rk')->get(['name', 'leader_rk'])
+            ->mapWithKeys(fn (EmployeeRk $e) => [self::text($e->name) => $e->leader_rk]);
+
+        return $plans->filter(fn (PerformancePlan $plan) => $plan->project_id === null)
+            ->mapWithKeys(function (PerformancePlan $plan) use ($byLeader, $mine, $ownLeader) {
+                $leader = filled($plan->leader_rk) ? $plan->leader_rk : $ownLeader->get(self::text($plan->description));
+                $ids = $byLeader->get(self::key($plan->team_id, $leader), collect())->values();
+                $narrowed = $ids->filter(fn (int $id) => $mine->has($id))->values();
+
+                return [$plan->id => ($narrowed->isNotEmpty() ? $narrowed : $ids)->all()];
+            })
+            ->filter(fn (array $ids) => $ids !== []);
+    }
+
+    private static function text(?string $value): string
+    {
+        return mb_strtolower(preg_replace('/\s+/', ' ', trim((string) $value)));
     }
 
     /**
