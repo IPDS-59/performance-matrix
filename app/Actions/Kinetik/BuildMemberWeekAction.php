@@ -103,6 +103,15 @@ class BuildMemberWeekAction
         $mine = $plans->filter(fn (PerformancePlan $p) => $own->has(self::norm($p->description)));
         $plans = $mine->isEmpty() ? $plans : $mine;
 
+        // kipApp copies an RK for every member and every quarter SKP, so one RK text becomes several local rows (one head of
+        // several teams saw 41 rows for 9 RK). Show each RK once per projek (or per team when it has none), preferring the
+        // row of the member's own team, then the oldest.
+        $plans = $plans
+            ->sortBy(fn (PerformancePlan $p) => [$teamIds->contains($p->team_id) ? 0 : 1, $p->id])
+            ->unique(fn (PerformancePlan $p) => ($p->project_id ?? 't'.$p->team_id).'|'.self::norm($p->description))
+            ->sortBy('description')
+            ->values();
+
         $candidates = $this->links->candidatesFor($plans, $employee);
 
         return $plans->map(fn (PerformancePlan $plan) => [
