@@ -313,7 +313,7 @@ const SSO_LOGIN_STEP: GuideStep = {
         'Login pertama: sebelum akun terhubung, Anda masih dapat masuk dengan kata sandi bawaan dari admin. Kinetik langsung meminta kata sandi SSO Anda satu kali. Setelah kata sandi benar, kata sandi bawaan tidak berlaku lagi.',
         'Kata sandi SSO disimpan terenkripsi dan tidak pernah ditampilkan kembali. Kinetik memakainya untuk mengambil data kipApp atas nama Anda.',
         'Kata sandi bawaan hanya berlaku sampai batas waktu yang ditetapkan admin. Sesudah itu masuk wajib memakai kata sandi SSO.',
-        'Jika akun SSO Anda memakai kode OTP, Kinetik meminta kode 6 digit dari aplikasi autentikator Anda tepat setelah kata sandi. Halaman kode hanya muncul untuk akun yang memakainya.',
+        'Jika akun SSO Anda memakai kode OTP, Kinetik meminta kode 6 digit dari aplikasi autentikator Anda tepat setelah kata sandi. Halaman kode hanya muncul jika diperlukan.',
     ],
     tip: 'Jika Anda mengganti kata sandi SSO di BPS, masuk ke Kinetik dengan kata sandi yang baru. Kinetik memperbaruinya otomatis. Akun admin tetap memakai kata sandi Kinetik sendiri.',
 };
