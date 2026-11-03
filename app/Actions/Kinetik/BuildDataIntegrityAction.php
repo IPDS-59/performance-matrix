@@ -27,7 +27,7 @@ class BuildDataIntegrityAction
         $itemsNoProject = PlanItem::with(['employee:id,name', 'performancePlan:id,description,project_id,team_id'])
             ->whereNull('project_id')->whereNull('kip_external_id')->where('status', '!=', 'cancelled')
             ->whereHas('performancePlan', fn ($q) => $q->whereNull('project_id'))->get()
-            ->filter(fn (PlanItem $i) => ! $this->links->projectOptional($i->performancePlan));
+            ->filter(fn (PlanItem $i) => ! $this->links->projectOptionalFor($i->performancePlan, $i->employee));
 
         return [
             $this->check('rk_no_project', 'RK tanpa projek', 'Kegiatan pada RK ini tidak bisa dikirim ke kipApp sebelum projeknya jelas, dan rekap per projek tidak lengkap.', 'Jalankan Sinkronisasi Struktur (membaca RK tiap projek dari kipApp), atau pilih projek pada kegiatannya.', 'high',

@@ -1081,6 +1081,10 @@ export const GUIDE_STATUS: GuideStatusFlow[] = [
 
 export const GUIDE_FAQ = [
     {
+        q: 'Sebagai ketua tim, RK mana yang saya pilih untuk kegiatan saya? Daftar RK-nya kosong.',
+        a: 'Kegiatan ketua tim menempel ke RK di SKP ketua sendiri, yaitu RK Ketua: RK yang menjadi atasan projek-projek tim. RK Ketua tidak berada di dalam projek, jadi projek tidak perlu dipilih. Kosongkan kolom Projek (atau pilih "Tanpa projek"), lalu pilih RK Anda dari daftar. RK anggota hanya dipakai anggota tim.',
+    },
+    {
         q: 'Mengapa satu RK tampil berkali-kali di daftar RK?',
         a: 'kipApp menyalin RK untuk setiap anggota dan setiap SKP triwulan, jadi teks RK yang sama tersimpan beberapa kali. Kinetik kini menampilkannya sekali per projek (atau per tim bila tanpa projek) dan memilih salinan milik tim Anda. Jika Anda masih melihat RK kembar, laporkan lewat tombol "Laporkan masalah" beserta nama RK-nya.',
     },

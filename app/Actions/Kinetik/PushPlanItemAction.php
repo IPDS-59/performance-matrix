@@ -71,7 +71,7 @@ class PushPlanItemAction
     private function requireProject(PlanItem $plan): void
     {
         $rk = $plan->performancePlan;
-        if ($rk !== null && $rk->project_id === null && $plan->project_id === null && ! (new LinkPlansToProjectsAction)->projectOptional($rk)) {
+        if ($rk !== null && $rk->project_id === null && $plan->project_id === null && ! (new LinkPlansToProjectsAction)->projectOptionalFor($rk, $plan->employee)) {
             throw new RuntimeException('RK ini belum punya projek. Pilih projek pada kegiatan ini, atau sinkronkan struktur supaya RK terhubung ke projeknya.');
         }
     }

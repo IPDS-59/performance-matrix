@@ -122,7 +122,7 @@ class BuildMemberWeekAction
             'project_id' => $plan->project_id,
             'project_candidates' => $candidates->get($plan->id, []),
             'project_suggested' => count($candidates->get($plan->id, [])) === 1 ? $candidates->get($plan->id)[0] : null,
-            'project_optional' => $this->links->projectOptional($plan),
+            'project_optional' => $this->links->projectOptionalFor($plan, $employee),
             'target_unit' => $plan->target_unit,
         ])->values()->all();
     }
