@@ -25,3 +25,11 @@ Mapping to our model: RHK ~ RK, tim_kerja ~ tim, daily_activity ~ kegiatan/PlanI
 ## Does e-Kinerja have "projek"? (checked 2026-11-03)
 
 No. The whole `kinerja.bkn.go.id` bundle (4.5 MB) has no `proyek`, `projek` or `project` entity (the only "project" hit is a PDF library line-cap constant), and none of the 222 API paths mention it. Its model is SKP > RHK (rencana hasil kerja, linked to the superior's RHK, see `pohon_rhk` and `rhk_atasan`) > indikator, plus `tim_kerja`, `renaksi` (rencana aksi, 399 mentions) and `daily_activity`. So Kinetik's projek level is a kipApp concept. For the e-Kinerja era the grouping that carries over is team and the RHK tree (RK to RK Ketua), not projek. Consequence: keep projek optional in new features and do not build more rules on it.
+
+## Hierarchy, activity and IKU/IKI compatibility (2026-11-03)
+
+kipApp (API rows + scraped sample): Perjanjian Kinerja (tujuan > sasaran > IKU: `indikatorid`, `kode`, `satuan`, `tahun1..5`) > tim kerja > RK Ketua > projek > RK Anggota (`rkproyekid`). Per pegawai: SKP tahunan > SKP triwulan (copied, `iscopied`) > RK SKP (`rkid`, `timkerjaid`, `rencanakinerjaatasan` text) > IKI (`ikiid`, target embedded in text) and kegiatan (`kegiatanperhariid`).
+
+e-Kinerja (bundle): RHK organisasi (+ indikator organisasi, PKPN flag) and RHK individu linked by `rhk_atasan`; tim_kerja and SKP; indikator (`deskripsi`, `target`, `perspektif`, `aspek` for jabatan fungsional) and rencana aksi (`renaksi`) under the RHK; `daily_activity` (`rhk_id`, `renaksi_id`, `indikator_id`, `skp_id`, `kegiatan`, `date`, `start`, `end`, `realisasi` + `satuan`, `is_selesai`, `eviden`, `bukti_eviden`, `is_cuti`, `sumber`, `ref_kegiatan_id`).
+
+Mapping: kegiatan to daily_activity (text, time, evidence map directly; result differs: numeric realisasi + satuan and a done flag instead of 0-100 progres). IKU ~ indikator organisasi, IKI ~ indikator individu (target is its own field there, so the target-text parser would not be needed). Unverified: allowed values of `perspektif`/`aspek`, and whether `renaksi` is a plan or a realisation.
