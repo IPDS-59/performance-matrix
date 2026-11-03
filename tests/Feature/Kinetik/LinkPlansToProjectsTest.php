@@ -103,3 +103,21 @@ it('uses the exact projek kipApp tied to the member\'s own RK before any guessin
 
     expect((new LinkPlansToProjectsAction)->candidatesFor(PerformancePlan::all(), $employee)->get($plan->id))->toBe([$b->id]);
 });
+
+it('lets a team leader pick their own RK Ketua without a projek, and a member RK kipApp ties to no projek', function () {
+    $team = Team::factory()->create();
+    Project::factory()->create(['team_id' => $team->id, 'leader_rk' => 'Tersedianya Publikasi Yang Berkualitas']);
+    $leader = Employee::factory()->create();
+    $ketuaRk = PerformancePlan::factory()->create(['team_id' => $team->id, 'project_id' => null, 'leader_rk' => null, 'description' => 'Tersedianya  publikasi yang berkualitas']);
+    $tambahan = PerformancePlan::factory()->create(['team_id' => $team->id, 'project_id' => null, 'leader_rk' => null, 'description' => 'RK tambahan saya']);
+    $action = new LinkPlansToProjectsAction;
+
+    expect($action->projectOptional($ketuaRk))->toBeTrue();
+    // before any projek was stored for the unit's RK the member RK is still guessed, so the projek stays required
+    EmployeeRk::create(['employee_id' => $leader->id, 'kip_rk_id' => '1', 'name' => 'RK tambahan saya', 'year' => 2026, 'project_id' => null]);
+    expect((new LinkPlansToProjectsAction)->projectOptionalFor($tambahan, $leader))->toBeFalse();
+
+    $other = Employee::factory()->create();
+    EmployeeRk::create(['employee_id' => $other->id, 'kip_rk_id' => '2', 'name' => 'RK lain', 'year' => 2026, 'project_id' => Project::first()->id]);
+    expect((new LinkPlansToProjectsAction)->projectOptionalFor($tambahan, $leader))->toBeTrue();
+});

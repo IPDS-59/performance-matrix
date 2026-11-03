@@ -358,7 +358,7 @@ class PlanItemController extends Controller
         if (($plan->project?->team_id ?? $plan->team_id) !== $team->id) {
             throw ValidationException::withMessages(['performance_plan_id' => 'RK ini bukan milik tim yang dipilih.']);
         }
-        if ($plan->project_id === null && empty($data['project_id']) && ! $this->links->projectOptional($plan)) {
+        if ($plan->project_id === null && empty($data['project_id']) && ! $this->links->projectOptionalFor($plan, Employee::findOrFail($employeeId))) {
             throw ValidationException::withMessages(['project_id' => 'Pilih projek untuk RK ini.']);
         }
     }

@@ -21,6 +21,11 @@ class LinkPlansToProjectsAction
     /** @var array<int, array{any: bool, byLeader: Collection<string, Collection<int, int>>}> */
     private array $teamProjects = [];
 
+    /** @var Collection<string, int>|null */
+    private ?Collection $ketuaTexts = null;
+
+    private ?bool $projectsSynced = null;
+
     /**
      * Set project_id on RK that have no Projek yet and whose leader RK owns
      * exactly one Projek. Never changes a Projek that is already set.
@@ -144,6 +149,29 @@ class LinkPlansToProjectsAction
     }
 
     /**
+     * projectOptional() for one member. A team leader's own SKP holds RK Ketua: the RK a projek hangs under, so it can never
+     * sit in a projek, and the entry form used to demand a projek and then list no RK under it. Also optional: an RK that is
+     * the text of some projek's RK Ketua, and a member's own RK that kipApp ties to no projek (the structure sync has
+     * stored an exact projek for every other RK of the unit).
+     */
+    public function projectOptionalFor(PerformancePlan $plan, Employee $employee): bool
+    {
+        if ($this->projectOptional($plan)) {
+            return true;
+        }
+        if ($plan->project_id !== null) {
+            return false;
+        }
+
+        $text = self::text($plan->description);
+
+        $this->projectsSynced ??= EmployeeRk::whereNotNull('project_id')->exists();
+        $own = EmployeeRk::where('employee_id', $employee->id)->get(['name', 'project_id'])->first(fn (EmployeeRk $r) => self::text($r->name) === $text);
+
+        return $this->projectsSynced && $own !== null && $own->project_id === null;
+    }
+
+    /**
      * May a claim on this RK have no Projek? Only when the RK is not tied to a
      * Projek, and either its team has no Projek at all or kipApp shows its
      * leader RK owns none (e.g. a Zona Integritas RK). Otherwise the member
@@ -151,6 +179,12 @@ class LinkPlansToProjectsAction
      */
     public function projectOptional(PerformancePlan $plan): bool
     {
+        // RK Ketua: the text a projek hangs under. It sits above the projek, never in one.
+        $this->ketuaTexts ??= Project::whereNotNull('leader_rk')->pluck('leader_rk')->map(fn ($t) => self::text($t))->flip();
+        if ($plan->project_id === null && $this->ketuaTexts->has(self::text($plan->description))) {
+            return true;
+        }
+
         if ($plan->project_id !== null || $plan->team_id === null) {
             return $plan->project_id === null;
         }
