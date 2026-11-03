@@ -81,6 +81,18 @@ it('shows an RK once even when kipApp copied it for several members and quarters
         ->assertInertia(fn ($p) => $p->has('rkOptions', 2));
 });
 
+it('lists a team leader\'s RK Ketua under every projek that hangs below it', function () {
+    [$user, , , $team] = weekSetup();
+    PerformancePlan::query()->delete();
+    $a = Project::factory()->create(['team_id' => $team->id, 'leader_rk' => 'Tersedianya  Publikasi Yang Berkualitas']);
+    $b = Project::factory()->create(['team_id' => $team->id, 'leader_rk' => 'tersedianya publikasi yang berkualitas']);
+    Project::factory()->create(['team_id' => $team->id, 'leader_rk' => 'Lain']);
+    PerformancePlan::factory()->create(['project_id' => null, 'team_id' => $team->id, 'description' => 'Tersedianya Publikasi Yang Berkualitas']);
+
+    $this->actingAs($user)->get(route('weekly.index', ['week' => '2026-10-15']))
+        ->assertInertia(fn ($p) => $p->has('rkOptions', 1)->where('rkOptions.0.ketua_projects', fn ($ids) => collect($ids)->sort()->values()->all() === collect([$a->id, $b->id])->sort()->values()->all()));
+});
+
 it('sends the old plan page to the new one and keeps the week', function () {
     $this->actingAs(User::factory()->create())->get('/rencana-minggu?week=2026-10-05&team=3')
         ->assertRedirect(route('weekly.index', ['week' => '2026-10-05']));
