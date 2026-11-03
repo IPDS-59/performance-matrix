@@ -118,11 +118,17 @@ class LinkPlansToProjectsAction
 
         $byLeader = $this->projectsByLeaderRk(null, $teamIds->all());
         $mine = $employee->projects()->pluck('projects.id')->flip();
-        $ownLeader = EmployeeRk::where('employee_id', $employee->id)->whereNotNull('leader_rk')->get(['name', 'leader_rk'])
-            ->mapWithKeys(fn (EmployeeRk $e) => [self::text($e->name) => $e->leader_rk]);
+        $own = EmployeeRk::where('employee_id', $employee->id)->get(['name', 'leader_rk', 'project_id']);
+        $ownLeader = $own->whereNotNull('leader_rk')->mapWithKeys(fn (EmployeeRk $e) => [self::text($e->name) => $e->leader_rk]);
+        // Exact: kipApp's own link between this member's RK and its projek (see LinkPlansFromKipProyekAction).
+        $ownProject = $own->whereNotNull('project_id')->mapWithKeys(fn (EmployeeRk $e) => [self::text($e->name) => $e->project_id]);
 
         return $plans->filter(fn (PerformancePlan $plan) => $plan->project_id === null)
-            ->mapWithKeys(function (PerformancePlan $plan) use ($byLeader, $mine, $ownLeader) {
+            ->mapWithKeys(function (PerformancePlan $plan) use ($byLeader, $mine, $ownLeader, $ownProject) {
+                if ($ownProject->has(self::text($plan->description))) {
+                    return [$plan->id => [(int) $ownProject->get(self::text($plan->description))]];
+                }
+
                 $leader = filled($plan->leader_rk) ? $plan->leader_rk : $ownLeader->get(self::text($plan->description));
                 $ids = $byLeader->get(self::key($plan->team_id, $leader), collect())->values();
                 $narrowed = $ids->filter(fn (int $id) => $mine->has($id))->values();

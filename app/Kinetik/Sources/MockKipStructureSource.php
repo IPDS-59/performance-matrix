@@ -50,6 +50,11 @@ class MockKipStructureSource implements KipStructureSource
         return [];
     }
 
+    public function fetchProjectRkRows(string $timkerjaId, string $proyekId): array
+    {
+        return [];
+    }
+
     public function fetchEmployeeOffices(string $nipLama): array
     {
         // Mock staff all work at the configured office.

@@ -76,15 +76,30 @@ it('links an RK to the projek kipApp lists it under, and leaves a text found und
 
     $source = new class extends MockKipStructureSource
     {
-        public function fetchProjectRkTexts(string $timkerjaId, string $proyekId): array
+        public function fetchProjectRkRows(string $timkerjaId, string $proyekId): array
         {
-            return $proyekId === 'A' ? ['tersedianya inovasi yang bermanfaat', 'Melakukan Pengelolaan Mitra'] : ['Melakukan Pengelolaan Mitra'];
+            return $proyekId === 'A'
+                ? [['text' => 'tersedianya inovasi yang bermanfaat', 'niplama' => '340001'], ['text' => 'Melakukan Pengelolaan Mitra', 'niplama' => '340001']]
+                : [['text' => 'Melakukan Pengelolaan Mitra', 'niplama' => '340002']];
         }
     };
     Cache::forget('kinetik.rk_proyek_map');
+    $member = Employee::factory()->create(['nip_lama' => '340001']);
+    $ownRk = EmployeeRk::create(['employee_id' => $member->id, 'kip_rk_id' => '9', 'name' => 'Tersedianya Inovasi  yang Bermanfaat', 'year' => 2026]);
 
     expect((new LinkPlansFromKipProyekAction)->execute($source, $team))->toBe(1)
         ->and($only->fresh()->project_id)->toBe($a->id)
         ->and($both->fresh()->project_id)->toBeNull()
-        ->and($set->fresh()->project_id)->toBe($b->id);
+        ->and($set->fresh()->project_id)->toBe($b->id)
+        ->and($ownRk->fresh()->project_id)->toBe($a->id);
+});
+
+it('uses the exact projek kipApp tied to the member\'s own RK before any guessing', function () {
+    $team = Team::factory()->create();
+    [$a, $b] = Project::factory()->count(2)->create(['team_id' => $team->id, 'leader_rk' => 'Leader']);
+    $employee = Employee::factory()->create();
+    $plan = PerformancePlan::factory()->create(['team_id' => $team->id, 'project_id' => null, 'leader_rk' => 'Leader', 'description' => 'RK saya']);
+    EmployeeRk::create(['employee_id' => $employee->id, 'kip_rk_id' => '1', 'name' => 'rk  SAYA', 'year' => 2026, 'project_id' => $b->id]);
+
+    expect((new LinkPlansToProjectsAction)->candidatesFor(PerformancePlan::all(), $employee)->get($plan->id))->toBe([$b->id]);
 });
