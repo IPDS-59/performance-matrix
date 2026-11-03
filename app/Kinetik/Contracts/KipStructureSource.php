@@ -39,6 +39,13 @@ interface KipStructureSource
     public function fetchProjectRkTexts(string $timkerjaId, string $proyekId): array;
 
     /**
+     * The same rk/proyek rows with the member each RK Anggota belongs to, so a member's own RK can be tied to its projek.
+     *
+     * @return list<array{text: string, niplama: string}>
+     */
+    public function fetchProjectRkRows(string $timkerjaId, string $proyekId): array;
+
+    /**
      * Fetch one team's members (timkerja/anggota?id=).
      *
      * @return Collection<int, KipMemberData>

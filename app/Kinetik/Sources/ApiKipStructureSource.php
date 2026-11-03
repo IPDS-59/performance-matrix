@@ -75,6 +75,11 @@ class ApiKipStructureSource implements KipStructureSource
 
     public function fetchProjectRkTexts(string $timkerjaId, string $proyekId): array
     {
+        return array_column($this->fetchProjectRkRows($timkerjaId, $proyekId), 'text');
+    }
+
+    public function fetchProjectRkRows(string $timkerjaId, string $proyekId): array
+    {
         $response = $this->client()->get('v1/rk/proyek', [
             'periodeid' => config('kinetik.kip.periode_id'),
             'wilayahid' => config('kinetik.kip.wilayah_id'),
@@ -85,12 +90,15 @@ class ApiKipStructureSource implements KipStructureSource
         ]);
 
         if (! $response->successful()) {
-            throw KipApiException::fromResponse($response, 'fetchProjectRkTexts');
+            throw KipApiException::fromResponse($response, 'fetchProjectRkRows');
         }
 
         $rows = $response->json();
 
-        return is_array($rows) ? array_values(array_filter(array_map(fn ($r) => is_array($r) ? trim((string) ($r['rencanakinerja'] ?? '')) : '', $rows))) : [];
+        return is_array($rows) ? array_values(array_filter(array_map(
+            fn ($r) => is_array($r) && trim((string) ($r['rencanakinerja'] ?? '')) !== '' ? ['text' => trim((string) $r['rencanakinerja']), 'niplama' => (string) ($r['niplama'] ?? '')] : null,
+            $rows,
+        ))) : [];
     }
 
     public function fetchTeamMembers(string $timkerjaId): Collection

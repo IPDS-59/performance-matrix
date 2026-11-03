@@ -3,6 +3,8 @@
 namespace App\Actions\Kinetik;
 
 use App\Kinetik\Contracts\KipStructureSource;
+use App\Models\Employee;
+use App\Models\EmployeeRk;
 use App\Models\PerformancePlan;
 use App\Models\Project;
 use App\Models\Team;
@@ -26,7 +28,7 @@ class LinkPlansFromKipProyekAction
 
         foreach (Project::where('team_id', $team->id)->whereNotNull('kip_external_id')->get(['id', 'kip_external_id']) as $project) {
             try {
-                $texts = $source->fetchProjectRkTexts((string) $team->kip_external_id, (string) $project->kip_external_id);
+                $rows = $source->fetchProjectRkRows((string) $team->kip_external_id, (string) $project->kip_external_id);
             } catch (\Throwable $e) {
                 report($e);
 
@@ -35,13 +37,34 @@ class LinkPlansFromKipProyekAction
             foreach ($map as $text => $ids) {
                 $map[$text] = array_values(array_diff($ids, [$project->id]));
             }
-            foreach ($texts as $text) {
-                $map[self::norm($text)][] = $project->id;
+            foreach ($rows as $row) {
+                $map[self::norm($row['text'])][] = $project->id;
             }
+            $this->tieMemberRks($rows, $project);
         }
         Cache::put(self::CACHE_KEY, $map = array_filter(array_map(fn ($ids) => array_values(array_unique($ids)), $map)), now()->addDay());
 
         return $this->resolve($map);
+    }
+
+    /**
+     * skp/rk/copy and rk/proyek hand out the same ID per member, so the RK a member holds in a projek is exact: it is the
+     * member's own RK with that text (a member rarely holds two RK with identical text). Stores the projek on EmployeeRk.
+     *
+     * @param  list<array{text: string, niplama: string}>  $rows
+     */
+    private function tieMemberRks(array $rows, Project $project): void
+    {
+        $byNip = Employee::whereIn('nip_lama', array_unique(array_column($rows, 'niplama')))->pluck('id', 'nip_lama');
+        foreach ($rows as $row) {
+            $employeeId = $byNip->get($row['niplama']);
+            if ($employeeId === null) {
+                continue;
+            }
+            EmployeeRk::where('employee_id', $employeeId)->get(['id', 'name', 'project_id'])
+                ->filter(fn (EmployeeRk $r) => self::norm($r->name) === self::norm($row['text']) && $r->project_id !== $project->id)
+                ->each(fn (EmployeeRk $r) => $r->update(['project_id' => $project->id]));
+        }
     }
 
     /** @param  array<string, list<int>>  $map */
