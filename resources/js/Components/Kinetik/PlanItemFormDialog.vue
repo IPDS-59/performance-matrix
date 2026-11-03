@@ -52,7 +52,7 @@ const needsProject = computed(() => !!rk.value && !rk.value.project_id && !rk.va
 
 /** Whether an RK belongs to a projek: its own projek, or one of the projek it can be linked to. */
 function rkFitsProject(option: PlanRkOption, projectId: number | null): boolean {
-    return projectId === null || option.project_id === projectId || (option.project_id === null && option.project_candidates.includes(projectId));
+    return projectId === null || option.project_id === projectId || option.ketua_projects.includes(projectId) || (option.project_id === null && option.project_candidates.includes(projectId));
 }
 
 // Projek first, then only the RK of that projek. Once an RK is chosen the projek is fixed; "Ganti RK" frees it again.
@@ -60,7 +60,7 @@ const rkChoices = computed(() => props.rkOptions.filter(o => rkFitsProject(o, fo
 const projectChoices = computed(() => {
     const chosen = rk.value;
     if (chosen?.project_id) return props.projectOptions.filter(p => p.id === chosen.project_id).map(p => ({ value: p.id, label: p.name }));
-    const ids = chosen?.project_candidates ?? [];
+    const ids = [...(chosen?.project_candidates ?? []), ...(chosen?.ketua_projects ?? [])];
     return props.projectOptions.filter(p => !ids.length || ids.includes(p.id)).map(p => ({ value: p.id, label: p.name }));
 });
 const projectLocked = computed(() => !!props.item || (form.performance_plan_id !== null && form.project_id !== null));

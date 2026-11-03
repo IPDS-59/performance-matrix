@@ -113,6 +113,8 @@ class BuildMemberWeekAction
             ->values();
 
         $candidates = $this->links->candidatesFor($plans, $employee);
+        // A team leader's RK is the RK Ketua of their projek: it belongs under each projek whose RK Ketua carries its text.
+        $ketuaProjects = Project::whereNotNull('leader_rk')->get(['id', 'leader_rk'])->groupBy(fn (Project $p) => self::norm($p->leader_rk))->map(fn ($g) => $g->pluck('id')->values()->all());
 
         return $plans->map(fn (PerformancePlan $plan) => [
             'id' => $plan->id,
@@ -121,6 +123,7 @@ class BuildMemberWeekAction
             'team_name' => $plan->project?->team?->name ?? $plan->team?->name,
             'project_id' => $plan->project_id,
             'project_candidates' => $candidates->get($plan->id, []),
+            'ketua_projects' => $ketuaProjects->get(self::norm($plan->description), []),
             'project_suggested' => count($candidates->get($plan->id, [])) === 1 ? $candidates->get($plan->id)[0] : null,
             'project_optional' => $this->links->projectOptionalFor($plan, $employee),
             'target_unit' => $plan->target_unit,

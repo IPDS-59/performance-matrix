@@ -668,6 +668,8 @@ export interface PlanRkOption {
     project_candidates: number[];
     /** The only projek this RK can belong to for this member, when kipApp's hierarchy makes it certain. */
     project_suggested: number | null;
+    /** Projek whose RK Ketua is this RK: a team leader's RK shows under each of them. */
+    ketua_projects: number[];
     project_optional: boolean;
     target_unit: string | null;
 }
