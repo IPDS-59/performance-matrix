@@ -21,3 +21,7 @@ Full list (all 222, including `/api/admin/*`): `/tmp/myasn/endpoints.json` on th
 ## Relevance to Kinetik
 
 Mapping to our model: RHK ~ RK, tim_kerja ~ tim, daily_activity ~ kegiatan/PlanItem, skp ~ SKP. If/when BKN grants API access, `daily_activity`, `rhk/`, `skp` and `tim_kerja` are the ones a sync adapter would call. `sinkro_pmm`/`sinkro_siasn` suggest e-Kinerja itself already does cross-system sync jobs — worth asking BKN whether a similar sync contract could be opened to partner apps instead of a raw API grant.
+
+## Does e-Kinerja have "projek"? (checked 2026-11-03)
+
+No. The whole `kinerja.bkn.go.id` bundle (4.5 MB) has no `proyek`, `projek` or `project` entity (the only "project" hit is a PDF library line-cap constant), and none of the 222 API paths mention it. Its model is SKP > RHK (rencana hasil kerja, linked to the superior's RHK, see `pohon_rhk` and `rhk_atasan`) > indikator, plus `tim_kerja`, `renaksi` (rencana aksi, 399 mentions) and `daily_activity`. So Kinetik's projek level is a kipApp concept. For the e-Kinerja era the grouping that carries over is team and the RHK tree (RK to RK Ketua), not projek. Consequence: keep projek optional in new features and do not build more rules on it.

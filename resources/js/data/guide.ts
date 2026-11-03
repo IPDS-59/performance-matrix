@@ -1081,6 +1081,10 @@ export const GUIDE_STATUS: GuideStatusFlow[] = [
 
 export const GUIDE_FAQ = [
     {
+        q: 'Mengapa satu RK tampil berkali-kali di daftar RK?',
+        a: 'kipApp menyalin RK untuk setiap anggota dan setiap SKP triwulan, jadi teks RK yang sama tersimpan beberapa kali. Kinetik kini menampilkannya sekali per projek (atau per tim bila tanpa projek) dan memilih salinan milik tim Anda. Jika Anda masih melihat RK kembar, laporkan lewat tombol "Laporkan masalah" beserta nama RK-nya.',
+    },
+    {
         q: 'Mengapa target kegiatan saya tampil "-"?',
         a: 'kipApp tidak menyimpan target untuk kegiatan. Target adalah isian Kinetik, jadi kegiatan yang masuk dari kipApp (bukan dibuat di Kinetik) belum punya target dan menampilkan "-". Ini bukan kesalahan. Isi target dan satuannya saat mengubah kegiatan bila Anda ingin rekap menghitungnya.',
     },

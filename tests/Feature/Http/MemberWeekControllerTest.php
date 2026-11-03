@@ -4,6 +4,7 @@ use App\Models\Employee;
 use App\Models\EmployeeRk;
 use App\Models\PerformancePlan;
 use App\Models\PlanItem;
+use App\Models\Project;
 use App\Models\Team;
 use App\Models\User;
 use App\Models\WeeklyFocus;
@@ -64,6 +65,20 @@ it('offers only the member own RK once they are synced', function () {
 
     EmployeeRk::create(['employee_id' => $me->id, 'kip_rk_id' => 'r1', 'name' => 'rk  inovasi', 'year' => now()->year]);
     $this->actingAs($user)->get(route('weekly.index', ['week' => '2026-10-15']))->assertInertia(fn ($p) => $p->has('rkOptions', 1)->where('rkOptions.0.description', 'RK Inovasi')->where('rkSynced', true));
+});
+
+it('shows an RK once even when kipApp copied it for several members and quarters', function () {
+    [$user, $me, , $team] = weekSetup();
+    $other = Team::factory()->create();
+    $project = Project::factory()->create(['team_id' => $team->id]);
+    PerformancePlan::query()->delete();
+    foreach ([$team->id, $other->id, $team->id] as $teamId) {
+        PerformancePlan::factory()->create(['project_id' => $project->id, 'team_id' => $teamId, 'description' => 'Koordinasi  Penyediaan ISV']);
+    }
+    PerformancePlan::factory()->create(['project_id' => null, 'team_id' => $team->id, 'description' => 'RK lain']);
+
+    $this->actingAs($user)->get(route('weekly.index', ['week' => '2026-10-15']))
+        ->assertInertia(fn ($p) => $p->has('rkOptions', 2));
 });
 
 it('sends the old plan page to the new one and keeps the week', function () {
