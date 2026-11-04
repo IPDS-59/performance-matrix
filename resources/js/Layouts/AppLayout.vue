@@ -87,6 +87,7 @@ const navSections = computed<NavSection[]>(() => {
                 { label: 'Integrasi kipApp', href: route('kip-integration.index'), active: is('kip-integration.*'), icon: Zap, show: isAdmin.value },
                 { label: 'Fitur', href: route('admin.features'), active: is('admin.features*'), icon: ToggleRight, show: isAdmin.value },
                 { label: 'Impor Kegiatan', href: route('admin.import-kegiatan'), active: is('admin.import-kegiatan*'), icon: FileUp, show: isAdmin.value },
+                { label: 'Impor AK', href: route('admin.import-ak'), active: is('admin.import-ak*'), icon: Award, show: isAdmin.value },
                 { label: 'Integritas data', href: route('admin.data-integrity'), active: is('admin.data-integrity'), icon: ShieldAlert, show: isAdmin.value },
                 { label: 'Laporan masalah', href: route('admin.bug-reports'), active: is('admin.bug-reports*'), icon: Bug, show: isAdmin.value },
             ],
