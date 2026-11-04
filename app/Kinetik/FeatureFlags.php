@@ -37,6 +37,11 @@ final class FeatureFlags
                 'description' => 'Anggota menambah IKI pada RK di SKP yang masih Sedang dibuat, supaya SKP bisa dikirim tanpa membuka kipApp. Mematikannya menyembunyikan tombol IKI.',
                 'tested' => false,
             ],
+            'rk_tambahan_write' => [
+                'label' => 'Kirim RK tambahan ke kipApp',
+                'description' => 'Anggota menambah RK tambahan di Kinetik dan kegiatan di bawahnya, lalu RK itu dibuat di kipApp saat kegiatan pertama dikirim (cara yang sama dengan "Tambah rencana kinerja baru" di kipApp). Mematikannya: RK tambahan dibuat di kipApp, lalu masuk ke Kinetik lewat sinkronisasi.',
+                'tested' => false,
+            ],
             'structure_write' => [
                 'label' => 'Buat RK Ketua, proyek dan RK Anggota di kipApp',
                 'description' => 'Proyek dan RK yang dibuat di Kinetik ikut dibuat di kipApp dengan akun PJ. Mematikannya membuat proyek dan RK hanya tersimpan di Kinetik.',

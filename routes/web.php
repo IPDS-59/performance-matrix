@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\AdditionalRkController;
 use App\Http\Controllers\Admin\DataIntegrityController;
 use App\Http\Controllers\Admin\ImpersonationController;
 use App\Http\Controllers\AkRekapanImportController;
@@ -135,6 +136,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::patch('/fra/{indicator}/pemilik', [FraController::class, 'updateOwner'])->name('fra.owner');
     Route::get('/kepatuhan-rencana', [PlanComplianceController::class, 'index'])->name('plan-compliance.index');
     Route::post('/rencana-minggu/fokus', [WeeklyPlanController::class, 'storeFocus'])->name('weekly-plan.focus');
+    Route::post('/rk-tambahan', [AdditionalRkController::class, 'store'])->name('rk-additional.store');
     Route::post('/rencana-minggu/item', [PlanItemController::class, 'store'])->name('plan-items.store');
     Route::patch('/rencana-minggu/item/{planItem}', [PlanItemController::class, 'update'])->name('plan-items.update');
     Route::post('/rencana-minggu/item/{planItem}/kirim', [PlanItemController::class, 'push'])->name('plan-items.push');

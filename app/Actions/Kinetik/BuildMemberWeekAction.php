@@ -95,13 +95,14 @@ class BuildMemberWeekAction
     {
         $teamIds = $employee->teams()->pluck('teams.id');
         $plans = PerformancePlan::with('project', 'team')
-            ->where(fn ($q) => $q->whereIn('team_id', $teamIds)->orWhereHas('project', fn ($p) => $p->whereIn('team_id', $teamIds)))
+            ->where(fn ($q) => $q->whereIn('team_id', $teamIds)->orWhereHas('project', fn ($p) => $p->whereIn('team_id', $teamIds))->orWhere('owner_employee_id', $employee->id))
+            ->where(fn ($q) => $q->where('is_additional', false)->orWhere('owner_employee_id', $employee->id))
             ->orderBy('description')
             ->get();
 
         $own = EmployeeRk::where('employee_id', $employee->id)->where('year', $year)->pluck('name')->map(self::norm(...))->flip();
         $mine = $plans->filter(fn (PerformancePlan $p) => $own->has(self::norm($p->description)));
-        $plans = $mine->isEmpty() ? $plans : $mine;
+        $plans = $mine->isEmpty() ? $plans : $mine->merge($plans->where('owner_employee_id', $employee->id))->unique('id');
 
         // kipApp copies an RK for every member and every quarter SKP, so one RK text becomes several local rows (one head of
         // several teams saw 41 rows for 9 RK). Show each RK once per projek (or per team when it has none), preferring the
@@ -123,6 +124,7 @@ class BuildMemberWeekAction
             'team_name' => $plan->project?->team?->name ?? $plan->team?->name,
             'project_id' => $plan->project_id,
             'project_candidates' => $candidates->get($plan->id, []),
+            'is_additional' => (bool) $plan->is_additional,
             'ketua_projects' => $ketuaProjects->get(self::norm($plan->description), []),
             'project_suggested' => count($candidates->get($plan->id, [])) === 1 ? $candidates->get($plan->id)[0] : null,
             'project_optional' => $this->links->projectOptionalFor($plan, $employee),

@@ -674,6 +674,8 @@ export interface PlanRkOption {
     project_suggested: number | null;
     /** Projek whose RK Ketua is this RK: a team leader's RK shows under each of them. */
     ketua_projects: number[];
+    /** RK tambahan: the member's own extra RK, with no team RK or projek above it. */
+    is_additional: boolean;
     project_optional: boolean;
     target_unit: string | null;
 }

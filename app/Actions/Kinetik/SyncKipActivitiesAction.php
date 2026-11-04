@@ -7,6 +7,7 @@ use App\Kinetik\Data\KipRkData;
 use App\Models\Employee;
 use App\Models\EmployeeRk;
 use App\Models\KipActivity;
+use App\Models\PerformancePlan;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Log;
 use Throwable;
@@ -107,13 +108,39 @@ class SyncKipActivitiesAction
                             'name' => $rk->name,
                             'leader_rk' => trim((string) ($rk->raw['rencanakinerjaatasan'] ?? '')) ?: null,
                             'team_kip_id' => $rk->teamExternalId,
+                            'is_additional' => (int) ($rk->raw['jeniskinerja'] ?? 1) === 2,
                             'year' => $year,
                         ],
                     );
                 }
+                $this->ensureAdditionalPlans($employee, $yearRks->filter(fn (KipRkData $rk) => (int) ($rk->raw['jeniskinerja'] ?? 1) === 2));
                 EmployeeRk::where('employee_id', $employee->id)->where('year', $year)
                     ->whereNotIn('kip_rk_id', $yearRks->map(fn (KipRkData $rk) => $rk->externalId))
                     ->delete();
             });
+    }
+
+    /**
+     * An RK tambahan has no team or projek in kipApp, so no sync of a team brings it in: the member's own SKP does. It gets a
+     * plan row owned by the member, so it shows in their RK list and their kegiatan can be filed under it.
+     *
+     * @param  Collection<int, KipRkData>  $additional
+     */
+    private function ensureAdditionalPlans(Employee $employee, Collection $additional): void
+    {
+        $norm = fn (?string $t) => mb_strtolower(preg_replace('/\s+/', ' ', trim((string) $t)));
+        $teamId = $employee->teams()->orderByDesc('employee_team.is_primary')->value('teams.id');
+
+        foreach ($additional as $rk) {
+            $plan = PerformancePlan::where('owner_employee_id', $employee->id)->get()->first(fn (PerformancePlan $p) => $norm($p->description) === $norm($rk->name))
+                ?? PerformancePlan::whereNull('team_id')->whereNull('project_id')->where('is_additional', false)->get()->first(fn (PerformancePlan $p) => $norm($p->description) === $norm($rk->name));
+
+            if ($plan === null) {
+                PerformancePlan::create(['description' => $rk->name, 'team_id' => $teamId, 'kip_external_id' => $rk->externalId, 'is_additional' => true, 'owner_employee_id' => $employee->id]);
+
+                continue;
+            }
+            $plan->forceFill(['is_additional' => true, 'owner_employee_id' => $employee->id])->save();
+        }
     }
 }
