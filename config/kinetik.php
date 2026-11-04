@@ -65,6 +65,8 @@ return [
         // token. The calls are read from kipApp's own code and never run live (no safe throwaway test), so keep it off
         // until the first one is made together with a PJ and checked in kipApp.
         'structure_write' => (bool) env('KIP_STRUCTURE_WRITE', false),
+        // Create an RK tambahan in kipApp with the first kegiatan under it (rkid 0 + text, as kipApp's own form does). Not run live yet.
+        'rk_tambahan_write' => (bool) env('KIP_RK_TAMBAHAN_WRITE', false),
 
         // The atasan rates a quarter SKP inside Kinetik (Nilai SKP page): feedback per RK and per behaviour, then
         // "selesai menilai" (flag 7). The calls are read from kipApp's own code and never run live, because a test

@@ -25,11 +25,14 @@ class PerformancePlan extends Model
         'period_type',
         'period',
         'pic_employee_id',
+        'is_additional',
+        'owner_employee_id',
     ];
 
     protected $casts = [
         'target' => 'decimal:2',
         'period' => 'integer',
+        'is_additional' => 'boolean',
     ];
 
     public function project(): BelongsTo

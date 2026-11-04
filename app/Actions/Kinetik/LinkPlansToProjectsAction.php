@@ -179,6 +179,11 @@ class LinkPlansToProjectsAction
      */
     public function projectOptional(PerformancePlan $plan): bool
     {
+        // RK tambahan sits outside the team's RK and projek.
+        if ($plan->is_additional) {
+            return true;
+        }
+
         // RK Ketua: the text a projek hangs under. It sits above the projek, never in one.
         $this->ketuaTexts ??= Project::whereNotNull('leader_rk')->pluck('leader_rk')->map(fn ($t) => self::text($t))->flip();
         if ($plan->project_id === null && $this->ketuaTexts->has(self::text($plan->description))) {

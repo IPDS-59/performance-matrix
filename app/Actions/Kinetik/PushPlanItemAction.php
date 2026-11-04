@@ -42,17 +42,20 @@ class PushPlanItemAction
             $writer = new ApiKipWriter($this->tokens->for($user));
             [$skpId, $rk] = $this->skpAndRk($writer, $plan);
 
+            $activityId = $writer->createActivity([
+                'skpid' => $skpId,
+                'rkid' => (string) $rk['rkid'],
+                'rencanakinerja' => (string) $rk['rencanakinerja'],
+                'kegiatan' => $plan->description,
+                ...$plan->kipFields(),
+                'parentid' => $plan->parent_id ? PlanItem::whereKey($plan->parent_id)->value('kip_external_id') : null,
+            ]);
+            $rkId = (string) $rk['rkid'] !== '0' ? (string) $rk['rkid'] : $this->createdRkId($writer, $skpId, $plan);
+
             $plan->update([
-                'kip_external_id' => $writer->createActivity([
-                    'skpid' => $skpId,
-                    'rkid' => (string) $rk['rkid'],
-                    'rencanakinerja' => (string) $rk['rencanakinerja'],
-                    'kegiatan' => $plan->description,
-                    ...$plan->kipFields(),
-                    'parentid' => $plan->parent_id ? PlanItem::whereKey($plan->parent_id)->value('kip_external_id') : null,
-                ]),
+                'kip_external_id' => $activityId,
                 'kip_skp_id' => $skpId,
-                'kip_rk_id' => (string) $rk['rkid'],
+                'kip_rk_id' => $rkId,
                 'status' => 'pushed',
                 'pushed_at' => now(),
                 'push_error' => null,
@@ -65,6 +68,18 @@ class PushPlanItemAction
 
             return false;
         }
+    }
+
+    /** The id kipApp gave to an RK tambahan it just created from a kegiatan, found again by its text. */
+    private function createdRkId(ApiKipWriter $writer, string $skpId, PlanItem $plan): string
+    {
+        $found = $this->matchRk($writer->rks($skpId), $plan->performancePlan);
+        if ($found === null) {
+            throw new RuntimeException('kipApp menerima kegiatan, tetapi RK tambahannya tidak ditemukan kembali di SKP.');
+        }
+        $plan->performancePlan->forceFill(['kip_external_id' => (string) $found['rkid']])->save();
+
+        return (string) $found['rkid'];
     }
 
     /** Same rule as the entry form: an RK that belongs to a projek must not go to kipApp without one. */
@@ -91,6 +106,14 @@ class PushPlanItemAction
         MemberSkpStatus::remember($plan->employee_id, $date->year, $date->quarter, $skp['statusskpid'] ?? null, $skp['statusskp'] ?? null);
 
         $rk = $this->matchRk($writer->rks((string) $skp['id']), $plan->performancePlan);
+        if ($rk === null && $plan->performancePlan?->is_additional && $plan->performancePlan->kip_external_id === null) {
+            // An RK tambahan made in Kinetik exists nowhere in kipApp yet. kipApp's own form creates it by sending the first
+            // kegiatan with rkid 0 and the RK text, so that is what is sent here (behind its switch until it was run live).
+            if (! config('kinetik.kip.rk_tambahan_write')) {
+                throw new RuntimeException('RK tambahan ini belum ada di kipApp. Tambahkan RK-nya di kipApp (Tambah rencana kinerja baru), lalu sinkronkan.');
+            }
+            $rk = ['rkid' => '0', 'rencanakinerja' => $plan->performancePlan->description];
+        }
         if ($rk === null && $plan->performancePlan !== null) {
             // The quarter SKP only has the RK its owner picked. Add this plan's RK from the yearly SKP, like kipApp's edit of a periodic SKP.
             $rk = $this->matchRk($writer->addRksToQuarterSkp((string) $plan->employee->kip_pegawai_id, (int) config('kinetik.kip.periode_id'), $skp, [$plan->performancePlan->description]), $plan->performancePlan);
