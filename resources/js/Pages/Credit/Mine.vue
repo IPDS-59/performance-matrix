@@ -138,7 +138,8 @@ const waitingForTime = computed(() => !!props.credit.eligible_from && props.cred
                     </p>
                     <p class="mt-2 flex gap-2 text-sm text-gray-600">
                         <Award class="mt-0.5 h-4 w-4 shrink-0 text-gray-400" aria-hidden="true" />
-                        <template v-if="credit.ak_base_date">Dihitung dari AK awal {{ formatAk(credit.ak_base) }} (PAK s.d. {{ formatDate(credit.ak_base_date) }}), ditambah SKP sesudahnya.</template>
+                        <template v-if="credit.restarted_at">Naik pangkat pada {{ formatDate(credit.restarted_at) }}, jadi AK dihitung ulang dari 0 sejak tanggal itu<template v-if="credit.ignored_base"> (AK dasar {{ formatAk(credit.ignored_base) }} dari PAK sebelumnya tidak ikut dihitung)</template>.</template>
+                        <template v-else-if="credit.ak_base_date">Dihitung dari AK awal {{ formatAk(credit.ak_base) }} (PAK s.d. {{ formatDate(credit.ak_base_date) }}), ditambah SKP sesudahnya.</template>
                         <template v-else>Dihitung dari SKP sejak {{ formatDate(credit.counted_from) }}. Angka resmi tetap mengikuti PAK.</template>
                     </p>
                 </section>

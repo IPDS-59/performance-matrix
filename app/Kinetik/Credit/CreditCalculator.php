@@ -52,9 +52,12 @@ class CreditCalculator
         }
 
         $step = $this->nextStep($career, $level);
-        $countedFrom = $career->ak_base_date
-            ? CarbonImmutable::parse($career->ak_base_date)->addDay()
-            : ($step['from'] ? CarbonImmutable::parse($step['from']) : null);
+        $baseFrom = $career->ak_base_date ? CarbonImmutable::parse($career->ak_base_date)->addDay() : null;
+        $promotedAt = $this->lastPromotion($career);
+        // A promotion (pangkat or jenjang) starts the count again at 0: the AK before it, a PAK base included, does not carry over.
+        $restarted = config('kinetik.credit.restart_on_promotion', true) && $promotedAt !== null && ($baseFrom === null || $promotedAt->gt($baseFrom));
+        $countedFrom = $restarted ? $promotedAt : ($baseFrom ?? ($step['from'] ? CarbonImmutable::parse($step['from']) : null));
+        $baseAk = $restarted ? 0.0 : (float) ($career->ak_base ?? 0);
 
         if ($countedFrom === null) {
             return [...$base, 'status' => 'no_data', 'level' => $level->value];
@@ -65,7 +68,7 @@ class CreditCalculator
 
         $overrides = $employee->creditOverrides->keyBy('quarter');
         $quarters = $this->quarters($months, $overrides);
-        $earned = round(($career->ak_base ?? 0) + collect($quarters)->sum('ak'), 3);
+        $earned = round($baseAk + collect($quarters)->sum('ak'), 3);
         // A quarter with a manual AK is the person's own figure, so it is no estimate from kipApp.
         $estimated = round($months->where('final', false)->reject(fn (array $m) => $overrides->has(self::quarterKey($m['month'])))->sum('ak'), 3);
         $quarterAtBaik = $level->yearlyCoefficient() / 4;
@@ -88,12 +91,22 @@ class CreditCalculator
             'counted_from' => $countedFrom->toDateString(),
             'golongan_since' => $career->golongan_since?->toDateString(),
             'eligible_from' => $eligibleFrom?->toDateString(),
-            'ak_base' => $career->ak_base,
+            'ak_base' => $restarted ? null : $career->ak_base,
+            'restarted_at' => $restarted ? $promotedAt->toDateString() : null,
+            'ignored_base' => $restarted && $career->ak_base !== null ? $career->ak_base : null,
             'ak_base_date' => $career->ak_base_date?->toDateString(),
             'ak_base_source' => $career->ak_base_source,
             'status' => $this->status($step['target'], $earned, $gap, $quarterAtBaik, $eligibleFrom, $today),
             'quarters' => $quarters,
         ];
+    }
+
+    /** The latest promotion date on record: TMT golongan or start of the jenjang, whichever is later. */
+    private function lastPromotion(EmployeeCareer $career): ?CarbonImmutable
+    {
+        $dates = collect([$career->golongan_since, $career->level_since])->filter()->map(fn ($d) => CarbonImmutable::parse($d));
+
+        return $dates->isEmpty() ? null : $dates->max();
     }
 
     /**
