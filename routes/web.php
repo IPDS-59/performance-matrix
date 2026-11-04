@@ -17,6 +17,7 @@ use App\Http\Controllers\KipActivityController;
 use App\Http\Controllers\KipIntegrationController;
 use App\Http\Controllers\KipStructureController;
 use App\Http\Controllers\MemberWeekController;
+use App\Http\Controllers\MonthlyRealisasiController;
 use App\Http\Controllers\MyActivitySyncController;
 use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\OrganizationController;
@@ -147,6 +148,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::patch('/rencana-minggu/item/{planItem}/evaluasi', [PlanItemController::class, 'evaluate'])->name('plan-items.evaluate');
     Route::delete('/rencana-minggu/item/{planItem}', [PlanItemController::class, 'destroy'])->name('plan-items.destroy');
     Route::get('/rekap-mingguan', [MemberWeekController::class, 'index'])->name('weekly.index');
+    Route::get('/realisasi-bulanan', [MonthlyRealisasiController::class, 'index'])->name('realisasi.monthly');
+    Route::post('/realisasi-bulanan', [MonthlyRealisasiController::class, 'store'])->name('realisasi.monthly.store');
 
     // Team recaps (weekly / monthly / quarterly FRA)
     Route::get('/rekap-tim', [TeamRecapController::class, 'weekly'])->name('team-recap.weekly');

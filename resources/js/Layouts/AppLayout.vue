@@ -55,6 +55,7 @@ const navSections = computed<NavSection[]>(() => {
             title: 'Kegiatan',
             items: [
                 { label: 'Rekap Mingguan', href: route('weekly.index'), active: is('weekly.index'), icon: CalendarCheck, show: hasEmployee.value && !isHead.value },
+                { label: 'Isi Capaian Bulanan', href: route('realisasi.monthly'), active: is('realisasi.monthly*'), icon: ClipboardCheck, show: hasEmployee.value && !isHead.value },
                 { label: isAdmin.value ? 'Kegiatan kipApp' : 'Pantau Kegiatan', href: route('kip-activities.index'), active: is('kip-activities.*'), icon: ListChecks, show: isAdmin.value || (hasEmployee.value && !isHead.value) },
                 { label: 'SKP Saya', href: route('skp.index'), active: is('skp.*'), icon: FileCheck, show: hasEmployee.value && !isHead.value },
                 { label: 'Arsip kipApp', href: route('archive'), active: is('archive*'), icon: Archive, show: true },
