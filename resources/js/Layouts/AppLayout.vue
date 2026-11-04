@@ -55,6 +55,7 @@ const navSections = computed<NavSection[]>(() => {
             title: 'Kegiatan',
             items: [
                 { label: 'Rekap Mingguan', href: route('weekly.index'), active: is('weekly.index'), icon: CalendarCheck, show: hasEmployee.value && !isHead.value },
+                { label: 'Isi Capaian Bulanan', href: route('realisasi.monthly'), active: is('realisasi.monthly*'), icon: ClipboardCheck, show: hasEmployee.value && !isHead.value },
                 { label: isAdmin.value ? 'Kegiatan kipApp' : 'Pantau Kegiatan', href: route('kip-activities.index'), active: is('kip-activities.*'), icon: ListChecks, show: isAdmin.value || (hasEmployee.value && !isHead.value) },
                 { label: 'SKP Saya', href: route('skp.index'), active: is('skp.*'), icon: FileCheck, show: hasEmployee.value && !isHead.value },
                 { label: 'Arsip kipApp', href: route('archive'), active: is('archive*'), icon: Archive, show: true },
@@ -87,6 +88,7 @@ const navSections = computed<NavSection[]>(() => {
                 { label: 'Integrasi kipApp', href: route('kip-integration.index'), active: is('kip-integration.*'), icon: Zap, show: isAdmin.value },
                 { label: 'Fitur', href: route('admin.features'), active: is('admin.features*'), icon: ToggleRight, show: isAdmin.value },
                 { label: 'Impor Kegiatan', href: route('admin.import-kegiatan'), active: is('admin.import-kegiatan*'), icon: FileUp, show: isAdmin.value },
+                { label: 'Impor AK', href: route('admin.import-ak'), active: is('admin.import-ak*'), icon: Award, show: isAdmin.value },
                 { label: 'Integritas data', href: route('admin.data-integrity'), active: is('admin.data-integrity'), icon: ShieldAlert, show: isAdmin.value },
                 { label: 'Laporan masalah', href: route('admin.bug-reports'), active: is('admin.bug-reports*'), icon: Bug, show: isAdmin.value },
             ],

@@ -88,4 +88,9 @@ return [
         // Employees processed per chunk during the no-queue activity sync.
         'activity_chunk' => (int) env('KIP_ACTIVITY_CHUNK', 5),
     ],
+
+    'credit' => [
+        // Angka Kredit starts again at 0 on the day of a promotion (pangkat or jenjang); the AK before it does not carry over.
+        'restart_on_promotion' => (bool) env('KINETIK_AK_RESTART_ON_PROMOTION', true),
+    ],
 ];

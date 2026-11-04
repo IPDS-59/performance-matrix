@@ -47,11 +47,12 @@ it('counts AK per month across monthly and quarterly SKPs toward the next jenjan
 
     $result = app(CreditCalculator::class)->forEmployee($e->fresh(), CarbonImmutable::parse('2026-09-29'));
 
-    // 2025: 12.5; TW I: 3.125; TW II: 4.6875; TW III estimate at Baik: 3.125.
+    // Promoted to III/b on 1 Feb 2026, so the count starts again that day: Feb and Mar 2.083, TW II 4.6875, TW III estimate at Baik 3.125.
     expect($result['kind'])->toBe('jenjang')
+        ->and($result['restarted_at'])->toBe('2026-02-01')
         ->and($result['next_label'])->toBe('Ahli Muda')
         ->and($result['target'])->toEqual(100)
-        ->and($result['earned'])->toEqual(23.438)
+        ->and($result['earned'])->toEqual(9.896)
         ->and($result['estimated'])->toEqual(3.125)
         ->and($result['eligible_from'])->toBe('2028-02-01')
         ->and($result['status'])->toBe('progress')
@@ -142,4 +143,29 @@ it('reads a padded golongan and shows how each quarter was computed', function (
         ->and($result['estimated'])->toEqual(3.125)
         ->and($result['quarters'][0]['final'])->toBeFalse()
         ->and($result['quarters'][0]['formula'])->toBe('Ahli Madya: 1 bln × 37,5 ÷ 12 × 100% + Ahli Madya: 1 bln × 37,5 ÷ 12 × 100% (estimasi) + Ahli Madya: 1 bln × 37,5 ÷ 12 × 150%');
+});
+
+it('drops a PAK base that is older than the last promotion and starts again at 0', function () {
+    $e = Employee::factory()->create();
+    EmployeeCareer::create([
+        'employee_id' => $e->id, 'jabatan' => 'Pranata Komputer Ahli Pertama', 'golongan' => 'III/b',
+        'golongan_since' => '2026-02-01', 'level_since' => '2023-01-03', 'level_start_golongan' => 'III/a',
+        'ak_base' => 48, 'ak_base_date' => '2025-12-31',
+    ]);
+    rating($e, 'q2', '2026-04-01', '2026-06-30', 'Baik');
+
+    $result = app(CreditCalculator::class)->forEmployee($e->fresh(), CarbonImmutable::parse('2026-09-29'));
+
+    expect($result['restarted_at'])->toBe('2026-02-01')->and($result['ignored_base'])->toEqual(48.0)->and($result['ak_base'])->toBeNull()
+        ->and($result['earned'])->toEqual(3.125);
+
+    // A base entered after the promotion is the new starting point and stays.
+    $e->career->update(['ak_base' => 5, 'ak_base_date' => '2026-03-31']);
+    $after = app(CreditCalculator::class)->forEmployee($e->fresh(), CarbonImmutable::parse('2026-09-29'));
+    expect($after['restarted_at'])->toBeNull()->and($after['ak_base'])->toEqual(5.0)->and($after['earned'])->toEqual(8.125);
+
+    // The rule can be switched off.
+    config(['kinetik.credit.restart_on_promotion' => false]);
+    $off = app(CreditCalculator::class)->forEmployee($e->fresh(), CarbonImmutable::parse('2026-09-29'));
+    expect($off['restarted_at'])->toBeNull();
 });

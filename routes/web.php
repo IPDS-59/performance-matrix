@@ -3,6 +3,7 @@
 use App\Http\Controllers\AdditionalRkController;
 use App\Http\Controllers\Admin\DataIntegrityController;
 use App\Http\Controllers\Admin\ImpersonationController;
+use App\Http\Controllers\AkRekapanImportController;
 use App\Http\Controllers\ArchiveController;
 use App\Http\Controllers\BugReportController;
 use App\Http\Controllers\CreditController;
@@ -17,6 +18,7 @@ use App\Http\Controllers\KipActivityController;
 use App\Http\Controllers\KipIntegrationController;
 use App\Http\Controllers\KipStructureController;
 use App\Http\Controllers\MemberWeekController;
+use App\Http\Controllers\MonthlyRealisasiController;
 use App\Http\Controllers\MyActivitySyncController;
 use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\OrganizationController;
@@ -148,6 +150,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::patch('/rencana-minggu/item/{planItem}/evaluasi', [PlanItemController::class, 'evaluate'])->name('plan-items.evaluate');
     Route::delete('/rencana-minggu/item/{planItem}', [PlanItemController::class, 'destroy'])->name('plan-items.destroy');
     Route::get('/rekap-mingguan', [MemberWeekController::class, 'index'])->name('weekly.index');
+    Route::get('/realisasi-bulanan', [MonthlyRealisasiController::class, 'index'])->name('realisasi.monthly');
+    Route::post('/realisasi-bulanan', [MonthlyRealisasiController::class, 'store'])->name('realisasi.monthly.store');
 
     // Team recaps (weekly / monthly / quarterly FRA)
     Route::get('/rekap-tim', [TeamRecapController::class, 'weekly'])->name('team-recap.weekly');
@@ -209,6 +213,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::get('/admin/impor-kegiatan', [KegiatanImportController::class, 'index'])->name('admin.import-kegiatan');
         Route::post('/admin/impor-kegiatan/pratinjau', [KegiatanImportController::class, 'preview'])->name('admin.import-kegiatan.preview');
         Route::post('/admin/impor-kegiatan/simpan', [KegiatanImportController::class, 'store'])->name('admin.import-kegiatan.store');
+        Route::get('/admin/impor-ak', [AkRekapanImportController::class, 'index'])->name('admin.import-ak');
+        Route::post('/admin/impor-ak/pratinjau', [AkRekapanImportController::class, 'preview'])->name('admin.import-ak.preview');
+        Route::post('/admin/impor-ak/simpan', [AkRekapanImportController::class, 'store'])->name('admin.import-ak.store');
         Route::get('/admin/integritas-data', [DataIntegrityController::class, 'index'])->name('admin.data-integrity');
         Route::get('/admin/laporan-masalah', [BugReportController::class, 'index'])->name('admin.bug-reports');
         Route::put('/admin/laporan-masalah/{report}', [BugReportController::class, 'update'])->name('admin.bug-reports.update');
