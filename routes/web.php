@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Admin\DataIntegrityController;
 use App\Http\Controllers\Admin\ImpersonationController;
+use App\Http\Controllers\AkRekapanImportController;
 use App\Http\Controllers\ArchiveController;
 use App\Http\Controllers\BugReportController;
 use App\Http\Controllers\CreditController;
@@ -210,6 +211,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::get('/admin/impor-kegiatan', [KegiatanImportController::class, 'index'])->name('admin.import-kegiatan');
         Route::post('/admin/impor-kegiatan/pratinjau', [KegiatanImportController::class, 'preview'])->name('admin.import-kegiatan.preview');
         Route::post('/admin/impor-kegiatan/simpan', [KegiatanImportController::class, 'store'])->name('admin.import-kegiatan.store');
+        Route::get('/admin/impor-ak', [AkRekapanImportController::class, 'index'])->name('admin.import-ak');
+        Route::post('/admin/impor-ak/pratinjau', [AkRekapanImportController::class, 'preview'])->name('admin.import-ak.preview');
+        Route::post('/admin/impor-ak/simpan', [AkRekapanImportController::class, 'store'])->name('admin.import-ak.store');
         Route::get('/admin/integritas-data', [DataIntegrityController::class, 'index'])->name('admin.data-integrity');
         Route::get('/admin/laporan-masalah', [BugReportController::class, 'index'])->name('admin.bug-reports');
         Route::put('/admin/laporan-masalah/{report}', [BugReportController::class, 'update'])->name('admin.bug-reports.update');
