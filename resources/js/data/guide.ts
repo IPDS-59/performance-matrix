@@ -1127,6 +1127,10 @@ export const GUIDE_STATUS: GuideStatusFlow[] = [
 
 export const GUIDE_FAQ = [
     {
+        q: 'Mengapa angka FRA tidak terisi otomatis dari kegiatan harian?',
+        a: 'IKI dan kegiatan harian di SKP adalah ukuran kinerja pegawai, sedangkan FRA mengukur IKU, indikator kinerja utama organisasi. Walau IKI turunan dari IKU, capaian IKI tidak bisa dijumlahkan jadi capaian IKU. Pertama, tidak semua IKI dikerjakan dengan baik oleh pegawai. Kedua, tidak semua pekerjaan langsung menjadi IKU, karena tiap IKU punya data dasar dan rumus hitungnya sendiri. Karena itu X dan Y di Kertas Kerja FRA tetap diisi PJ tim pemilik indikator tiap bulan. Kinetik menghitung persen, warna, dan file Excelnya.',
+    },
+    {
         q: 'Pekerjaan saya ada di tim pusat (bukan tim BPS Sulteng). RK dan projeknya tidak muncul di form kegiatan.',
         a: 'Kinetik hanya menyimpan tim BPS Sulteng, tetapi RK di SKP Anda tetap terbaca. Tekan "Sinkronkan data saya" di Rekap Mingguan: RK dari tim pusat muncul di daftar RK dengan keterangan "Di luar tim Sulteng", dan projek tidak wajib dipilih. Kegiatannya tetap dikirim ke RK yang sama di kipApp. Nama tim dan projek pusatnya belum ditampilkan di Kinetik.',
     },
