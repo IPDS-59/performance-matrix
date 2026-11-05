@@ -929,17 +929,18 @@ export const GUIDE_FLOWS: GuideFlow[] = [
                 route: 'employees.index',
                 body: [
                     'Urusan data pegawai dan Angka Kredit bisa dipegang petugas SDM tanpa menjadikannya admin penuh. Di baris pegawai, buka menu aksi lalu pilih "Jadikan admin kepegawaian". Pegawai itu harus sudah pernah masuk ke Kinetik.',
-                    'Admin kepegawaian mengelola Pegawai, Tim Kerja, Impor AK, Angka Kredit Tim (termasuk mengecek PAK), dan arsip kegiatan pegawai mana pun. Integrasi kipApp, Fitur, Lihat sebagai, dan laporan masalah tetap hanya untuk admin. Perannya tambahan: pegawai itu tetap memakai Kinetik seperti anggota biasa.',
+                    'Admin kepegawaian mengelola Pegawai, Tim Kerja, Impor AK dan perbandingan AK, Angka Kredit Tim (termasuk mengecek PAK), dan arsip kegiatan pegawai mana pun. Integrasi kipApp, Fitur, Lihat sebagai, dan laporan masalah tetap hanya untuk admin. Perannya tambahan: pegawai itu tetap memakai Kinetik seperti anggota biasa.',
                 ],
             },
             {
                 title: 'Impor AK dari rekapan Excel',
-                where: 'Menu Data Master → Impor AK',
+                where: 'Menu Data Master → Impor AK (admin atau admin kepegawaian)',
                 route: 'admin.import-ak',
                 body: [
                     'Dipakai sekali untuk memasukkan AK resmi dari sebelum kipApp. Unggah rekapan Excel AK, lalu tekan "Baca file". File dibaca di browser Anda, baru dikirim ke server saat pratinjau.',
                     'Pratinjau menampilkan tiap pegawai: baris yang cocok, baris yang ditahan, dan baris yang perlu Anda cek sendiri. Pegawai dicocokkan lewat NIP.',
                     'Setelah Anda menekan "Simpan", angka itu menjadi AK dasar pegawai. Kinetik menghitung sisanya dari hari sesudah tanggal dasar itu, memakai predikat kipApp.',
+                    'Sebelum menyimpan, tekan "Bandingkan dengan hitungan Kinetik". Tabel yang muncul menaruh AK kantor tahun 2023, 2024, dan 2025 di samping hitungan Kinetik untuk tahun yang sama, dengan keterangan: Sama, Beda predikat (kantor memakai satu predikat setahun, kipApp predikat bulanan), atau Bulan kosong di kipApp. Pakai tabel ini untuk memeriksa apakah rumus, tanggal jenjang, dan penilaian sudah benar.',
                     'Rumus Kinetik sudah diuji terhadap rekapan kantor dan hasilnya sama. Catatan pengujiannya ada di docs/kinetik/ak-validation-2026-11-04.md.',
                 ],
                 tip: 'AK resmi memakai satu predikat tahunan, sedangkan Kinetik memakai predikat bulanan. Selisih kecil untuk tahun yang sudah lewat itu wajar.',
