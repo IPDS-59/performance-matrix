@@ -2,6 +2,7 @@
 
 use App\Models\Employee;
 use App\Models\EmployeeCareer;
+use App\Models\KipPerformanceRating;
 use App\Models\User;
 
 function akRow(array $over = []): array
@@ -41,4 +42,24 @@ it('saves the cumulative AK as the base at the chosen date, for admins only', fu
 
     expect($e->career->fresh())->ak_base->toEqual(354.62)->ak_base_source->toBe('rekapan')
         ->and($e->career->fresh()->ak_base_date->toDateString())->toBe('2025-12-31');
+});
+
+it('sets the yearly AK of the workbook beside Kinetik\'s own figure', function () {
+    $e = Employee::factory()->create(['nip_baru' => '196702081992121001']);
+    EmployeeCareer::create(['employee_id' => $e->id, 'jabatan' => 'Statistisi Ahli Madya', 'golongan' => 'IV/c']);
+    foreach (range(1, 12) as $m) {
+        $start = sprintf('2024-%02d-01', $m);
+        KipPerformanceRating::create(['employee_id' => $e->id, 'kip_skp_id' => 'skp-'.$m, 'period_start' => $start, 'period_end' => date('Y-m-t', strtotime($start)), 'predikat' => 'Baik', 'status' => 'Dinilai', 'jabatan' => 'Statistisi Ahli Madya']);
+    }
+
+    $rows = $this->actingAs(adminUser())->postJson(route('admin.import-ak.compare'), ['rows' => [
+        ['nip' => '196702081992121001', 'name' => 'Jefrie', 'y2023' => 56.25, 'y2024' => 56.25, 'y2025' => null],
+    ]])->assertOk()->json('rows');
+
+    expect($rows[0]['matched'])->toBeTrue()
+        ->and($rows[0]['years']['2024']['kinetik'])->toEqual(37.5)
+        ->and($rows[0]['years']['2024']['verdict'])->toBe('predikat')
+        ->and($rows[0]['years']['2024']['official_share'])->toEqual(1.5)
+        ->and($rows[0]['years']['2023']['verdict'])->toBe('no_kip')
+        ->and($rows[0]['years']['2025']['verdict'])->toBe('no_official');
 });
