@@ -221,6 +221,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::middleware('can:manage-personnel')->group(function () {
         Route::get('/admin/impor-ak', [AkRekapanImportController::class, 'index'])->name('admin.import-ak');
         Route::post('/admin/impor-ak/pratinjau', [AkRekapanImportController::class, 'preview'])->name('admin.import-ak.preview');
+        Route::post('/admin/impor-ak/bandingkan', [AkRekapanImportController::class, 'compare'])->name('admin.import-ak.compare');
         Route::post('/admin/impor-ak/simpan', [AkRekapanImportController::class, 'store'])->name('admin.import-ak.store');
     });
 

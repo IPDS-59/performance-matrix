@@ -8,7 +8,7 @@ import { Button } from '@/Components/ui/button';
 import { Input } from '@/Components/ui/input';
 import { Label } from '@/Components/ui/label';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/Components/ui/table';
-import { readAkWorkbook, sheetNames } from '@/composables/useAkWorkbook';
+import { readAkWorkbook, sheetNames, type AkRow } from '@/composables/useAkWorkbook';
 
 interface PreviewRow {
     index: number;
@@ -29,6 +29,25 @@ interface PreviewRow {
     include: boolean;
 }
 
+interface YearCheck {
+    official: number | null;
+    kinetik: number | null;
+    diff: number | null;
+    months: number;
+    official_share: number | null;
+    predikat: string;
+    verdict: 'same' | 'predikat' | 'months_missing' | 'no_kip' | 'no_official';
+}
+interface CompareRow { nip: string; name: string | null; employee_name: string | null; matched: boolean; years: Record<string, YearCheck> }
+
+const VERDICT: Record<YearCheck['verdict'], { label: string; cls: string }> = {
+    same: { label: 'Sama', cls: 'text-green-700' },
+    predikat: { label: 'Beda predikat', cls: 'text-amber-700' },
+    months_missing: { label: 'Bulan kosong di kipApp', cls: 'text-red-700' },
+    no_kip: { label: 'Tidak ada data kipApp', cls: 'text-gray-500' },
+    no_official: { label: 'Tidak ada angka kantor', cls: 'text-gray-400' },
+};
+
 const props = defineProps<{ defaultBaseDate: string }>();
 
 const file = ref<File | null>(null);
@@ -39,6 +58,10 @@ const rows = ref<PreviewRow[]>([]);
 const busy = ref(false);
 const error = ref('');
 const saved = ref<number | null>(null);
+const parsedRows = ref<AkRow[]>([]);
+const compareRows = ref<CompareRow[]>([]);
+const YEARS = ['2023', '2024', '2025'];
+const matchCount = computed(() => compareRows.value.filter((r) => YEARS.every((y) => r.years[y].verdict === 'same' || r.years[y].verdict === 'no_official')).length);
 
 const selected = computed(() => rows.value.filter((r) => r.include && !r.blocked && r.proposed !== null));
 const fmt = (v: number | null) => (v === null ? '-' : v.toLocaleString('id-ID', { maximumFractionDigits: 3 }));
@@ -61,8 +84,23 @@ async function read() {
         if (!parsed.length) throw new Error('Tidak ada baris dengan NIP di sheet ini.');
         const { data } = await axios.post(route('admin.import-ak.preview'), { rows: parsed });
         rows.value = data.rows;
+        parsedRows.value = parsed;
+        compareRows.value = [];
     } catch (e) {
         error.value = e instanceof Error ? e.message : 'File tidak bisa dibaca.';
+    } finally {
+        busy.value = false;
+    }
+}
+
+async function compare() {
+    busy.value = true;
+    error.value = '';
+    try {
+        const { data } = await axios.post(route('admin.import-ak.compare'), { rows: parsedRows.value });
+        compareRows.value = data.rows;
+    } catch {
+        error.value = 'Perbandingan gagal. Coba lagi.';
     } finally {
         busy.value = false;
     }
@@ -119,7 +157,10 @@ async function save() {
         <div v-if="rows.length" class="rounded-xl border bg-white">
             <div class="flex flex-wrap items-center justify-between gap-3 border-b px-4 py-3">
                 <p class="text-sm text-gray-700">{{ rows.length }} baris dibaca, {{ selected.length }} akan disimpan.</p>
-                <Button :disabled="!selected.length || busy" @click="save">{{ busy ? 'Menyimpan…' : `Simpan ${selected.length} pegawai` }}</Button>
+                <div class="flex gap-2">
+                    <Button variant="outline" :disabled="busy" @click="compare">Bandingkan dengan hitungan Kinetik</Button>
+                    <Button :disabled="!selected.length || busy" @click="save">{{ busy ? 'Menyimpan…' : `Simpan ${selected.length} pegawai` }}</Button>
+                </div>
             </div>
             <div class="overflow-x-auto">
                 <Table>
@@ -147,6 +188,40 @@ async function save() {
                             <TableCell class="text-right font-semibold tabular-nums">{{ fmt(r.proposed) }}</TableCell>
                             <TableCell class="text-right tabular-nums">{{ fmt(r.current_base) }}</TableCell>
                             <TableCell class="text-xs text-gray-700"><span v-for="n in r.notes" :key="n" class="block">{{ n }}</span></TableCell>
+                        </TableRow>
+                    </TableBody>
+                </Table>
+            </div>
+        </div>
+
+        <div v-if="compareRows.length" class="mt-5 rounded-xl border bg-white">
+            <div class="border-b px-4 py-3">
+                <h2 class="text-sm font-semibold">Perbandingan AK per tahun</h2>
+                <p class="mt-1 text-xs text-gray-600">
+                    Angka kantor (satu predikat setahun) di samping hitungan Kinetik dari penilaian bulanan kipApp. {{ matchCount }} dari {{ compareRows.length }} pegawai sama di semua tahun.
+                    "Beda predikat" berarti jabatan dan bulannya cocok tetapi predikatnya berbeda, misalnya kantor memakai Sangat Baik setahun penuh. "Bulan kosong" berarti kipApp tidak punya penilaian untuk sebagian bulan.
+                </p>
+            </div>
+            <div class="overflow-x-auto">
+                <Table>
+                    <TableHeader>
+                        <TableRow>
+                            <TableHead>Pegawai</TableHead>
+                            <template v-for="y in YEARS" :key="y"><TableHead class="text-right">{{ y }} kantor</TableHead><TableHead class="text-right">{{ y }} Kinetik</TableHead><TableHead>{{ y }} keterangan</TableHead></template>
+                        </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                        <TableRow v-for="r in compareRows" :key="r.nip" :class="r.matched ? '' : 'opacity-50'">
+                            <TableCell class="text-sm">{{ r.employee_name ?? r.name }}<span class="block text-xs text-gray-500">{{ r.nip }}</span></TableCell>
+                            <template v-for="y in YEARS" :key="y">
+                                <TableCell class="text-right tabular-nums">{{ fmt(r.years[y].official) }}</TableCell>
+                                <TableCell class="text-right tabular-nums">{{ fmt(r.years[y].kinetik) }}</TableCell>
+                                <TableCell class="text-xs">
+                                    <span :class="VERDICT[r.years[y].verdict].cls" class="font-medium">{{ VERDICT[r.years[y].verdict].label }}</span>
+                                    <span v-if="r.years[y].months" class="block text-gray-500">{{ r.years[y].months }} bulan: {{ r.years[y].predikat }}</span>
+                                    <span v-if="r.years[y].official_share !== null && r.years[y].verdict !== 'same'" class="block text-gray-500">kantor setara {{ Math.round((r.years[y].official_share ?? 0) * 100) }}%</span>
+                                </TableCell>
+                            </template>
                         </TableRow>
                     </TableBody>
                 </Table>

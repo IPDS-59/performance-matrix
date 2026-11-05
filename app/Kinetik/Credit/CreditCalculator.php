@@ -101,6 +101,16 @@ class CreditCalculator
         ];
     }
 
+    /**
+     * Month by month AK as Kinetik estimates it from the kipApp ratings, whatever the AK base. Used to compare with the office's yearly figures.
+     *
+     * @return Collection<string, array{month: string, ak: float, predikat: string|null, final: bool, level: string|null, coefficient: float, share: float}>
+     */
+    public function monthlyAk(Employee $employee, ?CarbonImmutable $today = null): Collection
+    {
+        return $this->months($employee->performanceRatings, $today ?? CarbonImmutable::today());
+    }
+
     /** The latest promotion date on record: TMT golongan or start of the jenjang, whichever is later. */
     private function lastPromotion(EmployeeCareer $career): ?CarbonImmutable
     {

@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Actions\Kinetik\CompareAkRekapanAction;
 use App\Actions\Kinetik\PreviewAkRekapanAction;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -31,6 +32,21 @@ class AkRekapanImportController extends Controller
         ]);
 
         return response()->json(['rows' => $preview->execute($data['rows'])]);
+    }
+
+    /** Yearly AK of the workbook next to Kinetik's own figure for the same year. */
+    public function compare(Request $request, CompareAkRekapanAction $compare): JsonResponse
+    {
+        $data = $request->validate([
+            'rows' => ['required', 'array', 'min:1', 'max:1500'],
+            'rows.*.nip' => ['nullable', 'string', 'max:30'],
+            'rows.*.name' => ['nullable', 'string', 'max:255'],
+            'rows.*.y2023' => ['nullable', 'numeric'],
+            'rows.*.y2024' => ['nullable', 'numeric'],
+            'rows.*.y2025' => ['nullable', 'numeric'],
+        ]);
+
+        return response()->json(['rows' => $compare->execute($data['rows'])]);
     }
 
     public function store(Request $request, PreviewAkRekapanAction $preview): JsonResponse
