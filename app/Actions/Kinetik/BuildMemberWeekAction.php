@@ -113,6 +113,11 @@ class BuildMemberWeekAction
             ->sortBy('description')
             ->values();
 
+        // An RK the member owns only because no team plan carried it yet (see SyncKipActivitiesAction::ensureExternalPlans) steps aside
+        // once a team plan with the same text exists, so the RK is not listed twice.
+        $teamTexts = $plans->filter(fn (PerformancePlan $p) => $p->owner_employee_id === null)->map(fn (PerformancePlan $p) => self::norm($p->description))->flip();
+        $plans = $plans->reject(fn (PerformancePlan $p) => $p->owner_employee_id !== null && ! $p->is_additional && $teamTexts->has(self::norm($p->description)))->values();
+
         $candidates = $this->links->candidatesFor($plans, $employee);
         // A team leader's RK is the RK Ketua of their projek: it belongs under each projek whose RK Ketua carries its text.
         $ketuaProjects = Project::whereNotNull('leader_rk')->get(['id', 'leader_rk'])->groupBy(fn (Project $p) => self::norm($p->leader_rk))->map(fn ($g) => $g->pluck('id')->values()->all());
@@ -121,7 +126,7 @@ class BuildMemberWeekAction
             'id' => $plan->id,
             'description' => $plan->description,
             'team_id' => $plan->project?->team_id ?? $plan->team_id,
-            'team_name' => $plan->project?->team?->name ?? $plan->team?->name,
+            'team_name' => $plan->project?->team?->name ?? $plan->team?->name ?? ($plan->owner_employee_id !== null && ! $plan->is_additional ? 'Di luar tim Sulteng' : null),
             'project_id' => $plan->project_id,
             'project_candidates' => $candidates->get($plan->id, []),
             'is_additional' => (bool) $plan->is_additional,

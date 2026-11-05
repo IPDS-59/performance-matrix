@@ -114,10 +114,34 @@ class SyncKipActivitiesAction
                     );
                 }
                 $this->ensureAdditionalPlans($employee, $yearRks->filter(fn (KipRkData $rk) => (int) ($rk->raw['jeniskinerja'] ?? 1) === 2));
+                $this->ensureExternalPlans($employee, $yearRks->filter(fn (KipRkData $rk) => (int) ($rk->raw['jeniskinerja'] ?? 1) !== 2));
                 EmployeeRk::where('employee_id', $employee->id)->where('year', $year)
                     ->whereNotIn('kip_rk_id', $yearRks->map(fn (KipRkData $rk) => $rk->externalId))
                     ->delete();
             });
+    }
+
+    /**
+     * An RK of a team Kinetik does not hold (a team of the Pusat or another satker the member also works for) has no plan row, because
+     * team sync only covers the Sulteng teams. The same goes for an RK the team sync missed. The member's own SKP does list it, and it is on their quarter SKP in kipApp, so it gets a
+     * plan row owned by the member: it shows in their RK list, the projek is optional, and kegiatan under it go to kipApp by RK text.
+     *
+     * @param  Collection<int, KipRkData>  $rks
+     */
+    private function ensureExternalPlans(Employee $employee, Collection $rks): void
+    {
+        $norm = fn (?string $t) => mb_strtolower(preg_replace('/\s+/', ' ', trim((string) $t)));
+        $ownTeamIds = $employee->teams()->pluck('teams.id');
+        $visible = PerformancePlan::where(fn ($q) => $q->whereIn('team_id', $ownTeamIds)->orWhereHas('project', fn ($p) => $p->whereIn('team_id', $ownTeamIds))->orWhere('owner_employee_id', $employee->id))
+            ->pluck('description')->map($norm)->flip();
+
+        foreach ($rks as $rk) {
+            if ($visible->has($norm($rk->name))) {
+                continue;
+            }
+            PerformancePlan::create(['description' => $rk->name, 'team_id' => null, 'kip_external_id' => $rk->externalId, 'is_additional' => false, 'owner_employee_id' => $employee->id]);
+            $visible->put($norm($rk->name), 0);
+        }
     }
 
     /**
