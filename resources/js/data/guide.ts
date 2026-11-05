@@ -924,6 +924,15 @@ export const GUIDE_FLOWS: GuideFlow[] = [
                 ],
             },
             {
+                title: 'Tunjuk admin kepegawaian',
+                where: 'Menu Data Master → Pegawai',
+                route: 'employees.index',
+                body: [
+                    'Urusan data pegawai dan Angka Kredit bisa dipegang petugas SDM tanpa menjadikannya admin penuh. Di baris pegawai, buka menu aksi lalu pilih "Jadikan admin kepegawaian". Pegawai itu harus sudah pernah masuk ke Kinetik.',
+                    'Admin kepegawaian mengelola Pegawai, Tim Kerja, Impor AK, Angka Kredit Tim (termasuk mengecek PAK), dan arsip kegiatan pegawai mana pun. Integrasi kipApp, Fitur, Lihat sebagai, dan laporan masalah tetap hanya untuk admin. Perannya tambahan: pegawai itu tetap memakai Kinetik seperti anggota biasa.',
+                ],
+            },
+            {
                 title: 'Impor AK dari rekapan Excel',
                 where: 'Menu Data Master → Impor AK',
                 route: 'admin.import-ak',

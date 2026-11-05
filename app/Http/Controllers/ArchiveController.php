@@ -18,7 +18,7 @@ class ArchiveController extends Controller
 {
     public function index(Request $request): Response
     {
-        $admin = $request->user()->hasRole('admin');
+        $admin = $request->user()->can('manage-personnel');
 
         return Inertia::render('Kinetik/Archive', [
             'isAdmin' => $admin,
@@ -32,7 +32,7 @@ class ArchiveController extends Controller
     {
         $data = $request->validate(['employee_id' => ['required', 'integer', 'exists:employees,id'], 'year' => ['required', 'integer', 'min:2020', 'max:2100']]);
         $employee = Employee::findOrFail($data['employee_id']);
-        abort_unless($request->user()->hasRole('admin') || $request->user()->employee?->id === $employee->id, 403);
+        abort_unless($request->user()->can('manage-personnel') || $request->user()->employee?->id === $employee->id, 403);
 
         $items = PlanItem::with(['performancePlan:id,description,leader_rk,project_id', 'performancePlan.project:id,name', 'performancePlan.team:id,name', 'project:id,name'])
             ->where('employee_id', $employee->id)->where('status', '!=', 'cancelled')

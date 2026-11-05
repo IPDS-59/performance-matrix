@@ -62,7 +62,7 @@ function seedRolesAndPermissions(): void
     $permissions = [
         'manage-teams', 'manage-employees', 'manage-projects', 'create-project',
         'manage-work-items', 'view-matrix', 'view-reports', 'enter-performance',
-        'manage-kip-integration',
+        'manage-kip-integration', 'manage-personnel',
     ];
 
     foreach ($permissions as $perm) {
@@ -70,7 +70,10 @@ function seedRolesAndPermissions(): void
     }
 
     Role::firstOrCreate(['name' => 'admin', 'guard_name' => 'web'])
-        ->syncPermissions(['manage-teams', 'manage-employees', 'manage-projects', 'manage-work-items', 'view-matrix', 'view-reports', 'manage-kip-integration']);
+        ->syncPermissions(['manage-teams', 'manage-employees', 'manage-projects', 'manage-work-items', 'view-matrix', 'view-reports', 'manage-kip-integration', 'manage-personnel']);
+
+    Role::firstOrCreate(['name' => 'admin-kepegawaian', 'guard_name' => 'web'])
+        ->syncPermissions(['manage-employees', 'manage-teams', 'manage-personnel']);
 
     Role::firstOrCreate(['name' => 'head', 'guard_name' => 'web'])
         ->syncPermissions(['view-matrix', 'view-reports', 'enter-performance']);

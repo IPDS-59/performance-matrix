@@ -63,7 +63,7 @@ class CreditController extends Controller
             'teams' => $teams->map(fn (Team $t) => ['id' => $t->id, 'name' => $t->name])->values(),
             'selectedTeamId' => $selected?->id,
             'rows' => $rows,
-            'canEditBase' => $request->user()->hasRole('admin'),
+            'canEditBase' => $request->user()->can('manage-personnel'),
         ]);
     }
 
@@ -74,7 +74,7 @@ class CreditController extends Controller
      */
     public function updateBase(Request $request, Employee $employee): RedirectResponse
     {
-        $isAdmin = $request->user()->hasRole('admin');
+        $isAdmin = $request->user()->can('manage-personnel');
         abort_unless($isAdmin || $employee->user_id === $request->user()->id, 403);
 
         $validated = $request->validate([
@@ -99,7 +99,7 @@ class CreditController extends Controller
      */
     public function updateQuarter(Request $request, Employee $employee, string $quarter): RedirectResponse
     {
-        $isAdmin = $request->user()->hasRole('admin');
+        $isAdmin = $request->user()->can('manage-personnel');
         abort_unless($isAdmin || $employee->user_id === $request->user()->id, 403);
         abort_unless(preg_match('/^\d{4}-[1-4]$/', $quarter) === 1, 404);
 
@@ -125,7 +125,7 @@ class CreditController extends Controller
 
     public function destroyQuarter(Request $request, Employee $employee, string $quarter): RedirectResponse
     {
-        abort_unless($request->user()->hasRole('admin') || $employee->user_id === $request->user()->id, 403);
+        abort_unless($request->user()->can('manage-personnel') || $employee->user_id === $request->user()->id, 403);
 
         CreditQuarterOverride::where('employee_id', $employee->id)->where('quarter', $quarter)->delete();
 
@@ -139,7 +139,7 @@ class CreditController extends Controller
      */
     public static function visibleTeams(Request $request): Collection
     {
-        if ($request->user()->hasAnyRole(['admin', 'head'])) {
+        if ($request->user()->hasAnyRole(['admin', 'head']) || $request->user()->can('manage-personnel')) {
             return Team::orderBy('name')->get();
         }
 
