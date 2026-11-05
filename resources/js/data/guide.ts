@@ -1127,6 +1127,10 @@ export const GUIDE_STATUS: GuideStatusFlow[] = [
 
 export const GUIDE_FAQ = [
     {
+        q: 'Pekerjaan saya ada di tim pusat (bukan tim BPS Sulteng). RK dan projeknya tidak muncul di form kegiatan.',
+        a: 'Kinetik hanya menyimpan tim BPS Sulteng, tetapi RK di SKP Anda tetap terbaca. Tekan "Sinkronkan data saya" di Rekap Mingguan: RK dari tim pusat muncul di daftar RK dengan keterangan "Di luar tim Sulteng", dan projek tidak wajib dipilih. Kegiatannya tetap dikirim ke RK yang sama di kipApp. Nama tim dan projek pusatnya belum ditampilkan di Kinetik.',
+    },
+    {
         q: 'Bulan Oktober sudah lewat. Bagaimana mengisi target dan capaiannya tanpa mengisi dua kali?',
         a: 'Buka menu "Isi Capaian Bulanan", pilih bulannya, lalu isi target dan capaian semua kegiatan sekaligus. Untuk kegiatan yang sudah ada di kipApp, Kinetik memperbarui kipApp dalam simpanan yang sama. Kegiatan yang terkunci atau uraiannya kurang dari 10 karakter tetap tersimpan di Kinetik dan diberi peringatan.',
     },

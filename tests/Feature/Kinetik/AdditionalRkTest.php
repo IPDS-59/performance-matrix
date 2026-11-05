@@ -1,5 +1,6 @@
 <?php
 
+use App\Actions\Kinetik\BuildMemberWeekAction;
 use App\Actions\Kinetik\PushPlanItemAction;
 use App\Actions\Kinetik\SyncKipActivitiesAction;
 use App\Kinetik\Data\KipRkData;
@@ -43,12 +44,12 @@ it('gives an RK tambahan from the member\'s own kipApp SKP a plan row owned by t
     ]));
 
     expect(EmployeeRk::where('employee_id', $employee->id)->where('is_additional', true)->count())->toBe(1);
-    $plan = PerformancePlan::where('owner_employee_id', $employee->id)->first();
+    $plan = PerformancePlan::where('owner_employee_id', $employee->id)->where('is_additional', true)->first();
     expect($plan)->is_additional->toBeTrue()->team_id->toBe($team->id)->kip_external_id->toBe('9001');
 
     // the same sync again adds nothing
     $method->invoke($sync, $employee, collect([KipRkData::fromApiRow(['rkid' => '9001', 'rencanakinerja' => 'Terlaksananya kegiatan di Bagian Umum yang diikuti dengan baik', 'jeniskinerja' => 2, 'tahun' => 2026])]));
-    expect(PerformancePlan::where('owner_employee_id', $employee->id)->count())->toBe(1);
+    expect(PerformancePlan::where('owner_employee_id', $employee->id)->where('is_additional', true)->count())->toBe(1);
 });
 
 it('offers the member\'s RK tambahan without a projek, and nobody else\'s', function () {
@@ -89,4 +90,29 @@ it('holds a kegiatan under a new RK tambahan back from kipApp until the switch i
     expect(app(PushPlanItemAction::class)->execute($item))->toBeFalse();
     expect($item->fresh()->push_error)->toContain('belum ada di kipApp');
     Http::assertNotSent(fn ($r) => $r->method() === 'POST' && str_contains($r->url(), 'v1/kegiatan'));
+});
+
+it('gives an RK of a team Kinetik does not hold (a Pusat team) a plan row owned by the member, and lists it once', function () {
+    [, $employee, $team] = memberWithTeam();
+    $sync = app(SyncKipActivitiesAction::class);
+    $method = new ReflectionMethod($sync, 'rememberEmployeeRks');
+    $method->setAccessible(true);
+    $rows = collect([
+        KipRkData::fromApiRow(['rkid' => '7001', 'rencanakinerja' => 'Terselenggaranya Layanan Kesehatan Mental Untuk Pegawai', 'jeniskinerja' => 1, 'tahun' => 2026, 'timkerjaid' => '62386']),
+    ]);
+    $method->invoke($sync, $employee, $rows);
+    $method->invoke($sync, $employee, $rows);
+
+    $plans = PerformancePlan::where('owner_employee_id', $employee->id)->get();
+    expect($plans)->toHaveCount(1)->and($plans[0])->is_additional->toBeFalse()->team_id->toBeNull()->kip_external_id->toBe('7001');
+
+    $week = app(BuildMemberWeekAction::class);
+    $options = (new ReflectionMethod($week, 'rkOptions'))->invoke($week, $employee, 2026);
+    expect(collect($options)->where('id', $plans[0]->id))->toHaveCount(1)
+        ->and(collect($options)->firstWhere('id', $plans[0]->id)['team_name'])->toBe('Di luar tim Sulteng');
+
+    // once a team plan carries the same text, the member's own copy steps aside
+    PerformancePlan::factory()->create(['team_id' => $team->id, 'project_id' => null, 'description' => 'Terselenggaranya Layanan Kesehatan Mental Untuk Pegawai']);
+    $again = (new ReflectionMethod($week, 'rkOptions'))->invoke($week, $employee, 2026);
+    expect(collect($again)->where('description', 'Terselenggaranya Layanan Kesehatan Mental Untuk Pegawai'))->toHaveCount(1);
 });
