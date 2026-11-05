@@ -27,7 +27,24 @@ class EmployeeController extends Controller
 
         $teams = Team::where('is_active', true)->orderBy('name')->get(['id', 'name']);
 
-        return Inertia::render('Employees/Index', compact('employees', 'teams'));
+        $personnelAdmins = User::role('admin-kepegawaian')->pluck('id')->all();
+        $employees->each(fn (Employee $e) => $e->setAttribute('is_personnel_admin', $e->user_id !== null && in_array($e->user_id, $personnelAdmins, true)));
+
+        return Inertia::render('Employees/Index', ['employees' => $employees, 'teams' => $teams, 'canAssignPersonnelAdmin' => request()->user()->hasRole('admin')]);
+    }
+
+    /** Only the full admin names who looks after personnel data. */
+    public function togglePersonnelAdmin(Request $request, Employee $employee): RedirectResponse
+    {
+        abort_unless($request->user()->hasRole('admin'), 403);
+        $user = $employee->user;
+        if ($user === null) {
+            return back()->with('error', 'Pegawai ini belum punya akun Kinetik. Minta pegawai masuk sekali dulu.');
+        }
+
+        $user->hasRole('admin-kepegawaian') ? $user->removeRole('admin-kepegawaian') : $user->assignRole('admin-kepegawaian');
+
+        return back()->with('success', $user->hasRole('admin-kepegawaian') ? 'Dijadikan admin kepegawaian.' : 'Peran admin kepegawaian dicabut.');
     }
 
     public function store(Request $request): RedirectResponse

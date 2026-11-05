@@ -9,7 +9,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import ConfirmDialog from '@/Components/ConfirmDialog.vue';
 import { ref } from 'vue';
 
-defineProps<{ employees: Employee[]; teams: Team[] }>();
+defineProps<{ employees: (Employee & { is_personnel_admin?: boolean })[]; teams: Team[]; canAssignPersonnelAdmin?: boolean }>();
 
 const createOpen = ref(false);
 
@@ -59,6 +59,7 @@ function executeDelete() {
                         <TableCell>
                             <div class="font-medium">{{ emp.display_name || emp.name }}</div>
                             <div v-if="emp.office" class="text-xs text-gray-500">{{ emp.office }}</div>
+                            <span v-if="emp.is_personnel_admin" class="mt-0.5 inline-block rounded-full border border-blue-200 bg-blue-50 px-2 py-0.5 text-xs text-blue-700">Admin kepegawaian</span>
                         </TableCell>
                         <TableCell class="font-mono text-sm">{{ emp.nip_baru ?? emp.nip_lama ?? emp.employee_number ?? '—' }}</TableCell>
                         <TableCell>{{ emp.team?.name ?? '—' }}</TableCell>
@@ -73,6 +74,7 @@ function executeDelete() {
                         <TableCell class="text-right">
                             <RowActions :items="[
                                 { label: 'Edit', href: route('employees.edit', emp.id) },
+                                ...(canAssignPersonnelAdmin && emp.user_id ? [{ label: emp.is_personnel_admin ? 'Cabut admin kepegawaian' : 'Jadikan admin kepegawaian', onSelect: () => router.put(route('employees.personnel-admin', emp.id)) }] : []),
                                 { label: 'Hapus', destructive: true, onSelect: () => confirmDelete(emp.id, emp.display_name || emp.name) },
                             ]" />
                         </TableCell>

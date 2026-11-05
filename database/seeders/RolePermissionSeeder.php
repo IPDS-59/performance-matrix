@@ -23,6 +23,7 @@ class RolePermissionSeeder extends Seeder
             'view-reports',
             'enter-performance',
             'manage-kip-integration',
+            'manage-personnel',
         ];
 
         foreach ($permissions as $permission) {
@@ -38,6 +39,15 @@ class RolePermissionSeeder extends Seeder
             'view-matrix',
             'view-reports',
             'manage-kip-integration',
+            'manage-personnel',
+        ]);
+
+        // SDM / kepegawaian: employees, teams and everything about angka kredit, without the rest of the admin tools.
+        // An add-on role: the person keeps the staff role for their own work.
+        Role::firstOrCreate(['name' => 'admin-kepegawaian'])->syncPermissions([
+            'manage-employees',
+            'manage-teams',
+            'manage-personnel',
         ]);
 
         $head = Role::firstOrCreate(['name' => 'head']);

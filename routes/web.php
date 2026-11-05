@@ -213,13 +213,18 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::get('/admin/impor-kegiatan', [KegiatanImportController::class, 'index'])->name('admin.import-kegiatan');
         Route::post('/admin/impor-kegiatan/pratinjau', [KegiatanImportController::class, 'preview'])->name('admin.import-kegiatan.preview');
         Route::post('/admin/impor-kegiatan/simpan', [KegiatanImportController::class, 'store'])->name('admin.import-kegiatan.store');
-        Route::get('/admin/impor-ak', [AkRekapanImportController::class, 'index'])->name('admin.import-ak');
-        Route::post('/admin/impor-ak/pratinjau', [AkRekapanImportController::class, 'preview'])->name('admin.import-ak.preview');
-        Route::post('/admin/impor-ak/simpan', [AkRekapanImportController::class, 'store'])->name('admin.import-ak.store');
         Route::get('/admin/integritas-data', [DataIntegrityController::class, 'index'])->name('admin.data-integrity');
         Route::get('/admin/laporan-masalah', [BugReportController::class, 'index'])->name('admin.bug-reports');
         Route::put('/admin/laporan-masalah/{report}', [BugReportController::class, 'update'])->name('admin.bug-reports.update');
     });
+
+    Route::middleware('can:manage-personnel')->group(function () {
+        Route::get('/admin/impor-ak', [AkRekapanImportController::class, 'index'])->name('admin.import-ak');
+        Route::post('/admin/impor-ak/pratinjau', [AkRekapanImportController::class, 'preview'])->name('admin.import-ak.preview');
+        Route::post('/admin/impor-ak/simpan', [AkRekapanImportController::class, 'store'])->name('admin.import-ak.store');
+    });
+
+    Route::put('/employees/{employee}/admin-kepegawaian', [EmployeeController::class, 'togglePersonnelAdmin'])->name('employees.personnel-admin');
 
     Route::post('/tur/{key}', [TourController::class, 'complete'])->name('tour.complete');
     Route::delete('/tur', [TourController::class, 'reset'])->name('tour.reset');
