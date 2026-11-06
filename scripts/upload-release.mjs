@@ -1,0 +1,16 @@
+import { createRequire } from 'module'; import fs from 'fs';
+const { chromium } = createRequire('/Users/ryanaidilp/Documents/Projects/Web/kinetik-deck-pimpinan/package.json')('playwright-chromium');
+const target = 'subdomain-8c81a2b3-6610-4779-906f-39f267818a7e_Lw';
+const zip = process.env.ZIP;
+const b = await chromium.launch(); const p = await b.newPage();
+await p.goto('https://control.capella.idgx.net/user/');
+await p.fill('#username', process.env.U); await p.fill('#password', process.env.P);
+await p.click('button[type=submit]'); await p.waitForLoadState('networkidle');
+const url = 'https://control.capella.idgx.net/user/filemanager/connector';
+const up = await p.request.post(url, { multipart: { cmd: 'upload', target, 'upload[]': { name: zip, mimeType: 'application/zip', buffer: fs.readFileSync('' + (process.env.ZIP_DIR || '/tmp/zipsrv') + '/' + zip) } }, timeout: 300000 });
+console.log('upload', up.status());
+const j = await up.json().catch(() => null);
+const hash = j?.added?.[0]?.hash;
+const ex = await p.request.post(url, { form: { cmd: 'extract', target: hash, makedir: '0' }, timeout: 300000 });
+console.log('extract', ex.status());
+await b.close();
