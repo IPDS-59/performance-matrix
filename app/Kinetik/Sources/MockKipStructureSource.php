@@ -50,7 +50,7 @@ class MockKipStructureSource implements KipStructureSource
         return [];
     }
 
-    public function fetchProjectRkRows(string $timkerjaId, string $proyekId): array
+    public function fetchProjectRkRows(string $timkerjaId, string $proyekId, ?array $scope = null): array
     {
         return [];
     }

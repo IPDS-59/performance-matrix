@@ -29,7 +29,7 @@ function pusatSource(array $projects, array $rkRows = []): MockKipStructureSourc
             return collect($this->projects)->map(fn (array $p) => KipProjectData::fromApiRow($p + ['timkerjaid' => $timkerjaId]));
         }
 
-        public function fetchProjectRkRows(string $timkerjaId, string $proyekId): array
+        public function fetchProjectRkRows(string $timkerjaId, string $proyekId, ?array $scope = null): array
         {
             return $this->rkRows[$proyekId] ?? [];
         }
@@ -86,13 +86,13 @@ it('asks kipApp which projek holds the RK when the member is in several under th
 
 it('keeps only the team name when the projek cannot be told apart', function () {
     $employee = rika();
-    $plan = ownedPlan($employee, 'Terlaksananya penilaian potensi pegawai');
+    $plan = ownedPlan($employee, 'Terlaksananya pekerjaan rutin bagian umum');
     $source = pusatSource([
         ['proyekid' => '1', 'namaproyek' => 'Penilaian Potensi', 'rencanakinerjaketua' => 'Terselenggaranya asesmen pegawai', 'anggota' => [['niplama' => '340099001']]],
         ['proyekid' => '2', 'namaproyek' => 'Asesmen Pejabat', 'rencanakinerjaketua' => 'Terselenggaranya asesmen pegawai', 'anggota' => [['niplama' => '340099001']]],
     ]);
 
-    (new LabelExternalProjectsAction($source))->execute($employee, collect([pusatRk('7001', 'Terlaksananya penilaian potensi pegawai', 'Terselenggaranya asesmen pegawai')]));
+    (new LabelExternalProjectsAction($source))->execute($employee, collect([pusatRk('7001', 'Terlaksananya pekerjaan rutin bagian umum', 'Terselenggaranya asesmen pegawai')]));
 
     expect($plan->fresh())->external_team_name->toBe('Asesmen dan Konseling')->external_project_name->toBeNull();
 });
@@ -133,4 +133,44 @@ it('resolves the action with the bound kipApp source', function () {
     app()->instance(KipStructureSource::class, pusatSource([]));
 
     expect(app(LabelExternalProjectsAction::class))->toBeInstanceOf(LabelExternalProjectsAction::class);
+});
+
+it('tells two projek under one RK Ketua apart by the words of a reworded RK, reading rk/proyek with the projek\'s own wilayah', function () {
+    $employee = rika();
+    $assessment = ownedPlan($employee, 'Terselenggaranya kegiatan Penilaian Potensi dan Kompetensi (Asesmen) pegawai sesuai kebutuhan organisasi');
+    $tools = ownedPlan($employee, 'Terselenggaranya pengembangan alat ukur dan aplikasi Assessment Center BPS');
+    $leader = 'Pengelolaan SDM melalui asesmen (penilaian potensi dan kompetensi) Pegawai sesuai kebutuhan organisasi';
+    $scope = ['wilayahid' => '0000_11', 'unitkerjaid' => '58'];
+    $member = [['niplama' => '340099001', 'nama' => 'Rika']];
+
+    $source = new class([['proyekid' => '1', 'namaproyek' => 'Kegiatan Penilaian Potensi dan Kompetensi sesuai kebutuhan organisasi', 'rencanakinerjaketua' => $leader, 'anggota' => $member] + $scope, ['proyekid' => '2', 'namaproyek' => 'Pengembangan Alat Ukur dan Aplikasi Assessment Center BPS', 'rencanakinerjaketua' => $leader, 'anggota' => $member] + $scope]) extends MockKipStructureSource
+    {
+        public array $scopes = [];
+
+        public function __construct(private array $projects) {}
+
+        public function fetchTeamProjects(string $timkerjaId): Collection
+        {
+            return collect($this->projects)->map(fn (array $p) => KipProjectData::fromApiRow($p + ['timkerjaid' => $timkerjaId]));
+        }
+
+        public function fetchProjectRkRows(string $timkerjaId, string $proyekId, ?array $scope = null): array
+        {
+            $this->scopes[] = $scope;
+            if (($scope['wilayahid'] ?? null) !== '0000_11') {
+                return [];
+            }
+
+            return [['niplama' => '340099001', 'text' => $proyekId === '1' ? 'Laporan Asesmen Kompetensi ASN sesuai kebutuhan organisasi' : 'Dokumen Pengembangan Alat Ukur dan Aplikasi Assessment Center BPS yang sesuai NSPK']];
+        }
+    };
+
+    (new LabelExternalProjectsAction($source))->execute($employee, collect([
+        pusatRk('11', $assessment->description, $leader),
+        pusatRk('12', $tools->description, $leader),
+    ]));
+
+    expect($assessment->fresh()->external_project_name)->toBe('Kegiatan Penilaian Potensi dan Kompetensi sesuai kebutuhan organisasi')
+        ->and($tools->fresh()->external_project_name)->toBe('Pengembangan Alat Ukur dan Aplikasi Assessment Center BPS')
+        ->and($source->scopes[0])->toBe(['wilayahid' => '0000_11', 'unitkerjaid' => '58']);
 });
