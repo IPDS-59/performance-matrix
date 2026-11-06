@@ -27,6 +27,8 @@ class PerformancePlan extends Model
         'pic_employee_id',
         'is_additional',
         'owner_employee_id',
+        'external_team_name',
+        'external_project_name',
     ];
 
     protected $casts = [

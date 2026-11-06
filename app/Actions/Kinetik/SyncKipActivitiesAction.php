@@ -17,6 +17,7 @@ class SyncKipActivitiesAction
     public function __construct(
         private readonly BackfillRkAction $backfillRk,
         private readonly LinkPlansToProjectsAction $links,
+        private readonly LabelExternalProjectsAction $labels,
     ) {}
 
     /**
@@ -115,6 +116,7 @@ class SyncKipActivitiesAction
                 }
                 $this->ensureAdditionalPlans($employee, $yearRks->filter(fn (KipRkData $rk) => (int) ($rk->raw['jeniskinerja'] ?? 1) === 2));
                 $this->ensureExternalPlans($employee, $yearRks->filter(fn (KipRkData $rk) => (int) ($rk->raw['jeniskinerja'] ?? 1) !== 2));
+                $this->labelExternalProjects($employee, $yearRks->filter(fn (KipRkData $rk) => (int) ($rk->raw['jeniskinerja'] ?? 1) !== 2));
                 EmployeeRk::where('employee_id', $employee->id)->where('year', $year)
                     ->whereNotIn('kip_rk_id', $yearRks->map(fn (KipRkData $rk) => $rk->externalId))
                     ->delete();
@@ -141,6 +143,20 @@ class SyncKipActivitiesAction
             }
             PerformancePlan::create(['description' => $rk->name, 'team_id' => null, 'kip_external_id' => $rk->externalId, 'is_additional' => false, 'owner_employee_id' => $employee->id]);
             $visible->put($norm($rk->name), 0);
+        }
+    }
+
+    /**
+     * Names the Pusat team and projek of those RK. Extra kipApp calls, so a failure only leaves the labels as they were.
+     *
+     * @param  Collection<int, KipRkData>  $rks
+     */
+    private function labelExternalProjects(Employee $employee, Collection $rks): void
+    {
+        try {
+            $this->labels->execute($employee, $rks);
+        } catch (Throwable $e) {
+            Log::warning('Pusat projek label failed', ['employee_id' => $employee->id, 'error' => $e->getMessage()]);
         }
     }
 

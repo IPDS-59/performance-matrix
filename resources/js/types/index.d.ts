@@ -677,6 +677,8 @@ export interface PlanRkOption {
     /** RK tambahan: the member's own extra RK, with no team RK or projek above it. */
     is_additional: boolean;
     project_optional: boolean;
+    /** Name of the kipApp projek of an RK from a Pusat team. A label only: that projek has no row in Kinetik. */
+    external_project: string | null;
     target_unit: string | null;
 }
 

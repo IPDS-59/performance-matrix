@@ -1136,7 +1136,7 @@ export const GUIDE_FAQ = [
     },
     {
         q: 'Pekerjaan saya ada di tim pusat (bukan tim BPS Sulteng). RK dan projeknya tidak muncul di form kegiatan.',
-        a: 'Kinetik hanya menyimpan tim BPS Sulteng, tetapi RK di SKP Anda tetap terbaca. Tekan "Sinkronkan data saya" di Rekap Mingguan: RK dari tim pusat muncul di daftar RK dengan keterangan "Di luar tim Sulteng", dan projek tidak wajib dipilih. Kegiatannya tetap dikirim ke RK yang sama di kipApp. Nama tim dan projek pusatnya belum ditampilkan di Kinetik.',
+        a: 'Kinetik hanya menyimpan tim BPS Sulteng, tetapi RK di SKP Anda tetap terbaca. Tekan "Sinkronkan data saya" di Rekap Mingguan: RK dari tim pusat muncul di daftar RK, dan projek tidak wajib dipilih. Projek pusatnya tidak ada di pilihan Projek: namanya tertulis di belakang RK, misalnya "(Projek: Kegiatan Penilaian Potensi dan Kompetensi)", sehingga Anda bisa mencari RK dengan mengetik nama projeknya. Kegiatannya tetap dikirim ke RK yang sama di kipApp.',
     },
     {
         q: 'Bulan Oktober sudah lewat. Bagaimana mengisi target dan capaiannya tanpa mengisi dua kali?',
