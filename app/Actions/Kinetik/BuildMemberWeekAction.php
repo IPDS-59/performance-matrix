@@ -7,6 +7,7 @@ use App\Models\EmployeeRk;
 use App\Models\PerformancePlan;
 use App\Models\PlanItem;
 use App\Models\Project;
+use App\Models\Team;
 use App\Models\WeeklyFocus;
 use App\Services\Kinetik\PlanItemAccess;
 use Carbon\Carbon;
@@ -138,10 +139,25 @@ class BuildMemberWeekAction
         ])->values()->all();
     }
 
-    /** @return list<array{id: int, name: string}> */
+    /**
+     * The projek of the member's teams the member can file under: one they are a member of, lead, or hold an RK in, any projek of a
+     * team they lead, and a projek whose members are not known. A projek of the same team the member has no part in only led to an
+     * empty RK list.
+     *
+     * @return list<array{id: int, name: string}>
+     */
     private function projectOptions(Employee $employee): array
     {
-        return Project::whereIn('team_id', $employee->teams()->pluck('teams.id'))
+        $teamIds = $employee->teams()->pluck('teams.id');
+        $ledTeamIds = $employee->ledTeams()->pluck('teams.id')->merge(Team::where('leader_id', $employee->id)->pluck('id'));
+        $ownProjectIds = EmployeeRk::where('employee_id', $employee->id)->whereNotNull('project_id')->pluck('project_id');
+
+        return Project::whereIn('team_id', $teamIds)
+            ->where(fn ($q) => $q->whereHas('members', fn ($m) => $m->where('employees.id', $employee->id))
+                ->orWhere('leader_id', $employee->id)
+                ->orWhereIn('team_id', $ledTeamIds)
+                ->orWhereIn('id', $ownProjectIds)
+                ->orWhereDoesntHave('members'))
             ->orderBy('name')
             ->get(['id', 'name'])
             ->map(fn (Project $p) => ['id' => $p->id, 'name' => $p->name])

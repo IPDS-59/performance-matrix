@@ -1127,6 +1127,10 @@ export const GUIDE_STATUS: GuideStatusFlow[] = [
 
 export const GUIDE_FAQ = [
     {
+        q: 'Di form kegiatan ada projek yang bukan pekerjaan saya, dan RK-nya kosong.',
+        a: 'Daftar Projek hanya memuat projek yang Anda ikuti sebagai anggota atau ketua, projek tempat RK Anda berada, dan semua projek tim yang Anda pimpin. Projek lain di tim yang sama tidak lagi tampil. Bila projek Anda belum ada di daftar, tekan "Sinkronkan data saya" di Rekap Mingguan, atau minta admin menjalankan Sinkronisasi Struktur supaya keanggotaan projek diperbarui.',
+    },
+    {
         q: 'Kinetik menolak capaian saya karena "melebihi target". Apa yang harus dilakukan?',
         a: 'Capaian tidak boleh lebih besar dari target, supaya persentase capaian paling tinggi 100%. Bila pekerjaannya memang lebih banyak dari rencana, naikkan target di kegiatan itu lebih dulu (misalnya dari 38 menjadi 39), lalu isi capaiannya. Aturan ini berlaku di form Realisasi, Isi Capaian Bulanan, rekap RK oleh PJ, dan impor Excel.',
     },
