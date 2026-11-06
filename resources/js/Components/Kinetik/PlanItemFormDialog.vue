@@ -77,7 +77,8 @@ function rkFitsProject(option: PlanRkOption, projectId: number | null): boolean 
 }
 
 // Projek first, then only the RK of that projek. Once an RK is chosen the projek is fixed; "Ganti RK" frees it again.
-const rkChoices = computed(() => props.rkOptions.filter(o => rkFitsProject(o, form.project_id)).map(o => ({ value: o.id, label: o.description })));
+// An RK of a Pusat team carries its projek name in the label, so searching the projek finds it.
+const rkChoices = computed(() => props.rkOptions.filter(o => rkFitsProject(o, form.project_id)).map(o => ({ value: o.id, label: o.external_project ? `${o.description} (Projek: ${o.external_project})` : o.description })));
 const projectChoices = computed(() => {
     const chosen = rk.value;
     if (chosen?.project_id) return props.projectOptions.filter(p => p.id === chosen.project_id).map(p => ({ value: p.id, label: p.name }));
@@ -141,6 +142,7 @@ function save() {
                 <Label>Projek</Label>
                 <SearchableSelect :model-value="form.project_id" :options="projectChoices" :placeholder="needsProject ? 'Pilih projek' : 'Pilih projek (opsional)'" search-placeholder="Cari projek…" :empty-label="needsProject ? undefined : '— Tanpa projek —'" :disabled="projectLocked" @update:model-value="pickProject" />
                 <p v-if="projectLocked && !item" class="text-xs text-gray-600">Projek terkunci karena RK sudah dipilih. Tekan "Ganti RK" untuk memilih projek lain.</p>
+                <p v-if="rk?.external_project" class="text-xs text-gray-600">Projek di kipApp: {{ rk.external_project }} ({{ rk.team_name }}). Projek tim pusat hanya ditampilkan sebagai keterangan, jadi pilihan projek di atas boleh dikosongkan.</p>
                 <InputError :message="form.errors.project_id" />
             </div>
             <div class="space-y-1.5">
