@@ -27,6 +27,10 @@ describe('usePlanEntry', () => {
         expect(quarterBounds(2026, '2026-05-01')).toEqual({ min: '2026-04-01', max: '2026-06-30' });
     });
 
+    it('keeps the whole SKP year open while the date is cleared', () => {
+        expect(quarterBounds(2026, '')).toEqual({ min: '2026-01-01', max: '2026-12-31' });
+    });
+
     it('builds an empty form, an edit form and a copy form with the source as parent', () => {
         const empty = entryFormState(null, null, '2026-10-08', '2026-10-17');
         expect(empty).toMatchObject({ use_range: false, use_time: false, progres: 100, is_capaian_skp: true, parent_id: null, time_start: '08:00', time_end: '16:00' });
