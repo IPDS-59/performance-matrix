@@ -4,10 +4,12 @@ namespace App\Http\Controllers;
 
 use App\Actions\Kinetik\CompletePlanItemAction;
 use App\Models\PlanItem;
+use App\Rules\CapaianWithinTarget;
 use App\Services\Kinetik\PlanItemAccess;
 use Carbon\Carbon;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Validator;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -70,6 +72,12 @@ class MonthlyRealisasiController extends Controller
         ]);
 
         $items = PlanItem::where('employee_id', $employee->id)->where('status', '!=', 'cancelled')->whereIn('id', collect($data['rows'])->pluck('id'))->get()->keyBy('id');
+        // Capaian cannot be more than the target, the one sent with the row or else the one stored.
+        foreach ($data['rows'] as $i => $row) {
+            $stored = $items->get((int) $row['id'])?->target;
+            $rule = new CapaianWithinTarget($stored !== null ? (float) $stored : null);
+            Validator::make(['rows' => [$i => $row]], ["rows.{$i}.capaian" => [$rule]])->validate();
+        }
         $saved = 0;
         $sent = 0;
         $problems = [];

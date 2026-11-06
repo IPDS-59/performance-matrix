@@ -81,3 +81,23 @@ it('marks a kegiatan done in kipApp in the same save, and reports what kipApp co
         ->assertSessionHas('warning');
     expect($short->fresh()->capaian)->toEqual(1.0);
 });
+
+it('refuses a capaian above the target, the one sent or the stored one', function () {
+    $item = realisasiItem(['target' => 38, 'target_unit' => 'SPM']);
+    $user = $item->employee->user;
+
+    $this->actingAs($user)->post(route('realisasi.monthly.store'), ['rows' => [['id' => $item->id, 'capaian' => 39]]])
+        ->assertSessionHasErrors('rows.0.capaian');
+    expect($item->fresh()->capaian)->toBeNull();
+
+    $this->actingAs($user)->post(route('realisasi.monthly.store'), ['rows' => [['id' => $item->id, 'target' => 40, 'capaian' => 39]]])
+        ->assertSessionHasNoErrors();
+    expect((float) $item->fresh()->capaian)->toBe(39.0);
+});
+
+it('refuses a capaian above the target when one kegiatan is completed', function () {
+    $item = realisasiItem(['target' => 10, 'target_unit' => 'SPM']);
+
+    $this->actingAs($item->employee->user)->post(route('plan-items.complete', $item), ['capaian' => 11, 'capaian_note' => 'Selesai dikerjakan semua'])
+        ->assertSessionHasErrors('capaian');
+});

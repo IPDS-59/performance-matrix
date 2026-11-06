@@ -64,6 +64,10 @@ function shift(delta: number) {
     router.get(route('realisasi.monthly'), { month: `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}` }, { preserveState: false });
 }
 
+/** Capaian is what was done against the target, so it cannot be more than it. */
+const over = (r: Row) => r.target !== '' && r.capaian !== '' && Number(r.capaian) > Number(r.target);
+const anyOver = computed(() => touchedRows.value.some(over));
+
 function markDone(r: Row) {
     r.touched = true;
     if (r.to_kip && r.progress < 100) r.progress = 100;
@@ -97,7 +101,7 @@ function save() {
                 <h2 class="min-w-36 text-center text-lg font-semibold capitalize text-gray-900">{{ monthLabel }}</h2>
                 <Button variant="outline" size="icon" aria-label="Bulan berikutnya" @click="shift(1)"><ChevronRight class="h-4 w-4" aria-hidden="true" /></Button>
             </div>
-            <Button :disabled="!touchedRows.length || saving" @click="save">{{ saving ? 'Menyimpan…' : touchedRows.length ? `Simpan ${touchedRows.length} kegiatan` : 'Simpan' }}</Button>
+            <Button :disabled="!touchedRows.length || saving || anyOver" @click="save">{{ saving ? 'Menyimpan…' : touchedRows.length ? `Simpan ${touchedRows.length} kegiatan` : 'Simpan' }}</Button>
         </div>
 
         <p class="mb-4 text-sm text-gray-700">
@@ -131,7 +135,10 @@ function save() {
                         </TableCell>
                         <TableCell><Input v-model="r.target" type="number" min="0" step="any" class="h-8" :aria-label="`Target ${r.description}`" @input="r.touched = true" /></TableCell>
                         <TableCell><Input v-model="r.target_unit" class="h-8" placeholder="dokumen" :aria-label="`Satuan ${r.description}`" @input="r.touched = true" /></TableCell>
-                        <TableCell><Input v-model="r.capaian" type="number" min="0" step="any" class="h-8" :aria-label="`Capaian ${r.description}`" @input="r.touched = true" /></TableCell>
+                        <TableCell>
+                            <Input v-model="r.capaian" type="number" min="0" step="any" class="h-8" :class="over(r) ? 'border-red-500' : ''" :aria-invalid="over(r)" :aria-label="`Capaian ${r.description}`" @input="r.touched = true" />
+                            <p v-if="over(r)" class="mt-1 text-xs text-red-600" role="alert">Melebihi target. Naikkan targetnya dulu.</p>
+                        </TableCell>
                         <TableCell><Input v-model.number="r.progress" type="number" min="0" max="100" class="h-8" :aria-label="`Progres ${r.description}`" @input="r.touched = true" /></TableCell>
                         <TableCell><Textarea v-model="r.capaian_note" rows="2" class="min-h-0 text-sm" :aria-label="`Uraian capaian ${r.description}`" @input="r.touched = true" /></TableCell>
                         <TableCell><Input v-model="r.evidence_url" class="h-8" placeholder="Tautan bukti" :aria-label="`Bukti ${r.description}`" @input="r.touched = true" /></TableCell>

@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Actions\Kinetik\ImportKegiatanAction;
 use App\Actions\Kinetik\PreviewKegiatanImportAction;
+use App\Rules\CapaianWithinTarget;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -58,7 +59,7 @@ class KegiatanImportController extends Controller
             'rows.*.time_start' => ['nullable', 'date_format:H:i'],
             'rows.*.time_end' => ['nullable', 'date_format:H:i'],
             'rows.*.target' => ['nullable', 'numeric', 'gt:0'],
-            'rows.*.capaian' => ['nullable', 'numeric', 'min:0'],
+            'rows.*.capaian' => ['nullable', 'numeric', 'min:0', new CapaianWithinTarget],
             'rows.*.progress' => ['nullable', 'integer', 'between:0,100'],
             'rows.*.evidence_url' => ['nullable', 'string', 'max:2000'],
             'rows.*.capaian_note' => ['nullable', 'string', 'max:2000'],

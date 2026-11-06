@@ -17,6 +17,7 @@ use App\Models\RkRecap;
 use App\Models\Team;
 use App\Models\TeamRecapEvidence;
 use App\Models\User;
+use App\Rules\CapaianWithinTarget;
 use App\Services\Kinetik\RecapAggregator;
 use Carbon\Carbon;
 use Carbon\CarbonImmutable;
@@ -604,7 +605,7 @@ class TeamRecapController extends Controller
             'paraphrase' => ['nullable', 'string', 'max:5000'],
             'target' => ['nullable', 'numeric', 'min:0', 'max:9999999999'],
             'target_unit' => ['nullable', 'string', 'max:100'],
-            'capaian' => ['nullable', 'numeric', 'min:0', 'max:9999999999'],
+            'capaian' => ['nullable', 'numeric', 'min:0', 'max:9999999999', new CapaianWithinTarget],
         ]);
 
         $action->save($request->user()->employee, $data);
