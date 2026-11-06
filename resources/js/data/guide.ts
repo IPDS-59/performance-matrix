@@ -1127,6 +1127,10 @@ export const GUIDE_STATUS: GuideStatusFlow[] = [
 
 export const GUIDE_FAQ = [
     {
+        q: 'Kinetik menolak capaian saya karena "melebihi target". Apa yang harus dilakukan?',
+        a: 'Capaian tidak boleh lebih besar dari target, supaya persentase capaian paling tinggi 100%. Bila pekerjaannya memang lebih banyak dari rencana, naikkan target di kegiatan itu lebih dulu (misalnya dari 38 menjadi 39), lalu isi capaiannya. Aturan ini berlaku di form Realisasi, Isi Capaian Bulanan, rekap RK oleh PJ, dan impor Excel.',
+    },
+    {
         q: 'Mengapa angka FRA tidak terisi otomatis dari kegiatan harian?',
         a: 'IKI dan kegiatan harian di SKP adalah ukuran kinerja pegawai, sedangkan FRA mengukur IKU, indikator kinerja utama organisasi. Walau IKI turunan dari IKU, capaian IKI tidak bisa dijumlahkan jadi capaian IKU. Pertama, tidak semua IKI dikerjakan dengan baik oleh pegawai. Kedua, tidak semua pekerjaan langsung menjadi IKU, karena tiap IKU punya data dasar dan rumus hitungnya sendiri. Karena itu X dan Y di Kertas Kerja FRA tetap diisi PJ tim pemilik indikator tiap bulan. Kinetik menghitung persen, warna, dan file Excelnya.',
     },
