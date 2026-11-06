@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { useForm } from '@inertiajs/vue3';
+import { router, useForm } from '@inertiajs/vue3';
+import axios from 'axios';
 import { computed, ref, watch } from 'vue';
 import { ListChecks } from 'lucide-vue-next';
 import type { PlanItemRow, PlanRkOption, PresensiRow } from '@/types';
@@ -31,6 +32,26 @@ const emit = defineEmits<{ 'update:open': [value: boolean] }>();
 
 const form = useForm(entryFormState(null, null, '', todayIso()));
 const presensiOpen = ref(false);
+
+// RK tambahan: extra work outside the team's RK gets an RK of its own, added here and then picked.
+const addingRk = ref(false);
+const newRk = ref('');
+const newRkError = ref('');
+const newRkBusy = ref(false);
+
+async function addRk() {
+    newRkBusy.value = true;
+    newRkError.value = '';
+    try {
+        const { data } = await axios.post(route('rk-additional.store'), { description: newRk.value });
+        router.reload({ only: ['rkOptions'], onSuccess: () => { pickRk(data.id); addingRk.value = false; newRk.value = ''; } });
+    } catch (e) {
+        const err = e as { response?: { data?: { errors?: { description?: string[] } } } };
+        newRkError.value = err.response?.data?.errors?.description?.[0] ?? 'RK tambahan belum tersimpan. Coba lagi.';
+    } finally {
+        newRkBusy.value = false;
+    }
+}
 // A kegiatan that was already sent only changes "Masukan ke capaian SKP", like kipApp.
 const sentOnly = computed(() => !!props.item?.sent);
 
@@ -129,6 +150,18 @@ function save() {
                 </div>
                 <SearchableSelect :model-value="form.performance_plan_id" :options="rkChoices" :placeholder="form.project_id !== null ? 'Pilih RK projek ini' : 'Pilih RK'" search-placeholder="Cari RK…" :disabled="!!item" @update:model-value="pickRk" />
                 <InputError :message="form.errors.performance_plan_id" />
+                <template v-if="!item">
+                    <button v-if="!addingRk" type="button" class="text-xs text-primary underline" @click="addingRk = true">Pekerjaan di luar RK tim? Tambah RK tambahan</button>
+                    <div v-else class="space-y-1.5 rounded-md border border-dashed p-2">
+                        <Label for="new-rk" class="text-xs">RK tambahan baru (minimal 10 karakter)</Label>
+                        <Input id="new-rk" v-model="newRk" placeholder="Deskripsi rencana kinerja" />
+                        <p v-if="newRkError" class="text-xs text-red-700" role="alert">{{ newRkError }}</p>
+                        <div class="flex gap-2">
+                            <Button type="button" size="sm" :disabled="newRkBusy || newRk.trim().length < 10" @click="addRk">{{ newRkBusy ? 'Menyimpan…' : 'Simpan RK tambahan' }}</Button>
+                            <Button type="button" size="sm" variant="ghost" @click="addingRk = false">Batal</Button>
+                        </div>
+                    </div>
+                </template>
             </div>
 
             <div class="space-y-1.5">

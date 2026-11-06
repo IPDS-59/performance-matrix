@@ -8,7 +8,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 /** One RK of a member's yearly kipApp SKP. */
 class EmployeeRk extends Model
 {
-    protected $fillable = ['employee_id', 'kip_rk_id', 'name', 'leader_rk', 'team_kip_id', 'project_id', 'year'];
+    protected $fillable = ['employee_id', 'kip_rk_id', 'name', 'leader_rk', 'team_kip_id', 'project_id', 'is_additional', 'year'];
 
     public function employee(): BelongsTo
     {

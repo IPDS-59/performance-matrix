@@ -24,6 +24,7 @@ const user = computed(() => page.props.auth.user as { name: string; email: strin
 const isAdmin = computed(() => user.value.role === 'admin');
 const isHead = computed(() => user.value.role === 'head');
 const isStaff = computed(() => user.value.role === 'staff');
+const can = computed(() => (page.props.can ?? {}) as Record<string, boolean>);
 const canViewProjects = computed(() => (page.props.can as Record<string, boolean>)?.view_projects ?? false);
 const canViewIndicators = computed(() => (page.props.can as Record<string, boolean>)?.view_indicators ?? false);
 const canViewPlans = computed(() => (page.props.can as Record<string, boolean>)?.view_plans ?? false);
@@ -55,6 +56,7 @@ const navSections = computed<NavSection[]>(() => {
             title: 'Kegiatan',
             items: [
                 { label: 'Rekap Mingguan', href: route('weekly.index'), active: is('weekly.index'), icon: CalendarCheck, show: hasEmployee.value && !isHead.value },
+                { label: 'Isi Capaian Bulanan', href: route('realisasi.monthly'), active: is('realisasi.monthly*'), icon: ClipboardCheck, show: hasEmployee.value && !isHead.value },
                 { label: isAdmin.value ? 'Kegiatan kipApp' : 'Pantau Kegiatan', href: route('kip-activities.index'), active: is('kip-activities.*'), icon: ListChecks, show: isAdmin.value || (hasEmployee.value && !isHead.value) },
                 { label: 'SKP Saya', href: route('skp.index'), active: is('skp.*'), icon: FileCheck, show: hasEmployee.value && !isHead.value },
                 { label: 'Arsip kipApp', href: route('archive'), active: is('archive*'), icon: Archive, show: true },
@@ -78,8 +80,8 @@ const navSections = computed<NavSection[]>(() => {
         {
             title: 'Data Master',
             items: [
-                { label: 'Tim Kerja', href: route('teams.index'), active: is('teams.*'), icon: Users, show: isAdmin.value },
-                { label: 'Pegawai', href: route('employees.index'), active: is('employees.*'), icon: UserRound, show: isAdmin.value },
+                { label: 'Tim Kerja', href: route('teams.index'), active: is('teams.*'), icon: Users, show: can.value.manage_teams },
+                { label: 'Pegawai', href: route('employees.index'), active: is('employees.*'), icon: UserRound, show: can.value.manage_employees },
                 { label: 'Proyek', href: route('projects.index'), active: is('projects.*'), icon: FolderKanban, show: canViewProjects.value },
                 { label: 'IKU', href: route('performance-indicators.index'), active: is('performance-indicators.*'), icon: Target, show: canViewIndicators.value },
                 { label: 'Rencana Kinerja (RK)', href: route('performance-plans.index'), active: is('performance-plans.*'), icon: ListTodo, show: canViewPlans.value },
@@ -87,6 +89,7 @@ const navSections = computed<NavSection[]>(() => {
                 { label: 'Integrasi kipApp', href: route('kip-integration.index'), active: is('kip-integration.*'), icon: Zap, show: isAdmin.value },
                 { label: 'Fitur', href: route('admin.features'), active: is('admin.features*'), icon: ToggleRight, show: isAdmin.value },
                 { label: 'Impor Kegiatan', href: route('admin.import-kegiatan'), active: is('admin.import-kegiatan*'), icon: FileUp, show: isAdmin.value },
+                { label: 'Impor AK', href: route('admin.import-ak'), active: is('admin.import-ak*'), icon: Award, show: can.value.manage_personnel },
                 { label: 'Integritas data', href: route('admin.data-integrity'), active: is('admin.data-integrity'), icon: ShieldAlert, show: isAdmin.value },
                 { label: 'Laporan masalah', href: route('admin.bug-reports'), active: is('admin.bug-reports*'), icon: Bug, show: isAdmin.value },
             ],

@@ -486,6 +486,10 @@ export interface CreditSummary {
     golongan_since?: string | null;
     eligible_from?: string | null;
     ak_base?: number | null;
+    /** Date of the last promotion when the count started again at 0 on it. */
+    restarted_at?: string | null;
+    /** A PAK base older than that promotion, left out of the count. */
+    ignored_base?: number | null;
     ak_base_date?: string | null;
     /** pegawai = entered by the employee, not checked; admin = checked against the PAK. */
     ak_base_source?: 'pegawai' | 'admin' | null;
@@ -670,6 +674,8 @@ export interface PlanRkOption {
     project_suggested: number | null;
     /** Projek whose RK Ketua is this RK: a team leader's RK shows under each of them. */
     ketua_projects: number[];
+    /** RK tambahan: the member's own extra RK, with no team RK or projek above it. */
+    is_additional: boolean;
     project_optional: boolean;
     target_unit: string | null;
 }

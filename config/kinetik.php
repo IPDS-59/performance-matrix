@@ -65,6 +65,8 @@ return [
         // token. The calls are read from kipApp's own code and never run live (no safe throwaway test), so keep it off
         // until the first one is made together with a PJ and checked in kipApp.
         'structure_write' => (bool) env('KIP_STRUCTURE_WRITE', false),
+        // Create an RK tambahan in kipApp with the first kegiatan under it (rkid 0 + text, as kipApp's own form does). Not run live yet.
+        'rk_tambahan_write' => (bool) env('KIP_RK_TAMBAHAN_WRITE', false),
 
         // The atasan rates a quarter SKP inside Kinetik (Nilai SKP page): feedback per RK and per behaviour, then
         // "selesai menilai" (flag 7). The calls are read from kipApp's own code and never run live, because a test
@@ -85,5 +87,10 @@ return [
 
         // Employees processed per chunk during the no-queue activity sync.
         'activity_chunk' => (int) env('KIP_ACTIVITY_CHUNK', 5),
+    ],
+
+    'credit' => [
+        // Angka Kredit starts again at 0 on the day of a promotion (pangkat or jenjang); the AK before it does not carry over.
+        'restart_on_promotion' => (bool) env('KINETIK_AK_RESTART_ON_PROMOTION', true),
     ],
 ];

@@ -391,6 +391,28 @@ export const GUIDE_FLOWS: GuideFlow[] = [
                 ],
             },
             {
+                title: 'Bulan sudah lewat: isi capaian sekaligus',
+                where: 'Menu Kegiatan → Isi Capaian Bulanan',
+                route: 'realisasi.monthly',
+                body: [
+                    'Dipakai bila capaian satu bulan belum diisi, misalnya bulan Oktober yang baru Anda isi di bulan November. Pilih bulan, lalu semua kegiatan Anda di bulan itu tampil dalam satu tabel.',
+                    'Isi target, satuan, capaian, uraian, dan tautan bukti di setiap baris, lalu tekan "Simpan". Anda tidak perlu membuka kegiatan satu per satu.',
+                    'Untuk kegiatan yang tercatat di kipApp, Kinetik memperbarui kipApp dalam simpanan yang sama. Uraian capaian untuk kipApp minimal 10 karakter. Kegiatan yang belum bisa dikirim, misalnya karena SKP-nya terkunci, tetap tersimpan di Kinetik dan muncul sebagai peringatan dengan alasannya.',
+                    'Dengan cara ini Anda mengisi sekali, tidak bolak-balik antara Kinetik dan kipApp.',
+                ],
+                tip: 'Isi uraian capaian dulu sebelum menyimpan. Baris tanpa uraian hanya tersimpan di Kinetik.',
+            },
+            {
+                title: 'Kegiatan di luar RK tim (RK tambahan)',
+                where: 'Menu Kegiatan → Rekap Mingguan → Tambah',
+                route: 'weekly.index',
+                body: [
+                    'Kalau ada pekerjaan yang tidak termasuk RK tim, misalnya tugas dari pimpinan, buat RK tambahan sendiri. Di form kegiatan, tekan "Pekerjaan di luar RK tim? Tambah RK tambahan", tulis RK-nya (minimal 10 karakter), lalu tekan "Simpan RK tambahan". Projek tidak perlu dipilih.',
+                    'RK tambahan hanya milik Anda dan muncul di daftar RK pada form berikutnya. RK kipApp yang berjenis tambahan juga ikut tersinkron dan ditandai sama.',
+                    'Pembuatan RK tambahan di kipApp dari Kinetik dimatikan lebih dulu (saklar "Kirim RK tambahan ke kipApp" di menu Fitur, hanya admin). Selama mati, kegiatannya tersimpan di Kinetik dan tidak dikirim.',
+                ],
+            },
+            {
                 title: 'Kirim ke kipApp dan tandai selesai',
                 where: 'Menu Kegiatan → Rekap Mingguan',
                 route: 'weekly.index',
@@ -414,7 +436,7 @@ export const GUIDE_FLOWS: GuideFlow[] = [
                 route: 'kip-activities.index',
                 body: [
                     'Pantau Kegiatan hanya untuk memantau: halaman ini menampilkan semua kegiatan kipApp Anda dan tidak dipakai untuk mengisi. Saring per Minggu, Bulan atau Triwulan, lalu pindah periode dengan ‹ dan ›.',
-                    'Rekap Tim menampilkan rekap tim Anda. Anda dapat membaca, tetapi hanya PJ yang mengubah ringkasan.',
+                    'Rekap Tim menampilkan rekap tim Anda. Anda bisa membaca, tetapi hanya PJ yang mengubah ringkasan.',
                 ],
             },
             {
@@ -478,12 +500,13 @@ export const GUIDE_FLOWS: GuideFlow[] = [
                     'Kolom Perhitungan menunjukkan rumusnya, misalnya "Ahli Madya: 3 bln × 37,5 ÷ 12 × 100%" = 9,375 AK.',
                     'kipApp tidak menyimpan AK yang sudah ditetapkan sebelumnya. Klik "Isi AK dari PAK", lalu isi AK dan tanggal pada PAK terakhir Anda (atau PAK integrasi 2022). AK sesudah tanggal itu tetap dihitung dari predikat kipApp.',
                     'Nilai yang Anda isi ditandai "Diisi sendiri" sampai admin mencocokkannya dengan dokumen PAK.',
-                    'Angka ini adalah ESTIMASI. Dasar hitungnya PermenPANRB Nomor 1 Tahun 2023 (Pasal 37 dan Lampiran A) dan PerBKN Nomor 3 Tahun 2023 (Pasal 13): koefisien tahunan jenjang dibagi 12, dikali persentase predikat, per bulan.',
+                    'Begitu Anda naik pangkat, hitungan AK mulai lagi dari 0 sejak bulan kenaikan itu. AK dari pangkat sebelumnya tidak ikut dijumlahkan, karena kenaikan pangkat memakai AK baru. Halaman ini memberi catatan tanggal mulainya.',
+                    'Angka ini perkiraan, bukan angka resmi. Dasar hitungnya PermenPANRB Nomor 1 Tahun 2023 (Pasal 37 dan Lampiran A) dan PerBKN Nomor 3 Tahun 2023 (Pasal 13): koefisien tahunan jenjang dibagi 12, dikali persentase predikat, per bulan.',
                     'Yang belum ikut dihitung: AK dari luar predikat SKP (misalnya pendidikan, pengembangan kompetensi, penyesuaian atau konversi jabatan), serta pengurangan. AK di bulan sebelum ada SKP di kipApp hanya masuk lewat "AK dari PAK". Angka resmi tetap dari PAK yang ditetapkan Tim Penilai.',
                     'Angka tiap triwulan bisa diubah dengan tombol "Ubah" bila Anda punya dasar, misalnya dokumen PAK. Alasan wajib diisi. Triwulan itu ditandai "Diubah manual" dan PJ serta pimpinan melihat siapa yang mengubah, kapan, alasannya, dan angka hitungan otomatisnya. "Pakai hitungan otomatis" mengembalikannya.',
                 ],
                 shot: SHOTS.anggotaAngkaKredit,
-                tip: 'Angka ini adalah pemantauan. Usulan kenaikan pangkat tetap memakai PAK resmi.',
+                tip: 'Angka ini untuk memantau. Usulan kenaikan pangkat tetap memakai PAK resmi.',
             },
         ],
     },
@@ -533,7 +556,7 @@ export const GUIDE_FLOWS: GuideFlow[] = [
                 body: [
                     'Masih di popup yang sama, isi satu Target (angka), satu Satuan dan satu Capaian (angka) untuk seluruh RK. Persentase capaian dihitung otomatis.',
                     '"Simpan" menyimpan dan menutup popup; hasilnya langsung tampil di kartu RK. Tidak ada kunci: parafrase, target dan capaian boleh diubah lagi kapan saja.',
-                    'PJ dan PIC RK dapat menulis. Anggota lain hanya membaca.',
+                    'PJ dan PIC RK bisa menulis. Anggota lain hanya membaca.',
                 ],
                 tip: 'Parafrase hanya terlihat oleh PJ, PIC RK, dan admin. Anggota dan pimpinan hanya melihat angka dan statusnya.',
             },
@@ -555,7 +578,7 @@ export const GUIDE_FLOWS: GuideFlow[] = [
             },
             {
                 title: 'Unduh Excel untuk rapat',
-                body: ['"Unduh Excel" menghasilkan satu sheet dengan format Rapat Mingguan / Rapat Bulanan / FRA untuk semua tim yang dapat Anda lihat.'],
+                body: ['"Unduh Excel" menghasilkan satu sheet dengan format Rapat Mingguan / Rapat Bulanan / FRA untuk semua tim yang bisa Anda lihat.'],
             },
             {
                 title: 'Isi Kertas Kerja FRA tiap bulan',
@@ -896,9 +919,31 @@ export const GUIDE_FLOWS: GuideFlow[] = [
                 route: 'fra.index',
                 body: [
                     'Setiap IKU dan proksi di Kertas Kerja FRA perlu tim pemilik. PJ tim itu yang mengisi X, Y dan analisis tiap bulan.',
-                    'Pada kolom Tim pemilik, pilih tim dari daftar (dapat dicari). Indikator tanpa pemilik hanya dapat diisi admin.',
+                    'Pada kolom Tim pemilik, pilih tim dari daftar (bisa dicari). Indikator tanpa pemilik hanya bisa diisi admin.',
                     'Data awal berasal dari Kertas Kerja TW 2 2026. Jalankan seeder FraIndicatorSeeder satu kali setelah migrasi; menjalankannya lagi tidak menimpa angka yang sudah diisi.',
                 ],
+            },
+            {
+                title: 'Tunjuk admin kepegawaian',
+                where: 'Menu Data Master → Pegawai',
+                route: 'employees.index',
+                body: [
+                    'Urusan data pegawai dan Angka Kredit bisa dipegang petugas SDM tanpa menjadikannya admin penuh. Di baris pegawai, buka menu aksi lalu pilih "Jadikan admin kepegawaian". Pegawai itu harus sudah pernah masuk ke Kinetik.',
+                    'Admin kepegawaian mengelola Pegawai, Tim Kerja, Impor AK dan perbandingan AK, Angka Kredit Tim (termasuk mengecek PAK), dan arsip kegiatan pegawai mana pun. Integrasi kipApp, Fitur, Lihat sebagai, dan laporan masalah tetap hanya untuk admin. Perannya tambahan: pegawai itu tetap memakai Kinetik seperti anggota biasa.',
+                ],
+            },
+            {
+                title: 'Impor AK dari rekapan Excel',
+                where: 'Menu Data Master → Impor AK (admin atau admin kepegawaian)',
+                route: 'admin.import-ak',
+                body: [
+                    'Dipakai sekali untuk memasukkan AK resmi dari sebelum kipApp. Unggah rekapan Excel AK, lalu tekan "Baca file". File dibaca di browser Anda, baru dikirim ke server saat pratinjau.',
+                    'Pratinjau menampilkan tiap pegawai: baris yang cocok, baris yang ditahan, dan baris yang perlu Anda cek sendiri. Pegawai dicocokkan lewat NIP.',
+                    'Setelah Anda menekan "Simpan", angka itu menjadi AK dasar pegawai. Kinetik menghitung sisanya dari hari sesudah tanggal dasar itu, memakai predikat kipApp.',
+                    'Sebelum menyimpan, tekan "Bandingkan dengan hitungan Kinetik". Tabel yang muncul menaruh AK kantor tahun 2023, 2024, dan 2025 di samping hitungan Kinetik untuk tahun yang sama, dengan keterangan: Sama, Beda predikat (kantor memakai satu predikat setahun, kipApp predikat bulanan), atau Bulan kosong di kipApp. Pakai tabel ini untuk memeriksa apakah rumus, tanggal jenjang, dan penilaian sudah benar.',
+                    'Rumus Kinetik sudah diuji terhadap rekapan kantor dan hasilnya sama. Catatan pengujiannya ada di docs/kinetik/ak-validation-2026-11-04.md.',
+                ],
+                tip: 'AK resmi memakai satu predikat tahunan, sedangkan Kinetik memakai predikat bulanan. Selisih kecil untuk tahun yang sudah lewat itu wajar.',
             },
             {
                 title: 'Angka Kredit dari PAK',
@@ -906,9 +951,10 @@ export const GUIDE_FLOWS: GuideFlow[] = [
                 route: 'credit.team',
                 body: [
                     'Golongan dan predikat SKP ditarik dari kipApp setiap Senin pagi, atau saat admin menekan Sinkronkan pada Sinkronisasi Angka Kredit di halaman Integrasi kipApp. Tanpa PAK, AK dihitung dari SKP sejak golongan atau jenjang saat ini.',
-                    'Pegawai dapat mengisi AK dari PAK terakhirnya sendiri di Angka Kredit Saya. Baris itu bertanda "PAK diisi pegawai, belum dicek".',
+                    'Pegawai bisa mengisi AK dari PAK terakhirnya sendiri di Angka Kredit Saya. Baris itu bertanda "PAK diisi pegawai, belum dicek".',
                     'Cocokkan dengan dokumen PAK, lalu klik ikon pensil di baris pegawai dan simpan nilainya. Tandanya berubah menjadi "PAK dicek admin". AK sesudah tanggal PAK ditambahkan dari predikat kipApp.',
                     'Kosongkan kedua kolom untuk kembali ke estimasi.',
+                    'Saat pegawai naik pangkat, Kinetik memulai hitungan dari 0 sejak bulan kenaikan dan mengabaikan AK dasar yang tanggalnya sebelum itu. Aturan ini bisa dimatikan lewat konfigurasi kinetik.credit.restart_on_promotion.',
                 ],
             },
         ],
@@ -1081,12 +1127,36 @@ export const GUIDE_STATUS: GuideStatusFlow[] = [
 
 export const GUIDE_FAQ = [
     {
+        q: 'Kinetik menolak capaian saya karena "melebihi target". Apa yang harus dilakukan?',
+        a: 'Capaian tidak boleh lebih besar dari target, supaya persentase capaian paling tinggi 100%. Bila pekerjaannya memang lebih banyak dari rencana, naikkan target di kegiatan itu lebih dulu (misalnya dari 38 menjadi 39), lalu isi capaiannya. Aturan ini berlaku di form Realisasi, Isi Capaian Bulanan, rekap RK oleh PJ, dan impor Excel.',
+    },
+    {
+        q: 'Mengapa angka FRA tidak terisi otomatis dari kegiatan harian?',
+        a: 'IKI dan kegiatan harian di SKP adalah ukuran kinerja pegawai, sedangkan FRA mengukur IKU, indikator kinerja utama organisasi. Walau IKI turunan dari IKU, capaian IKI tidak bisa dijumlahkan jadi capaian IKU. Pertama, tidak semua IKI dikerjakan dengan baik oleh pegawai. Kedua, tidak semua pekerjaan langsung menjadi IKU, karena tiap IKU punya data dasar dan rumus hitungnya sendiri. Karena itu X dan Y di Kertas Kerja FRA tetap diisi PJ tim pemilik indikator tiap bulan. Kinetik menghitung persen, warna, dan file Excelnya.',
+    },
+    {
+        q: 'Pekerjaan saya ada di tim pusat (bukan tim BPS Sulteng). RK dan projeknya tidak muncul di form kegiatan.',
+        a: 'Kinetik hanya menyimpan tim BPS Sulteng, tetapi RK di SKP Anda tetap terbaca. Tekan "Sinkronkan data saya" di Rekap Mingguan: RK dari tim pusat muncul di daftar RK dengan keterangan "Di luar tim Sulteng", dan projek tidak wajib dipilih. Kegiatannya tetap dikirim ke RK yang sama di kipApp. Nama tim dan projek pusatnya belum ditampilkan di Kinetik.',
+    },
+    {
+        q: 'Bulan Oktober sudah lewat. Bagaimana mengisi target dan capaiannya tanpa mengisi dua kali?',
+        a: 'Buka menu "Isi Capaian Bulanan", pilih bulannya, lalu isi target dan capaian semua kegiatan sekaligus. Untuk kegiatan yang sudah ada di kipApp, Kinetik memperbarui kipApp dalam simpanan yang sama. Kegiatan yang terkunci atau uraiannya kurang dari 10 karakter tetap tersimpan di Kinetik dan diberi peringatan.',
+    },
+    {
+        q: 'Saya punya pekerjaan yang tidak ada di RK tim. Di mana mencatatnya?',
+        a: 'Buat RK tambahan dari form kegiatan (tautan "Tambah RK tambahan"). RK itu hanya milik Anda. Pengiriman RK tambahan ke kipApp baru jalan setelah admin menyalakan saklarnya; sebelum itu kegiatan tetap aman di Kinetik.',
+    },
+    {
+        q: 'Angka Kredit saya kembali ke 0 setelah naik pangkat. Apakah salah?',
+        a: 'Tidak. Setiap kenaikan pangkat memulai hitungan AK dari awal, jadi Kinetik menghitung dari bulan kenaikan. Bila Anda punya AK dasar dari PAK dengan tanggal sebelum kenaikan, angka itu tidak dipakai lagi. Halaman Angka Kredit Saya mencatat tanggal mulai hitungannya.',
+    },
+    {
         q: 'Sebagai ketua tim, RK mana yang saya pilih untuk kegiatan saya? Daftar RK-nya kosong.',
         a: 'Kegiatan ketua tim menempel ke RK di SKP ketua sendiri, yaitu RK Ketua: RK yang menjadi atasan projek-projek tim. RK Ketua tidak berada di dalam projek, jadi projek tidak perlu dipilih. Kosongkan kolom Projek (atau pilih "Tanpa projek"), lalu pilih RK Anda dari daftar. RK anggota hanya dipakai anggota tim.',
     },
     {
         q: 'Mengapa satu RK tampil berkali-kali di daftar RK?',
-        a: 'kipApp menyalin RK untuk setiap anggota dan setiap SKP triwulan, jadi teks RK yang sama tersimpan beberapa kali. Kinetik kini menampilkannya sekali per projek (atau per tim bila tanpa projek) dan memilih salinan milik tim Anda. Jika Anda masih melihat RK kembar, laporkan lewat tombol "Laporkan masalah" beserta nama RK-nya.',
+        a: 'kipApp menyalin RK untuk setiap anggota dan setiap SKP triwulan, jadi teks RK yang sama tersimpan beberapa kali. Kinetik menampilkannya sekali per projek (atau per tim bila tanpa projek) dan memilih salinan milik tim Anda. Jika Anda masih melihat RK kembar, laporkan lewat tombol "Laporkan masalah" beserta nama RK-nya.',
     },
     {
         q: 'Mengapa target kegiatan saya tampil "-"?',

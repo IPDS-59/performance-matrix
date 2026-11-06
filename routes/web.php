@@ -1,7 +1,9 @@
 <?php
 
+use App\Http\Controllers\AdditionalRkController;
 use App\Http\Controllers\Admin\DataIntegrityController;
 use App\Http\Controllers\Admin\ImpersonationController;
+use App\Http\Controllers\AkRekapanImportController;
 use App\Http\Controllers\ArchiveController;
 use App\Http\Controllers\BugReportController;
 use App\Http\Controllers\CreditController;
@@ -16,6 +18,7 @@ use App\Http\Controllers\KipActivityController;
 use App\Http\Controllers\KipIntegrationController;
 use App\Http\Controllers\KipStructureController;
 use App\Http\Controllers\MemberWeekController;
+use App\Http\Controllers\MonthlyRealisasiController;
 use App\Http\Controllers\MyActivitySyncController;
 use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\OrganizationController;
@@ -133,6 +136,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::patch('/fra/{indicator}/pemilik', [FraController::class, 'updateOwner'])->name('fra.owner');
     Route::get('/kepatuhan-rencana', [PlanComplianceController::class, 'index'])->name('plan-compliance.index');
     Route::post('/rencana-minggu/fokus', [WeeklyPlanController::class, 'storeFocus'])->name('weekly-plan.focus');
+    Route::post('/rk-tambahan', [AdditionalRkController::class, 'store'])->name('rk-additional.store');
     Route::post('/rencana-minggu/item', [PlanItemController::class, 'store'])->name('plan-items.store');
     Route::patch('/rencana-minggu/item/{planItem}', [PlanItemController::class, 'update'])->name('plan-items.update');
     Route::post('/rencana-minggu/item/{planItem}/kirim', [PlanItemController::class, 'push'])->name('plan-items.push');
@@ -146,6 +150,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::patch('/rencana-minggu/item/{planItem}/evaluasi', [PlanItemController::class, 'evaluate'])->name('plan-items.evaluate');
     Route::delete('/rencana-minggu/item/{planItem}', [PlanItemController::class, 'destroy'])->name('plan-items.destroy');
     Route::get('/rekap-mingguan', [MemberWeekController::class, 'index'])->name('weekly.index');
+    Route::get('/realisasi-bulanan', [MonthlyRealisasiController::class, 'index'])->name('realisasi.monthly');
+    Route::post('/realisasi-bulanan', [MonthlyRealisasiController::class, 'store'])->name('realisasi.monthly.store');
 
     // Team recaps (weekly / monthly / quarterly FRA)
     Route::get('/rekap-tim', [TeamRecapController::class, 'weekly'])->name('team-recap.weekly');
@@ -211,6 +217,15 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::get('/admin/laporan-masalah', [BugReportController::class, 'index'])->name('admin.bug-reports');
         Route::put('/admin/laporan-masalah/{report}', [BugReportController::class, 'update'])->name('admin.bug-reports.update');
     });
+
+    Route::middleware('can:manage-personnel')->group(function () {
+        Route::get('/admin/impor-ak', [AkRekapanImportController::class, 'index'])->name('admin.import-ak');
+        Route::post('/admin/impor-ak/pratinjau', [AkRekapanImportController::class, 'preview'])->name('admin.import-ak.preview');
+        Route::post('/admin/impor-ak/bandingkan', [AkRekapanImportController::class, 'compare'])->name('admin.import-ak.compare');
+        Route::post('/admin/impor-ak/simpan', [AkRekapanImportController::class, 'store'])->name('admin.import-ak.store');
+    });
+
+    Route::put('/employees/{employee}/admin-kepegawaian', [EmployeeController::class, 'togglePersonnelAdmin'])->name('employees.personnel-admin');
 
     Route::post('/tur/{key}', [TourController::class, 'complete'])->name('tour.complete');
     Route::delete('/tur', [TourController::class, 'reset'])->name('tour.reset');

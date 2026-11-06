@@ -56,6 +56,9 @@ class HandleInertiaRequests extends Middleware
                 'role' => $request->user()?->role,
             ] : null,
             'can' => fn () => [
+                'manage_personnel' => (bool) $request->user()?->can('manage-personnel'),
+                'manage_employees' => (bool) $request->user()?->can('manage-employees'),
+                'manage_teams' => (bool) $request->user()?->can('manage-teams'),
                 'view_projects' => $request->user() ? rescue(fn () => $request->user()->can('viewAny', Project::class), false) : false,
                 'view_indicators' => $request->user() ? rescue(fn () => $request->user()->can('viewAny', PerformanceIndicator::class), false) : false,
                 'view_plans' => $request->user() ? rescue(fn () => $request->user()->can('viewAny', PerformancePlan::class), false) : false,

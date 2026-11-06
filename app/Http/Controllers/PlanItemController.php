@@ -15,6 +15,7 @@ use App\Models\PerformancePlan;
 use App\Models\PlanItem;
 use App\Models\Team;
 use App\Notifications\KinetikNotification;
+use App\Rules\CapaianWithinTarget;
 use App\Services\Kinetik\PlanEvaluator;
 use App\Services\Kinetik\PlanItemAccess;
 use Carbon\Carbon;
@@ -70,7 +71,7 @@ class PlanItemController extends Controller
         $this->authorizeFor($actor, $team, $planItem->employee_id);
 
         if ($planItem->kip_external_id === null && $planItem->status === 'planned') {
-            $data = $request->validate($this->rules($request), $this->messages());
+            $data = $request->validate($this->rules($request, $planItem), $this->messages());
             $this->checkRk($team, $planItem->employee_id, $data);
             $this->checkQuarter($data);
             $planItem->update($this->attributes($data, ['employee_id', 'parent_id']));
@@ -83,7 +84,7 @@ class PlanItemController extends Controller
                 // Like kipApp: a sent kegiatan only changes "Masukan ke capaian SKP".
                 $attributes = ['is_capaian_skp' => $request->validate(['is_capaian_skp' => ['required', 'boolean']])['is_capaian_skp']];
             } else {
-                $data = $request->validate($this->rules($request), $this->messages());
+                $data = $request->validate($this->rules($request, $planItem), $this->messages());
                 $data['performance_plan_id'] = $planItem->performance_plan_id;
                 $this->checkRk($team, $planItem->employee_id, $data);
                 $this->checkQuarter($data);
@@ -125,7 +126,7 @@ class PlanItemController extends Controller
         $this->authorizeFor($this->actor($request), Team::findOrFail($planItem->team_id), $planItem->employee_id);
         abort_if($planItem->status === 'cancelled', 422, 'Rencana ini sudah dibatalkan.');
 
-        $data = $request->validate($this->resultRules());
+        $data = $request->validate($this->resultRules($planItem));
         if ($planItem->kip_external_id === null && ! $this->access->hasStarted($planItem)) {
             return back()->with('error', PlanItemAccess::NOT_STARTED);
         }
@@ -153,7 +154,7 @@ class PlanItemController extends Controller
         $this->authorizeFor($this->actor($request), Team::findOrFail($planItem->team_id), $planItem->employee_id);
         abort_if($planItem->status === 'cancelled', 422, 'Rencana ini sudah dibatalkan.');
 
-        $planItem->update($this->attributes($request->validate($this->resultRules())));
+        $planItem->update($this->attributes($request->validate($this->resultRules($planItem))));
 
         return back()->with('success', 'Capaian disimpan.');
     }
@@ -268,10 +269,10 @@ class PlanItemController extends Controller
     }
 
     /** @return array<string, array<int, mixed>> */
-    private function resultRules(): array
+    private function resultRules(?PlanItem $stored = null): array
     {
         return [
-            'capaian' => ['nullable', 'numeric', 'min:0', 'max:9999999999'],
+            'capaian' => ['nullable', 'numeric', 'min:0', 'max:9999999999', new CapaianWithinTarget($stored?->target !== null ? (float) $stored->target : null)],
             'capaian_note' => ['nullable', 'string', 'max:1000'],
             'evidence_url' => ['nullable', 'url', 'max:2000'],
             'progress' => ['nullable', 'integer', 'between:0,100'],
@@ -292,9 +293,9 @@ class PlanItemController extends Controller
     }
 
     /** @return array<string, array<int, mixed>> */
-    private function rules(Request $request): array
+    private function rules(Request $request, ?PlanItem $stored = null): array
     {
-        return $this->resultRules() + [
+        return $this->resultRules($stored) + [
             'employee_id' => ['nullable', 'integer', 'exists:employees,id'],
             'performance_plan_id' => ['required', 'integer', 'exists:performance_plans,id'],
             'project_id' => ['nullable', 'integer', 'exists:projects,id'],
