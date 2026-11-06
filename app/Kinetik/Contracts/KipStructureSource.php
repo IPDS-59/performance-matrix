@@ -43,7 +43,7 @@ interface KipStructureSource
      *
      * @return list<array{text: string, niplama: string}>
      */
-    public function fetchProjectRkRows(string $timkerjaId, string $proyekId): array;
+    public function fetchProjectRkRows(string $timkerjaId, string $proyekId, ?array $scope = null): array;
 
     /**
      * Fetch one team's members (timkerja/anggota?id=).

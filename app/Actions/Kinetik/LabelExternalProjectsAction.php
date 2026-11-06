@@ -55,11 +55,41 @@ class LabelExternalProjectsAction
             && ($leaderRk === '' || self::norm($p->ikuName) === $leaderRk))->values();
 
         if ($candidates->count() > 1) {
-            $candidates = $candidates->filter(fn (KipProjectData $p) => collect($this->source->fetchProjectRkRows($team, $p->externalId))
-                ->contains(fn (array $row) => $row['niplama'] === $nipLama && self::norm($row['text']) === self::norm($rk->name)))->values();
+            // The RK Anggota of each projek, read with the wilayah and unit of that projek's own team (the Sulteng ones return nothing for a Pusat team).
+            $mine = $candidates->mapWithKeys(fn (KipProjectData $p) => [$p->externalId => collect($this->source->fetchProjectRkRows($team, $p->externalId, [
+                'wilayahid' => $p->raw['wilayahid'] ?? null, 'unitkerjaid' => $p->raw['unitkerjaid'] ?? null,
+            ]))->where('niplama', $nipLama)->pluck('text')]);
+
+            $exact = $candidates->filter(fn (KipProjectData $p) => $mine[$p->externalId]->contains(fn (string $text) => self::norm($text) === self::norm($rk->name)))->values();
+            if ($exact->count() === 1) {
+                return $exact->first();
+            }
+
+            return $this->closest($candidates, $mine, $rk->name);
         }
 
         return $candidates->count() === 1 ? $candidates->first() : null;
+    }
+
+    /**
+     * A member may reword an RK when copying it into the SKP, so its text no longer equals the RK Anggota of the projek. The projek
+     * whose name and RK Anggota share most words with it wins, but only when it clearly beats the others; otherwise none.
+     *
+     * @param  Collection<int, KipProjectData>  $candidates
+     * @param  Collection<string, Collection<int, string>>  $texts  projek id => the member's RK Anggota texts in it
+     */
+    private function closest(Collection $candidates, Collection $texts, string $rkName): ?KipProjectData
+    {
+        $words = fn (string $t) => collect(preg_split('/[^a-z0-9]+/', self::norm($t), -1, PREG_SPLIT_NO_EMPTY))
+            ->reject(fn ($w) => mb_strlen($w) < 4 || in_array($w, ['yang', 'dari', 'pada', 'dalam', 'untuk', 'dengan', 'sesuai', 'terselenggaranya', 'terlaksananya', 'tersedianya', 'kegiatan', 'dokumen', 'laporan'], true))->unique();
+        $mine = $words($rkName);
+        if ($mine->isEmpty()) {
+            return null;
+        }
+        $scored = $candidates->map(fn (KipProjectData $p) => ['p' => $p, 'score' => $mine->intersect($words($p->name.' '.$texts[$p->externalId]->implode(' ')))->count() / $mine->count()])
+            ->sortByDesc('score')->values();
+
+        return ($scored[0]['score'] ?? 0) >= 0.4 && (($scored[1]['score'] ?? 0) <= $scored[0]['score'] - 0.2) ? $scored[0]['p'] : null;
     }
 
     private static function norm(?string $text): string

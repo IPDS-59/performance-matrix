@@ -76,7 +76,7 @@ it('links an RK to the projek kipApp lists it under, and leaves a text found und
 
     $source = new class extends MockKipStructureSource
     {
-        public function fetchProjectRkRows(string $timkerjaId, string $proyekId): array
+        public function fetchProjectRkRows(string $timkerjaId, string $proyekId, ?array $scope = null): array
         {
             return $proyekId === 'A'
                 ? [['text' => 'tersedianya inovasi yang bermanfaat', 'niplama' => '340001'], ['text' => 'Melakukan Pengelolaan Mitra', 'niplama' => '340001']]
