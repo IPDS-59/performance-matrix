@@ -9,6 +9,7 @@ use App\Models\EmployeeRk;
 use App\Models\MemberKipCredential;
 use App\Models\PerformancePlan;
 use App\Models\PlanItem;
+use App\Models\Project;
 use App\Models\Team;
 use App\Models\User;
 use Illuminate\Support\Carbon;
@@ -115,4 +116,26 @@ it('gives an RK of a team Kinetik does not hold (a Pusat team) a plan row owned 
     PerformancePlan::factory()->create(['team_id' => $team->id, 'project_id' => null, 'description' => 'Terselenggaranya Layanan Kesehatan Mental Untuk Pegawai']);
     $again = (new ReflectionMethod($week, 'rkOptions'))->invoke($week, $employee, 2026);
     expect(collect($again)->where('description', 'Terselenggaranya Layanan Kesehatan Mental Untuk Pegawai'))->toHaveCount(1);
+});
+
+it('offers only the projek of the member\'s teams that the member has a part in', function () {
+    [, $employee, $team] = memberWithTeam();
+    $other = Employee::factory()->create();
+    $mine = Project::factory()->create(['team_id' => $team->id, 'name' => 'Projek saya']);
+    $mine->members()->attach($employee->id, ['role' => 'member']);
+    $notMine = Project::factory()->create(['team_id' => $team->id, 'name' => 'Projek orang lain']);
+    $notMine->members()->attach($other->id, ['role' => 'member']);
+    $unknown = Project::factory()->create(['team_id' => $team->id, 'name' => 'Projek tanpa anggota']);
+    $viaRk = Project::factory()->create(['team_id' => $team->id, 'name' => 'Projek lewat RK']);
+    $viaRk->members()->attach($other->id, ['role' => 'member']);
+    EmployeeRk::create(['employee_id' => $employee->id, 'kip_rk_id' => '1', 'name' => 'RK', 'project_id' => $viaRk->id, 'year' => 2026]);
+
+    $week = app(BuildMemberWeekAction::class);
+    $names = fn (Employee $e) => collect((new ReflectionMethod($week, 'projectOptions'))->invoke($week, $e))->pluck('name')->sort()->values()->all();
+
+    expect($names($employee))->toBe(['Projek lewat RK', 'Projek saya', 'Projek tanpa anggota']);
+
+    // the leader of the team files under any projek of it
+    $employee->teams()->updateExistingPivot($team->id, ['role' => 'leader']);
+    expect($names($employee->fresh()))->toBe(['Projek lewat RK', 'Projek orang lain', 'Projek saya', 'Projek tanpa anggota']);
 });
