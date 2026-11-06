@@ -59,6 +59,7 @@ watch(() => [props.open, props.item, props.copyOf] as const, ([open, item, copyO
     if (!open) return;
     form.clearErrors();
     Object.assign(form, entryFormState(item, copyOf, props.defaultDate, todayIso()));
+    externalSelected.value = null;
 }, { immediate: true });
 
 // Logging past work starts at 100 (kipApp); planning starts at 0.
@@ -78,18 +79,34 @@ function rkFitsProject(option: PlanRkOption, projectId: number | null): boolean 
 
 // Projek first, then only the RK of that projek. Once an RK is chosen the projek is fixed; "Ganti RK" frees it again.
 // An RK of a Pusat team carries its projek name in the label, so searching the projek finds it.
-const rkChoices = computed(() => props.rkOptions.filter(o => rkFitsProject(o, form.project_id)).map(o => ({ value: o.id, label: o.external_project ? `${o.description} (Projek: ${o.external_project})` : o.description })));
+// A projek of a Pusat team is no row in Kinetik, so it cannot be a project_id. It is still offered in the Projek list (value below 0, nothing
+// is sent to the server) so the member finds their RK the same way: pick the projek, then its RK.
+const externalSelected = ref<string | null>(null);
+const externalProjects = computed(() => [...new Map(props.rkOptions.filter(o => o.external_project).map(o => [o.external_project as string, o.team_name])).entries()]
+    .map(([name, team], i) => ({ value: -(i + 1), name, label: `${name} (${team ?? 'tim pusat'})` })));
+const rkChoices = computed(() => props.rkOptions
+    .filter(o => (externalSelected.value ? o.external_project === externalSelected.value : rkFitsProject(o, form.project_id)))
+    .map(o => ({ value: o.id, label: o.external_project ? `${o.description} (Projek: ${o.external_project})` : o.description })));
 const projectChoices = computed(() => {
     const chosen = rk.value;
+    if (chosen?.external_project) return externalProjects.value.filter(p => p.name === chosen.external_project).map(p => ({ value: p.value, label: p.label }));
     if (chosen?.project_id) return props.projectOptions.filter(p => p.id === chosen.project_id).map(p => ({ value: p.id, label: p.name }));
     const ids = [...(chosen?.project_candidates ?? []), ...(chosen?.ketua_projects ?? [])];
-    return props.projectOptions.filter(p => !ids.length || ids.includes(p.id)).map(p => ({ value: p.id, label: p.name }));
+    const own = props.projectOptions.filter(p => !ids.length || ids.includes(p.id)).map(p => ({ value: p.id, label: p.name }));
+    return chosen ? own : [...own, ...externalProjects.value.map(p => ({ value: p.value, label: p.label }))];
 });
-const projectLocked = computed(() => !!props.item || (form.performance_plan_id !== null && form.project_id !== null));
+/** What the Projek select shows: the real projek, or the Pusat projek of the chosen RK (or the one picked first). */
+const projectModel = computed(() => {
+    if (form.project_id !== null) return form.project_id;
+    const name = rk.value?.external_project ?? externalSelected.value;
+    return name ? (externalProjects.value.find(p => p.name === name)?.value ?? null) : null;
+});
+const projectLocked = computed(() => !!props.item || (form.performance_plan_id !== null && (form.project_id !== null || !!rk.value?.external_project)));
 const bounds = computed(() => quarterBounds(props.skpYear, form.date_start));
 
 function pickRk(value: number | null) {
     form.performance_plan_id = value;
+    externalSelected.value = props.rkOptions.find(o => o.id === value)?.external_project ?? null;
     form.team_id = rk.value?.team_id ?? null;
     // An RK that belongs to one projek brings it along; otherwise the projek chosen before stays if the RK fits it.
     if (rk.value?.project_id) form.project_id = rk.value.project_id;
@@ -99,6 +116,18 @@ function pickRk(value: number | null) {
 }
 
 function pickProject(value: number | null) {
+    if (value !== null && value < 0) {
+        // A Pusat projek: no project_id, only its RK are listed.
+        externalSelected.value = externalProjects.value.find(p => p.value === value)?.name ?? null;
+        form.project_id = null;
+        if (rk.value && rk.value.external_project !== externalSelected.value) {
+            form.performance_plan_id = null;
+            form.team_id = null;
+        }
+
+        return;
+    }
+    externalSelected.value = null;
     form.project_id = value;
     // Another projek shows its own RK: an RK that does not fit it is cleared.
     if (rk.value && !rkFitsProject(rk.value, value)) {
@@ -140,7 +169,7 @@ function save() {
         <fieldset :disabled="sentOnly" class="min-w-0 space-y-3 border-0 p-0">
             <div class="space-y-1.5">
                 <Label>Projek</Label>
-                <SearchableSelect :model-value="form.project_id" :options="projectChoices" :placeholder="needsProject ? 'Pilih projek' : 'Pilih projek (opsional)'" search-placeholder="Cari projek…" :empty-label="needsProject ? undefined : '— Tanpa projek —'" :disabled="projectLocked" @update:model-value="pickProject" />
+                <SearchableSelect :model-value="projectModel" :options="projectChoices" :placeholder="needsProject ? 'Pilih projek' : 'Pilih projek (opsional)'" search-placeholder="Cari projek…" :empty-label="needsProject ? undefined : '— Tanpa projek —'" :disabled="projectLocked" @update:model-value="pickProject" />
                 <p v-if="projectLocked && !item" class="text-xs text-gray-600">Projek terkunci karena RK sudah dipilih. Tekan "Ganti RK" untuk memilih projek lain.</p>
                 <p v-if="rk?.external_project" class="text-xs text-gray-600">Projek di kipApp: {{ rk.external_project }} ({{ rk.team_name }}). Projek tim pusat hanya ditampilkan sebagai keterangan, jadi pilihan projek di atas boleh dikosongkan.</p>
                 <InputError :message="form.errors.project_id" />
