@@ -34,10 +34,14 @@ export function defaultProgress(date: string, today: string): number {
     return date && date < today ? 100 : 0;
 }
 
-/** First and last day of the quarter that holds `date`, inside `year`. Used as min and max of the date inputs. */
+/**
+ * First and last day of the quarter that holds `date`, inside `year`. Used as min and max of the date inputs.
+ * A cleared date has no quarter yet, so the whole year stays open until one is picked.
+ */
 export function quarterBounds(year: number, date: string): { min: string; max: string } {
     const month = /^\d{4}-(\d{2})/.exec(date)?.[1];
-    const quarter = month ? Math.floor((Number(month) - 1) / 3) : 0;
+    if (!month) return { min: `${year}-01-01`, max: `${year}-12-31` };
+    const quarter = Math.floor((Number(month) - 1) / 3);
     const first = quarter * 3 + 1;
     const lastDay = new Date(year, first + 2, 0).getDate();
     const pad = (n: number) => String(n).padStart(2, '0');
