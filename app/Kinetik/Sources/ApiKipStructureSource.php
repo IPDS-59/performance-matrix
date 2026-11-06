@@ -78,12 +78,16 @@ class ApiKipStructureSource implements KipStructureSource
         return array_column($this->fetchProjectRkRows($timkerjaId, $proyekId), 'text');
     }
 
-    public function fetchProjectRkRows(string $timkerjaId, string $proyekId): array
+    /**
+     * @param  array{wilayahid?: ?string, unitkerjaid?: ?string}|null  $scope  the wilayah and unit of the projek's team; the Sulteng ones by default,
+     *                                                                         and they return nothing for a Pusat team
+     */
+    public function fetchProjectRkRows(string $timkerjaId, string $proyekId, ?array $scope = null): array
     {
         $response = $this->client()->get('v1/rk/proyek', [
             'periodeid' => config('kinetik.kip.periode_id'),
-            'wilayahid' => config('kinetik.kip.wilayah_id'),
-            'unitkerjaid' => config('kinetik.kip.unitkerja_id'),
+            'wilayahid' => $scope['wilayahid'] ?? config('kinetik.kip.wilayah_id'),
+            'unitkerjaid' => $scope['unitkerjaid'] ?? config('kinetik.kip.unitkerja_id'),
             'timkerjaid' => $timkerjaId,
             'proyekid' => $proyekId,
             'leveltim' => 2,
