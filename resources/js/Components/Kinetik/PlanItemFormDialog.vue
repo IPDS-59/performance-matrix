@@ -171,7 +171,7 @@ function save() {
                 <Label>Projek</Label>
                 <SearchableSelect :model-value="projectModel" :options="projectChoices" :placeholder="needsProject ? 'Pilih projek' : 'Pilih projek (opsional)'" search-placeholder="Cari projek…" :empty-label="needsProject ? undefined : '— Tanpa projek —'" :disabled="projectLocked" @update:model-value="pickProject" />
                 <p v-if="projectLocked && !item" class="text-xs text-gray-600">Projek terkunci karena RK sudah dipilih. Tekan "Ganti RK" untuk memilih projek lain.</p>
-                <p v-if="rk?.external_project" class="text-xs text-gray-600">Projek di kipApp: {{ rk.external_project }} ({{ rk.team_name }}). Projek tim pusat hanya ditampilkan sebagai keterangan, jadi pilihan projek di atas boleh dikosongkan.</p>
+                <p v-if="rk?.external_project" class="text-xs text-gray-600">Projek di kipApp: {{ rk.external_project }} ({{ rk.team_name }}). Projek tim pusat tidak disimpan sebagai projek di Kinetik; kegiatan tetap dikirim ke RK ini di kipApp.</p>
                 <InputError :message="form.errors.project_id" />
             </div>
             <div class="space-y-1.5">
