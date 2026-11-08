@@ -58,14 +58,15 @@ return [
         'edit_after_push' => (bool) env('KIP_EDIT_AFTER_PUSH', false),
 
         // The member adds and removes IKI of the RK in a SKP that is Sedang dibuat, on SKP Saya. The calls are read from
-        // kipApp's own code and never run live; keep it off until the first IKI is added and checked in kipApp.
+        // kipApp's own code; POST and DELETE v1/skp/iki were run live on 2026-11-08 (IKI added to a test RK, read back, deleted).
         'iki_write' => (bool) env('KIP_IKI_WRITE', false),
 
         // A new RK Ketua, proyek and RK Anggota made in Kinetik is also created in kipApp, with the tim leader's own
         // token. The calls are read from kipApp's own code and never run live (no safe throwaway test), so keep it off
         // until the first one is made together with a PJ and checked in kipApp.
         'structure_write' => (bool) env('KIP_STRUCTURE_WRITE', false),
-        // Create an RK tambahan in kipApp with the first kegiatan under it (rkid 0 + text, as kipApp's own form does). Not run live yet.
+        // Create an RK tambahan in kipApp with the first kegiatan under it: POST v1/skp/rk (jenis 2), as kipApp's "Add Rencana Kinerja SKP"
+        // form does. Run live on 2026-11-08 (create, kegiatan under it, delete); an earlier guess of "rkid 0 + text" on the kegiatan was wrong.
         'rk_tambahan_write' => (bool) env('KIP_RK_TAMBAHAN_WRITE', false),
 
         // The atasan rates a quarter SKP inside Kinetik (Nilai SKP page): feedback per RK and per behaviour, then
