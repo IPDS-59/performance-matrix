@@ -596,6 +596,16 @@ export const GUIDE_FLOWS: GuideFlow[] = [
                 tip: 'Tombol Analisis tidak muncul pada indikator tertentu? Minta admin menetapkan tim Anda sebagai pemilik indikator itu.',
             },
             {
+                title: 'Lihat progres pekerjaan per IKU',
+                where: 'Menu Rekap Tim → Progres per IKU',
+                route: 'iku-progress.index',
+                body: [
+                    'Halaman ini menunjukkan seberapa jauh pekerjaan di bawah tiap IKU: capaian kegiatan dibagi targetnya (paling tinggi 100%), dirata-rata per bulan lewat kegiatan, RK, dan projek yang terhubung ke IKU. Tab "Per tim" memecah hal yang sama per tim.',
+                    'Ini progres pekerjaan, bukan realisasi IKU. IKU punya data dasar dan rumusnya sendiri (misalnya jumlah publikasi terbit dibanding rencana), jadi realisasi resmi tetap di Kertas Kerja FRA. Satu IKU bisa dikerjakan beberapa tim: kolom "Tim terkait" memuat semua tim yang punya projek di bawahnya.',
+                ],
+                tip: 'IKU yang kosong biasanya belum ada kegiatan dengan target dan capaian, atau projeknya belum dihubungkan ke IKU di data master.',
+            },
+            {
                 title: 'Tetapkan atau kembalikan SKP anggota',
                 where: 'Menu Rekap Tim → Persetujuan SKP',
                 route: 'skp.approvals',
@@ -891,6 +901,7 @@ export const GUIDE_FLOWS: GuideFlow[] = [
                     'Unggah juga file Daftar Pegawai (ekspor NIP BPS, NIP, Nama) bila ada. Kinetik mencari NIP tiap nama di daftar itu, lalu mencocokkan pegawai lewat NIP, bukan lewat nama, jadi gelar yang berbeda atau nama kembar tidak jadi masalah. Tanpa daftar itu, Kinetik mencocokkan lewat nama tanpa gelar. Projek dicocokkan dari nama projek, dan RK dari projek itu. Bila RK tidak bisa ditentukan sendiri, pilih dari daftar di baris itu. Baris yang pegawainya tidak ditemukan tidak bisa diimpor.',
                     'Kapan RK harus dipilih sendiri: nama projek di Excel sering berbeda dari nama projek di kipApp (misalnya "Penyusunan Daftar Risiko" di Excel, "Manajemen Risiko dalam ..." di kipApp). Kinetik mencoba mencocokkan lewat kata yang sama. Bila tidak ada satu projek yang jelas cocok, baris itu diberi catatan "Projek ... tidak ditemukan di tim pegawai ini", dan daftar RK berisi semua RK tim pegawai itu. Pilih RK yang paling sesuai. Satu RK hanya tampil sekali walau di kipApp ia tercatat di beberapa projek atau anggota.',
                     'Baris tanpa tanggal menjadi rencana Senin sampai Jumat minggu yang dipilih. Capaian diambil dari kolom Realisasi, dan progres dihitung dari capaian dibagi target. Kolom Permasalahan, Solusi, dan Rencana Tindak Lanjut tidak diimpor.',
+                    'Baris yang mirip dengan kegiatan yang sudah ada, termasuk yang sudah dibuat pegawai di kipApp, diberi catatan "Mirip dengan kegiatan di kipApp" dan tidak dicentang. Mirip artinya pegawai yang sama, tanggal sama atau bersebelahan, dan uraian hampir sama. Angka yang berbeda dianggap kegiatan lain ("Mengikuti BRS 2" dan "Mengikuti BRS 5"). Centang barisnya bila memang kegiatan yang berbeda.',
                     'Periksa tabel, lalu tekan "Impor". Kegiatan yang sama (pegawai, tanggal, dan uraian) dilewati. Kegiatan masuk ke daftar pegawai sebagai rencana dan tidak dikirim ke kipApp. Pegawai mengirimnya sendiri dari detail kegiatan, saat sudah siap.',
                 ],
                 shot: SHOTS.imporKegiatan,
@@ -1128,6 +1139,10 @@ export const GUIDE_STATUS: GuideStatusFlow[] = [
 ];
 
 export const GUIDE_FAQ = [
+    {
+        q: 'Admin mengimpor Excel, padahal saya sudah mengisi kegiatan yang sama di kipApp. Apakah jadi dobel?',
+        a: 'Tidak seharusnya. Saat impor, baris yang mirip dengan kegiatan Anda yang sudah ada tidak dicentang. Bila tetap ada kegiatan dari impor yang sama dengan yang di kipApp, sinkronisasi menggabungkannya (satu kegiatan, bukan dua). Kegiatan hasil impor juga ditahan sebelum dikirim ke kipApp bila ada yang mirip di sana: Anda melihat "Mirip dengan kegiatan yang sudah ada di kipApp" dan dua pilihan, hapus kegiatannya atau tekan "Kirim tetap" bila memang berbeda.',
+    },
     {
         q: 'Di form kegiatan ada projek yang bukan pekerjaan saya, dan RK-nya kosong.',
         a: 'Daftar Projek hanya memuat projek yang Anda ikuti sebagai anggota atau ketua, projek tempat RK Anda berada, dan semua projek tim yang Anda pimpin. Projek lain di tim yang sama tidak lagi tampil. Bila projek Anda belum ada di daftar, tekan "Sinkronkan data saya" di Rekap Mingguan, atau minta admin menjalankan Sinkronisasi Struktur supaya keanggotaan projek diperbarui.',

@@ -8,6 +8,7 @@ use App\Models\PlanItem;
 use App\Models\Project;
 use App\Models\Team;
 use App\Models\User;
+use App\Services\Kinetik\KegiatanDuplicateFinder;
 
 function importSetup(): array
 {
@@ -136,7 +137,7 @@ it('never pushes imported kegiatan to kipApp by itself', function () {
 
         public function __construct() {}
 
-        public function execute(PlanItem $plan): bool
+        public function execute(PlanItem $plan, bool $force = false): bool
         {
             $this->seen[] = $plan->description;
 
@@ -185,4 +186,44 @@ it('shows an RK once even when kipApp holds it under several projek, and matches
 
     $none = $this->actingAs(adminUser())->postJson(route('admin.import-kegiatan.preview'), ['week_start' => '2026-10-26', 'rows' => [sheetRow(['project' => 'Penyusunan Daftar Risiko'])]])->json('rows.0');
     expect($none['notes'])->toContain('Projek "Penyusunan Daftar Risiko" tidak ditemukan di tim pegawai ini. Pilih RK yang sesuai secara manual.');
+});
+
+it('does not tick a row that looks like a kegiatan already in kipApp, and refuses it at save unless ignore_similar', function () {
+    [, $project, $plan, $member] = importSetup();
+    PlanItem::create(['team_id' => $plan->team_id, 'employee_id' => $member->id, 'performance_plan_id' => $plan->id, 'description' => 'Menyiapkan kuesioner PDRB triwulanan', 'date_start' => '2026-10-15', 'date_end' => '2026-10-15', 'source' => 'kipapp', 'status' => 'done', 'kip_external_id' => 'k1']);
+    $admin = adminUser();
+
+    // the sheet words it differently and puts it on the next day
+    $row = sheetRow(['description' => 'Penyiapan kuesioner PDRB triwulanan', 'date_start' => '2026-10-16', 'date_end' => '2026-10-16']);
+    $preview = $this->actingAs($admin)->postJson(route('admin.import-kegiatan.preview'), ['week_start' => '2026-10-12', 'rows' => [$row]])->json('rows.0');
+
+    expect($preview['duplicate'])->toBeFalse()->and($preview['blocked'])->toBeFalse()
+        ->and($preview['similar']['in_kipapp'])->toBeTrue()->and($preview['similar']['date'])->toBe('2026-10-15')
+        ->and(implode(' ', $preview['notes']))->toContain('Mirip dengan kegiatan di kipApp');
+
+    $save = fn (array $extra) => $this->actingAs($admin)->postJson(route('admin.import-kegiatan.store'), ['rows' => [[
+        'employee_id' => $member->id, 'performance_plan_id' => $plan->id, 'project_id' => $project->id, 'description' => 'Penyiapan kuesioner PDRB triwulanan', 'date_start' => '2026-10-16', 'date_end' => '2026-10-16', ...$extra,
+    ]]])->json();
+
+    expect($save([])['created'])->toBe(0)->and($save([])['skipped'][0]['reason'])->toContain('Mirip dengan kegiatan di kipApp');
+    expect($save(['ignore_similar' => true])['created'])->toBe(1);
+});
+
+it('keeps numbered kegiatan apart: BRS 2 and BRS 5 are two kegiatan', function () {
+    $finder = new KegiatanDuplicateFinder;
+
+    expect($finder->similarity('Mengikuti BRS 2', 'Mengikuti BRS 5'))->toBe(0.0)
+        ->and($finder->similarity('Mengikuti  BRS 2.', 'mengikuti brs 2'))->toBe(1.0)
+        ->and($finder->similarity('Penyiapan kuesioner PDRB triwulanan', 'Menyiapkan kuesioner PDRB triwulanan'))->toBeGreaterThan(0.8);
+});
+
+it('holds an imported kegiatan back from kipApp when a similar one is already there, until "Kirim tetap"', function () {
+    [, , $plan, $member] = importSetup();
+    PlanItem::create(['team_id' => $plan->team_id, 'employee_id' => $member->id, 'performance_plan_id' => $plan->id, 'description' => 'Menyiapkan kuesioner PDRB triwulanan', 'date_start' => '2026-10-15', 'date_end' => '2026-10-15', 'source' => 'kipapp', 'status' => 'done', 'kip_external_id' => 'k1']);
+    $imported = PlanItem::create(['team_id' => $plan->team_id, 'employee_id' => $member->id, 'performance_plan_id' => $plan->id, 'description' => 'Penyiapan kuesioner PDRB triwulanan', 'date_start' => '2026-10-15', 'date_end' => '2026-10-15', 'source' => 'import', 'status' => 'planned']);
+
+    $sent = app(PushPlanItemAction::class)->execute($imported->load('employee'));
+
+    expect($sent)->toBeFalse()->and($imported->fresh()->push_error)->toStartWith(PushPlanItemAction::SIMILAR_PREFIX)
+        ->and($imported->fresh()->push_attempts)->toBe(0);   // not a failure: no notice, no retry count
 });

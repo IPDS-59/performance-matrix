@@ -7,6 +7,7 @@ use App\Models\EmployeeRk;
 use App\Models\PerformancePlan;
 use App\Models\PlanItem;
 use App\Models\Project;
+use App\Services\Kinetik\KegiatanDuplicateFinder;
 use Carbon\Carbon;
 use Illuminate\Support\Collection;
 
@@ -16,6 +17,8 @@ use Illuminate\Support\Collection;
  */
 class PreviewKegiatanImportAction
 {
+    public function __construct(private readonly KegiatanDuplicateFinder $finder = new KegiatanDuplicateFinder) {}
+
     /**
      * @param  list<array<string, mixed>>  $rows
      * @return list<array<string, mixed>>
@@ -87,6 +90,11 @@ class PreviewKegiatanImportAction
                 if ($duplicate) {
                     $own[] = 'Sudah ada di Kinetik.';
                 }
+                // The same work worded differently, or on the neighbouring day: often a kegiatan the member already filed in kipApp.
+                $similar = $employee !== null && ! $duplicate ? $this->finder->find($employee->id, $description, $segment[0]->toDateString(), $segment[1]->toDateString()) : null;
+                if ($similar !== null) {
+                    $own[] = 'Mirip dengan kegiatan '.($similar['in_kipapp'] ? 'di kipApp' : 'di Kinetik').' ('.$similar['date'].'): "'.mb_strimwidth($similar['description'], 0, 80, '…').'". Tidak dicentang; centang bila ini kegiatan yang berbeda.';
+                }
 
                 return [
                     ...$base,
@@ -97,6 +105,7 @@ class PreviewKegiatanImportAction
                     'notes' => $own,
                     'blocked' => $employee === null || $options->isEmpty() || $segment[0]->year !== $tahun || mb_strlen($description) < 10,
                     'duplicate' => $duplicate,
+                    'similar' => $similar === null ? null : ['description' => $similar['description'], 'date' => $similar['date'], 'in_kipapp' => $similar['in_kipapp'], 'score' => $similar['score']],
                 ];
             });
         })->values()->map(fn (array $r, int $i) => ['index' => $i, ...$r])->all();
