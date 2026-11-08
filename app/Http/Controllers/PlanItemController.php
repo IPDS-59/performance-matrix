@@ -115,7 +115,7 @@ class PlanItemController extends Controller
             return back()->with('error', PlanItemAccess::NOT_STARTED);
         }
 
-        return $push->execute($planItem->load(['employee.user', 'performancePlan']))
+        return $push->execute($planItem->load(['employee.user', 'performancePlan']), $request->boolean('force'))
             ? back()->with('success', 'Rencana dikirim ke kipApp.')
             : back()->with('error', 'Belum terkirim: '.$planItem->fresh()->push_error);
     }

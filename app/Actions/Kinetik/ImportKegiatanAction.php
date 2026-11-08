@@ -6,11 +6,14 @@ use App\Models\Employee;
 use App\Models\PerformancePlan;
 use App\Models\PlanItem;
 use App\Models\Team;
+use App\Services\Kinetik\KegiatanDuplicateFinder;
 use Illuminate\Support\Facades\DB;
 
 /** Saves the rows an admin confirmed in the import preview as planned kegiatan. */
 class ImportKegiatanAction
 {
+    public function __construct(private readonly KegiatanDuplicateFinder $finder = new KegiatanDuplicateFinder) {}
+
     /**
      * @param  list<array<string, mixed>>  $rows
      * @return array{created: int, skipped: list<array{description: string, reason: string}>}
@@ -35,6 +38,14 @@ class ImportKegiatanAction
                     ->whereRaw('lower(description) = ?', [mb_strtolower(trim($row['description']))])->exists();
                 if ($duplicate) {
                     $skipped[] = ['description' => $row['description'], 'reason' => 'Sudah ada di Kinetik.'];
+
+                    continue;
+                }
+
+                // Checked again at save: the admin may have ticked a row marked "mirip" (ignore_similar), nothing else gets past it.
+                $similar = ($row['ignore_similar'] ?? false) ? null : $this->finder->find((int) $row['employee_id'], $row['description'], $row['date_start'], $row['date_end'] ?? null);
+                if ($similar !== null) {
+                    $skipped[] = ['description' => $row['description'], 'reason' => 'Mirip dengan kegiatan '.($similar['in_kipapp'] ? 'di kipApp' : 'di Kinetik').' ('.$similar['date'].').'];
 
                     continue;
                 }
