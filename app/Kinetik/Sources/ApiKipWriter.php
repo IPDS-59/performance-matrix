@@ -159,6 +159,21 @@ class ApiKipWriter
         ], 'nilai perilaku');
     }
 
+    /**
+     * Add an RK tambahan to a SKP that is Sedang dibuat, like kipApp's "Add Rencana Kinerja SKP" form (jenis 2 = Tambahan).
+     * Captured live on 2026-11-08: POST v1/skp/rk skpid, jenis=2, rencanakinerja, isselesai=0 -> {"status":true}.
+     */
+    public function createAdditionalRk(string $skpId, string $text): void
+    {
+        $this->send('post', 'v1/skp/rk', ['skpid' => $skpId, 'jenis' => 2, 'rencanakinerja' => $text, 'isselesai' => 0], 'RK tambahan');
+    }
+
+    /** Delete an RK of a SKP with its IKI (DELETE v1/skp/rk id, as kipApp's own Delete does). */
+    public function deleteRk(string $rkId): void
+    {
+        $this->send('delete', 'v1/skp/rk', ['id' => $rkId], 'hapus RK');
+    }
+
     /** Every IKI of a SKP in one call (GET /skp/iki): ikiid, rkid, iki, iscopied, isatasan. @return list<array<string, mixed>> */
     public function ikis(string $skpId): array
     {

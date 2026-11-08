@@ -139,3 +139,25 @@ it('offers only the projek of the member\'s teams that the member has a part in'
     $employee->teams()->updateExistingPivot($team->id, ['role' => 'leader']);
     expect($names($employee->fresh()))->toBe(['Projek lewat RK', 'Projek orang lain', 'Projek saya', 'Projek tanpa anggota']);
 });
+
+it('creates a new RK tambahan in the SKP with POST v1/skp/rk, then files the kegiatan under the rkid kipApp gave it', function () {
+    [, $employee, $team] = memberWithTeam();
+    $rk = PerformancePlan::factory()->create(['team_id' => $team->id, 'project_id' => null, 'kip_external_id' => null, 'description' => 'Menyiapkan bahan rapat koordinasi tambahan', 'is_additional' => true, 'owner_employee_id' => $employee->id]);
+    $item = PlanItem::create(['team_id' => $team->id, 'employee_id' => $employee->id, 'performance_plan_id' => $rk->id, 'description' => 'Menyusun bahan rapat', 'date_start' => '2026-10-08', 'date_end' => '2026-10-08']);
+    Http::fake([
+        '*/v1/skp/rk*' => Http::sequence([
+            Http::response([]),
+            Http::response(['status' => true, 'message' => 'Successfully create/edit data']),
+            Http::response([['rkid' => '15000001', 'rencanakinerja' => 'Menyiapkan bahan rapat koordinasi tambahan']]),
+        ]),
+        '*/v1/skp*' => Http::response([['id' => '1460709', 'periodeid' => 8, 'periodepenilaianid' => 4, 'statusskpid' => 1, 'statusskp' => 'Sedang dibuat']]),
+        '*/v1/kegiatan*' => Http::sequence([Http::response([]), Http::response(['status' => true]), Http::response([['kegiatanperhariid' => 6660001, 'kegiatan' => 'Menyusun bahan rapat']])]),
+    ]);
+
+    config(['kinetik.kip.rk_tambahan_write' => true]);
+    expect(app(PushPlanItemAction::class)->execute($item))->toBeTrue();
+
+    Http::assertSent(fn ($r) => $r->method() === 'POST' && str_ends_with($r->url(), '/v1/skp/rk') && $r['skpid'] === '1460709' && $r['jenis'] === 2 && $r['rencanakinerja'] === 'Menyiapkan bahan rapat koordinasi tambahan' && $r['isselesai'] === 0);
+    Http::assertSent(fn ($r) => $r->method() === 'POST' && str_ends_with($r->url(), '/v1/kegiatan') && $r['rkid'] === '15000001');
+    expect($item->fresh())->kip_rk_id->toBe('15000001')->and($rk->fresh()->kip_external_id)->toBe('15000001');
+});
