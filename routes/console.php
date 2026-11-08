@@ -53,6 +53,9 @@ Schedule::call(fn () => app(RemindWeeklyPlansAction::class)->execute())
     ->name('kinetik:remind-plans')
     ->weeklyOn(1, '09:00');
 
+// The 2nd of each month, 09:00 WITA: remind members whose kegiatan of last month still lack a target or capaian, and their PJ.
+Schedule::command('kinetik:remind-capaian')->name('kinetik:remind-capaian')->monthlyOn(2, '09:00');
+
 // New quarter: the RTL of the locked quarterly recap become plan items.
 // Runs daily and creates each plan once, so a recap locked late is still picked up.
 Schedule::call(fn () => app(CreatePlansFromRtlAction::class)->execute())

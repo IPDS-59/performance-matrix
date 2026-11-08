@@ -603,7 +603,7 @@ export const GUIDE_FLOWS: GuideFlow[] = [
                     'Halaman ini menunjukkan seberapa jauh pekerjaan di bawah tiap IKU: capaian kegiatan dibagi targetnya (paling tinggi 100%), dirata-rata per bulan lewat kegiatan, RK, dan projek yang terhubung ke IKU. Tab "Per tim" memecah hal yang sama per tim.',
                     'Ini progres pekerjaan, bukan realisasi IKU. IKU punya data dasar dan rumusnya sendiri (misalnya jumlah publikasi terbit dibanding rencana), jadi realisasi resmi tetap di Kertas Kerja FRA. Satu IKU bisa dikerjakan beberapa tim: kolom "Tim terkait" memuat semua tim yang punya projek di bawahnya.',
                 ],
-                tip: 'IKU yang kosong biasanya belum ada kegiatan dengan target dan capaian, atau projeknya belum dihubungkan ke IKU di data master.',
+                tip: 'IKU yang kosong biasanya belum ada kegiatan dengan target dan capaian, atau projeknya belum dihubungkan ke IKU di data master. Tab "Per tim" mendaftar semua tim: kolom "Target dan capaian terisi" menunjukkan berapa kegiatan yang sudah lengkap dan siapa yang belum mengisi.',
             },
             {
                 title: 'Tetapkan atau kembalikan SKP anggota',
@@ -1139,6 +1139,10 @@ export const GUIDE_STATUS: GuideStatusFlow[] = [
 ];
 
 export const GUIDE_FAQ = [
+    {
+        q: 'Tim kami tidak muncul di Progres per IKU, atau angkanya kosong. Apa yang harus dilakukan?',
+        a: 'Kegiatan hanya masuk angka bila punya target dan capaian. Kegiatan yang datang dari kipApp belum punya target (kipApp tidak menyimpannya), jadi anggota perlu mengisinya sekali: buka "Isi Capaian Bulanan", pilih bulannya, isi target dan capaian semua kegiatan, lalu simpan. Pada tanggal 2 tiap bulan Kinetik mengirim pengingat ke anggota yang kegiatan bulan lalunya belum lengkap, dan satu ringkasan ke PJ tim. Tab "Per tim" di Progres per IKU menunjukkan siapa yang belum mengisi.',
+    },
     {
         q: 'Admin mengimpor Excel, padahal saya sudah mengisi kegiatan yang sama di kipApp. Apakah jadi dobel?',
         a: 'Tidak seharusnya. Saat impor, baris yang mirip dengan kegiatan Anda yang sudah ada tidak dicentang. Bila tetap ada kegiatan dari impor yang sama dengan yang di kipApp, sinkronisasi menggabungkannya (satu kegiatan, bukan dua). Kegiatan hasil impor juga ditahan sebelum dikirim ke kipApp bila ada yang mirip di sana: Anda melihat "Mirip dengan kegiatan yang sudah ada di kipApp" dan dua pilihan, hapus kegiatannya atau tekan "Kirim tetap" bila memang berbeda.',
