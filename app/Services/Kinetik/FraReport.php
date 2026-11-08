@@ -55,12 +55,10 @@ class FraReport
                     'cum_value' => $upTo === null ? null : $this->calc->value($ind, $upTo[0], $upTo[1]),
                 ];
             }
-            // The LK_Prov export is quarterly: a quarter's analysis is the one written in its last month, else the quarter's own.
+            // The LK_Prov export is quarterly, so a quarter's analysis is built from its three months (see quarterAnalysis).
             $analysis = [];
             foreach ([1, 2, 3, 4] as $q) {
-                $own = $byQuarter->get($q)?->only(['obstacle', 'solution', 'follow_up', 'pic', 'deadline', 'evidence_url', 'previous_follow_up_url']) ?? [];
-                $fromMonth = $byMonth->get($q * 3)?->only(['obstacle', 'solution', 'follow_up', 'pic', 'deadline', 'evidence_url', 'previous_follow_up_url']) ?? [];
-                $analysis[$q] = [...$own, ...array_filter($fromMonth, fn ($v) => filled($v))];
+                $analysis[$q] = $this->quarterAnalysis($byQuarter->get($q), $byMonth, $q);
             }
             $normalized = $now === null ? null : min($now, 110.0);
 
@@ -103,6 +101,54 @@ class FraReport
                 'nko' => $nko,
                 'pko_predicate' => $nko === null ? null : $this->calc->pkoPredicate($nko),
             ],
+        ];
+    }
+
+    private const MONTH_ABBR = [1 => 'Jan', 2 => 'Feb', 3 => 'Mar', 4 => 'Apr', 5 => 'Mei', 6 => 'Jun', 7 => 'Jul', 8 => 'Agu', 9 => 'Sep', 10 => 'Okt', 11 => 'Nov', 12 => 'Des'];
+
+    /**
+     * The analysis of a quarter, cascaded from its months. Kendala, solusi and RTL list each month that wrote one ("Jan: …", "Feb: …"),
+     * so nothing written in the first two months is lost. PIC and deadline are the latest month's, and the evidence links of all months
+     * are kept. What was typed on the quarter itself only fills a field that no month wrote.
+     *
+     * @param  Collection<int, FraMonthValue>  $byMonth
+     * @return array<string, ?string>
+     */
+    private function quarterAnalysis(?FraQuarterValue $own, Collection $byMonth, int $quarter): array
+    {
+        $months = collect(range($quarter * 3 - 2, $quarter * 3))->map(fn (int $m) => [$m, $byMonth->get($m)])->filter(fn (array $p) => $p[1] !== null);
+        $ownAnalysis = $own?->only(['obstacle', 'solution', 'follow_up', 'pic', 'deadline', 'evidence_url', 'previous_follow_up_url']) ?? [];
+
+        // A problem that comes back every month is listed once, with the months it was written in ("Jan–Mar: …", "Jan, Mar: …").
+        $listed = function (string $field) use ($months) {
+            $groups = [];
+            foreach ($months->filter(fn (array $p) => filled($p[1]->{$field})) as [$m, $row]) {
+                $text = trim((string) $row->{$field});
+                $key = mb_strtolower(preg_replace('/\s+/', ' ', $text));
+                $groups[$key]['text'] ??= $text;
+                $groups[$key]['months'][] = $m;
+            }
+
+            return collect($groups)->map(function (array $g) {
+                $first = $g['months'][0];
+                $last = end($g['months']);
+                $consecutive = $last - $first + 1 === count($g['months']);
+                $label = count($g['months']) === 1 ? self::MONTH_ABBR[$first] : ($consecutive ? self::MONTH_ABBR[$first].'–'.self::MONTH_ABBR[$last] : collect($g['months'])->map(fn (int $m) => self::MONTH_ABBR[$m])->implode(', '));
+
+                return $label.': '.$g['text'];
+            })->implode("\n");
+        };
+        $latest = fn (string $field) => $months->map(fn (array $p) => $p[1]->{$field})->filter(fn ($v) => filled($v))->last();
+        $links = fn (string $field) => $months->map(fn (array $p) => trim((string) $p[1]->{$field}))->filter()->unique()->implode("\n");
+
+        return [
+            'obstacle' => $listed('obstacle') ?: ($ownAnalysis['obstacle'] ?? null),
+            'solution' => $listed('solution') ?: ($ownAnalysis['solution'] ?? null),
+            'follow_up' => $listed('follow_up') ?: ($ownAnalysis['follow_up'] ?? null),
+            'pic' => $latest('pic') ?? ($ownAnalysis['pic'] ?? null),
+            'deadline' => $latest('deadline') ?? ($ownAnalysis['deadline'] ?? null),
+            'evidence_url' => $links('evidence_url') ?: ($ownAnalysis['evidence_url'] ?? null),
+            'previous_follow_up_url' => $links('previous_follow_up_url') ?: ($ownAnalysis['previous_follow_up_url'] ?? null),
         ];
     }
 
