@@ -34,7 +34,7 @@ const isHeading = (row: Array<string | number | null>) => row.length <= 2;
                     </td>
                     <template v-else>
                         <td v-for="(_, i) in header" :key="i"
-                            :class="['border-b border-r px-2 py-1 align-top', typeof row[i] === 'number' ? 'text-right tabular-nums' : '', i === 0 ? 'sticky left-0 z-10 w-20 bg-white' : '', i === 1 ? 'sticky left-20 z-10 w-72 whitespace-normal bg-white' : '', i >= 19 && i <= 21 ? 'min-w-64 whitespace-pre-line' : '']">
+                            :class="['border-b border-r px-2 py-1 align-top', typeof row[i] === 'number' ? 'text-right tabular-nums' : '', i === 0 ? 'sticky left-0 z-10 w-20 bg-white' : '', i === 1 ? 'sticky left-20 z-10 w-72 whitespace-normal bg-white' : '', i >= 23 && i <= 25 ? 'min-w-64 whitespace-pre-line' : '']">
                             <a v-if="isUrl(row[i])" :href="String(row[i])" target="_blank" rel="noopener" class="text-blue-700 underline">Tautan</a>
                             <template v-else>{{ show(row[i]) }}</template>
                         </td>
