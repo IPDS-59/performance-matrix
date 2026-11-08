@@ -3,6 +3,7 @@
 use App\Models\Employee;
 use App\Models\FraIndicator;
 use App\Models\FraMonthValue;
+use App\Models\FraQuarterValue;
 use App\Models\Team;
 use Database\Seeders\FraIndicatorSeeder;
 
@@ -96,5 +97,34 @@ it('saves the monthly X and Y of the owner team and builds the quarter from them
     $this->actingAs($pjUser)->get(route('fra.index', ['year' => 2026, 'month' => 3]))->assertInertia(function ($page) {
         $row = collect($page->toArray()['props']['indicators'])->firstWhere('code', '2.6.1.1');
         expect($row['quarters'][1]['realization_value'])->toEqual(60); // (8+10)/(10+20) once month 1 is cleared
+    });
+});
+
+it('keeps a system version from the months and an edited version typed on the quarter, edited winning per field', function () {
+    [$pjUser, $team] = fraPj();
+    [$otherPjUser] = fraPj();
+    $indicator = FraIndicator::where('code', '2.6.1.1')->first();
+    $indicator->update(['owner_team_id' => $team->id]);
+    FraQuarterValue::where('fra_indicator_id', $indicator->id)->update(['obstacle' => null, 'solution' => null, 'follow_up' => null, 'pic' => null, 'deadline' => null, 'evidence_url' => null, 'previous_follow_up_url' => null]);
+    $this->actingAs($pjUser)->patch(route('fra.analysis', [$indicator, 4]), ['obstacle' => 'Data terlambat', 'solution' => 'Rapat koordinasi'])->assertSessionHas('success');
+    $this->actingAs($pjUser)->patch(route('fra.analysis', [$indicator, 5]), ['obstacle' => 'Data terlambat'])->assertSessionHas('success');
+
+    $this->actingAs($otherPjUser)->patch(route('fra.quarter-analysis', [$indicator, 2]), ['obstacle' => 'x'])->assertForbidden();
+    $this->actingAs($pjUser)->patch(route('fra.quarter-analysis', [$indicator, 2]), ['obstacle' => 'Versi PJ', 'solution' => ''])->assertSessionHas('success');
+
+    $read = fn () => $this->actingAs($pjUser)->get(route('fra.index', ['year' => 2026, 'month' => 6]));
+    $read()->assertInertia(function ($page) {
+        $q2 = collect($page->toArray()['props']['indicators'])->firstWhere('code', '2.6.1.1')['values'][2];
+        expect($q2['obstacle'])->toBe('Versi PJ')                                  // edited wins
+            ->and($q2['solution'])->toBe('Apr: Rapat koordinasi')                  // empty edit falls back to the system
+            ->and($q2['system_analysis']['obstacle'])->toBe('Apr–Mei: Data terlambat')
+            ->and($q2['edited_analysis']['obstacle'])->toBe('Versi PJ')
+            ->and($q2['edited_analysis']['solution'])->toBeNull();
+    });
+
+    $this->actingAs($pjUser)->delete(route('fra.quarter-analysis.reset', [$indicator, 2]))->assertSessionHas('success');
+    $read()->assertInertia(function ($page) {
+        $q2 = collect($page->toArray()['props']['indicators'])->firstWhere('code', '2.6.1.1')['values'][2];
+        expect($q2['obstacle'])->toBe('Apr–Mei: Data terlambat')->and($q2['edited_analysis']['obstacle'])->toBeNull();
     });
 });

@@ -10,6 +10,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/Components/ui/select';
 import FraMonthlyTable from '@/Components/Kinetik/FraMonthlyTable.vue';
 import FraAnalysisDialog from '@/Components/Kinetik/FraAnalysisDialog.vue';
+import FraQuarterAnalysis from '@/Components/Kinetik/FraQuarterAnalysis.vue';
 import { downloadFraSheet, fmt } from '@/composables/useFra';
 
 const props = defineProps<FraProps>();
@@ -17,6 +18,8 @@ const MONTHS = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 
 const roman = ['I', 'II', 'III', 'IV'];
 const sakip = ref(props.summary.sakip_score?.toString() ?? '');
 const analysing = ref<FraIndicatorRow | null>(null);
+/** Same data, two ways to read it: the monthly entry sheet, or the quarter's analysis in its system and edited versions. */
+const view = ref<'bulanan' | 'analisis'>('bulanan');
 
 const editable = computed(() => new Set(props.editableIds));
 const teamName = (id: number | null) => props.teams.find(t => t.id === id)?.name ?? null;
@@ -71,6 +74,11 @@ const note = (ind: FraIndicatorRow) => {
             </Button>
         </div>
 
+        <div class="mb-4 inline-flex rounded-lg border bg-white p-1" role="tablist" aria-label="Tampilan Kertas Kerja">
+            <button type="button" role="tab" :aria-selected="view === 'bulanan'" :class="['rounded-md px-3 py-1.5 text-sm font-medium', view === 'bulanan' ? 'bg-primary text-primary-foreground' : 'text-gray-700']" @click="view = 'bulanan'">Isian bulanan</button>
+            <button type="button" role="tab" :aria-selected="view === 'analisis'" :class="['rounded-md px-3 py-1.5 text-sm font-medium', view === 'analisis' ? 'bg-primary text-primary-foreground' : 'text-gray-700']" @click="view = 'analisis'">Analisis TW {{ roman[quarter - 1] }} (sistem dan sunting)</button>
+        </div>
+
         <div class="mb-6 grid gap-3 sm:grid-cols-3">
             <div class="rounded-lg border bg-white p-4">
                 <p class="text-xs font-semibold uppercase tracking-wide text-gray-500">Capaian IKU sampai {{ MONTHS[month - 1] }}</p>
@@ -115,8 +123,9 @@ const note = (ind: FraIndicatorRow) => {
                         </Button>
                     </div>
                 </header>
-                <FraMonthlyTable :indicator="ind" :year="year" :month="month" :editable="editable.has(ind.id)" />
-                <dl v-if="note(ind).length" class="border-t px-4 py-2 text-xs text-gray-700">
+                <FraMonthlyTable v-if="view === 'bulanan'" :indicator="ind" :year="year" :month="month" :editable="editable.has(ind.id)" />
+                <FraQuarterAnalysis v-else :indicator="ind" :quarter="quarter" :editable="editable.has(ind.id)" />
+                <dl v-if="view === 'bulanan' && note(ind).length" class="border-t px-4 py-2 text-xs text-gray-700">
                     <div v-for="[label, text] in note(ind)" :key="label" class="flex gap-2"><dt class="w-24 shrink-0 font-medium text-gray-500">{{ label }}</dt><dd>{{ text }}</dd></div>
                 </dl>
             </article>

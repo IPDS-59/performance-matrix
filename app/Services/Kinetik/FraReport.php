@@ -68,7 +68,7 @@ class FraReport
                 'quarters' => $quarters,
                 'months' => $months,
                 'cum_capaian_year' => $now,
-                'values' => $byQuarter->map(fn (FraQuarterValue $v) => [...$v->only(['allocation_x', 'allocation_y', 'realization_x', 'realization_y']), ...$analysis[$v->quarter]])->all(),
+                'values' => $byQuarter->map(fn (FraQuarterValue $v) => [...$v->only(['allocation_x', 'allocation_y', 'realization_x', 'realization_y']), ...$analysis[$v->quarter]['final'], 'system_analysis' => $analysis[$v->quarter]['system'], 'edited_analysis' => $analysis[$v->quarter]['edited']])->all(),
                 'normalized' => $normalized,
                 'correction' => $correction,
                 'final' => $normalized === null ? null : $normalized * (1 - $correction),
@@ -109,10 +109,10 @@ class FraReport
     /**
      * The analysis of a quarter, cascaded from its months. Kendala, solusi and RTL list each month that wrote one ("Jan: …", "Feb: …"),
      * so nothing written in the first two months is lost. PIC and deadline are the latest month's, and the evidence links of all months
-     * are kept. What was typed on the quarter itself only fills a field that no month wrote.
+     * are kept (the "system" version). What the PJ typed on the quarter (the "edited" version) wins per field when it is filled.
      *
      * @param  Collection<int, FraMonthValue>  $byMonth
-     * @return array<string, ?string>
+     * @return array{system: array<string, ?string>, edited: array<string, ?string>, final: array<string, ?string>}
      */
     private function quarterAnalysis(?FraQuarterValue $own, Collection $byMonth, int $quarter): array
     {
@@ -141,14 +141,31 @@ class FraReport
         $latest = fn (string $field) => $months->map(fn (array $p) => $p[1]->{$field})->filter(fn ($v) => filled($v))->last();
         $links = fn (string $field) => $months->map(fn (array $p) => trim((string) $p[1]->{$field}))->filter()->unique()->implode("\n");
 
+        $system = [
+            'obstacle' => $listed('obstacle') ?: null,
+            'solution' => $listed('solution') ?: null,
+            'follow_up' => $listed('follow_up') ?: null,
+            'pic' => $latest('pic'),
+            'deadline' => $latest('deadline'),
+            'evidence_url' => $links('evidence_url') ?: null,
+            'previous_follow_up_url' => $links('previous_follow_up_url') ?: null,
+        ];
+        // Text on the quarter that nobody typed through the page (loaded from the workbook) is only a fallback for a field the months left empty.
+        $typed = $own?->updated_by !== null;
+        $blank = array_fill_keys(array_keys($system), null);
+        $edited = $typed ? array_map(fn ($v) => filled($v) ? $v : null, $ownAnalysis + $blank) : $blank;
+        if (! $typed) {
+            foreach ($system as $field => $value) {
+                $system[$field] = $value ?? (filled($ownAnalysis[$field] ?? null) ? $ownAnalysis[$field] : null);
+            }
+        }
+
+        // "Versi sistem" is what the months give; "versi sunting" is what the PJ typed on the quarter. The sheet and the export read the
+        // edited field when there is one and the system's otherwise, so editing one field never blanks the others.
         return [
-            'obstacle' => $listed('obstacle') ?: ($ownAnalysis['obstacle'] ?? null),
-            'solution' => $listed('solution') ?: ($ownAnalysis['solution'] ?? null),
-            'follow_up' => $listed('follow_up') ?: ($ownAnalysis['follow_up'] ?? null),
-            'pic' => $latest('pic') ?? ($ownAnalysis['pic'] ?? null),
-            'deadline' => $latest('deadline') ?? ($ownAnalysis['deadline'] ?? null),
-            'evidence_url' => $links('evidence_url') ?: ($ownAnalysis['evidence_url'] ?? null),
-            'previous_follow_up_url' => $links('previous_follow_up_url') ?: ($ownAnalysis['previous_follow_up_url'] ?? null),
+            'system' => $system,
+            'edited' => $edited,
+            'final' => array_map(fn (string $f) => $edited[$f] ?? $system[$f], array_combine(array_keys($system), array_keys($system))),
         ];
     }
 
