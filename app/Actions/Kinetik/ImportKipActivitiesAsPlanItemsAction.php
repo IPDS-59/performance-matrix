@@ -31,6 +31,8 @@ class ImportKipActivitiesAsPlanItemsAction
             ->with('employee:id,team_id')
             ->when($employeeIds !== null, fn ($q) => $q->whereIn('employee_id', collect($employeeIds)->all()))
             ->whereNotNull('employee_id')
+            // Someone evicted by the office guard keeps the kipApp rows already fetched, but they never come back as our kegiatan.
+            ->whereHas('employee', fn ($q) => $q->where('is_active', true))
             ->whereNotNull('activity_date_start')
             ->whereNotIn('external_id', PlanItem::whereNotNull('kip_external_id')->select('kip_external_id'))
             ->orderBy('id')
