@@ -54,11 +54,16 @@ async function addRk() {
 }
 // A kegiatan that was already sent only changes "Masukan ke capaian SKP", like kipApp.
 const sentOnly = computed(() => !!props.item?.sent);
+// The RK (and projek) can still change while the kegiatan is only in Kinetik, e.g. after an Excel import guessed it wrong.
+const rkEditable = computed(() => !props.item || (!props.item.in_kipapp && props.item.status === 'planned'));
 
 watch(() => [props.open, props.item, props.copyOf] as const, ([open, item, copyOf]) => {
     if (!open) return;
     form.clearErrors();
     Object.assign(form, entryFormState(item, copyOf, props.defaultDate, todayIso()));
+    // A kegiatan filed under a copy of an RK shows (and keeps) the option that stands for that RK.
+    const own = props.rkOptions.find(o => o.id === form.performance_plan_id || o.alias_ids.includes(form.performance_plan_id as number));
+    if (own) form.performance_plan_id = own.id;
     externalSelected.value = null;
 }, { immediate: true });
 
@@ -101,7 +106,7 @@ const projectModel = computed(() => {
     const name = rk.value?.external_project ?? externalSelected.value;
     return name ? (externalProjects.value.find(p => p.name === name)?.value ?? null) : null;
 });
-const projectLocked = computed(() => !!props.item || (form.performance_plan_id !== null && (form.project_id !== null || !!rk.value?.external_project)));
+const projectLocked = computed(() => (!!props.item && !rkEditable.value) || (form.performance_plan_id !== null && (form.project_id !== null || !!rk.value?.external_project)));
 const bounds = computed(() => quarterBounds(props.skpYear, form.date_start));
 
 function pickRk(value: number | null) {
@@ -177,9 +182,9 @@ function save() {
             <div class="space-y-1.5">
                 <div class="flex items-center justify-between gap-2">
                     <Label>Rencana Kinerja (RK)</Label>
-                    <Button v-if="form.performance_plan_id !== null && !item" type="button" variant="ghost" size="sm" class="h-7 px-2 text-xs" @click="changeRk">Ganti RK</Button>
+                    <Button v-if="form.performance_plan_id !== null && rkEditable" type="button" variant="ghost" size="sm" class="h-7 px-2 text-xs" @click="changeRk">Ganti RK</Button>
                 </div>
-                <SearchableSelect :model-value="form.performance_plan_id" :options="rkChoices" :placeholder="form.project_id !== null ? 'Pilih RK projek ini' : 'Pilih RK'" search-placeholder="Cari RK…" :disabled="!!item" @update:model-value="pickRk" />
+                <SearchableSelect :model-value="form.performance_plan_id" :options="rkChoices" :placeholder="form.project_id !== null ? 'Pilih RK projek ini' : 'Pilih RK'" search-placeholder="Cari RK…" :disabled="!rkEditable" @update:model-value="pickRk" />
                 <InputError :message="form.errors.performance_plan_id" />
                 <template v-if="!item">
                     <button v-if="!addingRk" type="button" class="text-xs text-primary underline" @click="addingRk = true">Pekerjaan di luar RK tim? Tambah RK tambahan</button>

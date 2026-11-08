@@ -118,3 +118,24 @@ it('walks the member from the months to the weeks of a month to one week, with o
 
     $this->actingAs($user)->get(route('weekly.index', ['week' => '2026-10-13']))->assertInertia(fn ($p) => $p->where('view', 'detail')->where('periods', []));
 });
+
+it('keeps offering the RK a kegiatan already sits under, even when it is not in the member\'s own kipApp list', function () {
+    [$user, $me, , $team, $rk] = weekSetup();
+    $other = PerformancePlan::factory()->create(['project_id' => null, 'team_id' => $team->id, 'description' => 'RK Lain']);
+    EmployeeRk::create(['employee_id' => $me->id, 'kip_rk_id' => 'r1', 'name' => 'RK Inovasi', 'year' => now()->year]);
+    weekItem($me, $team, $other, 'Dari impor', '2026-10-13', '2026-10-14');
+
+    $this->actingAs($user)->get(route('weekly.index', ['week' => '2026-10-15']))
+        ->assertInertia(fn ($p) => $p->has('rkOptions', 2)->where('rkOptions', fn ($o) => collect($o)->pluck('id')->contains($other->id)));
+});
+
+it('lists a copy of an RK under the option that stands for it', function () {
+    [$user, $me, , $team] = weekSetup();
+    $project = Project::factory()->create(['team_id' => $team->id]);
+    $first = PerformancePlan::factory()->create(['project_id' => $project->id, 'team_id' => $team->id, 'description' => 'RK Salinan']);
+    $copy = PerformancePlan::factory()->create(['project_id' => $project->id, 'team_id' => $team->id, 'description' => 'rk  salinan']);
+    weekItem($me, $team, $copy, 'Di salinan', '2026-10-13', '2026-10-14');
+
+    $this->actingAs($user)->get(route('weekly.index', ['week' => '2026-10-15']))
+        ->assertInertia(fn ($p) => $p->where('rkOptions', fn ($o) => collect($o)->contains(fn ($r) => $r['id'] === $copy->id && in_array($first->id, $r['alias_ids']))));
+});

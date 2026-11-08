@@ -678,6 +678,8 @@ export interface PlanComplianceProps {
 
 export interface PlanRkOption {
     id: number;
+    /** Copies of this RK (kipApp makes one per member and quarter) that were folded into this option. */
+    alias_ids: number[];
     description: string;
     team_id: number;
     team_name: string | null;
