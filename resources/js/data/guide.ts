@@ -431,6 +431,17 @@ export const GUIDE_FLOWS: GuideFlow[] = [
                 tip: 'Jika kata sandi SSO Anda ditolak BPS, Kinetik berhenti mengakses kipApp atas nama Anda dan meminta Anda memasukkannya lagi saat masuk. Kinetik tidak mencoba ulang dengan kata sandi yang sama.',
             },
             {
+                title: 'Kirim satu triwulan ke atasan',
+                where: 'Menu Kegiatan → Kirim ke Atasan',
+                route: 'quarter-send.index',
+                body: [
+                    'Halaman ini seperti halaman SKP triwulan di kipApp: semua kegiatan Anda pada satu triwulan, dikelompokkan per RK. Pilih triwulan di atas (TW I sampai IV). Empat kartu menunjukkan jumlah kegiatan yang belum dikirim, sudah dikirim, belum bisa dikirim, dan semuanya. Klik kartu untuk menyaring.',
+                    'Centang kegiatan yang mau dikirim, atau tekan "Pilih semua yang belum dikirim", lalu tekan "Kirim ke atasan". Kinetik menanyakan dulu, lalu mengirim ke kipApp dalam beberapa kelompok bila jumlahnya banyak. "Batalkan kirim" menarik kembali kegiatan yang sudah dikirim selama SKP triwulannya masih Sedang dibuat.',
+                    'Kegiatan yang belum bisa dikirim punya dua sebab: belum ada di kipApp (kirim dulu dari Rekap Mingguan), atau SKP triwulannya sudah dikunci. Menu ini hanya muncul bila admin menyalakan "Kirim kegiatan ke atasan".',
+                ],
+                tip: 'Mengirim kegiatan ke atasan bukan mengirim SKP untuk dinilai. SKP triwulan dikirim di menu SKP Saya.',
+            },
+            {
                 title: 'Lihat hasilnya',
                 where: 'Menu Kegiatan → Pantau Kegiatan, dan menu Rekap Tim',
                 route: 'kip-activities.index',

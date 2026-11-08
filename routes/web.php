@@ -33,6 +33,7 @@ use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\ProjectController;
 use App\Http\Controllers\ProjectDetailController;
 use App\Http\Controllers\ProjectListController;
+use App\Http\Controllers\QuarterSendController;
 use App\Http\Controllers\ReportAttachmentController;
 use App\Http\Controllers\ReportResubmitController;
 use App\Http\Controllers\SkpApprovalController;
@@ -146,6 +147,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('/rencana-minggu/item/{planItem}/kirim', [PlanItemController::class, 'push'])->name('plan-items.push');
     Route::post('/rencana-minggu/item/{planItem}/kirim-atasan', [PlanItemController::class, 'send'])->name('plan-items.send');
     Route::post('/rencana-minggu/item/{planItem}/batal-kirim', [PlanItemController::class, 'unsend'])->name('plan-items.unsend');
+    Route::get('/kirim-atasan', [QuarterSendController::class, 'index'])->name('quarter-send.index');
     Route::post('/rencana-minggu/kirim-atasan', [PlanItemController::class, 'sendMany'])->name('plan-items.send-many');
     Route::post('/rencana-minggu/batal-kirim', [PlanItemController::class, 'unsendMany'])->name('plan-items.unsend-many');
     Route::get('/rencana-minggu/presensi', [PlanItemController::class, 'presensi'])->name('plan-items.presensi');

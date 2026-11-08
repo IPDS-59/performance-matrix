@@ -56,6 +56,7 @@ class HandleInertiaRequests extends Middleware
                 'role' => $request->user()?->role,
             ] : null,
             'can' => fn () => [
+                'send_to_atasan' => (bool) config('kinetik.kip.send_to_atasan'),
                 'manage_personnel' => (bool) $request->user()?->can('manage-personnel'),
                 'manage_employees' => (bool) $request->user()?->can('manage-employees'),
                 'manage_teams' => (bool) $request->user()?->can('manage-teams'),

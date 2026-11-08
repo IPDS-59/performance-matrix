@@ -2,7 +2,7 @@
 import { Link, router, usePage } from '@inertiajs/vue3';
 import { computed, onMounted, onUnmounted, ref, watch, type Component } from 'vue';
 import {
-    Activity, Award, ChevronDown, BadgeCheck, BookOpen, CalendarCheck, CalendarDays, CalendarRange, ClipboardCheck, Eye, FileCheck, FileChartColumn, FileSpreadsheet, FileUp, FolderKanban, Bug, ShieldAlert, Archive,
+    Activity, Award, Send, ChevronDown, BadgeCheck, BookOpen, CalendarCheck, CalendarDays, CalendarRange, ClipboardCheck, Eye, FileCheck, FileChartColumn, FileSpreadsheet, FileUp, FolderKanban, Bug, ShieldAlert, Archive,
     CircleHelp, House, LayoutGrid, LayoutList, ListChecks, ListTodo, LogOut, Menu, Network, PanelLeftClose, PanelLeftOpen, Target, ToggleRight, UserRound, Users, X, Zap,
 } from 'lucide-vue-next';
 import { useSidebarStore } from '@/stores/sidebar';
@@ -59,6 +59,7 @@ const navSections = computed<NavSection[]>(() => {
                 { label: 'Isi Capaian Bulanan', href: route('realisasi.monthly'), active: is('realisasi.monthly*'), icon: ClipboardCheck, show: hasEmployee.value && !isHead.value },
                 { label: isAdmin.value ? 'Kegiatan kipApp' : 'Pantau Kegiatan', href: route('kip-activities.index'), active: is('kip-activities.*'), icon: ListChecks, show: isAdmin.value || (hasEmployee.value && !isHead.value) },
                 { label: 'SKP Saya', href: route('skp.index'), active: is('skp.*'), icon: FileCheck, show: hasEmployee.value && !isHead.value },
+                { label: 'Kirim ke Atasan', href: route('quarter-send.index'), active: is('quarter-send.*'), icon: Send, show: hasEmployee.value && !isHead.value && !!can.value.send_to_atasan },
                 { label: 'Arsip kipApp', href: route('archive'), active: is('archive*'), icon: Archive, show: true },
                 { label: 'Angka Kredit Saya', href: route('credit.mine'), active: is('credit.mine'), icon: Award, show: canViewMyCredit.value },
             ],
