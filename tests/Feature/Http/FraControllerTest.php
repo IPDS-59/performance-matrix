@@ -45,10 +45,10 @@ it('lets only the PJ of the owner team (and admins) write the monthly analysis',
 
     $this->actingAs(adminUser())->patch(route('fra.analysis', [$indicator, 13]), $payload)->assertNotFound();
 
-    // The quarterly export reads the analysis of the quarter's last month.
+    // The quarterly export cascades the quarter's months, each text with its month.
     $this->actingAs($pjUser)->get(route('fra.index', ['year' => 2026, 'month' => 6]))->assertInertia(function ($page) {
         $row = collect($page->toArray()['props']['indicators'])->firstWhere('code', '2.6.1.1');
-        expect($row['values'][2]['obstacle'])->toBe('Kendala uji');
+        expect($row['values'][2]['obstacle'])->toBe('Jun: Kendala uji');
     });
 });
 
