@@ -114,3 +114,13 @@ it('fills the projek of kegiatan from kipApp that came in without one, sent ones
     expect($sent->fresh()->project_id)->toBe($project->id)
         ->and($chosen->fresh()->project_id)->toBeNull();
 });
+
+it('does not turn the kipApp activities of an evicted employee into kegiatan', function () {
+    [$employee] = importFixture();
+    $employee->update(['is_active' => false]);
+    KipActivity::factory()->create(['employee_id' => $employee->id, 'external_id' => 'gone1', 'rk_external_id' => '900']);
+
+    app(ImportKipActivitiesAsPlanItemsAction::class)->execute();
+
+    expect(PlanItem::where('kip_external_id', 'gone1')->exists())->toBeFalse();
+});
