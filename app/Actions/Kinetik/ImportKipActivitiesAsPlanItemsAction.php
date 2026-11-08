@@ -5,6 +5,7 @@ namespace App\Actions\Kinetik;
 use App\Models\KipActivity;
 use App\Models\PerformancePlan;
 use App\Models\PlanItem;
+use App\Models\Project;
 use App\Services\Kinetik\KegiatanDuplicateFinder;
 use Illuminate\Support\Carbon;
 
@@ -53,6 +54,7 @@ class ImportKipActivitiesAsPlanItemsAction
                         'team_id' => $teamId,
                         'employee_id' => $activity->employee_id,
                         'performance_plan_id' => $plan->id,
+                        'project_id' => $this->projectFor($plan, (int) $activity->employee_id),
                         'description' => $activity->description,
                         'date_start' => $activity->activity_date_start,
                         'date_end' => $activity->activity_date_end ?? $activity->activity_date_start,
@@ -76,7 +78,50 @@ class ImportKipActivitiesAsPlanItemsAction
                 }
             });
 
+        $this->fillMissingProjects($employeeIds);
+
         return $created;
+    }
+
+    /**
+     * A kegiatan from kipApp has no projek of its own (kipApp keeps none), so it takes the projek of its RK. A team leader's
+     * RK Ketua sits above the projek rather than in one: it gives the projek only when it heads exactly one projek of theirs.
+     * Under an RK Ketua of several projek kipApp cannot tell which, so the kegiatan stays without one.
+     */
+    private function projectFor(PerformancePlan $plan, int $employeeId): ?int
+    {
+        if ($plan->project_id !== null) {
+            return $plan->project_id;
+        }
+        $norm = fn (?string $t) => mb_strtolower(preg_replace('/\s+/', ' ', trim((string) $t)));
+        $headed = Project::where('leader_id', $employeeId)->whereNotNull('leader_rk')->get(['id', 'leader_rk'])
+            ->filter(fn (Project $p) => $norm($p->leader_rk) === $norm($plan->description));
+
+        return $headed->count() === 1 ? $headed->first()->id : null;
+    }
+
+    /**
+     * Kegiatan from kipApp that came in before their RK had a projek (or before this rule) get it now, sent ones too:
+     * it only groups them in Kinetik and changes nothing in kipApp. Kegiatan made in Kinetik keep the member's choice.
+     *
+     * @param  iterable<int>|null  $employeeIds
+     */
+    private function fillMissingProjects(?iterable $employeeIds): void
+    {
+        PlanItem::query()
+            ->with('performancePlan:id,project_id,description')
+            ->when($employeeIds !== null, fn ($q) => $q->whereIn('employee_id', collect($employeeIds)->all()))
+            ->where('source', 'kipapp')
+            ->whereNull('project_id')
+            ->whereNotNull('performance_plan_id')
+            ->chunkById(500, function ($items) {
+                foreach ($items as $item) {
+                    $projectId = $item->performancePlan ? $this->projectFor($item->performancePlan, (int) $item->employee_id) : null;
+                    if ($projectId !== null) {
+                        $item->update(['project_id' => $projectId]);
+                    }
+                }
+            });
     }
 
     /** @return bool true when an imported kegiatan of the same person, day and words took the kipApp id */
