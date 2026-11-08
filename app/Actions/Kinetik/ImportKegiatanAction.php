@@ -27,9 +27,14 @@ class ImportKegiatanAction
             foreach ($rows as $row) {
                 $plan = PerformancePlan::with('project')->find($row['performance_plan_id']);
                 $teamId = $plan?->project?->team_id ?? $plan?->team_id;
+                // An RK owned by this person alone (a Pusat team's, or an RK tambahan) is theirs whatever their teams hold; it files under their main team.
+                $owned = $plan !== null && (int) $plan->owner_employee_id === (int) $row['employee_id'];
+                if ($owned && $teamId === null) {
+                    $teamId = Employee::find($row['employee_id'])?->teams()->orderByDesc('employee_team.is_primary')->value('teams.id');
+                }
                 $team = $teamId ? Team::find($teamId) : null;
 
-                if ($team === null || ! $team->members()->where('employees.id', $row['employee_id'])->exists()) {
+                if ($team === null || (! $owned && ! $team->members()->where('employees.id', $row['employee_id'])->exists())) {
                     $skipped[] = ['description' => $row['description'], 'reason' => 'RK ini bukan milik tim pegawai.'];
 
                     continue;

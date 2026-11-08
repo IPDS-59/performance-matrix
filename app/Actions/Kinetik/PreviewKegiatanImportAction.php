@@ -39,9 +39,19 @@ class PreviewKegiatanImportAction
 
             $teamIds = $employee?->teams()->pluck('teams.id') ?? collect();
             $project = $employee ? $this->project($teamIds, (string) ($row['project'] ?? '')) : null;
-            $options = $employee ? $this->rkOptions($employee, $teamIds, $project) : collect();
+            $options = $employee ? $this->rankedOptions($this->rkOptions($employee, $teamIds, $project), trim((string) ($row['description'] ?? '')), $project) : collect();
             $rk = $options->count() === 1 ? $options->first() : $options->firstWhere('own', true);
             $rk = $options->where('own', true)->count() === 1 ? $options->firstWhere('own', true) : $rk;
+            // Several candidates: the RK whose words the kegiatan text covers clearly best is picked, and the row says so.
+            if ($options->count() > 1 && $options->where('own', true)->count() !== 1) {
+                $pool = $options->where('own', true)->count() > 1 ? $options->where('own', true)->values() : $options;
+                $best = $pool->first();
+                $second = $pool->get(1);
+                if (($best['score'] ?? 0) >= 0.4 && (($second['score'] ?? 0) <= $best['score'] - 0.2)) {
+                    $rk = $best;
+                    $notes[] = 'RK dipilih dari kemiripan dengan uraian: "'.mb_strimwidth($best['description'], 0, 70, '…').'". Periksa, dan ganti bila keliru.';
+                }
+            }
             if ($employee && $project === null && filled($row['project'] ?? null)) {
                 $notes[] = 'Projek "'.$row['project'].'" tidak ditemukan di tim pegawai ini. Pilih RK yang sesuai secara manual.';
             }
@@ -70,7 +80,7 @@ class PreviewKegiatanImportAction
                 'project_name' => $row['project'] ?? null,
                 'project_id' => $project?->id,
                 'performance_plan_id' => $rk['id'] ?? null,
-                'rk_options' => $options->map(fn (array $o) => ['id' => $o['id'], 'description' => $o['description']])->values()->all(),
+                'rk_options' => $options->map(fn (array $o) => ['id' => $o['id'], 'description' => $o['description'], 'score' => $o['score'] ?? 0.0])->values()->all(),
                 'time_start' => $row['time_start'] ?? null,
                 'time_end' => $row['time_end'] ?? null,
                 'description' => $description,
@@ -183,11 +193,33 @@ class PreviewKegiatanImportAction
             $plans = PerformancePlan::query()->tap($inTeams)->orderBy('description')->get(['id', 'description']);
         }
 
+        // An RK that belongs to this person alone (from a Pusat team, or an RK tambahan) is theirs to file under, whatever their teams hold.
+        $plans = $plans->merge(PerformancePlan::where('owner_employee_id', $employee->id)->orderBy('description')->get(['id', 'description']))->unique('id');
+
         $own = EmployeeRk::where('employee_id', $employee->id)->where('year', (int) config('kinetik.kip.tahun'))->pluck('name')->map(self::norm(...))->flip();
 
         // The same RK text exists once per projek and per member in kipApp: show it once.
         return $plans->map(fn (PerformancePlan $p) => ['id' => $p->id, 'description' => $p->description, 'own' => $own->has(self::norm($p->description))])
             ->sortByDesc('own')->unique(fn (array $o) => self::norm($o['description']))->values();
+    }
+
+    /**
+     * The RK options with a score (how much of the kegiatan's words the RK, or its projek's name, covers), best first; the person's own
+     * kipApp RK break ties. With no text to go by the order stays: own RK first, then alphabetical.
+     *
+     * @param  Collection<int, array<string, mixed>>  $options
+     * @return Collection<int, array<string, mixed>>
+     */
+    private function rankedOptions(Collection $options, string $description, ?Project $project): Collection
+    {
+        if ($description === '') {
+            return $options;
+        }
+
+        return $options->map(fn (array $o) => $o + ['score' => max(
+            $this->finder->coverage($description, $o['description']),
+            $project !== null ? $this->finder->coverage($description, $project->name) * 0.5 : 0.0,
+        )])->sortBy([['score', 'desc'], ['own', 'desc']])->values();
     }
 
     /** A row with no date is a plan for the chosen week (Monday to Friday); a range keeps its real end. @return array{0: Carbon, 1: Carbon} */
