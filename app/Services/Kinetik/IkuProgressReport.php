@@ -11,7 +11,6 @@ use App\Models\Project;
 use App\Models\Team;
 use Carbon\Carbon;
 use Illuminate\Support\Collection;
-use Illuminate\Support\Facades\DB;
 
 /**
  * Progress of the work under each IKU: the capaian members filled in against the target of their kegiatan, rolled up through
@@ -92,7 +91,8 @@ class IkuProgressReport
      */
     private function coverage(int $year): array
     {
-        $names = Employee::pluck(DB::raw('coalesce(display_name, name)'), 'id');
+        // Not pluck(DB::raw(...)): on PostgreSQL that column comes back under another name and every lookup warns.
+        $names = Employee::get(['id', 'name', 'display_name'])->mapWithKeys(fn (Employee $e) => [$e->id => $e->display_name ?? $e->name]);
         $rows = PlanItem::where('status', '!=', 'cancelled')->whereYear('date_start', $year)->whereNotNull('team_id')
             ->get(['team_id', 'employee_id', 'target', 'capaian'])->groupBy('team_id');
 
