@@ -413,3 +413,44 @@ it('tells the weekly page what each kegiatan allows', function () {
         ->where('thisWeek.0.can_edit', false)->where('thisWeek.0.can_send', false)
         ->where('thisWeek.0.lock_reason', 'SKP triwulan sudah dikirim untuk dinilai.')->where('thisWeek.0.startable', true));
 });
+
+it('moves an unsent kegiatan in kipApp to another RK of the member, like kipApp\'s own edit form', function () {
+    config(['kinetik.kip.edit_after_push' => true, 'kinetik.kip.null_times' => true]);
+    $plan = entryInKip();
+    $other = PerformancePlan::factory()->create(['project_id' => null, 'team_id' => $plan->team_id, 'description' => 'RK Lain', 'kip_external_id' => null]);
+    Http::fake([
+        '*/v1/skp/rk*' => Http::response([['rkid' => '14656590', 'rencanakinerja' => 'RK Inovasi'], ['rkid' => '14656599', 'rencanakinerja' => 'rk  lain']]),
+        '*/v1/kegiatan*' => Http::sequence([Http::response(kipRow()), Http::response(['status' => true])]),
+    ]);
+
+    $this->actingAs($plan->employee->user)->patch(route('plan-items.update', $plan), editPayload($plan, ['performance_plan_id' => $other->id]))->assertSessionHas('success');
+
+    Http::assertSent(fn ($r) => $r->method() === 'PUT' && $r['id'] === '5550001' && $r['rkid'] === '14656599' && $r['rencanakinerja'] === 'rk  lain');
+    expect($plan->fresh())->performance_plan_id->toBe($other->id)->kip_rk_id->toBe('14656599');
+});
+
+it('refuses to move a kegiatan to an RK the member has no copy of in that SKP, and changes nothing', function () {
+    config(['kinetik.kip.edit_after_push' => true]);
+    $plan = entryInKip();
+    $other = PerformancePlan::factory()->create(['project_id' => null, 'team_id' => $plan->team_id, 'description' => 'RK Asing', 'kip_external_id' => null]);
+    Http::fake([
+        '*/v1/skp/rk*' => Http::response([['rkid' => '14656590', 'rencanakinerja' => 'RK Inovasi']]),
+        '*/v1/kegiatan*' => Http::response(kipRow()),
+    ]);
+
+    $this->actingAs($plan->employee->user)->patch(route('plan-items.update', $plan), editPayload($plan, ['performance_plan_id' => $other->id]))->assertSessionHas('error');
+
+    Http::assertNotSent(fn ($r) => $r->method() === 'PUT');
+    expect($plan->fresh()->performance_plan_id)->not->toBe($other->id);
+});
+
+it('keeps the RK of a sent kegiatan', function () {
+    config(['kinetik.kip.edit_after_push' => true]);
+    $plan = entryInKip(['kip_sent_at' => now()]);
+    $other = PerformancePlan::factory()->create(['project_id' => null, 'team_id' => $plan->team_id, 'description' => 'RK Lain', 'kip_external_id' => null]);
+    Http::fake(['*/v1/kegiatan*' => Http::sequence([Http::response(kipRow()), Http::response(['status' => true])])]);
+
+    $this->actingAs($plan->employee->user)->patch(route('plan-items.update', $plan), editPayload($plan, ['performance_plan_id' => $other->id, 'is_capaian_skp' => true]))->assertSessionHas('success');
+
+    expect($plan->fresh()->performance_plan_id)->toBe($plan->performance_plan_id);
+});

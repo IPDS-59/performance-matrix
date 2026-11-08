@@ -54,8 +54,8 @@ async function addRk() {
 }
 // A kegiatan that was already sent only changes "Masukan ke capaian SKP", like kipApp.
 const sentOnly = computed(() => !!props.item?.sent);
-// The RK (and projek) can still change while the kegiatan is only in Kinetik, e.g. after an Excel import guessed it wrong.
-const rkEditable = computed(() => !props.item || (!props.item.in_kipapp && props.item.status === 'planned'));
+// The RK (and projek) can change until the kegiatan is sent to the atasan, like kipApp's own edit form (verified live): e.g. after an Excel import guessed it wrong.
+const rkEditable = computed(() => !props.item || (!props.item.sent && props.item.can_edit));
 
 watch(() => [props.open, props.item, props.copyOf] as const, ([open, item, copyOf]) => {
     if (!open) return;

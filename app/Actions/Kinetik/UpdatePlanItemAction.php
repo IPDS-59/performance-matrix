@@ -4,6 +4,7 @@ namespace App\Actions\Kinetik;
 
 use App\Kinetik\Exceptions\KipApiException;
 use App\Kinetik\Sources\ApiKipWriter;
+use App\Models\PerformancePlan;
 use App\Models\PlanItem;
 use App\Services\Kinetik\MemberKipToken;
 use RuntimeException;
@@ -35,11 +36,20 @@ class UpdatePlanItemAction
                 throw new RuntimeException('Kegiatan ini sudah tidak ada di kipApp. Hubungi PJ atau buat rencana baru.');
             }
 
+            // kipApp's own edit form lets the RK change while the kegiatan is unsent: PUT v1/kegiatan with the new rkid
+            // (verified live 2026-11-08, the row came back under the new RK). The RK must be one of the member's RK in that SKP.
+            $rk = $row;
+            if ((int) $next->performance_plan_id !== (int) $plan->performance_plan_id) {
+                $rk = $this->rkIn($writer->rks($found['skp_id']), PerformancePlan::find($next->performance_plan_id))
+                    ?? throw new RuntimeException('RK itu belum ada di SKP triwulan pegawai di kipApp, jadi kegiatan tidak bisa dipindahkan ke sana.');
+                $next->kip_rk_id = (string) $rk['rkid'];
+            }
+
             $fields = $next->kipFields();
             $writer->updateActivity((string) $plan->kip_external_id, [
                 'skpid' => $found['skp_id'],
-                'rkid' => (string) $row['rkid'],
-                'rencanakinerja' => (string) $row['rencanakinerja'],
+                'rkid' => (string) $rk['rkid'],
+                'rencanakinerja' => (string) $rk['rencanakinerja'],
                 'kegiatan' => $next->description,
                 ...$fields,
                 'capaian' => $fields['capaian'] !== '' ? $fields['capaian'] : (string) ($row['capaian'] ?? ''),
@@ -52,5 +62,22 @@ class UpdatePlanItemAction
         $next->status = $next->progress >= 100 ? 'done' : ($next->progress > 0 ? 'in_progress' : 'pushed');
         $next->kip_synced_at = now();
         $next->save();
+    }
+
+    /**
+     * The member's RK row in the SKP that stands for this RK: by the kipApp id when it is the same copy, else by its text.
+     *
+     * @param  list<array<string, mixed>>  $rks
+     * @return array<string, mixed>|null
+     */
+    private function rkIn(array $rks, ?PerformancePlan $plan): ?array
+    {
+        if ($plan === null) {
+            return null;
+        }
+        $norm = fn (?string $t) => mb_strtolower(preg_replace('/\s+/', ' ', trim((string) $t)));
+
+        return collect($rks)->first(fn (array $r) => $plan->kip_external_id !== null && (string) $r['rkid'] === (string) $plan->kip_external_id)
+            ?? collect($rks)->first(fn (array $r) => $norm($r['rencanakinerja'] ?? null) === $norm($plan->description));
     }
 }
