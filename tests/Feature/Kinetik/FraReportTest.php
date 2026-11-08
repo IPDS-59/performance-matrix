@@ -83,3 +83,18 @@ it('keeps the analysis typed on the quarter when no month wrote one', function (
 
     expect($report['indicators'][0]['values'][2]['obstacle'])->toBe('Ditulis di triwulan');
 });
+
+it('lists a problem that repeats every month once, with the months it was written in', function () {
+    $this->seed(FraIndicatorSeeder::class);
+    $ind = FraIndicator::where('code', '2.5.1.1')->first();
+    foreach ([1, 2, 3] as $m) {
+        FraMonthValue::create(['fra_indicator_id' => $ind->id, 'month' => $m, 'x' => 1, 'obstacle' => $m === 3 ? 'Coverage rendah' : 'Cakupan  rendah', 'solution' => $m === 2 ? 'Tambah petugas' : 'Cakupan rendah']);
+    }
+    // same wording (case and spacing aside) in months 1 and 2 only
+    FraMonthValue::where('fra_indicator_id', $ind->id)->where('month', 3)->update(['obstacle' => 'cakupan rendah']);
+
+    $tw1 = (new FraReport(new FraCalculator))->build(FraIndicator::with(['quarterValues', 'monthValues'])->where('id', $ind->id)->get(), 1)['indicators'][0]['values'][1];
+
+    expect($tw1['obstacle'])->toBe('Jan–Mar: Cakupan  rendah')
+        ->and($tw1['solution'])->toBe("Jan, Mar: Cakupan rendah\nFeb: Tambah petugas");
+});

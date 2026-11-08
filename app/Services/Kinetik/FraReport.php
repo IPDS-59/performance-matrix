@@ -119,7 +119,25 @@ class FraReport
         $months = collect(range($quarter * 3 - 2, $quarter * 3))->map(fn (int $m) => [$m, $byMonth->get($m)])->filter(fn (array $p) => $p[1] !== null);
         $ownAnalysis = $own?->only(['obstacle', 'solution', 'follow_up', 'pic', 'deadline', 'evidence_url', 'previous_follow_up_url']) ?? [];
 
-        $listed = fn (string $field) => $months->filter(fn (array $p) => filled($p[1]->{$field}))->map(fn (array $p) => self::MONTH_ABBR[$p[0]].': '.trim((string) $p[1]->{$field}))->implode("\n");
+        // A problem that comes back every month is listed once, with the months it was written in ("Jan–Mar: …", "Jan, Mar: …").
+        $listed = function (string $field) use ($months) {
+            $groups = [];
+            foreach ($months->filter(fn (array $p) => filled($p[1]->{$field})) as [$m, $row]) {
+                $text = trim((string) $row->{$field});
+                $key = mb_strtolower(preg_replace('/\s+/', ' ', $text));
+                $groups[$key]['text'] ??= $text;
+                $groups[$key]['months'][] = $m;
+            }
+
+            return collect($groups)->map(function (array $g) {
+                $first = $g['months'][0];
+                $last = end($g['months']);
+                $consecutive = $last - $first + 1 === count($g['months']);
+                $label = count($g['months']) === 1 ? self::MONTH_ABBR[$first] : ($consecutive ? self::MONTH_ABBR[$first].'–'.self::MONTH_ABBR[$last] : collect($g['months'])->map(fn (int $m) => self::MONTH_ABBR[$m])->implode(', '));
+
+                return $label.': '.$g['text'];
+            })->implode("\n");
+        };
         $latest = fn (string $field) => $months->map(fn (array $p) => $p[1]->{$field})->filter(fn ($v) => filled($v))->last();
         $links = fn (string $field) => $months->map(fn (array $p) => trim((string) $p[1]->{$field}))->filter()->unique()->implode("\n");
 
