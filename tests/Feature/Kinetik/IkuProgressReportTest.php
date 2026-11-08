@@ -57,9 +57,13 @@ it('breaks the same kegiatan down per team and marks an IKU with no IKU record',
 
     $report = (new IkuProgressReport)->build(2026);
 
-    expect($report['teams'])->toHaveCount(1)->and($report['teams'][0]['name'])->toBe('Tim A')
-        ->and($report['teams'][0]['year_value'])->toBe(50.0)
-        ->and($report['teams'][0]['ikus'])->toBe([['code' => '1.1.1.1', 'items' => 1]])
+    $team = fn (string $name) => collect($report['teams'])->firstWhere('name', $name);
+
+    // every active team is listed; the figures only exist for the one with a target and capaian
+    expect(collect($report['teams'])->pluck('name'))->toContain('Tim A', 'Tim B')
+        ->and($team('Tim A')['year_value'])->toBe(50.0)
+        ->and($team('Tim A')['ikus'])->toBe([['code' => '1.1.1.1', 'items' => 1]])
+        ->and($team('Tim B')['year_value'])->toBeNull()->and($team('Tim B')['coverage'])->toBe(['kegiatan' => 0, 'with_target' => 0, 'filled' => 0, 'people' => []])
         ->and($report['indicators'][1]['linked'])->toBeFalse();
 });
 
@@ -71,4 +75,17 @@ it('is readable by whoever can read the FRA and refused for a plain member', fun
     $member = User::factory()->create();
     $member->assignRole('staff');
     $this->actingAs($member)->get(route('iku-progress.index'))->assertForbidden();
+});
+
+it('says per team how many kegiatan lack a target or capaian and whose they are', function () {
+    [, $teamA, , $rkA, , $item] = ikuFixture();
+    $item($rkA, $teamA, '2026-03-02', 10, 5);                  // filled
+    $item($rkA, $teamA, '2026-03-03', 10, null);               // target, no capaian
+    $nobody = Employee::factory()->create(['name' => 'Budi']);
+    PlanItem::create(['team_id' => $teamA->id, 'employee_id' => $nobody->id, 'performance_plan_id' => $rkA->id, 'description' => 'Tanpa target', 'date_start' => '2026-03-04', 'date_end' => '2026-03-04', 'status' => 'done', 'source' => 'kipapp']);
+
+    $coverage = collect((new IkuProgressReport)->build(2026)['teams'])->firstWhere('name', 'Tim A')['coverage'];
+
+    expect($coverage['kegiatan'])->toBe(3)->and($coverage['with_target'])->toBe(2)->and($coverage['filled'])->toBe(1)
+        ->and(collect($coverage['people'])->sum('missing'))->toBe(2)->and(collect($coverage['people'])->pluck('id'))->toContain($nobody->id);
 });

@@ -2,6 +2,7 @@
 
 namespace App\Services\Kinetik;
 
+use App\Models\Employee;
 use App\Models\FraIndicator;
 use App\Models\PerformanceIndicator;
 use App\Models\PerformancePlan;
@@ -10,6 +11,7 @@ use App\Models\Project;
 use App\Models\Team;
 use Carbon\Carbon;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\DB;
 
 /**
  * Progress of the work under each IKU: the capaian members filled in against the target of their kegiatan, rolled up through
@@ -65,14 +67,46 @@ class IkuProgressReport
             ];
         })->values()->all();
 
-        $teams = collect($teamBuckets)->map(fn (array $b, int|string $id) => [
-            'id' => (int) $id,
-            'name' => $b['name'],
-            'ikus' => collect($b['ikus'])->map(fn (int $n, string $code) => ['code' => $code, 'items' => $n])->values()->all(),
-            ...$this->aggregate($b['items']),
-        ])->sortBy('name')->values()->all();
+        // Every active team is listed, also one with nothing to show yet, with what is missing and from whom: a team does not appear in
+        // the figures until its kegiatan have a target and a capaian, and that is the thing to follow up.
+        $coverage = $this->coverage($year);
+        $teams = Team::where('is_active', true)->orderBy('name')->get(['id', 'name'])->map(function (Team $team) use ($teamBuckets, $coverage) {
+            $bucket = $teamBuckets[$team->id] ?? null;
+
+            return [
+                'id' => $team->id,
+                'name' => $team->name,
+                'ikus' => $bucket ? collect($bucket['ikus'])->map(fn (int $n, string $code) => ['code' => $code, 'items' => $n])->values()->all() : [],
+                ...$this->aggregate($bucket['items'] ?? collect()),
+                'coverage' => $coverage[$team->id] ?? ['kegiatan' => 0, 'with_target' => 0, 'filled' => 0, 'people' => []],
+            ];
+        })->values()->all();
 
         return ['year' => $year, 'indicators' => $rows, 'teams' => $teams];
+    }
+
+    /**
+     * Per team: kegiatan of the year, how many have a target, how many have target and capaian, and the people with the most missing.
+     *
+     * @return array<int, array{kegiatan: int, with_target: int, filled: int, people: list<array{id: int, name: string, missing: int}>}>
+     */
+    private function coverage(int $year): array
+    {
+        $names = Employee::pluck(DB::raw('coalesce(display_name, name)'), 'id');
+        $rows = PlanItem::where('status', '!=', 'cancelled')->whereYear('date_start', $year)->whereNotNull('team_id')
+            ->get(['team_id', 'employee_id', 'target', 'capaian'])->groupBy('team_id');
+
+        return $rows->map(function (Collection $items) use ($names) {
+            $filled = fn ($i) => (float) $i->target > 0 && $i->capaian !== null;
+
+            return [
+                'kegiatan' => $items->count(),
+                'with_target' => $items->filter(fn ($i) => (float) $i->target > 0)->count(),
+                'filled' => $items->filter($filled)->count(),
+                'people' => $items->reject($filled)->groupBy('employee_id')->map(fn (Collection $m, $id) => ['id' => (int) $id, 'name' => (string) ($names[$id] ?? '-'), 'missing' => $m->count()])
+                    ->sortByDesc('missing')->values()->all(),
+            ];
+        })->all();
     }
 
     /**
