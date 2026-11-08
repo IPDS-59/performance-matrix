@@ -4,6 +4,7 @@ import { Head, router } from '@inertiajs/vue3';
 import { computed, ref } from 'vue';
 import { Info } from 'lucide-vue-next';
 import { Button } from '@/Components/ui/button';
+import { formatNumber } from '@/composables/useNumber';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/Components/ui/table';
 
 interface Month { value: number | null; items: number }
@@ -43,7 +44,7 @@ const go = (year: number) => router.get(route('iku-progress.index'), { year }, {
                 <button type="button" role="tab" :aria-selected="tab === 'team'" :class="['rounded-md px-3 py-1.5 text-sm font-medium', tab === 'team' ? 'bg-primary text-primary-foreground' : 'text-gray-700']" @click="tab = 'team'">Per tim</button>
             </div>
             <div class="flex items-center gap-2 text-sm text-gray-600">
-                <span>{{ withWork }} dari {{ indicators.length }} IKU dan {{ teamsWithFigures }} dari {{ teams.length }} tim punya kegiatan dengan target dan capaian.</span>
+                <span>{{ formatNumber(withWork) }} dari {{ formatNumber(indicators.length) }} IKU dan {{ formatNumber(teamsWithFigures) }} dari {{ formatNumber(teams.length) }} tim punya kegiatan dengan target dan capaian.</span>
                 <Button v-for="y in years" :key="y" size="sm" :variant="y === year ? 'default' : 'outline'" @click="go(y)">{{ y }}</Button>
             </div>
         </div>
@@ -68,10 +69,10 @@ const go = (year: number) => router.get(route('iku-progress.index'), { year }, {
                         </TableCell>
                         <TableCell class="whitespace-normal text-xs text-gray-700">{{ i.teams.join(', ') || '-' }}</TableCell>
                         <TableCell v-for="(m, n) in MONTHS" :key="m" class="px-1 text-right">
-                            <span :class="['block rounded px-1.5 py-1 text-right text-xs tabular-nums', tone(i.months[n + 1].value)]" :title="`${i.months[n + 1].items} kegiatan`">{{ fmt(i.months[n + 1].value) }}</span>
+                            <span :class="['block rounded px-1.5 py-1 text-right text-xs tabular-nums', tone(i.months[n + 1].value)]" :title="`${formatNumber(i.months[n + 1].items)} kegiatan`">{{ fmt(i.months[n + 1].value) }}</span>
                         </TableCell>
                         <TableCell class="text-right font-semibold tabular-nums">{{ fmt(i.year_value) }}</TableCell>
-                        <TableCell class="text-right tabular-nums text-gray-600">{{ i.items }}</TableCell>
+                        <TableCell class="text-right tabular-nums text-gray-600">{{ formatNumber(i.items) }}</TableCell>
                     </TableRow>
                 </TableBody>
             </Table>
@@ -92,17 +93,17 @@ const go = (year: number) => router.get(route('iku-progress.index'), { year }, {
                 <TableBody>
                     <TableRow v-for="t in teams" :key="t.id" :class="t.items === 0 ? 'bg-gray-50/60' : ''">
                         <TableCell class="whitespace-normal text-sm font-medium">{{ t.name }}</TableCell>
-                        <TableCell class="whitespace-normal text-xs text-gray-700">{{ t.ikus.map((i) => `${i.code} (${i.items})`).join(', ') || '-' }}</TableCell>
+                        <TableCell class="whitespace-normal text-xs text-gray-700">{{ t.ikus.map((i) => `${i.code} (${formatNumber(i.items)})`).join(', ') || '-' }}</TableCell>
                         <TableCell class="whitespace-normal text-xs">
-                            <span :class="['font-semibold tabular-nums', pct(t.coverage) >= 80 ? 'text-green-700' : pct(t.coverage) > 0 ? 'text-amber-700' : 'text-red-700']">{{ t.coverage.filled }} dari {{ t.coverage.kegiatan }} kegiatan ({{ pct(t.coverage) }}%)</span>
+                            <span :class="['font-semibold tabular-nums', pct(t.coverage) >= 80 ? 'text-green-700' : pct(t.coverage) > 0 ? 'text-amber-700' : 'text-red-700']">{{ formatNumber(t.coverage.filled) }} dari {{ formatNumber(t.coverage.kegiatan) }} kegiatan ({{ formatNumber(pct(t.coverage)) }}%)</span>
                             <span v-if="t.items === 0 && t.coverage.kegiatan" class="block text-gray-600">Belum masuk angka: kegiatannya belum punya target dan capaian.</span>
-                            <span v-if="t.coverage.people.length" class="block text-gray-600">Belum diisi: {{ t.coverage.people.slice(0, 4).map((p) => `${p.name} (${p.missing})`).join(', ') }}<template v-if="t.coverage.people.length > 4"> dan {{ t.coverage.people.length - 4 }} lainnya</template></span>
+                            <span v-if="t.coverage.people.length" class="block text-gray-600">Belum diisi: {{ t.coverage.people.slice(0, 4).map((p) => `${p.name} (${formatNumber(p.missing)})`).join(', ') }}<template v-if="t.coverage.people.length > 4"> dan {{ formatNumber(t.coverage.people.length - 4) }} lainnya</template></span>
                         </TableCell>
                         <TableCell v-for="(m, n) in MONTHS" :key="m" class="px-1 text-right">
-                            <span :class="['block rounded px-1.5 py-1 text-right text-xs tabular-nums', tone(t.months[n + 1].value)]" :title="`${t.months[n + 1].items} kegiatan`">{{ fmt(t.months[n + 1].value) }}</span>
+                            <span :class="['block rounded px-1.5 py-1 text-right text-xs tabular-nums', tone(t.months[n + 1].value)]" :title="`${formatNumber(t.months[n + 1].items)} kegiatan`">{{ fmt(t.months[n + 1].value) }}</span>
                         </TableCell>
                         <TableCell class="text-right font-semibold tabular-nums">{{ fmt(t.year_value) }}</TableCell>
-                        <TableCell class="text-right tabular-nums text-gray-600">{{ t.items }}</TableCell>
+                        <TableCell class="text-right tabular-nums text-gray-600">{{ formatNumber(t.items) }}</TableCell>
                     </TableRow>
                 </TableBody>
             </Table>

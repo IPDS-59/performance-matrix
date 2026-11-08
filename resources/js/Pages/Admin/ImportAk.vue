@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { formatNumber } from '@/composables/useNumber';
 import AppLayout from '@/Layouts/AppLayout.vue';
 import { Head } from '@inertiajs/vue3';
 import axios from 'axios';
@@ -152,14 +153,14 @@ async function save() {
         </div>
 
         <p v-if="error" class="mb-4 flex items-start gap-2 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800" role="alert"><CircleAlert class="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" /> {{ error }}</p>
-        <p v-if="saved !== null" class="mb-4 flex items-start gap-2 rounded-lg border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-800" role="status"><CircleCheck class="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" /> {{ saved }} pegawai disimpan.</p>
+        <p v-if="saved !== null" class="mb-4 flex items-start gap-2 rounded-lg border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-800" role="status"><CircleCheck class="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" /> {{ formatNumber(saved) }} pegawai disimpan.</p>
 
         <div v-if="rows.length" class="rounded-xl border bg-white">
             <div class="flex flex-wrap items-center justify-between gap-3 border-b px-4 py-3">
-                <p class="text-sm text-gray-700">{{ rows.length }} baris dibaca, {{ selected.length }} akan disimpan.</p>
+                <p class="text-sm text-gray-700">{{ formatNumber(rows.length) }} baris dibaca, {{ formatNumber(selected.length) }} akan disimpan.</p>
                 <div class="flex gap-2">
                     <Button variant="outline" :disabled="busy" @click="compare">Bandingkan dengan hitungan Kinetik</Button>
-                    <Button :disabled="!selected.length || busy" @click="save">{{ busy ? 'Menyimpan…' : `Simpan ${selected.length} pegawai` }}</Button>
+                    <Button :disabled="!selected.length || busy" @click="save">{{ busy ? 'Menyimpan…' : `Simpan ${formatNumber(selected.length)} pegawai` }}</Button>
                 </div>
             </div>
             <div class="overflow-x-auto">
@@ -198,7 +199,7 @@ async function save() {
             <div class="border-b px-4 py-3">
                 <h2 class="text-sm font-semibold">Perbandingan AK per tahun</h2>
                 <p class="mt-1 text-xs text-gray-600">
-                    Angka kantor (satu predikat setahun) di samping hitungan Kinetik dari penilaian bulanan kipApp. {{ matchCount }} dari {{ compareRows.length }} pegawai sama di semua tahun.
+                    Angka kantor (satu predikat setahun) di samping hitungan Kinetik dari penilaian bulanan kipApp. {{ formatNumber(matchCount) }} dari {{ formatNumber(compareRows.length) }} pegawai sama di semua tahun.
                     "Beda predikat" berarti jabatan dan bulannya cocok tetapi predikatnya berbeda, misalnya kantor memakai Sangat Baik setahun penuh. "Bulan kosong" berarti kipApp tidak punya penilaian untuk sebagian bulan.
                 </p>
             </div>
