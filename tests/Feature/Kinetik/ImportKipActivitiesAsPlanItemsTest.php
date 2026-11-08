@@ -5,6 +5,7 @@ use App\Models\Employee;
 use App\Models\KipActivity;
 use App\Models\PerformancePlan;
 use App\Models\PlanItem;
+use App\Models\Project;
 use App\Models\Team;
 
 function importFixture(): array
@@ -72,4 +73,44 @@ it('joins a synced kipApp kegiatan to an imported one of the same person, day an
         ->and($imported->fresh()->capaian_note)->toBe('selesai')
         ->and($other->fresh()->kip_external_id)->toBeNull()      // BRS 2 is not BRS 5
         ->and(PlanItem::where('employee_id', $employee->id)->count())->toBe(3);
+});
+
+it('gives a kegiatan from kipApp the projek of its RK', function () {
+    [$employee, $plan] = importFixture();
+    $project = Project::factory()->create(['team_id' => $plan->team_id]);
+    $plan->update(['project_id' => $project->id]);
+    KipActivity::factory()->create(['employee_id' => $employee->id, 'external_id' => 'p1', 'rk_external_id' => '900']);
+
+    app(ImportKipActivitiesAsPlanItemsAction::class)->execute();
+
+    expect(PlanItem::firstWhere('kip_external_id', 'p1')->project_id)->toBe($project->id);
+});
+
+it('gives a kegiatan under a team leader\'s RK Ketua the projek, only when that RK Ketua heads one projek of theirs', function () {
+    $team = Team::factory()->create();
+    $leader = Employee::factory()->create(['team_id' => $team->id]);
+    $zi = PerformancePlan::factory()->create(['team_id' => $team->id, 'project_id' => null, 'kip_external_id' => '901', 'description' => 'Terlaksananya Keberhasilan Pembangunan Zona Integritas']);
+    $sosial = PerformancePlan::factory()->create(['team_id' => $team->id, 'project_id' => null, 'kip_external_id' => '902', 'description' => 'Tersedianya Laporan Statistik Ketahanan Sosial']);
+    $ziProject = Project::factory()->create(['team_id' => $team->id, 'leader_id' => $leader->id, 'leader_rk' => 'Terlaksananya  keberhasilan Pembangunan Zona Integritas ']);
+    Project::factory()->count(2)->create(['team_id' => $team->id, 'leader_id' => $leader->id, 'leader_rk' => 'Tersedianya Laporan Statistik Ketahanan Sosial']);
+    KipActivity::factory()->create(['employee_id' => $leader->id, 'external_id' => 'k1', 'rk_external_id' => '901']);
+    KipActivity::factory()->create(['employee_id' => $leader->id, 'external_id' => 'k2', 'rk_external_id' => '902']);
+
+    app(ImportKipActivitiesAsPlanItemsAction::class)->execute();
+
+    expect(PlanItem::firstWhere('kip_external_id', 'k1')->project_id)->toBe($ziProject->id)
+        ->and(PlanItem::firstWhere('kip_external_id', 'k2')->project_id)->toBeNull();
+});
+
+it('fills the projek of kegiatan from kipApp that came in without one, sent ones too', function () {
+    [$employee, $plan] = importFixture();
+    $project = Project::factory()->create(['team_id' => $plan->team_id]);
+    $plan->update(['project_id' => $project->id]);
+    $sent = PlanItem::create(['team_id' => $employee->team_id, 'employee_id' => $employee->id, 'performance_plan_id' => $plan->id, 'description' => 'Pataba BPS Prov Sulteng', 'date_start' => '2026-09-28', 'date_end' => '2026-09-28', 'source' => 'kipapp', 'status' => 'done', 'kip_external_id' => 'old1', 'kip_sent_at' => '2026-09-29']);
+    $chosen = PlanItem::create(['team_id' => $employee->team_id, 'employee_id' => $employee->id, 'performance_plan_id' => $plan->id, 'description' => 'Dibuat di Kinetik tanpa projek', 'date_start' => '2026-09-28', 'date_end' => '2026-09-28', 'source' => 'member', 'status' => 'planned']);
+
+    app(ImportKipActivitiesAsPlanItemsAction::class)->execute();
+
+    expect($sent->fresh()->project_id)->toBe($project->id)
+        ->and($chosen->fresh()->project_id)->toBeNull();
 });
