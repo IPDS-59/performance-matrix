@@ -17,6 +17,9 @@ use RuntimeException;
  */
 class SendPlanItemAction
 {
+    /** Kegiatan per kipApp call. */
+    private const BATCH = 100;
+
     public function __construct(private readonly MemberKipToken $tokens, private readonly PlanItemAccess $access) {}
 
     /**
@@ -61,14 +64,17 @@ class SendPlanItemAction
         }
 
         foreach ($plans->groupBy('employee_id') as $group) {
-            $ids = $group->map(fn (PlanItem $p) => (string) $p->kip_external_id)->all();
-            try {
-                $writer = $this->writer($group->first());
-                $cancel ? $writer->cancelSend($ids) : $writer->sendActivities($ids);
-            } catch (KipApiException $e) {
-                throw new RuntimeException(($cancel ? 'kipApp menolak pembatalan: ' : 'kipApp menolak pengiriman: ').$e->getMessage());
+            // A whole quarter can be hundreds of kegiatan: kipApp gets them in batches, and each batch is marked once it is accepted.
+            foreach ($group->chunk(self::BATCH) as $batch) {
+                $ids = $batch->map(fn (PlanItem $p) => (string) $p->kip_external_id)->all();
+                try {
+                    $writer = $this->writer($batch->first());
+                    $cancel ? $writer->cancelSend($ids) : $writer->sendActivities($ids);
+                } catch (KipApiException $e) {
+                    throw new RuntimeException(($cancel ? 'kipApp menolak pembatalan: ' : 'kipApp menolak pengiriman: ').$e->getMessage());
+                }
+                PlanItem::whereKey($batch->pluck('id'))->update(['kip_sent_at' => $cancel ? null : now()]);
             }
-            PlanItem::whereKey($group->pluck('id'))->update(['kip_sent_at' => $cancel ? null : now()]);
         }
     }
 

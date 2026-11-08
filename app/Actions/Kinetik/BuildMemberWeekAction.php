@@ -45,8 +45,19 @@ class BuildMemberWeekAction
     /** @return list<array<string, mixed>> */
     private function rows(Employee $employee, Carbon $monday): array
     {
+        return $this->rowsBetween($employee, $monday->toDateString(), $monday->copy()->endOfWeek(Carbon::SUNDAY)->toDateString());
+    }
+
+    /**
+     * The member's kegiatan that overlap the dates, in the shape of the Rekap Mingguan tables (what the member may still do with each
+     * one comes from the settings and the SKP status). Also read by the quarterly "Kirim ke atasan" page.
+     *
+     * @return list<array<string, mixed>>
+     */
+    public function rowsBetween(Employee $employee, string $from, string $to): array
+    {
         return PlanItem::where('employee_id', $employee->id)
-            ->duringWeek($monday->toDateString(), $monday->copy()->endOfWeek(Carbon::SUNDAY)->toDateString())
+            ->duringWeek($from, $to)
             ->with('performancePlan:id,description')
             ->orderBy('date_start')
             ->orderBy('id')
