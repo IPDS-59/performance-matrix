@@ -409,7 +409,7 @@ export const GUIDE_FLOWS: GuideFlow[] = [
                 body: [
                     'Kalau ada pekerjaan yang tidak termasuk RK tim, misalnya tugas dari pimpinan, buat RK tambahan sendiri. Di form kegiatan, tekan "Pekerjaan di luar RK tim? Tambah RK tambahan", tulis RK-nya (minimal 10 karakter), lalu tekan "Simpan RK tambahan". Projek tidak perlu dipilih.',
                     'RK tambahan hanya milik Anda dan muncul di daftar RK pada form berikutnya. RK kipApp yang berjenis tambahan juga ikut tersinkron dan ditandai sama.',
-                    'Pembuatan RK tambahan di kipApp dari Kinetik dimatikan lebih dulu (saklar "Kirim RK tambahan ke kipApp" di menu Fitur, hanya admin). Selama mati, kegiatannya tersimpan di Kinetik dan tidak dikirim.',
+                    'Pembuatan RK tambahan di kipApp memakai panggilan yang sama dengan tombol "Tambah Rencana Kinerja" di kipApp, dan sudah diuji langsung. Admin tetap bisa mematikannya (saklar "Kirim RK tambahan ke kipApp" di menu Fitur, hanya admin). Selama mati, kegiatannya tersimpan di Kinetik dan tidak dikirim.',
                 ],
             },
             {
@@ -425,6 +425,7 @@ export const GUIDE_FLOWS: GuideFlow[] = [
                     'Kinetik tidak mengirim kegiatan sebelum tanggal mulainya, karena kipApp tidak menerima tanggal yang belum tiba. Tombol "Kirim ke kipApp" aktif pada hari itu.',
                     'Selesai mengerjakan? Tekan "Tandai selesai". Uraian capaian wajib minimal 10 karakter saat ini. Kinetik mengirim progres 100%, uraian capaian dan tautan bukti ke kipApp. Tombol "Simpan realisasi" hanya menyimpan di Kinetik.',
                     'Kegiatan yang sudah ada di kipApp dan belum dikirim ke atasan bisa diubah, atau dihapus lewat tombol "Hapus kegiatan" di detail. Kinetik menghapusnya juga di kipApp, setelah bertanya dulu. Kegiatan yang sudah dikirim ke atasan tidak bisa dihapus: tekan "Batalkan kirim" dulu, lalu hapus. Jika SKP triwulan sudah dikirim untuk dinilai, kegiatan terkunci dan alasannya tampil di detail.',
+                    'RK dan projek bisa diganti selama kegiatan belum dikirim ke atasan, sama seperti form ubah di kipApp sendiri: buka kegiatannya, tekan "Ganti RK", lalu pilih RK lain. Untuk kegiatan yang sudah ada di kipApp, RK baru harus termasuk RK Anda di SKP triwulan itu. Bila tidak, Kinetik menolak dan tidak mengubah apa pun. Kegiatan yang sudah dikirim ke atasan tidak bisa berganti RK: tekan "Batalkan kirim" dulu.',
                     'Mengirim ke atasan: centang beberapa kegiatan di tabel, lalu tekan "Kirim ke atasan (n)". Kinetik bertanya dulu, lalu mengirim semuanya sekaligus. "Batalkan kirim (n)" mengembalikan kegiatan yang sudah terkirim. Kirim dan batal kirim sudah diuji langsung di kipApp. Aturannya sama dengan kipApp: hanya berlaku selama SKP triwulan berstatus "Sedang dibuat".',
                     'Jika progres diubah langsung di kipApp, Kinetik mengikuti kipApp pada sinkronisasi berikutnya.',
                 ],
@@ -482,7 +483,7 @@ export const GUIDE_FLOWS: GuideFlow[] = [
                     'SKP tidak bisa dikirim bila ada RK tanpa IKI. Buka "RK dan IKI" pada SKP yang masih Sedang dibuat, lalu tekan "Tambah IKI" di bawah RK yang belum punya.',
                     'Tulis IKI beserta targetnya dalam satu kalimat, misalnya "Persentase entri data selesai tepat waktu 95 persen". kipApp meminta minimal 10 huruf dan tidak punya kolom target terpisah, jadi target ikut di teksnya. Tombol Simpan IKI membuat IKI di kipApp dengan akun Anda.',
                     'IKI yang Anda tambah bisa dihapus dengan ikon tempat sampah. IKI yang datang dari atasan atau dari SKP Tahunan tidak bisa dihapus di sini.',
-                    'Fitur ini mengikuti kode kipApp sendiri dan belum diuji langsung, jadi bisa dimatikan admin di menu Fitur. Periksa IKI pertama di kipApp.',
+                    'Tambah dan hapus IKI sudah diuji langsung di kipApp (IKI uji dibuat, terbaca di kipApp, lalu dihapus). Fitur ini tetap bisa dimatikan admin di menu Fitur.',
                 ],
                 shot: SHOTS.skpIki,
                 tip: 'Salah menulis IKI? Hapus lalu tambah lagi selama SKP masih Sedang dibuat.',
