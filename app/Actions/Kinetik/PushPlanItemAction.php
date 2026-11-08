@@ -9,6 +9,7 @@ use App\Models\PerformancePlan;
 use App\Models\PlanItem;
 use App\Models\User;
 use App\Notifications\KinetikNotification;
+use App\Services\Kinetik\KegiatanDuplicateFinder;
 use App\Services\Kinetik\MemberKipToken;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Cache;
@@ -21,10 +22,13 @@ use RuntimeException;
  */
 class PushPlanItemAction
 {
+    /** What push_error starts with when the kegiatan waits for a decision on a possible duplicate. */
+    public const SIMILAR_PREFIX = 'Mirip dengan kegiatan yang sudah ada di kipApp';
+
     public function __construct(private readonly MemberKipToken $tokens) {}
 
     /** @return bool true when the plan is now in kipApp */
-    public function execute(PlanItem $plan): bool
+    public function execute(PlanItem $plan, bool $force = false): bool
     {
         if ($plan->kip_external_id !== null) {
             return true;
@@ -33,6 +37,17 @@ class PushPlanItemAction
         $user = $plan->employee?->user;
 
         try {
+            // A kegiatan imported from a spreadsheet can be the same work as one the member already filed in kipApp.
+            // Sending it would make a second one there, so it waits until someone says it is different ("Kirim tetap").
+            if (! $force && $plan->source === 'import') {
+                $same = (new KegiatanDuplicateFinder)->find((int) $plan->employee_id, (string) $plan->description, Carbon::parse($plan->date_start)->toDateString(), Carbon::parse($plan->date_end)->toDateString(), $plan->id, onlyInKipapp: true);
+                if ($same !== null) {
+                    $plan->update(['push_error' => self::SIMILAR_PREFIX.' ('.$same['date'].'): "'.mb_strimwidth($same['description'], 0, 80, '…').'". Hapus kegiatan ini bila sama, atau tekan "Kirim tetap" bila berbeda.']);
+
+                    return false;
+                }
+            }
+
             if ($user === null || $plan->employee->kip_pegawai_id === null) {
                 throw new RuntimeException('Pegawai belum punya akun atau ID kipApp.');
             }

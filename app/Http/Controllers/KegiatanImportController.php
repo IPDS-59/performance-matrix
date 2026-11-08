@@ -63,6 +63,7 @@ class KegiatanImportController extends Controller
             'rows.*.progress' => ['nullable', 'integer', 'between:0,100'],
             'rows.*.evidence_url' => ['nullable', 'string', 'max:2000'],
             'rows.*.capaian_note' => ['nullable', 'string', 'max:2000'],
+            'rows.*.ignore_similar' => ['nullable', 'boolean'],
         ]);
 
         return response()->json($import->execute($data['rows'], $request->user()->employee));

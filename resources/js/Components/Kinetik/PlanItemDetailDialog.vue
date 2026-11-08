@@ -56,10 +56,13 @@ function submit(method: 'patch' | 'post', name: string, transform = true) {
     else form.post(route(name, props.item.id), options);
 }
 
-function act(name: string) {
+function act(name: string, data: Record<string, unknown> = {}) {
     if (!props.item) return;
-    router.post(route(name, props.item.id), {}, { preserveScroll: true, onSuccess: () => emit('close') });
+    router.post(route(name, props.item.id), data, { preserveScroll: true, onSuccess: () => emit('close') });
 }
+
+/** A kegiatan imported from a spreadsheet waits when it looks like one already in kipApp; "Kirim tetap" says it is a different one. */
+const waitsOnDuplicate = computed(() => !!props.item?.push_error?.startsWith('Mirip dengan kegiatan yang sudah ada di kipApp'));
 
 // Sending, taking back and deleting ask first, with kipApp's own texts.
 const confirming = ref<'send' | 'unsend' | 'cancel' | null>(null);
@@ -112,6 +115,7 @@ const waitsForStart = computed(() => stage.value?.action === 'push' && !props.it
             </dl>
             <p v-if="item.lock_reason" class="rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900">{{ item.lock_reason }}</p>
             <p v-if="item.push_error" class="rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900">Belum terkirim ke kipApp: {{ item.push_error }}</p>
+            <Button v-if="waitsOnDuplicate" type="button" variant="outline" size="sm" @click="act('plan-items.push', { force: true })">Kirim tetap</Button>
 
             <form id="plan-result" class="space-y-3 border-t pt-3" @submit.prevent="submit('patch', 'plan-items.result')">
                 <h3 class="text-sm font-semibold text-gray-900">Realisasi</h3>

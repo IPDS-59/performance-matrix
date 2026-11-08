@@ -13,6 +13,7 @@ use App\Http\Controllers\EmployeeReportController;
 use App\Http\Controllers\FeatureFlagController;
 use App\Http\Controllers\FraController;
 use App\Http\Controllers\GuideController;
+use App\Http\Controllers\IkuProgressController;
 use App\Http\Controllers\KegiatanImportController;
 use App\Http\Controllers\KipActivityController;
 use App\Http\Controllers\KipIntegrationController;
@@ -131,6 +132,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/rencana-minggu', fn (Request $request) => redirect()->route('weekly.index', $request->only('week')))->name('weekly-plan.index');
     Route::get('/struktur-organisasi', [OrganizationController::class, 'index'])->name('organization.index');
     Route::get('/fra', [FraController::class, 'index'])->name('fra.index');
+    Route::get('/progres-iku', [IkuProgressController::class, 'index'])->name('iku-progress.index');
     Route::patch('/fra/{indicator}/bulan/{month}', [FraController::class, 'updateAnalysis'])->name('fra.analysis');
     Route::put('/fra/{indicator}/bulanan', [FraController::class, 'updateMonths'])->name('fra.months');
     Route::patch('/fra/{indicator}/pemilik', [FraController::class, 'updateOwner'])->name('fra.owner');

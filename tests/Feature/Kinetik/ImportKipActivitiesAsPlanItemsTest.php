@@ -56,3 +56,20 @@ it('shows the imported kegiatan on Rekap Mingguan of the member', function () {
     $this->actingAs($user)->get(route('weekly.index', ['week' => $day]))->assertInertia(fn ($page) => $page
         ->where('thisWeek', fn ($rows) => collect($rows)->contains('description', 'Uraian dari kipApp')));
 });
+
+it('joins a synced kipApp kegiatan to an imported one of the same person, day and words instead of making a second', function () {
+    [$employee, $plan] = importFixture();
+    $imported = PlanItem::create(['team_id' => $employee->team_id, 'employee_id' => $employee->id, 'performance_plan_id' => $plan->id, 'description' => 'Penyiapan kuesioner PDRB triwulanan', 'date_start' => '2026-10-15', 'date_end' => '2026-10-15', 'source' => 'import', 'status' => 'planned', 'target' => 4, 'capaian' => 3]);
+    $other = PlanItem::create(['team_id' => $employee->team_id, 'employee_id' => $employee->id, 'performance_plan_id' => $plan->id, 'description' => 'Mengikuti BRS 2', 'date_start' => '2026-10-15', 'date_end' => '2026-10-15', 'source' => 'import', 'status' => 'planned']);
+    KipActivity::factory()->create(['employee_id' => $employee->id, 'external_id' => 'm1', 'rk_external_id' => '900', 'description' => 'Menyiapkan kuesioner PDRB triwulanan', 'activity_date_start' => '2026-10-15', 'progress' => 100, 'achievement_note' => 'selesai']);
+    KipActivity::factory()->create(['employee_id' => $employee->id, 'external_id' => 'm2', 'rk_external_id' => '900', 'description' => 'Mengikuti BRS 5', 'activity_date_start' => '2026-10-15', 'progress' => 100]);
+
+    $created = app(ImportKipActivitiesAsPlanItemsAction::class)->execute();
+
+    expect($created)->toBe(1)                                    // only BRS 5 is new
+        ->and($imported->fresh())->kip_external_id->toBe('m1')->status->toBe('done')->source->toBe('import')
+        ->and((float) $imported->fresh()->target)->toBe(4.0)     // what the admin imported stays
+        ->and($imported->fresh()->capaian_note)->toBe('selesai')
+        ->and($other->fresh()->kip_external_id)->toBeNull()      // BRS 2 is not BRS 5
+        ->and(PlanItem::where('employee_id', $employee->id)->count())->toBe(3);
+});

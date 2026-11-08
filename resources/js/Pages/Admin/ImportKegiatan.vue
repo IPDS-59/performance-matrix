@@ -31,6 +31,7 @@ interface PreviewRow {
     notes: string[];
     blocked: boolean;
     duplicate: boolean;
+    similar: { description: string; date: string; in_kipapp: boolean; score: number } | null;
     include: boolean;
 }
 
@@ -49,10 +50,11 @@ const needsRk = (r: PreviewRow) => !r.blocked && r.performance_plan_id === null;
 const ready = computed(() => rows.value.filter((r) => r.include && !r.blocked && r.performance_plan_id !== null));
 const counts = computed(() => ({
     total: rows.value.length,
-    ready: rows.value.filter((r) => !r.blocked && !r.duplicate && r.performance_plan_id !== null).length,
+    ready: rows.value.filter((r) => !r.blocked && !r.duplicate && !r.similar && r.performance_plan_id !== null).length,
     pickRk: rows.value.filter(needsRk).length,
     blocked: rows.value.filter((r) => r.blocked).length,
     duplicate: rows.value.filter((r) => r.duplicate).length,
+    similar: rows.value.filter((r) => r.similar).length,
 }));
 
 async function read() {
@@ -65,7 +67,7 @@ async function read() {
         if (pegawaiFile.value) parsed = attachNip(parsed, await readPegawaiList(pegawaiFile.value));
         if (!parsed.length) throw new Error('Tidak ada baris kegiatan yang terbaca. Pastikan sheet punya kolom "Nama Anggota" dan "Uraian".');
         const { data } = await axios.post(route('admin.import-kegiatan.preview'), { week_start: week.value, rows: parsed });
-        rows.value = (data.rows as PreviewRow[]).map((r) => ({ ...r, include: !r.blocked && !r.duplicate && r.performance_plan_id !== null }));
+        rows.value = (data.rows as PreviewRow[]).map((r) => ({ ...r, include: !r.blocked && !r.duplicate && !r.similar && r.performance_plan_id !== null }));
     } catch (e) {
         error.value = axios.isAxiosError(e) ? (e.response?.data?.message ?? 'Server menolak file ini.') : (e as Error).message;
     } finally {
@@ -80,6 +82,7 @@ async function save() {
         const payload = ready.value.map((r) => ({
             employee_id: r.employee_id, performance_plan_id: r.performance_plan_id, project_id: r.project_id, description: r.description,
             date_start: r.date_start, date_end: r.date_end, target: r.target, capaian: r.capaian, progress: r.progress,
+            ignore_similar: r.similar !== null,
         }));
         const { data } = await axios.post(route('admin.import-kegiatan.store'), { rows: payload });
         result.value = data;
@@ -138,6 +141,7 @@ const num = (v: number | null) => (v === null ? '-' : v.toLocaleString('id-ID'))
                 <span class="rounded-full bg-green-50 px-3 py-1 text-green-800">{{ counts.ready }} siap</span>
                 <span v-if="counts.pickRk" class="rounded-full bg-amber-50 px-3 py-1 text-amber-800">{{ counts.pickRk }} perlu pilih RK</span>
                 <span v-if="counts.duplicate" class="rounded-full bg-gray-100 px-3 py-1 text-gray-700">{{ counts.duplicate }} sudah ada</span>
+                <span v-if="counts.similar" class="rounded-full bg-amber-50 px-3 py-1 text-amber-800">{{ counts.similar }} mirip kegiatan yang sudah ada (tidak dicentang)</span>
                 <span v-if="counts.blocked" class="rounded-full bg-red-50 px-3 py-1 text-red-700">{{ counts.blocked }} tidak bisa diimpor</span>
                 <Button class="ml-auto" :disabled="!ready.length || busy" @click="save">{{ busy ? 'Menyimpan…' : `Impor ${ready.length} kegiatan` }}</Button>
             </div>
@@ -157,7 +161,7 @@ const num = (v: number | null) => (v === null ? '-' : v.toLocaleString('id-ID'))
                         </TableRow>
                     </TableHeader>
                     <TableBody>
-                        <TableRow v-for="r in rows" :key="r.index" :class="r.blocked || r.duplicate ? 'bg-gray-50 text-gray-500' : ''">
+                        <TableRow v-for="r in rows" :key="r.index" :class="r.blocked || r.duplicate ? 'bg-gray-50 text-gray-500' : r.similar ? 'bg-amber-50/50' : ''">
                             <TableCell><input v-model="r.include" type="checkbox" :disabled="r.blocked || r.performance_plan_id === null" :aria-label="`Impor baris ${r.index + 1}`"></TableCell>
                             <TableCell class="whitespace-normal">
                                 <p :class="r.employee_id ? 'text-gray-900' : 'text-red-700'">{{ r.employee_name ?? r.member }}</p>
