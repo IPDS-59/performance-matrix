@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { formatNumber } from '@/composables/useNumber';
 import AppLayout from '@/Layouts/AppLayout.vue';
 import SearchableSelect from '@/Components/SearchableSelect.vue';
 import { Head, Link } from '@inertiajs/vue3';
@@ -128,7 +129,7 @@ const num = (v: number | null) => (v === null ? '-' : v.toLocaleString('id-ID'))
         <p v-if="error" class="mb-4 flex items-start gap-2 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800" role="alert"><CircleAlert class="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" /> {{ error }}</p>
 
         <div v-if="result" class="mb-4 rounded-xl border border-green-200 bg-green-50 p-5 text-sm text-green-900">
-            <p class="flex items-center gap-2 font-semibold"><CircleCheck class="h-4 w-4" aria-hidden="true" /> {{ result.created }} kegiatan diimpor.</p>
+            <p class="flex items-center gap-2 font-semibold"><CircleCheck class="h-4 w-4" aria-hidden="true" /> {{ formatNumber(result.created) }} kegiatan diimpor.</p>
             <ul v-if="result.skipped.length" class="mt-2 list-disc pl-5">
                 <li v-for="(s, i) in result.skipped" :key="i">{{ s.description }}: {{ s.reason }}</li>
             </ul>
@@ -137,12 +138,12 @@ const num = (v: number | null) => (v === null ? '-' : v.toLocaleString('id-ID'))
 
         <template v-if="rows.length">
             <div class="mb-3 flex flex-wrap items-center gap-2 text-sm">
-                <span class="rounded-full bg-gray-100 px-3 py-1">{{ counts.total }} baris</span>
-                <span class="rounded-full bg-green-50 px-3 py-1 text-green-800">{{ counts.ready }} siap</span>
-                <span v-if="counts.pickRk" class="rounded-full bg-amber-50 px-3 py-1 text-amber-800">{{ counts.pickRk }} perlu pilih RK</span>
-                <span v-if="counts.duplicate" class="rounded-full bg-gray-100 px-3 py-1 text-gray-700">{{ counts.duplicate }} sudah ada</span>
-                <span v-if="counts.similar" class="rounded-full bg-amber-50 px-3 py-1 text-amber-800">{{ counts.similar }} mirip kegiatan yang sudah ada (tidak dicentang)</span>
-                <span v-if="counts.blocked" class="rounded-full bg-red-50 px-3 py-1 text-red-700">{{ counts.blocked }} tidak bisa diimpor</span>
+                <span class="rounded-full bg-gray-100 px-3 py-1">{{ formatNumber(counts.total) }} baris</span>
+                <span class="rounded-full bg-green-50 px-3 py-1 text-green-800">{{ formatNumber(counts.ready) }} siap</span>
+                <span v-if="counts.pickRk" class="rounded-full bg-amber-50 px-3 py-1 text-amber-800">{{ formatNumber(counts.pickRk) }} perlu pilih RK</span>
+                <span v-if="counts.duplicate" class="rounded-full bg-gray-100 px-3 py-1 text-gray-700">{{ formatNumber(counts.duplicate) }} sudah ada</span>
+                <span v-if="counts.similar" class="rounded-full bg-amber-50 px-3 py-1 text-amber-800">{{ formatNumber(counts.similar) }} mirip kegiatan yang sudah ada (tidak dicentang)</span>
+                <span v-if="counts.blocked" class="rounded-full bg-red-50 px-3 py-1 text-red-700">{{ formatNumber(counts.blocked) }} tidak bisa diimpor</span>
                 <Button class="ml-auto" :disabled="!ready.length || busy" @click="save">{{ busy ? 'Menyimpan…' : `Impor ${ready.length} kegiatan` }}</Button>
             </div>
 

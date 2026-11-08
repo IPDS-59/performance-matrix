@@ -22,7 +22,7 @@ defineProps<{ checks: Check[] }>();
                         <CircleAlert v-else class="h-4 w-4" :class="c.severity === 'high' ? 'text-red-600' : 'text-amber-600'" aria-hidden="true" />
                         {{ c.title }}
                     </h2>
-                    <Badge :variant="c.count === 0 ? 'secondary' : 'destructive'">{{ c.count === 0 ? 'Aman' : `${c.count} data` }}</Badge>
+                    <Badge :variant="c.count === 0 ? 'secondary' : 'destructive'">{{ c.count === 0 ? 'Aman' : `${$n(c.count)} data` }}</Badge>
                 </header>
                 <p class="mt-1 text-sm text-gray-700">{{ c.why }}</p>
                 <p v-if="c.count" class="text-sm text-gray-700"><b>Cara memperbaiki:</b> {{ c.fix }}</p>
@@ -31,7 +31,7 @@ defineProps<{ checks: Check[] }>();
                         <thead><tr class="border-b text-gray-600"><th v-for="(_, h) in c.rows[0]" :key="h" class="py-1 pr-3 font-medium">{{ h }}</th></tr></thead>
                         <tbody><tr v-for="(row, i) in c.rows" :key="i" class="border-b last:border-0"><td v-for="(v, h) in row" :key="h" class="py-1 pr-3 align-top">{{ v ?? '-' }}</td></tr></tbody>
                     </table>
-                    <p v-if="c.count > c.rows.length" class="mt-1 text-xs text-gray-600">Menampilkan {{ c.rows.length }} dari {{ c.count }}.</p>
+                    <p v-if="c.count > c.rows.length" class="mt-1 text-xs text-gray-600">Menampilkan {{ $n(c.rows.length) }} dari {{ $n(c.count) }}.</p>
                 </div>
             </section>
         </div>
