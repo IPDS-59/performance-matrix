@@ -227,3 +227,38 @@ it('holds an imported kegiatan back from kipApp when a similar one is already th
     expect($sent)->toBeFalse()->and($imported->fresh()->push_error)->toStartWith(PushPlanItemAction::SIMILAR_PREFIX)
         ->and($imported->fresh()->push_attempts)->toBe(0);   // not a failure: no notice, no retry count
 });
+
+it('ranks the RK of the matched projek by the words of the kegiatan and picks the clear winner, saying so', function () {
+    [$team, $project, $plan, $member] = importSetup();
+    $other = PerformancePlan::factory()->create(['project_id' => $project->id, 'team_id' => $team->id, 'description' => 'Menyelenggarakan rapat koordinasi tim']);
+    PerformancePlan::factory()->create(['project_id' => $project->id, 'team_id' => $team->id, 'description' => 'Pengelolaan arsip dokumen kegiatan']);
+
+    $row = $this->actingAs(adminUser())->postJson(route('admin.import-kegiatan.preview'), ['week_start' => '2026-10-26', 'rows' => [
+        sheetRow(['description' => 'Penyusunan publikasi PDRB triwulan III']),
+    ]])->json('rows.0');
+
+    expect($row['performance_plan_id'])->toBe($plan->id)                       // "publikasi PDRB" is covered by this RK only
+        ->and($row['rk_options'][0]['id'])->toBe($plan->id)->and($row['rk_options'][0]['score'])->toBeGreaterThan($row['rk_options'][1]['score'])
+        ->and(implode(' ', $row['notes']))->toContain('RK dipilih dari kemiripan dengan uraian');
+
+    // nothing stands out: the admin chooses
+    $vague = $this->actingAs(adminUser())->postJson(route('admin.import-kegiatan.preview'), ['week_start' => '2026-10-26', 'rows' => [sheetRow(['description' => 'Mengerjakan tugas harian kantor'])]])->json('rows.0');
+    expect($vague['performance_plan_id'])->toBeNull()->and(count($vague['rk_options']))->toBe(3);
+});
+
+it('offers and saves an RK that belongs to the person alone, such as one of a Pusat team', function () {
+    [, $project, , $member] = importSetup();
+    $pusat = PerformancePlan::factory()->create(['team_id' => null, 'project_id' => null, 'description' => 'Terselenggaranya Layanan Kesehatan Mental Untuk Pegawai', 'owner_employee_id' => $member->id, 'is_additional' => false]);
+    $admin = adminUser();
+
+    $row = $this->actingAs($admin)->postJson(route('admin.import-kegiatan.preview'), ['week_start' => '2026-10-26', 'rows' => [
+        sheetRow(['description' => 'Layanan kesehatan mental untuk pegawai bulan Oktober', 'project' => 'Proyek Pusat']),
+    ]])->json('rows.0');
+    expect(collect($row['rk_options'])->pluck('id'))->toContain($pusat->id);
+
+    $this->actingAs($admin)->postJson(route('admin.import-kegiatan.store'), ['rows' => [[
+        'employee_id' => $member->id, 'performance_plan_id' => $pusat->id, 'description' => 'Layanan kesehatan mental untuk pegawai bulan Oktober', 'date_start' => '2026-10-20', 'date_end' => '2026-10-20',
+    ]]])->assertOk()->assertJsonPath('created', 1);
+
+    expect(PlanItem::where('performance_plan_id', $pusat->id)->first()->team_id)->toBe($member->teams()->first()->id);
+});

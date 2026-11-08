@@ -77,6 +77,22 @@ class KegiatanDuplicateFinder
         return round(max($jaccard, $percent / 100), 3);
     }
 
+    /**
+     * How much of a kegiatan's wording an RK (or projek) text covers, 0 to 1: the share of the kegiatan's significant words that the
+     * other text also has. Used to rank RK for a spreadsheet row that only names a projek; it is no duplicate test.
+     */
+    public function coverage(string $kegiatan, string $other): float
+    {
+        $words = fn (string $t) => collect(explode(' ', self::normalize($t)))
+            ->reject(fn (string $w) => mb_strlen($w) < 4 || in_array($w, ['yang', 'dari', 'pada', 'dalam', 'untuk', 'dengan', 'sesuai', 'kegiatan', 'melakukan', 'terlaksananya', 'terselenggaranya', 'tersedianya', 'data'], true))->unique()->values();
+        $mine = $words($kegiatan);
+        if ($mine->isEmpty()) {
+            return 0.0;
+        }
+
+        return round($mine->intersect($words($other))->count() / $mine->count(), 3);
+    }
+
     public static function normalize(string $text): string
     {
         return trim(preg_replace('/\s+/', ' ', preg_replace('/[^\p{L}\p{N}]+/u', ' ', mb_strtolower($text))));
