@@ -71,10 +71,11 @@ class PlanItemController extends Controller
         $this->authorizeFor($actor, $team, $planItem->employee_id);
 
         if ($planItem->kip_external_id === null && $planItem->status === 'planned') {
-            $data = $request->validate($this->rules($request, $planItem), $this->messages());
-            $this->checkRk($team, $planItem->employee_id, $data);
+            $data = $request->validate($this->rules($request, $planItem) + ['team_id' => ['nullable', 'integer', 'exists:teams,id']], $this->messages());
+            $rkTeam = $this->rkTeam($actor, $team, $planItem, $data);
+            $this->checkRk($rkTeam, $planItem->employee_id, $data);
             $this->checkQuarter($data);
-            $planItem->update($this->attributes($data, ['employee_id', 'parent_id']));
+            $planItem->update([...$this->attributes($data, ['employee_id', 'parent_id', 'team_id']), 'team_id' => $rkTeam->id]);
         } else {
             // Already in kipApp (KIP_EDIT_AFTER_PUSH): kipApp is written first, Kinetik saves after it accepts.
             abort_unless($this->access->canEdit($planItem), 422, $this->access->lockReason($planItem) ?? 'Rencana yang sudah dikirim ke kipApp tidak dapat diubah di sini.');
@@ -84,14 +85,15 @@ class PlanItemController extends Controller
                 // Like kipApp: a sent kegiatan only changes "Masukan ke capaian SKP".
                 $attributes = ['is_capaian_skp' => $request->validate(['is_capaian_skp' => ['required', 'boolean']])['is_capaian_skp']];
             } else {
-                $data = $request->validate($this->rules($request, $planItem), $this->messages());
-                $data['performance_plan_id'] = $planItem->performance_plan_id;
-                $this->checkRk($team, $planItem->employee_id, $data);
+                // Not sent yet: like kipApp's own form, the RK may change (UpdatePlanItemAction checks it against the member's SKP).
+                $data = $request->validate($this->rules($request, $planItem) + ['team_id' => ['nullable', 'integer', 'exists:teams,id']], $this->messages());
+                $rkTeam = $this->rkTeam($actor, $team, $planItem, $data);
+                $this->checkRk($rkTeam, $planItem->employee_id, $data);
                 $this->checkQuarter($data);
                 if (Carbon::parse($data['date_start'])->quarter !== $this->access->quarterOf($planItem)) {
                     throw ValidationException::withMessages(['date_start' => 'Kegiatan yang sudah ada di kipApp harus tetap di triwulan yang sama.']);
                 }
-                $attributes = $this->attributes($data, ['employee_id', 'parent_id', 'performance_plan_id', 'team_id']);
+                $attributes = [...$this->attributes($data, ['employee_id', 'parent_id', 'team_id']), 'team_id' => $rkTeam->id];
             }
 
             try {
@@ -350,6 +352,18 @@ class PlanItemController extends Controller
     {
         abort_unless($team->members()->where('employees.id', $employeeId)->exists(), 422, 'Pegawai ini bukan anggota tim.');
         abort_unless($employeeId === $actor->id || $this->isPj($actor, $team->id), 403, 'Anda hanya dapat merencanakan pekerjaan Anda sendiri.');
+    }
+
+    /** The team of the RK a kegiatan is moved to; moving it to another team's RK needs the actor to be allowed there too. */
+    private function rkTeam(Employee $actor, Team $current, PlanItem $planItem, array $data): Team
+    {
+        if (empty($data['team_id']) || (int) $data['team_id'] === $current->id) {
+            return $current;
+        }
+        $team = Team::findOrFail($data['team_id']);
+        $this->authorizeFor($actor, $team, $planItem->employee_id);
+
+        return $team;
     }
 
     /** The RK must belong to the team, and a Projek is required unless the RK has none (same rule as claims). */
