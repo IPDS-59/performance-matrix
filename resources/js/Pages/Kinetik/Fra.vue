@@ -11,6 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import FraMonthlyTable from '@/Components/Kinetik/FraMonthlyTable.vue';
 import FraAnalysisDialog from '@/Components/Kinetik/FraAnalysisDialog.vue';
 import FraQuarterAnalysis from '@/Components/Kinetik/FraQuarterAnalysis.vue';
+import FraSheetView from '@/Components/Kinetik/FraSheetView.vue';
 import { downloadFraSheet, fmt } from '@/composables/useFra';
 
 const props = defineProps<FraProps>();
@@ -18,8 +19,8 @@ const MONTHS = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 
 const roman = ['I', 'II', 'III', 'IV'];
 const sakip = ref(props.summary.sakip_score?.toString() ?? '');
 const analysing = ref<FraIndicatorRow | null>(null);
-/** Same data, two ways to read it: the monthly entry sheet, or the quarter's analysis in its system and edited versions. */
-const view = ref<'bulanan' | 'analisis'>('bulanan');
+/** Same data, three ways to read it: the monthly entry sheet, the quarter's analysis in its system and edited versions, or one long sheet like the Excel. */
+const view = ref<'bulanan' | 'analisis' | 'lembar'>('bulanan');
 
 const editable = computed(() => new Set(props.editableIds));
 const teamName = (id: number | null) => props.teams.find(t => t.id === id)?.name ?? null;
@@ -77,6 +78,7 @@ const note = (ind: FraIndicatorRow) => {
         <div class="mb-4 inline-flex rounded-lg border bg-white p-1" role="tablist" aria-label="Tampilan Kertas Kerja">
             <button type="button" role="tab" :aria-selected="view === 'bulanan'" :class="['rounded-md px-3 py-1.5 text-sm font-medium', view === 'bulanan' ? 'bg-primary text-primary-foreground' : 'text-gray-700']" @click="view = 'bulanan'">Isian bulanan</button>
             <button type="button" role="tab" :aria-selected="view === 'analisis'" :class="['rounded-md px-3 py-1.5 text-sm font-medium', view === 'analisis' ? 'bg-primary text-primary-foreground' : 'text-gray-700']" @click="view = 'analisis'">Analisis TW {{ roman[quarter - 1] }} (sistem dan sunting)</button>
+            <button type="button" role="tab" :aria-selected="view === 'lembar'" :class="['rounded-md px-3 py-1.5 text-sm font-medium', view === 'lembar' ? 'bg-primary text-primary-foreground' : 'text-gray-700']" @click="view = 'lembar'">Lembar seperti Excel</button>
         </div>
 
         <div class="mb-6 grid gap-3 sm:grid-cols-3">
@@ -101,6 +103,9 @@ const note = (ind: FraIndicatorRow) => {
             Belum ada indikator untuk tahun {{ year }}.
         </div>
 
+        <FraSheetView v-if="view === 'lembar' && indicators.length" :indicators="indicators" :summary="summary" :year="year" />
+
+        <template v-if="view !== 'lembar'">
         <section v-for="group in groups" :key="group.code" class="mb-6">
             <h2 class="mb-2 text-sm font-semibold text-gray-800">{{ group.code }} {{ group.name }}</h2>
             <article v-for="ind in group.rows" :key="ind.id" class="mb-3 rounded-md border bg-white">
@@ -130,6 +135,7 @@ const note = (ind: FraIndicatorRow) => {
                 </dl>
             </article>
         </section>
+        </template>
 
         <Dialog :open="analysing !== null" @update:open="(open) => { if (!open) analysing = null; }">
             <DialogContent class="max-h-[90vh] overflow-y-auto sm:max-w-2xl">
