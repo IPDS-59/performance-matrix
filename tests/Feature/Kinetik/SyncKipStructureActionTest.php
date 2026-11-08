@@ -431,3 +431,25 @@ it('verify-office never removes head or admin accounts', function () {
 
     expect($employee->fresh()->is_active)->toBeTrue();
 });
+
+it('never makes a team leader from another office ours, and gives a newcomer from elsewhere no login', function () {
+    config(['kinetik.kip.wilayah_id' => '7200_11', 'kinetik.kip.unitkerja_id' => '100']);
+    Http::fake([
+        'kipapp.bps.go.id/api/v1/pegawai/lokasi?*niplama=340099999*' => Http::response(lokasi('3100_11', '100', 'Pusat', 'BPS RI'), 200),
+        'kipapp.bps.go.id/api/v1/pegawai/lokasi*' => Http::response(lokasi('7200_11', '100', 'Sulawesi Tengah', 'BPS Provinsi'), 200),
+        'kipapp.bps.go.id/api/v1/proyek*' => Http::response([[
+            'timkerjaid' => '106436', 'namatim' => 'TIM PUSAT', 'niplamaketua' => '340099999', 'namaketua' => 'Ketua Pusat',
+            'rkketuaid' => null, 'rencanakinerjaketua' => null, 'proyekid' => '427670', 'namaproyek' => 'Proyek A',
+            'anggota' => [['anggotaid' => 'a1', 'niplama' => '340013832', 'nama' => 'Imron']],
+        ]], 200),
+    ]);
+
+    runStructureSync();
+
+    $leader = Employee::where('nip_lama', '340099999')->first();
+    $team = Team::where('kip_external_id', '106436')->first();
+    expect($leader->is_active)->toBeFalse()
+        ->and($leader->user_id)->toBeNull()
+        ->and($team->leader_id)->toBeNull()
+        ->and($team->members()->where('employees.id', $leader->id)->exists())->toBeFalse();
+});

@@ -39,6 +39,8 @@ class SyncKipStructureAction
     /** @var Collection<string, Employee> nip_lama => Employee, cached per team */
     private Collection $employeeCache;
 
+    private ?OfficeGuard $guard = null;
+
     /** @var array<string, string>|null nip_lama => username, lazily loaded */
     private ?array $usernameMap = null;
 
@@ -77,7 +79,7 @@ class SyncKipStructureAction
     {
         $this->employeeCache = collect();
         $this->counts = $this->emptyCounts();
-        $guard = new OfficeGuard($source);
+        $this->guard = $guard = new OfficeGuard($source);
 
         $projects = $source->fetchTeamProjects($timkerjaId);
 
@@ -94,6 +96,8 @@ class SyncKipStructureAction
         if ($leaderNip) {
             $leader = $this->resolveByNip((string) $leaderNip)
                 ?? ($leaderName ? $this->provisionEmployee(KipMemberData::fromApiRow(['niplama' => $leaderNip, 'nama' => $leaderName])) : null);
+            // A team's leader can work elsewhere (a Pusat or other satker PJ): never make them ours.
+            $leader = $this->ourOfficeOnly($guard, $leader);
         }
         if ($leader) {
             $team->leader_id = $leader->id;
@@ -132,7 +136,7 @@ class SyncKipStructureAction
         // first time as a project member or roster entry above). Re-resolve and
         // backfill team + projects that still have no leader_id.
         if (! $leader && $leaderNip) {
-            $leader = $this->resolveByNip((string) $leaderNip);
+            $leader = $this->ourOfficeOnly($guard, $this->resolveByNip((string) $leaderNip));
             if ($leader) {
                 $team->leader_id = $leader->id;
                 $team->save();
@@ -266,6 +270,14 @@ class SyncKipStructureAction
         }
         $employee->save();
 
+        // Judge a newcomer before they get a login (the default password works until they are evicted).
+        if ($isNew && $this->guard && $this->guard->check($employee) === false) {
+            $this->guard->evict($employee);
+            $this->counts['outside_office']++;
+
+            return null;
+        }
+
         $isNew ? $this->counts['employees_created']++ : $this->counts['employees_updated']++;
 
         $this->ensureLogin($employee);
@@ -388,9 +400,22 @@ class SyncKipStructureAction
             ?? Employee::where('nip_lama', $nipLama)->first();
     }
 
-    /**
-     * @param  Collection<int, Employee>  $employees
-     */
+    /** The employee when they work at our office (or it is unknown), else evicted and null. */
+    private function ourOfficeOnly(OfficeGuard $guard, ?Employee $employee): ?Employee
+    {
+        if ($employee === null || ! $employee->is_active) {
+            return null;
+        }
+        if ($guard->check($employee) === false) {
+            $guard->evict($employee);
+            $this->counts['outside_office']++;
+
+            return null;
+        }
+
+        return $employee;
+    }
+
     /**
      * Keep only staff of our office; anyone kipApp places elsewhere is evicted.
      * Unknown (lookup failed) is kept so an API hiccup never drops real staff.
