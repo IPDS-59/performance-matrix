@@ -61,7 +61,7 @@ function save() {
             <Label for="fra-prev" class="text-xs">Link bukti dukung tindak lanjut bulan sebelumnya</Label>
             <Input id="fra-prev" v-model="form.previous_follow_up_url" class="mt-1" />
         </div>
-        <p class="text-xs text-gray-600">Untuk file Excel triwulanan, analisis yang dipakai adalah yang ditulis pada bulan terakhir triwulan (Maret, Juni, September, Desember).</p>
+        <p class="text-xs text-gray-600">Analisis triwulan disusun dari ketiga bulannya. Masalah yang sama di beberapa bulan ditulis sekali. Di "Versi sunting" Anda bisa merapikannya untuk Excel triwulanan.</p>
         <div class="flex justify-end">
             <Button type="submit" :disabled="form.processing">{{ form.processing ? 'Menyimpan…' : 'Simpan' }}</Button>
         </div>

@@ -572,6 +572,19 @@ export interface FraQuarterInput {
     deadline: string | null;
     evidence_url: string | null;
     previous_follow_up_url: string | null;
+    /** What the months give (the "versi sistem"), and what the PJ typed on the quarter (the "versi sunting"). */
+    system_analysis?: FraAnalysisFields;
+    edited_analysis?: FraAnalysisFields;
+}
+
+export interface FraAnalysisFields {
+    obstacle: string | null;
+    solution: string | null;
+    follow_up: string | null;
+    pic: string | null;
+    deadline: string | null;
+    evidence_url: string | null;
+    previous_follow_up_url: string | null;
 }
 
 export interface FraMonth {

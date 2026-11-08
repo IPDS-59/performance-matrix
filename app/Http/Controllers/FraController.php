@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Employee;
 use App\Models\FraIndicator;
 use App\Models\FraMonthValue;
+use App\Models\FraQuarterValue;
 use App\Models\Team;
 use App\Models\User;
 use App\Services\Kinetik\FraReport;
@@ -69,6 +70,42 @@ class FraController extends Controller
         );
 
         return back()->with('success', "Analisis {$indicator->code} bulan {$month} disimpan.");
+    }
+
+    /** The edited version of a quarter's analysis. A field left empty falls back to what the system compiled from the months. */
+    public function updateQuarterAnalysis(Request $request, FraIndicator $indicator, int $quarter): RedirectResponse
+    {
+        abort_unless($quarter >= 1 && $quarter <= 4, 404);
+        abort_unless($this->canEnter($request->user(), $indicator), 403, 'Hanya PJ tim pemilik indikator yang dapat mengisi.');
+
+        $data = $request->validate([
+            'obstacle' => ['nullable', 'string', 'max:6000'],
+            'solution' => ['nullable', 'string', 'max:6000'],
+            'follow_up' => ['nullable', 'string', 'max:6000'],
+            'pic' => ['nullable', 'string', 'max:255'],
+            'deadline' => ['nullable', 'string', 'max:100'],
+            'evidence_url' => ['nullable', 'string', 'max:4000'],
+            'previous_follow_up_url' => ['nullable', 'string', 'max:4000'],
+        ]);
+
+        FraQuarterValue::updateOrCreate(
+            ['fra_indicator_id' => $indicator->id, 'quarter' => $quarter],
+            [...array_map(fn ($v) => filled($v) ? trim($v) : null, $data), 'updated_by' => $request->user()->employee?->id],
+        );
+
+        return back()->with('success', "Versi sunting {$indicator->code} TW {$quarter} disimpan.");
+    }
+
+    /** Back to the system version: the edited fields of the quarter are cleared. */
+    public function resetQuarterAnalysis(Request $request, FraIndicator $indicator, int $quarter): RedirectResponse
+    {
+        abort_unless($quarter >= 1 && $quarter <= 4, 404);
+        abort_unless($this->canEnter($request->user(), $indicator), 403, 'Hanya PJ tim pemilik indikator yang dapat mengisi.');
+
+        FraQuarterValue::where('fra_indicator_id', $indicator->id)->where('quarter', $quarter)
+            ->update(['obstacle' => null, 'solution' => null, 'follow_up' => null, 'pic' => null, 'deadline' => null, 'evidence_url' => null, 'previous_follow_up_url' => null]);
+
+        return back()->with('success', "{$indicator->code} TW {$quarter} kembali ke versi sistem.");
     }
 
     /** All twelve months of one indicator in one save, like filling the Data Monitoring sheet. */
