@@ -106,24 +106,27 @@ class BuildMemberWeekAction
     private function rkOptions(Employee $employee, int $year): array
     {
         $teamIds = $employee->teams()->pluck('teams.id');
+        // The RK the member's kegiatan already sit under always stay offered (an Excel import may have put them under an RK that is not
+        // in the member's own kipApp list), or the form of such a kegiatan shows an empty RK.
+        $used = PlanItem::where('employee_id', $employee->id)->whereNotNull('performance_plan_id')->distinct()->pluck('performance_plan_id');
         $plans = PerformancePlan::with('project', 'team')
-            ->where(fn ($q) => $q->whereIn('team_id', $teamIds)->orWhereHas('project', fn ($p) => $p->whereIn('team_id', $teamIds))->orWhere('owner_employee_id', $employee->id))
+            ->where(fn ($q) => $q->whereIn('team_id', $teamIds)->orWhereHas('project', fn ($p) => $p->whereIn('team_id', $teamIds))->orWhere('owner_employee_id', $employee->id)->orWhereIn('id', $used))
             ->where(fn ($q) => $q->where('is_additional', false)->orWhere('owner_employee_id', $employee->id))
             ->orderBy('description')
             ->get();
 
         $own = EmployeeRk::where('employee_id', $employee->id)->where('year', $year)->pluck('name')->map(self::norm(...))->flip();
         $mine = $plans->filter(fn (PerformancePlan $p) => $own->has(self::norm($p->description)));
-        $plans = $mine->isEmpty() ? $plans : $mine->merge($plans->where('owner_employee_id', $employee->id))->unique('id');
+        $plans = $mine->isEmpty() ? $plans : $mine->merge($plans->where('owner_employee_id', $employee->id))->merge($plans->whereIn('id', $used))->unique('id');
 
         // kipApp copies an RK for every member and every quarter SKP, so one RK text becomes several local rows (one head of
         // several teams saw 41 rows for 9 RK). Show each RK once per projek (or per team when it has none), preferring the
         // row of the member's own team, then the oldest.
-        $plans = $plans
-            ->sortBy(fn (PerformancePlan $p) => [$teamIds->contains($p->team_id) ? 0 : 1, $p->id])
-            ->unique(fn (PerformancePlan $p) => ($p->project_id ?? 't'.$p->team_id).'|'.self::norm($p->description))
-            ->sortBy('description')
-            ->values();
+        $key = fn (PerformancePlan $p) => ($p->project_id ?? 't'.$p->team_id).'|'.self::norm($p->description);
+        $sorted = $plans->sortBy(fn (PerformancePlan $p) => [$used->contains($p->id) ? 0 : 1, $teamIds->contains($p->team_id) ? 0 : 1, $p->id]);
+        // The copies folded into one option: a kegiatan filed under a copy still finds its RK.
+        $aliases = $sorted->groupBy($key)->map(fn ($g) => $g->skip(1)->pluck('id')->values()->all());
+        $plans = $sorted->unique($key)->sortBy('description')->values();
 
         // An RK the member owns only because no team plan carried it yet (see SyncKipActivitiesAction::ensureExternalPlans) steps aside
         // once a team plan with the same text exists, so the RK is not listed twice.
@@ -136,6 +139,7 @@ class BuildMemberWeekAction
 
         return $plans->map(fn (PerformancePlan $plan) => [
             'id' => $plan->id,
+            'alias_ids' => $aliases->get($key($plan), []),
             'description' => $plan->description,
             'team_id' => $plan->project?->team_id ?? $plan->team_id,
             'team_name' => $plan->project?->team?->name ?? $plan->team?->name ?? ($plan->owner_employee_id !== null && ! $plan->is_additional ? ($plan->external_team_name ?? 'Di luar tim Sulteng') : null),
