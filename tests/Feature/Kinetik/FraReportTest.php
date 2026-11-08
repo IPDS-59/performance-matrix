@@ -1,6 +1,7 @@
 <?php
 
 use App\Models\FraIndicator;
+use App\Models\FraMonthValue;
 use App\Models\FraQuarterValue;
 use App\Services\Kinetik\FraCalculator;
 use App\Services\Kinetik\FraReport;
@@ -52,4 +53,33 @@ it('builds the report for TW2 from the loaded 2026 data', function () {
         ->and($row('1.1.1.1')['quarters'][2]['capaian_year'])->toBeNull()                 // realisation 0 -> "-"
         ->and($row('2.5.1.1')['final'])->toBe(78.33333333333333 * 0.9)                   // BB: 10% correction
         ->and($report['summary']['sakip_predicate'])->toBe('BB/Sangat Baik');
+});
+
+it('cascades the analysis of a quarter from its three months instead of only the last one', function () {
+    $this->seed(FraIndicatorSeeder::class);
+    $ind = FraIndicator::where('code', '2.5.1.1')->first();
+    $month = fn (int $m, array $attrs) => FraMonthValue::create(['fra_indicator_id' => $ind->id, 'month' => $m, 'x' => 10, ...$attrs]);
+    $month(1, ['obstacle' => 'Data kabupaten terlambat', 'pic' => 'Tim A', 'evidence_url' => 'https://x.test/jan']);
+    $month(2, ['obstacle' => 'Koordinasi belum selesai', 'solution' => 'Rapat dengan kabupaten', 'pic' => 'Tim B', 'evidence_url' => 'https://x.test/feb']);
+    $month(3, ['follow_up' => 'Kirim ulang data', 'deadline' => '2026-04-10', 'evidence_url' => 'https://x.test/jan']);
+
+    $report = (new FraReport(new FraCalculator))->build(FraIndicator::with(['quarterValues', 'monthValues'])->where('id', $ind->id)->get(), 1);
+    $tw1 = $report['indicators'][0]['values'][1];
+
+    expect($tw1['obstacle'])->toBe("Jan: Data kabupaten terlambat\nFeb: Koordinasi belum selesai")
+        ->and($tw1['solution'])->toBe('Feb: Rapat dengan kabupaten')
+        ->and($tw1['follow_up'])->toBe('Mar: Kirim ulang data')
+        ->and($tw1['pic'])->toBe('Tim B')                                 // latest month that wrote one
+        ->and($tw1['deadline'])->toBe('2026-04-10')
+        ->and($tw1['evidence_url'])->toBe("https://x.test/jan\nhttps://x.test/feb"); // every link once
+});
+
+it('keeps the analysis typed on the quarter when no month wrote one', function () {
+    $this->seed(FraIndicatorSeeder::class);
+    $ind = FraIndicator::where('code', '2.5.1.1')->first();
+    FraQuarterValue::where('fra_indicator_id', $ind->id)->where('quarter', 2)->update(['obstacle' => 'Ditulis di triwulan']);
+
+    $report = (new FraReport(new FraCalculator))->build(FraIndicator::with(['quarterValues', 'monthValues'])->where('id', $ind->id)->get(), 2);
+
+    expect($report['indicators'][0]['values'][2]['obstacle'])->toBe('Ditulis di triwulan');
 });

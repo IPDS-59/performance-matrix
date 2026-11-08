@@ -41,6 +41,13 @@ function cumulative(m: number): number | null {
     return props.indicator.percent_label ? sumX / used.length : sumX;
 }
 
+/** The running figure against the allocation of the quarter the month belongs to (capped at 120 like the sheet), so a month shows how far the quarter's target is. */
+function capaianTw(m: number): number | null {
+    const v = cumulative(m);
+    const allocation = props.indicator.quarters?.[Math.ceil(m / 3)]?.allocation_value ?? 0;
+    return v === null || !allocation ? null : Math.min((v / allocation) * 100, 120);
+}
+
 const now = new Date();
 const lastMonth = computed(() => (props.year < now.getFullYear() ? 12 : props.year > now.getFullYear() ? 0 : now.getMonth() + 1));
 
@@ -101,6 +108,14 @@ const cellInput = 'w-full min-w-0 rounded border border-gray-200 bg-white px-1.5
                     </th>
                     <td v-for="(m, i) in MONTHS" :key="m" class="px-1 py-1">
                         <span :class="['block rounded px-1.5 py-1 text-right text-sm font-semibold tabular-nums', i + 1 === month ? 'ring-2 ring-primary' : '', tone(i + 1, cumulative(i + 1))]">{{ fmt(cumulative(i + 1)) }}</span>
+                    </td>
+                </tr>
+                <tr class="border-t">
+                    <th scope="row" class="sticky left-0 z-10 bg-white px-3 py-1.5 text-left text-xs font-semibold text-gray-800">
+                        % terhadap target triwulan <span class="font-normal text-gray-400">kumulatif ÷ alokasi TW</span>
+                    </th>
+                    <td v-for="(m, i) in MONTHS" :key="m" class="px-1 py-1">
+                        <span :class="['block rounded px-1.5 py-1 text-right text-sm tabular-nums', capaianTw(i + 1) === null ? 'text-gray-400' : capaianTw(i + 1)! >= 100 ? 'bg-green-50 text-green-700' : 'bg-amber-50 text-amber-800']">{{ capaianTw(i + 1) === null ? '-' : fmt(capaianTw(i + 1)) }}</span>
                     </td>
                 </tr>
             </tbody>
