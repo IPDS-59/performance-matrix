@@ -72,6 +72,7 @@ const navSections = computed<NavSection[]>(() => {
                 { label: 'Bulanan', href: route('team-recap.monthly'), active: is('team-recap.monthly'), icon: CalendarRange, show: hasEmployee.value || isHead.value || isAdmin.value },
                 { label: 'Triwulanan (FRA)', href: route('team-recap.quarterly'), active: is('team-recap.quarterly'), icon: FileChartColumn, show: hasEmployee.value || isHead.value || isAdmin.value },
                 { label: 'Kertas Kerja FRA', href: route('fra.index'), active: is('fra.*'), icon: FileSpreadsheet, show: canViewPlanCompliance.value },
+                { label: 'Progres per IKU', href: route('iku-progress.index'), active: is('iku-progress.*'), icon: Target, show: canViewPlanCompliance.value },
                 { label: 'Persetujuan SKP', href: route('skp.approvals'), active: is('skp.approvals'), icon: BadgeCheck, show: canApproveSkp.value },
                 { label: 'Kepatuhan Rencana', href: route('plan-compliance.index'), active: is('plan-compliance.*'), icon: ClipboardCheck, show: canViewPlanCompliance.value },
                 { label: 'Angka Kredit Tim', href: route('credit.team'), active: is('credit.team'), icon: Award, show: canViewTeamCredits.value },
