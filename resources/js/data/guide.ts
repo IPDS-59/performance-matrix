@@ -594,6 +594,16 @@ export const GUIDE_FLOWS: GuideFlow[] = [
                 tip: 'Tombol Analisis tidak muncul pada indikator tertentu? Minta admin menetapkan tim Anda sebagai pemilik indikator itu.',
             },
             {
+                title: 'Lihat progres pekerjaan per IKU',
+                where: 'Menu Rekap Tim → Progres per IKU',
+                route: 'iku-progress.index',
+                body: [
+                    'Halaman ini menunjukkan seberapa jauh pekerjaan di bawah tiap IKU: capaian kegiatan dibagi targetnya (paling tinggi 100%), dirata-rata per bulan lewat kegiatan, RK, dan projek yang terhubung ke IKU. Tab "Per tim" memecah hal yang sama per tim.',
+                    'Ini progres pekerjaan, bukan realisasi IKU. IKU punya data dasar dan rumusnya sendiri (misalnya jumlah publikasi terbit dibanding rencana), jadi realisasi resmi tetap di Kertas Kerja FRA. Satu IKU bisa dikerjakan beberapa tim: kolom "Tim terkait" memuat semua tim yang punya projek di bawahnya.',
+                ],
+                tip: 'IKU yang kosong biasanya belum ada kegiatan dengan target dan capaian, atau projeknya belum dihubungkan ke IKU di data master.',
+            },
+            {
                 title: 'Tetapkan atau kembalikan SKP anggota',
                 where: 'Menu Rekap Tim → Persetujuan SKP',
                 route: 'skp.approvals',
