@@ -539,13 +539,16 @@ it('does not let the head write a paraphrase even when the head leads the team',
     expect(RkRecap::count())->toBe(0);
 });
 
-it('opens Review Bersama to a PJ with only their teams, and keeps it closed to a plain member', function () {
+it('opens Review Bersama to a PJ with every team (the spv asked on 9 Nov 2026), and keeps it closed to a plain member', function () {
     [$pj, , $team] = pjOfTeam();
     Team::factory()->create(['name' => 'Tim Lain']);
     [$member] = memberOfTeam();
 
     $this->actingAs($pj)->get(route('team-recap.overview'))
-        ->assertOk()->assertInertia(fn ($page) => $page->has('teams', 1)->where('teams.0.id', $team->id)->missing('canWriteNotes'));
+        ->assertOk()->assertInertia(fn ($page) => $page->has('teams', Team::count())->missing('canWriteNotes'));
+    $this->actingAs($pj)->get(route('team-recap.export', ['period_type' => 'month', 'year' => 2026, 'month' => 11, 'scope' => 'all']))->assertOk()->assertJsonCount(Team::count(), 'teams');
+    // Without scope=all the export keeps to the PJ's own team.
+    $this->actingAs($pj)->get(route('team-recap.export', ['period_type' => 'month', 'year' => 2026, 'month' => 11]))->assertOk()->assertJsonCount(1, 'teams');
     $this->actingAs($pj)->get(route('profile.edit'))->assertInertia(fn ($page) => $page->where('can.review_bersama', true));
 
     $this->actingAs($member)->get(route('team-recap.overview'))->assertForbidden();

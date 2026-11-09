@@ -212,6 +212,8 @@ export interface RecapRow {
     rk_code?: string | null;
     rk_description: string;
     uraian_aggregated?: string | null;
+    /** The permasalahan written on the members' kegiatan, one line per person. */
+    kendala_aggregated?: string | null;
     /** Numbers: the PJ's own for the RK, else the members' plan items summed. */
     target: number;
     realization: number;
