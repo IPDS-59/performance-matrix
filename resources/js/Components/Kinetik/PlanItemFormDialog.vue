@@ -12,6 +12,7 @@ import { Button } from '@/Components/ui/button';
 import { Input } from '@/Components/ui/input';
 import { Label } from '@/Components/ui/label';
 import { Textarea } from '@/Components/ui/textarea';
+import { clearDraft, loadDraft, saveDraft } from '@/composables/useFormDraft';
 import { type EntryFormState, dateEndAfterRangeToggle, defaultProgress, entryFormState, entryPayload, quarterBounds, todayIso } from '@/composables/usePlanEntry';
 
 /** Add, edit or copy one kegiatan, with the same fields as kipApp plus target and satuan. Capaian and bukti dukung are filled in later, from the kegiatan's detail, when the capaian is updated. */
@@ -65,7 +66,28 @@ watch(() => [props.open, props.item, props.copyOf] as const, ([open, item, copyO
     const own = props.rkOptions.find(o => o.id === form.performance_plan_id || o.alias_ids.includes(form.performance_plan_id as number));
     if (own) form.performance_plan_id = own.id;
     externalSelected.value = null;
+    initial = JSON.stringify(form.data());
+    // What was typed before the dialog closed without saving comes back, unless it is the same as the stored kegiatan.
+    const draft = sentOnly.value ? null : loadDraft<EntryFormState>(draftKey.value);
+    restored.value = draft !== null && JSON.stringify(draft) !== initial;
+    if (restored.value) Object.assign(form, draft);
 }, { immediate: true });
+
+// Unsent input is kept in the browser while the dialog is open, and dropped once it is saved or discarded.
+const draftKey = computed(() => `plan-item.${props.item?.id ?? (props.copyOf ? `copy-${props.copyOf.id}` : 'new')}`);
+const restored = ref(false);
+let initial = '';
+watch(() => form.data(), (data) => {
+    if (!props.open || sentOnly.value) return;
+    if (JSON.stringify(data) === initial) clearDraft(draftKey.value);
+    else saveDraft(draftKey.value, data);
+}, { deep: true });
+
+function discardDraft() {
+    clearDraft(draftKey.value);
+    Object.assign(form, entryFormState(props.item, props.copyOf, props.defaultDate, todayIso()));
+    restored.value = false;
+}
 
 // Logging past work starts at 100 (kipApp); planning starts at 0.
 watch(() => form.date_start, (date) => {
@@ -158,7 +180,7 @@ function save() {
     // Enter pressed twice, or a click right after Enter, must not save the kegiatan twice.
     if (form.processing) return;
     form.transform((data: EntryFormState) => (sentOnly.value ? { is_capaian_skp: data.is_capaian_skp } : entryPayload(data)));
-    const options = { preserveScroll: true, onSuccess: () => emit('update:open', false) };
+    const options = { preserveScroll: true, onSuccess: () => { clearDraft(draftKey.value); restored.value = false; emit('update:open', false); } };
     if (props.item) form.patch(route('plan-items.update', props.item.id), options);
     else form.post(route('plan-items.store'), options);
 }
@@ -173,6 +195,10 @@ function save() {
         @update:open="(v: boolean) => emit('update:open', v)"
         @submit="save"
     >
+        <p v-if="restored" class="flex items-center justify-between gap-2 rounded-md border border-amber-300 bg-amber-50 px-3 py-2 text-xs text-amber-900" role="status">
+            <span>Isian yang belum tersimpan dipulihkan.</span>
+            <button type="button" class="font-medium underline" @click="discardDraft">Buang draf</button>
+        </p>
         <fieldset :disabled="sentOnly" class="min-w-0 space-y-3 border-0 p-0">
             <div class="space-y-1.5">
                 <Label>Projek</Label>
