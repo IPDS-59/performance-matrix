@@ -34,7 +34,7 @@ const editing = ref<PlanItemRow | null>(null);
 const copying = ref<PlanItemRow | null>(null);
 
 const selection = useRowSelection(() => [...(props.lastWeek ?? []), ...(props.thisWeek ?? [])]);
-const bulk = useBulkSend(() => ({ send: selection.toSend.value.map(r => r.id), cancel: selection.toCancel.value.map(r => r.id) }), selection.clear);
+const bulk = useBulkSend(() => ({ send: selection.toSend.value.map(r => r.id), cancel: selection.toCancel.value.map(r => r.id), push: selection.toPush.value.map(r => r.id) }), selection.clear);
 
 function add() { editing.value = null; copying.value = null; formOpen.value = true; }
 function edit(item: PlanItemRow) { detailId.value = null; editing.value = item; copying.value = null; formOpen.value = true; }
@@ -88,6 +88,7 @@ const shiftYear = (delta: number) => to({ year: props.year + delta });
                     <Input v-model="query" class="pl-9" placeholder="Cari kegiatan atau RK" aria-label="Cari kegiatan" />
                 </div>
                 <span data-tour="sync-me" class="inline-flex"><SyncMyActivitiesButton /></span>
+                <Button v-if="selection.toPush.value.length" variant="outline" @click="bulk.ask('push')">Kirim ke kipApp ({{ selection.toPush.value.length }})</Button>
                 <template v-if="canSendToAtasan">
                     <Button variant="outline" :disabled="!selection.toSend.value.length" @click="bulk.ask('send')">Kirim ke atasan ({{ selection.toSend.value.length }})</Button>
                     <Button variant="outline" :disabled="!selection.toCancel.value.length" @click="bulk.ask('cancel')">Batalkan kirim ({{ selection.toCancel.value.length }})</Button>

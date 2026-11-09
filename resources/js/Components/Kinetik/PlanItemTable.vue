@@ -10,7 +10,7 @@ import { useDateFormat } from '@/composables/useDateFormat';
 /** Short rows of kegiatan; a click opens the detail. With the send setting on, rows in kipApp can be checked. */
 const props = defineProps<{ rows: PlanItemRow[]; canSendToAtasan: boolean; emptyText: string; selected: number[] }>();
 const emit = defineEmits<{ open: [item: PlanItemRow]; toggle: [id: number, on: boolean]; 'toggle-all': [rows: PlanItemRow[], on: boolean] }>();
-const selectable = computed(() => props.rows.filter(r => r.can_send));
+const selectable = computed(() => props.rows.filter(r => r.can_send || r.can_push));
 const allChecked = computed(() => selectable.value.length > 0 && selectable.value.every(r => props.selected.includes(r.id)));
 const { formatDate } = useDateFormat();
 const short = (d: string) => formatDate(d, { day: 'numeric', month: 'short' });
@@ -31,7 +31,7 @@ const stageOf = (row: PlanItemRow) => planStage(row, props.canSendToAtasan);
         <TableBody>
             <TableRow v-for="row in rows" :key="row.id" class="cursor-pointer" tabindex="0" @click="emit('open', row)" @keydown.enter="emit('open', row)">
                 <TableCell v-if="canSendToAtasan" class="w-8" @click.stop>
-                    <Checkbox :model-value="selected.includes(row.id)" :disabled="!row.can_send" :aria-label="`Pilih ${row.description}`" @update:model-value="(v: boolean | 'indeterminate') => emit('toggle', row.id, v === true)" />
+                    <Checkbox :model-value="selected.includes(row.id)" :disabled="!(row.can_send || row.can_push)" :aria-label="`Pilih ${row.description}`" @update:model-value="(v: boolean | 'indeterminate') => emit('toggle', row.id, v === true)" />
                 </TableCell>
                 <TableCell class="max-w-xs truncate font-medium">{{ row.description }}</TableCell>
                 <TableCell class="max-w-[14rem] truncate text-gray-600">{{ row.rk_name }}</TableCell>

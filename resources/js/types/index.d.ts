@@ -541,6 +541,8 @@ export interface PlanItemRow {
     can_edit: boolean;
     can_delete: boolean;
     can_send: boolean;
+    /** Only in Kinetik and its date has come: can be sent to kipApp. */
+    can_push: boolean;
     /** Short reason when the quarter SKP is locked in kipApp. */
     lock_reason: string | null;
 }

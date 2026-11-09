@@ -91,6 +91,8 @@ class BuildMemberWeekAction
                 'can_edit' => $this->access->canEdit($p),
                 'can_delete' => $this->access->canDelete($p),
                 'can_send' => $this->access->canSend($p),
+                // A kegiatan only in Kinetik whose date has come can be sent to kipApp (alone or in a batch).
+                'can_push' => $p->kip_external_id === null && $p->status === 'planned' && $this->access->hasStarted($p),
                 'lock_reason' => $this->access->lockReason($p),
             ])
             ->values()

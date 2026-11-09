@@ -4,7 +4,7 @@ import { useRowSelection } from '@/composables/useRowSelection';
 import type { PlanItemRow } from '@/types';
 import { bulkCopy } from '@/composables/usePlanBulk';
 
-const row = (id: number, over: Partial<PlanItemRow> = {}) => ({ id, can_send: true, sent: false, ...over }) as PlanItemRow;
+const row = (id: number, over: Partial<PlanItemRow> = {}) => ({ id, can_send: true, can_push: false, sent: false, ...over }) as PlanItemRow;
 
 describe('useRowSelection', () => {
     it('lets only rows the server marks sendable be checked, and splits them into send and cancel', async () => {

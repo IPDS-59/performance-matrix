@@ -148,6 +148,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('/rencana-minggu/item/{planItem}/kirim-atasan', [PlanItemController::class, 'send'])->name('plan-items.send');
     Route::post('/rencana-minggu/item/{planItem}/batal-kirim', [PlanItemController::class, 'unsend'])->name('plan-items.unsend');
     Route::get('/kirim-atasan', [QuarterSendController::class, 'index'])->name('quarter-send.index');
+    Route::post('/rencana-minggu/kirim-kipapp', [PlanItemController::class, 'pushMany'])->name('plan-items.push-many');
     Route::post('/rencana-minggu/kirim-atasan', [PlanItemController::class, 'sendMany'])->name('plan-items.send-many');
     Route::post('/rencana-minggu/batal-kirim', [PlanItemController::class, 'unsendMany'])->name('plan-items.unsend-many');
     Route::get('/rencana-minggu/presensi', [PlanItemController::class, 'presensi'])->name('plan-items.presensi');
