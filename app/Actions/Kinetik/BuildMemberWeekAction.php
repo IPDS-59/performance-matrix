@@ -133,6 +133,9 @@ class BuildMemberWeekAction
         $teamTexts = $plans->filter(fn (PerformancePlan $p) => $p->owner_employee_id === null)->map(fn (PerformancePlan $p) => self::norm($p->description))->flip();
         $plans = $plans->reject(fn (PerformancePlan $p) => $p->owner_employee_id !== null && ! $p->is_additional && $teamTexts->has(self::norm($p->description)))->values();
 
+        // An RK of a team Kinetik does not hold (a Pusat team) belongs to no team here, but every kegiatan needs one:
+        // it is filed under the member's own team (primary first), as the Excel import does.
+        $homeTeamId = $employee->teams()->orderByDesc('employee_team.is_primary')->value('teams.id');
         $candidates = $this->links->candidatesFor($plans, $employee);
         // A team leader's RK is the RK Ketua of their projek: it belongs under each projek whose RK Ketua carries its text.
         $ketuaProjects = Project::whereNotNull('leader_rk')->get(['id', 'leader_rk'])->groupBy(fn (Project $p) => self::norm($p->leader_rk))->map(fn ($g) => $g->pluck('id')->values()->all());
@@ -141,7 +144,7 @@ class BuildMemberWeekAction
             'id' => $plan->id,
             'alias_ids' => $aliases->get($key($plan), []),
             'description' => $plan->description,
-            'team_id' => $plan->project?->team_id ?? $plan->team_id,
+            'team_id' => $plan->project?->team_id ?? $plan->team_id ?? ($plan->owner_employee_id === $employee->id ? $homeTeamId : null),
             'team_name' => $plan->project?->team?->name ?? $plan->team?->name ?? ($plan->owner_employee_id !== null && ! $plan->is_additional ? ($plan->external_team_name ?? 'Di luar tim Sulteng') : null),
             'project_id' => $plan->project_id,
             'external_project' => $plan->external_project_name,

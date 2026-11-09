@@ -370,7 +370,9 @@ class PlanItemController extends Controller
     private function checkRk(Team $team, int $employeeId, array $data): void
     {
         $plan = PerformancePlan::with('project')->findOrFail($data['performance_plan_id']);
-        if (($plan->project?->team_id ?? $plan->team_id) !== $team->id) {
+        // An RK of a Pusat team that only this member owns has no team; it is filed under the member's own team.
+        $ownedWithoutTeam = $plan->owner_employee_id === $employeeId && ($plan->project?->team_id ?? $plan->team_id) === null;
+        if (! $ownedWithoutTeam && ($plan->project?->team_id ?? $plan->team_id) !== $team->id) {
             throw ValidationException::withMessages(['performance_plan_id' => 'RK ini bukan milik tim yang dipilih.']);
         }
         if ($plan->project_id === null && empty($data['project_id']) && ! $this->links->projectOptionalFor($plan, Employee::findOrFail($employeeId))) {
