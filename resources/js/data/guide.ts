@@ -350,7 +350,7 @@ export const GUIDE_FLOWS: GuideFlow[] = [
                 where: 'Menu Beranda',
                 route: 'dashboard',
                 body: [
-                    'Beranda menjawab empat hal untuk minggu ini: apakah rencana sudah ada, apakah capaian minggu lalu sudah diisi, apakah kegiatan sudah dikirim ke atasan, dan di mana posisi SKP Anda. Tombol di tiap kotak membuka minggu ini langsung, bukan daftar bulan. Tombol "Isi realisasi" pada kotak capaian minggu lalu hanya menampilkan kegiatan yang capaiannya belum diisi; tekan "Tampilkan semua" untuk melihat semuanya.',
+                    'Beranda menjawab dua hal untuk minggu ini: apakah rencana sudah ada, dan apakah realisasi minggu lalu sudah diisi. Tombol di tiap kotak membuka minggunya. Bila Anda PJ, di bawahnya ada "Status anggota tim": satu baris per anggota, siapa yang belum punya rencana atau belum mengisi realisasi, dengan tombol "Buka tabel rapat". Kegiatan ke atasan dan SKP diurus di kipApp.',
                     'Capaian tim dan peringkat ada di menu Monitoring. Menu "Pantau Kegiatan" hanya untuk melihat kegiatan kipApp Anda, bukan untuk mengisi.',
                 ],
                 shot: SHOTS.anggotaBeranda,
@@ -361,7 +361,7 @@ export const GUIDE_FLOWS: GuideFlow[] = [
                 route: 'weekly.index',
                 body: [
                     'Halaman ini dibuka dengan daftar bulan. Tiap baris menunjukkan jumlah kegiatan, berapa yang capaiannya sudah terisi, dan berapa yang sudah terkirim ke atasan. Pilih satu bulan untuk melihat minggu-minggunya, lalu pilih satu minggu. Baris dengan label "Sekarang" adalah bulan atau minggu berjalan. Tombol "Semua bulan" dan "Minggu di …" membawa Anda kembali satu langkah.',
-                    'Di dalam sebuah minggu ada dua tabel dan hanya kegiatan Anda sendiri: "Capaian minggu lalu" dan "Rencana minggu ini". Kolom cari menyaring tabelnya.',
+                    'Di dalam sebuah minggu ada dua tabel dan hanya kegiatan Anda sendiri: "Realisasi minggu lalu" dan "Rencana minggu ini". Tampilannya meniru kipApp: No, Tanggal, Rencana Kinerja, Kegiatan, Progress, Capaian, Bukti Dukung, Capaian SKP, Dikirim. Tombol "Aksi" di tiap baris berisi Isi realisasi, Ubah, Salin kegiatan, dan Hapus atau Batalkan. Kegiatan yang berjalan beberapa minggu tampil di tiap minggunya bertanda "Lanjutan", dan realisasinya dicatat per minggu.',
                     'Jika PJ mengisi fokus untuk Anda, fokus itu tampil di atas tabel.',
                     'Tekan "Sinkronkan data saya" untuk menarik RK dan kegiatan Anda dari kipApp. Sinkronisasi pertama berjalan otomatis setelah Anda menghubungkan akun SSO. Jika daftar RK kosong, tekan tombol ini.',
                     'Kinetik juga menyinkronkan data Anda sendiri tiap pagi, memakai sesi kipApp Anda. Sesi yang berakhir diperbarui otomatis dengan kata sandi SSO yang tersimpan. Jika tidak bisa (kata sandi ditolak, atau akun memakai OTP), Anda mendapat notifikasi satu kali dan sinkronisasi Anda menunggu. Begitu Anda masuk lagi ke Kinetik, sinkronisasi yang menunggu langsung berjalan.',
@@ -375,7 +375,7 @@ export const GUIDE_FLOWS: GuideFlow[] = [
                     'Tekan "Tambah". Pilih projek lebih dulu, lalu RK: daftar RK hanya menampilkan RK projek itu (keduanya bisa dicari). Setelah RK dipilih, projek terisi sendiri bila Kinetik tahu pasti: kipApp mencatat projek tempat tiap RK Anda dibuat (dibaca lewat Sinkronisasi Struktur), dan bila catatan itu belum ada Kinetik menyimpulkannya dari RK Ketua serta projek tempat Anda menjadi anggota. Bila ada beberapa kemungkinan, kolom projek berisi pilihan itu dan Anda memilih satu. Setelah dipilih, projek terkunci. Tekan "Ganti RK" bila ingin memilih projek lain, lalu pilih RK dari projek yang baru. Tulis kegiatan (minimal 10 karakter). Progres, capaian, bukti dukung, dan uraian capaian tidak ada di form ini: semuanya diisi nanti saat memperbarui capaian.',
                     'Ada dua kotak centang yang berdiri sendiri: "Gunakan periode tanggal" (tanggal mulai sampai selesai) dan "Gunakan jam" (jam mulai dan selesai, per 15 menit). Keduanya boleh dipakai bersamaan. Tanggal harus berada dalam satu triwulan.',
                     'Tidak yakin menulis apa? Tekan "List Aktivitas" di samping kolom Kegiatan. Pilih satu baris presensi dari kipApp (tekan tombol + atau klik dua kali). Kegiatan dan tanggalnya terisi, sisanya tetap Anda isi sendiri.',
-                    'Kotak "Masukan ke capaian SKP" menentukan apakah kegiatan dihitung sebagai capaian SKP di kipApp. Biarkan menyala untuk sedikitnya satu kegiatan tiap RK.',
+                    'Pilihan "Masukkan ke capaian SKP" baru muncul di form Realisasi bila progres belum 100, seperti di kipApp. Pada progres 100 kegiatan selalu dihitung. Kegiatan yang lanjut ke bulan depan sebaiknya tidak dicentang. Ada juga kolom "Permasalahan" untuk kendala yang akan dibahas di rapat.',
                     'Form tambah tidak punya kolom progres. Untuk tanggal yang sudah lewat progres langsung 100, seperti di kipApp. Untuk rencana ke depan progres mulai dari 0, lalu terhitung dari capaian saat Anda mengisi Realisasi.',
                     'Isi juga Target (angka) dan Satuan. Progres, capaian (angka), tautan bukti dukung, dan uraian diisi nanti di form Realisasi pada detail kegiatan. Target dan capaian selalu angka; teks penjelasan ditulis di uraian capaian.',
                     'Anda dapat mengubah atau membatalkan kegiatan selama belum dikirim ke kipApp. Untuk membuat kegiatan serupa, klik barisnya lalu tekan "Salin kegiatan": form terisi dari kegiatan itu.',
@@ -538,18 +538,18 @@ export const GUIDE_FLOWS: GuideFlow[] = [
             },
             {
                 title: 'Buka Rekap Tim mingguan',
-                where: 'Menu Rekap Tim → Mingguan',
+                where: 'Menu Rekap Tim → Rekap Tim → Mingguan',
                 route: 'team-recap.weekly',
                 body: [
                     'Halaman ini dibuka dengan daftar bulan untuk tim yang dipilih. Pilih satu bulan, lalu satu minggu. Tiap baris menunjukkan jumlah kegiatan, berapa RK yang punya kegiatan, berapa yang parafrasenya sudah ditulis, dan statusnya (Belum ada kegiatan, Belum ditulis, Sedang ditulis, atau Selesai ditulis; artinya ada di bagian "Arti status"). Pemilih tim dan tahun ada di atas daftar.',
-                    'Di dalam sebuah minggu, bagian "Kelengkapan anggota" menunjukkan siapa yang belum mengisi capaian di Rekap Mingguan. Ingatkan mereka sebelum rapat.',
+                    'Di dalam sebuah minggu ada dua tab. "Parafrase RK" terbuka lebih dulu, karena parafrase adalah isi rapat. "Tabel rapat" menampilkan tabel seperti Excel lama. Bagian "Kelengkapan anggota" di tab itu menunjukkan siapa yang belum mengisi capaian. Ingatkan mereka sebelum rapat.',
                 ],
             },
             {
                 title: 'Lihat rencana minggu ini dari anggota',
-                where: 'Menu Rekap Tim → Mingguan → pilih bulan dan minggu',
+                where: 'Menu Rekap Tim → Rekap Tim → Mingguan → pilih bulan dan minggu',
                 body: [
-                    'Di bagian atas sebuah minggu ada tabel "Rencana minggu ini": kegiatan semua anggota tim pada minggu itu, dengan anggota, RK, target dan status. Kolom cari dan pemilih anggota menyaring tabelnya.',
+                    'Di tab "Tabel rapat" ada dua tabel, "Realisasi minggu lalu" dan "Rencana minggu ini". Tiap baris memuat anggota, kegiatan, tanggal, target, realisasi, persen, progres, dan permasalahan. Anggota yang belum membuat rencana tetap tampil dengan tulisan "Belum membuat rencana". PJ menekan sebuah baris untuk mengisi realisasi dan permasalahan saat rapat. Kegiatan yang berjalan beberapa minggu tampil bertanda "Lanjutan" dengan realisasi minggu itu.',
                     'Klik satu baris untuk membuka semua isinya (target, capaian, uraian, bukti dukung dan status). Tampilan ini hanya baca. Anggota mengubah kegiatannya di Rekap Mingguan mereka sendiri.',
                     'Untuk membahas capaian minggu lalu, kembali ke daftar minggu dan buka minggu sebelumnya.',
                 ],
@@ -578,7 +578,7 @@ export const GUIDE_FLOWS: GuideFlow[] = [
             },
             {
                 title: 'Rekap bulanan dan triwulanan (FRA)',
-                where: 'Menu Rekap Tim → Bulanan / Triwulanan (FRA)',
+                where: 'Menu Rekap Tim → Rekap Tim → Bulanan atau Triwulanan (FRA)',
                 route: 'team-recap.monthly',
                 body: [
                     'Halaman bulanan dibuka dengan daftar Januari sampai Desember. Pilih satu bulan untuk membuka rekapnya; tombol "Semua bulan" membawa Anda kembali ke daftar. Rekap sebuah bulan memakai kartu dan popup yang sama dengan mingguan, per RK. Parafrase mingguan bulan itu tampil di popup sebagai bahan, lengkap dengan tombol "Sisipkan".',
@@ -661,7 +661,7 @@ export const GUIDE_FLOWS: GuideFlow[] = [
                 where: 'Menu Rekap Tim → Review Bersama',
                 route: 'team-recap.overview',
                 body: [
-                    'PJ juga punya Review Bersama, dengan tampilan yang sama seperti pimpinan, tetapi hanya untuk tim yang Anda ikuti. Pilih Mingguan, Bulanan, atau Triwulanan, lalu baca capaian, dan baris yang sudah ditulis parafrasenya.',
+                    'PJ juga punya Review Bersama, dengan tampilan yang sama seperti pimpinan, untuk semua tim (hanya baca). Pilih Mingguan, Bulanan, atau Triwulanan, lalu baca capaian, dan baris yang sudah ditulis parafrasenya. Tombol "Unduh Excel semua tim" memuat semua tim dan kolom Permasalahan.',
                     'Klik judul kolom Capaian untuk mengurutkan. Ringkasan Rapat di Beranda Anda menunjukkan rekap mingguan dan bulanan tim Anda sudah lengkap, sebagian, atau belum, dan berapa bukti rapat yang sudah dilampirkan.',
                     'Kepatuhan Rencana menampilkan ringkasan dulu (siapa yang belum membuat rencana minggu ini), lalu tabel lengkap bila Anda membukanya.',
                 ],
@@ -741,7 +741,7 @@ export const GUIDE_FLOWS: GuideFlow[] = [
                     'Baris kecil di paling atas menunjukkan yang perlu dilihat lebih dulu, satu label untuk tiap hal beserta jumlahnya. Klik labelnya untuk membuka halamannya. Rinciannya ada di menu Monitoring.',
                     'Review Bersama untuk pimpinan selalu per bulan. Pindah bulan dengan ‹ dan ›. (PJ dan admin masih bisa memilih Mingguan, Bulanan atau Triwulanan.)',
                     'Satu deret angka merangkum kantor: tim yang punya rekap, rata-rata capaian, dan RK yang sudah ada parafrasenya.',
-                    'Review Bersama juga ada di menu PJ: PJ melihat tim yang ia ikuti dengan tampilan yang sama.',
+                    'Review Bersama juga ada di menu PJ: PJ melihat semua tim dengan tampilan yang sama, hanya baca.',
                 ],
                 shot: SHOTS.pimpinanReviewBersama,
             },
