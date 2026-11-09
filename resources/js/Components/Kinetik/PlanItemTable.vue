@@ -24,7 +24,7 @@ const emit = defineEmits<{
     toggle: [id: number, on: boolean];
     'toggle-all': [rows: PlanItemRow[], on: boolean];
 }>();
-const selectable = computed(() => props.rows.filter(r => r.can_send || r.can_push));
+const selectable = computed(() => props.rows.filter(r => (props.canSendToAtasan && r.can_send) || r.can_push));
 const allChecked = computed(() => selectable.value.length > 0 && selectable.value.every(r => props.selected.includes(r.id)));
 const showChecks = computed(() => props.canSendToAtasan || selectable.value.length > 0);
 const { formatDate } = useDateFormat();
@@ -56,7 +56,7 @@ const canChange = (row: PlanItemRow) => row.can_edit && !row.sent;
             <tbody>
                 <tr v-for="(row, i) in rows" :key="row.id" class="cursor-pointer border-b align-top transition-colors duration-150 hover:bg-gray-50 focus-visible:bg-gray-50 focus-visible:outline-none" tabindex="0" @click="emit('open', row)" @keydown.enter="emit('open', row)">
                     <td v-if="showChecks" class="w-8 px-3 py-3" @click.stop>
-                        <Checkbox :model-value="selected.includes(row.id)" :disabled="!(row.can_send || row.can_push)" :aria-label="`Pilih ${row.description}`" @update:model-value="(v: boolean | 'indeterminate') => emit('toggle', row.id, v === true)" />
+                        <Checkbox :model-value="selected.includes(row.id)" :disabled="!((canSendToAtasan && row.can_send) || row.can_push)" :aria-label="`Pilih ${row.description}`" @update:model-value="(v: boolean | 'indeterminate') => emit('toggle', row.id, v === true)" />
                     </td>
                     <td class="px-3 py-3 tabular-nums text-gray-600">{{ i + 1 }}</td>
                     <td class="whitespace-nowrap px-3 py-3 tabular-nums">

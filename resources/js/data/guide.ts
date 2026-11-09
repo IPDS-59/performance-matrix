@@ -138,13 +138,11 @@ export const SHOTS = {
     },
     anggotaBeranda: {
         src: '/images/pedoman/anggota-beranda.webp',
-        alt: 'Beranda anggota: empat kotak, yaitu rencana minggu ini, capaian minggu lalu, kegiatan ke atasan, dan SKP saya',
+        alt: 'Beranda anggota: dua kotak, yaitu rencana minggu ini dan capaian minggu lalu',
         width: 1024, height: 576,
         markers: [
-            { n: 1, x: 56, y: 17, label: 'Rencana minggu ini. Merah atau kuning bila belum ada rencana.' },
-            { n: 2, x: 97, y: 17, label: 'Berapa kegiatan minggu lalu yang capaiannya sudah diisi, dan mana yang belum.' },
-            { n: 3, x: 56, y: 47, label: 'Kegiatan bulan ini yang sudah dikirim ke atasan, dan yang belum.' },
-            { n: 4, x: 97, y: 47, label: 'SKP tahun ini yang belum selesai dinilai.' },
+            { n: 1, x: 60, y: 26, label: 'Rencana minggu ini. Merah atau kuning bila belum ada rencana.' },
+            { n: 2, x: 96, y: 26, label: 'Berapa kegiatan minggu lalu yang capaiannya sudah diisi, dan mana yang belum.' },
         ],
     },
     anggotaAngkaKredit: {
@@ -427,7 +425,7 @@ export const GUIDE_FLOWS: GuideFlow[] = [
                     'Selesai mengerjakan? Tekan "Tandai selesai". Uraian capaian wajib minimal 10 karakter saat ini. Kinetik mengirim progres 100%, uraian capaian dan tautan bukti ke kipApp. Tombol "Simpan realisasi" hanya menyimpan di Kinetik.',
                     'Kegiatan yang sudah ada di kipApp dan belum dikirim ke atasan bisa diubah, atau dihapus lewat tombol "Hapus kegiatan" di detail. Kinetik menghapusnya juga di kipApp, setelah bertanya dulu. Kegiatan yang sudah dikirim ke atasan tidak bisa dihapus: tekan "Batalkan kirim" dulu, lalu hapus. Jika SKP triwulan sudah dikirim untuk dinilai, kegiatan terkunci dan alasannya tampil di detail.',
                     'RK dan projek bisa diganti selama kegiatan belum dikirim ke atasan, sama seperti form ubah di kipApp sendiri: buka kegiatannya, tekan "Ganti RK", lalu pilih RK lain. Untuk kegiatan yang sudah ada di kipApp, RK baru harus termasuk RK Anda di SKP triwulan itu. Bila tidak, Kinetik menolak dan tidak mengubah apa pun. Kegiatan yang sudah dikirim ke atasan tidak bisa berganti RK: tekan "Batalkan kirim" dulu.',
-                    'Mengirim ke atasan: centang beberapa kegiatan di tabel, lalu tekan "Kirim ke atasan (n)". Kinetik bertanya dulu, lalu mengirim semuanya sekaligus. "Batalkan kirim (n)" mengembalikan kegiatan yang sudah terkirim. Kirim dan batal kirim sudah diuji langsung di kipApp. Aturannya sama dengan kipApp: hanya berlaku selama SKP triwulan berstatus "Sedang dibuat".',
+                    'Kirim ke atasan tidak ada di Rekap Mingguan. Pengiriman dilakukan sekali per triwulan di menu Kegiatan → Kirim ke Atasan, supaya orang tidak mengirim sebelum lengkap. Di Rekap Mingguan, centang beberapa kegiatan lalu pilih "Aksi kegiatan terpilih" → "Kirim ke kipApp" untuk mengirim kegiatan yang sudah lengkap ke kipApp.',
                     'Jika progres diubah langsung di kipApp, Kinetik mengikuti kipApp pada sinkronisasi berikutnya.',
                 ],
                 tip: 'Jika kata sandi SSO Anda ditolak BPS, Kinetik berhenti mengakses kipApp atas nama Anda dan meminta Anda memasukkannya lagi saat masuk. Kinetik tidak mencoba ulang dengan kata sandi yang sama.',
@@ -438,7 +436,7 @@ export const GUIDE_FLOWS: GuideFlow[] = [
                 route: 'quarter-send.index',
                 body: [
                     'Halaman ini seperti halaman SKP triwulan di kipApp: semua kegiatan Anda pada satu triwulan, dikelompokkan per RK. Pilih triwulan di atas (TW I sampai IV). Empat kartu menunjukkan jumlah kegiatan yang belum dikirim, sudah dikirim, belum bisa dikirim, dan semuanya. Klik kartu untuk menyaring.',
-                    'Centang kegiatan yang mau dikirim, atau tekan "Pilih semua yang belum dikirim", lalu tekan "Kirim ke atasan". Kinetik menanyakan dulu, lalu mengirim ke kipApp dalam beberapa kelompok bila jumlahnya banyak. "Batalkan kirim" menarik kembali kegiatan yang sudah dikirim selama SKP triwulannya masih Sedang dibuat.',
+                    'Centang kegiatan yang mau dikirim, atau tekan "Pilih semua yang belum dikirim". Bila ada yang belum punya capaian, bukti dukung, uraian, atau progres 100, halaman menampilkan daftarnya lebih dulu, karena kegiatan yang sudah dikirim tidak bisa diubah. Lalu tekan "Kirim ke atasan". Kinetik menanyakan dulu, lalu mengirim ke kipApp dalam beberapa kelompok bila jumlahnya banyak. "Batalkan kirim" menarik kembali kegiatan yang sudah dikirim selama SKP triwulannya masih Sedang dibuat.',
                     'Kegiatan yang belum bisa dikirim punya dua sebab: belum ada di kipApp (kirim dulu dari Rekap Mingguan), atau SKP triwulannya sudah dikunci. Menu ini hanya muncul bila admin menyalakan "Kirim kegiatan ke atasan".',
                 ],
                 tip: 'Mengirim kegiatan ke atasan bukan mengirim SKP untuk dinilai. SKP triwulan dikirim di menu SKP Saya.',
@@ -1026,7 +1024,7 @@ export const GUIDE_STATUS: GuideStatusFlow[] = [
             { label: 'Direncanakan', tone: 'gray', meaning: 'Kegiatan ada di Kinetik, belum ada di kipApp.', next: 'Setelah progres 100, capaian, dan bukti dukung terisi, dan tanggal mulainya tiba, Kinetik membuatnya di kipApp otomatis, dimulai pukul 05.10 WITA dan diulang tiap jam kerja. Atau tekan "Kirim ke kipApp". Kegiatan hasil impor Excel tidak dikirim otomatis: Anda yang menekan tombolnya.' },
             { label: 'Ada di kipApp', tone: 'blue', meaning: 'Kegiatan sudah dibuat di kipApp dengan progres 0.', next: 'Kerjakan, lalu isi form Realisasi (capaian, progres, bukti, uraian).' },
             { label: 'Berjalan', tone: 'amber', meaning: 'Progres sudah di atas 0 tetapi belum 100.', next: 'Lanjutkan mengisi Realisasi. Saat selesai, tekan "Tandai selesai".' },
-            { label: 'Selesai, belum dikirim', tone: 'green', meaning: 'Progres 100 dan uraian sudah ada, tetapi belum dikirim ke atasan.', next: 'Tekan "Kirim ke atasan" di detail, atau centang beberapa kegiatan lalu "Kirim ke atasan (n)".' },
+            { label: 'Selesai, belum dikirim', tone: 'green', meaning: 'Progres 100 dan uraian sudah ada, tetapi belum dikirim ke atasan.', next: 'Dikirim ke atasan sekali per triwulan lewat menu Kirim ke Atasan, setelah dicek kelengkapannya.' },
             { label: 'Terkirim ke atasan', tone: 'emerald', meaning: 'Atasan sudah menerima kegiatan untuk dinilai.', next: 'Kegiatan tidak bisa diubah atau dihapus. Hanya "Masukan ke capaian SKP" yang boleh diubah. Salah kirim? Tekan "Batalkan kirim".' },
         ],
         sides: [

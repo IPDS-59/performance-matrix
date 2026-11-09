@@ -99,6 +99,7 @@ const shiftYear = (delta: number) => to({ year: props.year + delta });
                 <Button variant="ghost" size="sm" class="-ml-2" @click="toWeeks"><ChevronLeft class="mr-1 h-4 w-4" aria-hidden="true" /> Minggu di {{ monthName }}</Button>
                 <h2 class="text-lg font-semibold tabular-nums">{{ range(weekStart, weekEnd) }}</h2>
             </div>
+            <!-- Kirim ke atasan is not offered here: it is done once per quarter on its own page, after a check (the spv, 9 Nov 2026). -->
             <!-- Like kipApp's Pelaksanaan: a toolbar (Refresh, search, bulk action, Tambah) over one table. -->
             <div class="mb-4 flex flex-wrap items-center gap-3">
                 <Button variant="outline" @click="refresh"><RefreshCw class="mr-1.5 h-4 w-4" aria-hidden="true" /> Refresh</Button>
@@ -113,10 +114,6 @@ const shiftYear = (delta: number) => to({ year: props.year + delta });
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="start">
                         <DropdownMenuItem :disabled="!selection.toPush.value.length" @select="bulk.ask('push')">Kirim ke kipApp ({{ selection.toPush.value.length }})</DropdownMenuItem>
-                        <template v-if="canSendToAtasan">
-                            <DropdownMenuItem :disabled="!selection.toSend.value.length" @select="bulk.ask('send')">Kirim ke atasan ({{ selection.toSend.value.length }})</DropdownMenuItem>
-                            <DropdownMenuItem :disabled="!selection.toCancel.value.length" @select="bulk.ask('cancel')">Batalkan kirim ({{ selection.toCancel.value.length }})</DropdownMenuItem>
-                        </template>
                     </DropdownMenuContent>
                 </DropdownMenu>
                 <Button class="ml-auto" data-tour="add-item" @click="add"><Plus class="mr-1 h-4 w-4" aria-hidden="true" /> Tambah</Button>
@@ -141,16 +138,16 @@ const shiftYear = (delta: number) => to({ year: props.year + delta });
                     Klik kegiatan yang belum diisi, lalu isi capaian, uraian, dan bukti dukung.
                     <button type="button" class="ml-1 underline" @click="onlyRealisasi = true">Tampilkan hanya yang belum diisi</button>
                 </p>
-                <PlanItemTable :rows="lastRows" :can-send-to-atasan="canSendToAtasan" :selected="selection.selected.value" :empty-text="onlyRealisasi ? 'Semua kegiatan minggu lalu sudah terisi realisasinya.' : 'Tidak ada kegiatan minggu lalu.'" @open="openIn(lastWeekStart)($event)" @edit="edit" @copy="copy" @extend="extend" @remove="removing = $event" @toggle="selection.toggle" @toggle-all="selection.toggleAll" />
+                <PlanItemTable :rows="lastRows" :can-send-to-atasan="false" :selected="selection.selected.value" :empty-text="onlyRealisasi ? 'Semua kegiatan minggu lalu sudah terisi realisasinya.' : 'Tidak ada kegiatan minggu lalu.'" @open="openIn(lastWeekStart)($event)" @edit="edit" @copy="copy" @extend="extend" @remove="removing = $event" @toggle="selection.toggle" @toggle-all="selection.toggleAll" />
             </section>
 
             <section v-if="!onlyRealisasi" class="rounded-lg border bg-white" aria-labelledby="h-now">
                 <h2 id="h-now" class="border-b px-4 py-3 text-sm font-semibold">Rencana minggu ini <span class="font-normal text-gray-600">{{ range(weekStart, weekEnd) }}</span></h2>
-                <PlanItemTable :rows="thisRows" :can-send-to-atasan="canSendToAtasan" :selected="selection.selected.value" empty-text="Belum ada rencana. Tekan “Tambah”." @open="openIn(weekStart)($event)" @edit="edit" @copy="copy" @extend="extend" @remove="removing = $event" @toggle="selection.toggle" @toggle-all="selection.toggleAll" />
+                <PlanItemTable :rows="thisRows" :can-send-to-atasan="false" :selected="selection.selected.value" empty-text="Belum ada rencana. Tekan “Tambah”." @open="openIn(weekStart)($event)" @edit="edit" @copy="copy" @extend="extend" @remove="removing = $event" @toggle="selection.toggle" @toggle-all="selection.toggleAll" />
             </section>
 
             <PlanItemFormDialog v-model:open="formOpen" :item="editing" :copy-of="copying" :skp-year="skpYear" :rk-options="rkOptions ?? []" :project-options="projectOptions ?? []" :default-date="weekStart ?? ''" />
-            <PlanItemDetailDialog :item="detail" :week-of="detailWeek" :can-send-to-atasan="canSendToAtasan" @close="detailId = null" @edit="edit" @copy="copy" />
+            <PlanItemDetailDialog :item="detail" :week-of="detailWeek" :can-send-to-atasan="false" @close="detailId = null" @edit="edit" @copy="copy" />
             <ConfirmDialog
                 :open="removing !== null"
                 :title="removing?.in_kipapp ? 'Hapus kegiatan' : 'Batalkan kegiatan'"
