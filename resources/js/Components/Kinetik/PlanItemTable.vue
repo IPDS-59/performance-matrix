@@ -19,6 +19,7 @@ const emit = defineEmits<{
     open: [item: PlanItemRow];
     edit: [item: PlanItemRow];
     copy: [item: PlanItemRow];
+    extend: [item: PlanItemRow];
     remove: [item: PlanItemRow];
     toggle: [id: number, on: boolean];
     'toggle-all': [rows: PlanItemRow[], on: boolean];
@@ -102,6 +103,7 @@ const canChange = (row: PlanItemRow) => row.can_edit && !row.sent;
                             <DropdownMenuContent align="end" class="w-48">
                                 <DropdownMenuItem @select="emit('open', row)">Isi realisasi</DropdownMenuItem>
                                 <DropdownMenuItem v-if="canChange(row)" @select="emit('edit', row)">Ubah</DropdownMenuItem>
+                                <DropdownMenuItem v-if="canChange(row)" @select="emit('extend', row)">Perpanjang ke minggu depan</DropdownMenuItem>
                                 <DropdownMenuItem @select="emit('copy', row)">Salin kegiatan</DropdownMenuItem>
                                 <template v-if="row.can_delete">
                                     <DropdownMenuSeparator />

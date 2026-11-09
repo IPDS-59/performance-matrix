@@ -32,6 +32,11 @@ final class FeatureFlags
                 'description' => 'Kegiatan baru dikirim ke kipApp setelah progres 100, capaian, dan bukti dukung terisi. Mematikannya mengembalikan pengiriman otomatis pada tanggal mulai walau belum lengkap.',
                 'tested' => true,
             ],
+            'merge_repeated' => [
+                'label' => 'Gabungkan kegiatan berulang saat dikirim',
+                'description' => 'Kegiatan yang sudah lengkap, milik satu orang, satu RK, bertulisan sama dalam satu bulan, dikirim ke kipApp sebagai satu kegiatan dengan rentang tanggal diperpanjang, target dan capaian dijumlahkan. Yang digabung dibatalkan dan menunjuk ke yang dipertahankan. Belum diuji langsung ke kipApp.',
+                'tested' => false,
+            ],
             'atasan_rating' => [
                 'label' => 'Nilai SKP oleh atasan di Kinetik',
                 'description' => 'Halaman Nilai SKP: nilai dan umpan balik tiap RK dan perilaku, lalu Selesai menilai. Mematikannya mengembalikan tombol Nilai ke kipApp.',

@@ -688,3 +688,22 @@ it('keeps the progress of each week of a kegiatan that runs for several weeks, a
 
     $this->actingAs($member->user)->get(route('weekly.index', ['week' => '2026-11-02']))->assertInertia(fn ($page) => $page->where('thisWeek.0.capaian', 3)->where('thisWeek.0.week', '2026-11-02'));
 });
+
+it('extends a kegiatan by one week instead of copying it, inside the quarter, and not once it is sent to the atasan', function () {
+    [$pjUser, $pj, $team] = pjOfTeam();
+    $rk = PerformancePlan::factory()->create(['team_id' => $team->id, 'project_id' => null]);
+    $item = PlanItem::create(['team_id' => $team->id, 'employee_id' => $pj->id, 'performance_plan_id' => $rk->id, 'description' => 'Monitoring persiapan lapangan', 'date_start' => '2026-11-03', 'date_end' => '2026-11-05']);
+
+    $this->actingAs($pjUser)->patch(route('plan-items.extend', $item))->assertSessionHas('success');
+    expect(substr((string) $item->fresh()->date_end, 0, 10))->toBe('2026-11-15');
+
+    // Near the end of the quarter the end stops at the quarter, then there is nothing left to extend.
+    $item->update(['date_end' => '2026-12-28']);
+    $this->actingAs($pjUser)->patch(route('plan-items.extend', $item))->assertSessionHas('success');
+    expect(substr((string) $item->fresh()->date_end, 0, 10))->toBe('2026-12-31');
+    $this->actingAs($pjUser)->patch(route('plan-items.extend', $item))->assertSessionHas('error');
+    expect(PlanItem::count())->toBe(1);
+
+    $item->update(['kip_sent_at' => now(), 'date_end' => '2026-11-05']);
+    $this->actingAs($pjUser)->patch(route('plan-items.extend', $item))->assertStatus(422);
+});

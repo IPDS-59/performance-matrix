@@ -212,6 +212,7 @@ function save() {
                     <Label>Rencana Kinerja (RK)</Label>
                     <Button v-if="form.performance_plan_id !== null && rkEditable" type="button" variant="ghost" size="sm" class="h-7 px-2 text-xs" @click="changeRk">Ganti RK</Button>
                 </div>
+                <p v-if="!item && form.performance_plan_id === null && form.project_id === null" class="text-xs text-gray-600">Pilih projek dulu, atau langsung pilih RK. Projeknya terisi sendiri.</p>
                 <SearchableSelect :model-value="form.performance_plan_id" :options="rkChoices" :placeholder="form.project_id !== null ? 'Pilih RK projek ini' : 'Pilih RK'" search-placeholder="Cari RK…" :disabled="!rkEditable" @update:model-value="pickRk" />
                 <InputError :message="form.errors.performance_plan_id" />
                 <InputError :message="form.errors.team_id" />

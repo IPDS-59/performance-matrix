@@ -361,7 +361,7 @@ export const GUIDE_FLOWS: GuideFlow[] = [
                 route: 'weekly.index',
                 body: [
                     'Halaman ini dibuka dengan daftar bulan. Tiap baris menunjukkan jumlah kegiatan, berapa yang capaiannya sudah terisi, dan berapa yang sudah terkirim ke atasan. Pilih satu bulan untuk melihat minggu-minggunya, lalu pilih satu minggu. Baris dengan label "Sekarang" adalah bulan atau minggu berjalan. Tombol "Semua bulan" dan "Minggu di …" membawa Anda kembali satu langkah.',
-                    'Di dalam sebuah minggu ada dua tabel dan hanya kegiatan Anda sendiri: "Realisasi minggu lalu" dan "Rencana minggu ini". Tampilannya meniru kipApp: No, Tanggal, Rencana Kinerja, Kegiatan, Progress, Capaian, Bukti Dukung, Capaian SKP, Dikirim. Tombol "Aksi" di tiap baris berisi Isi realisasi, Ubah, Salin kegiatan, dan Hapus atau Batalkan. Kegiatan yang berjalan beberapa minggu tampil di tiap minggunya bertanda "Lanjutan", dan realisasinya dicatat per minggu.',
+                    'Di dalam sebuah minggu ada dua tabel dan hanya kegiatan Anda sendiri: "Realisasi minggu lalu" dan "Rencana minggu ini". Tampilannya meniru kipApp: No, Tanggal, Rencana Kinerja, Kegiatan, Progress, Capaian, Bukti Dukung, Capaian SKP, Dikirim. Tombol "Aksi" di tiap baris berisi Isi realisasi, Ubah, Perpanjang ke minggu depan (kegiatan berjalan seminggu lebih lama, tetap satu kegiatan, tanpa disalin), Salin kegiatan, dan Hapus atau Batalkan. Kegiatan yang berjalan beberapa minggu tampil di tiap minggunya bertanda "Lanjutan", dan realisasinya dicatat per minggu.',
                     'Jika PJ mengisi fokus untuk Anda, fokus itu tampil di atas tabel.',
                     'Tekan "Sinkronkan data saya" untuk menarik RK dan kegiatan Anda dari kipApp. Sinkronisasi pertama berjalan otomatis setelah Anda menghubungkan akun SSO. Jika daftar RK kosong, tekan tombol ini.',
                     'Kinetik juga menyinkronkan data Anda sendiri tiap pagi, memakai sesi kipApp Anda. Sesi yang berakhir diperbarui otomatis dengan kata sandi SSO yang tersimpan. Jika tidak bisa (kata sandi ditolak, atau akun memakai OTP), Anda mendapat notifikasi satu kali dan sinkronisasi Anda menunggu. Begitu Anda masuk lagi ke Kinetik, sinkronisasi yang menunggu langsung berjalan.',
@@ -410,6 +410,7 @@ export const GUIDE_FLOWS: GuideFlow[] = [
                     'Kalau ada pekerjaan yang tidak termasuk RK tim, misalnya tugas dari pimpinan, buat RK tambahan sendiri. Di form kegiatan, tekan "Pekerjaan di luar RK tim? Tambah RK tambahan", tulis RK-nya (minimal 10 karakter), lalu tekan "Simpan RK tambahan". Projek tidak perlu dipilih.',
                     'RK tambahan hanya milik Anda dan muncul di daftar RK pada form berikutnya. RK kipApp yang berjenis tambahan juga ikut tersinkron dan ditandai sama.',
                     'Pembuatan RK tambahan di kipApp memakai panggilan yang sama dengan tombol "Tambah Rencana Kinerja" di kipApp, dan sudah diuji langsung. Admin tetap bisa mematikannya (saklar "Kirim RK tambahan ke kipApp" di menu Fitur, hanya admin). Selama mati, kegiatannya tersimpan di Kinetik dan tidak dikirim.',
+                    'Saklar "Gabungkan kegiatan berulang saat dikirim" di menu Fitur (hanya admin, mati sejak awal, belum diuji langsung ke kipApp): kegiatan lengkap milik satu orang, satu RK, bertulisan sama dalam satu bulan, dikirim sebagai satu kegiatan dengan rentang tanggal diperpanjang serta target dan capaian dijumlahkan. Yang digabung dibatalkan dan menunjuk ke yang dipertahankan.',
                 ],
             },
             {
@@ -542,14 +543,14 @@ export const GUIDE_FLOWS: GuideFlow[] = [
                 route: 'team-recap.weekly',
                 body: [
                     'Halaman ini dibuka dengan daftar bulan untuk tim yang dipilih. Pilih satu bulan, lalu satu minggu. Tiap baris menunjukkan jumlah kegiatan, berapa RK yang punya kegiatan, berapa yang parafrasenya sudah ditulis, dan statusnya (Belum ada kegiatan, Belum ditulis, Sedang ditulis, atau Selesai ditulis; artinya ada di bagian "Arti status"). Pemilih tim dan tahun ada di atas daftar.',
-                    'Di dalam sebuah minggu ada dua tab. "Parafrase RK" terbuka lebih dulu, karena parafrase adalah isi rapat. "Tabel rapat" menampilkan tabel seperti Excel lama. Bagian "Kelengkapan anggota" di tab itu menunjukkan siapa yang belum mengisi capaian. Ingatkan mereka sebelum rapat.',
+                    'Di dalam sebuah minggu, parafrase RK ada di paling atas karena itulah isi rapat. Di bawahnya ada dua tabel seperti Excel lama, "Realisasi minggu lalu" dan "Rencana minggu ini", lalu bagian "Kelengkapan anggota" yang menunjukkan siapa yang belum mengisi capaian. Tiap bagian bisa dilipat dengan menekan judulnya. Ingatkan anggota sebelum rapat.',
                 ],
             },
             {
                 title: 'Lihat rencana minggu ini dari anggota',
                 where: 'Menu Rekap Tim → Rekap Tim → Mingguan → pilih bulan dan minggu',
                 body: [
-                    'Di tab "Tabel rapat" ada dua tabel, "Realisasi minggu lalu" dan "Rencana minggu ini". Tiap baris memuat anggota, kegiatan, tanggal, target, realisasi, persen, progres, dan permasalahan. Anggota yang belum membuat rencana tetap tampil dengan tulisan "Belum membuat rencana". PJ menekan sebuah baris untuk mengisi realisasi dan permasalahan saat rapat. Kegiatan yang berjalan beberapa minggu tampil bertanda "Lanjutan" dengan realisasi minggu itu.',
+                    'Tiap tabel rapat memuat, per baris, anggota, kegiatan, tanggal, target, realisasi, persen, progres, dan permasalahan. Anggota yang belum membuat rencana tetap tampil dengan tulisan "Belum membuat rencana". PJ menekan sebuah baris untuk mengisi realisasi dan permasalahan saat rapat. Kegiatan yang berjalan beberapa minggu tampil bertanda "Lanjutan" dengan realisasi minggu itu.',
                     'Klik satu baris untuk membuka semua isinya (target, capaian, uraian, bukti dukung dan status). Tampilan ini hanya baca. Anggota mengubah kegiatannya di Rekap Mingguan mereka sendiri.',
                     'Untuk membahas capaian minggu lalu, kembali ke daftar minggu dan buka minggu sebelumnya.',
                 ],

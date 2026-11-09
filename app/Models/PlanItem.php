@@ -16,7 +16,7 @@ class PlanItem extends Model
         'date_start', 'date_end', 'time_start', 'time_end', 'target', 'target_unit', 'capaian', 'capaian_note', 'kendala', 'evidence_url', 'progress', 'source', 'source_ref', 'status',
         'created_by', 'override_status', 'override_reason', 'override_by',
         'kip_external_id', 'kip_skp_id', 'kip_rk_id', 'kip_activity_id', 'pushed_at', 'push_attempts', 'push_error', 'kip_synced_at', 'kip_sent_at',
-        'is_capaian_skp', 'parent_id',
+        'is_capaian_skp', 'parent_id', 'merged_into_id',
     ];
 
     protected $attributes = ['is_capaian_skp' => true];

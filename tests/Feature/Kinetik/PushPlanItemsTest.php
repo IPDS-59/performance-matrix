@@ -392,3 +392,36 @@ it('tells the member what to fill when pressing Kirim ke kipApp on an unfinished
         ->assertSessionHas('error', fn ($m) => str_contains($m, 'Belum lengkap') && str_contains($m, 'uraian capaian') && str_contains($m, 'bukti dukung'));
     Http::assertNothingSent();
 });
+
+it('sends repeated finished kegiatan of a month as one when the saklar is on, adding target and capaian and widening the range', function () {
+    config(['kinetik.kip.merge_repeated' => true, 'kinetik.kip.push_only_finished' => true]);
+    $done = ['target' => 3, 'capaian' => 3, 'progress' => 100, 'capaian_note' => 'Monitoring selesai dilakukan', 'evidence_url' => 'https://example.com/b', 'description' => 'Monitoring persiapan lapangan'];
+    $first = pushSetup($done + ['date_start' => '2026-10-01', 'date_end' => '2026-10-02']);
+    $second = PlanItem::create(['team_id' => $first->team_id, 'employee_id' => $first->employee_id, 'performance_plan_id' => $first->performance_plan_id, 'date_start' => '2026-10-06', 'date_end' => '2026-10-07', ...$done, 'target' => 4, 'capaian' => 4]);
+    $other = PlanItem::create(['team_id' => $first->team_id, 'employee_id' => $first->employee_id, 'performance_plan_id' => $first->performance_plan_id, 'date_start' => '2026-10-07', 'date_end' => '2026-10-07', ...$done, 'description' => 'Rapat koordinasi tim wilayah']);
+    fakeKip([Http::response([]), Http::response(['status' => true, 'message' => 'Successfully create/edit data']), Http::response([['kegiatanperhariid' => 5550001, 'kegiatan' => 'Monitoring persiapan lapangan', 'rkid' => '14656590']])]);
+
+    $pushed = app(PushPlanItemAction::class)->execute($first);
+    expect($pushed)->toBeTrue($first->fresh()->push_error ?? 'no error');
+
+    expect($first->fresh())->kip_external_id->toBe('5550001')
+        ->and(substr((string) $first->fresh()->date_start, 0, 10))->toBe('2026-10-01')
+        ->and(substr((string) $first->fresh()->date_end, 0, 10))->toBe('2026-10-07')
+        ->and((float) $first->fresh()->target)->toBe(7.0)->and((float) $first->fresh()->capaian)->toBe(7.0);
+    expect($second->fresh())->status->toBe('cancelled')->merged_into_id->toBe($first->id)->kip_external_id->toBeNull();
+    // A different text of the same month stays a kegiatan of its own.
+    expect($other->fresh())->status->not->toBe('cancelled')->merged_into_id->toBeNull();
+    Http::assertSent(fn ($r) => $r->method() === 'POST' && str_ends_with($r->url(), '/v1/kegiatan') && $r['tanggal'] === '2026-10-01' && $r['tanggalselesai'] === '2026-10-07');
+});
+
+it('does not merge anything while the saklar is off', function () {
+    config(['kinetik.kip.merge_repeated' => false, 'kinetik.kip.push_only_finished' => true]);
+    $done = ['target' => 3, 'capaian' => 3, 'progress' => 100, 'capaian_note' => 'Monitoring selesai dilakukan', 'evidence_url' => 'https://example.com/b', 'description' => 'Monitoring persiapan lapangan'];
+    $first = pushSetup($done + ['date_start' => '2026-10-01', 'date_end' => '2026-10-02']);
+    $second = PlanItem::create(['team_id' => $first->team_id, 'employee_id' => $first->employee_id, 'performance_plan_id' => $first->performance_plan_id, 'date_start' => '2026-10-06', 'date_end' => '2026-10-07', ...$done]);
+    fakeKip([Http::response([]), Http::response(['status' => true, 'message' => 'Successfully create/edit data']), Http::response([['kegiatanperhariid' => 5550001, 'kegiatan' => 'Monitoring persiapan lapangan', 'rkid' => '14656590']])]);
+
+    app(PushPlanItemAction::class)->execute($first);
+
+    expect($second->fresh())->status->not->toBe('cancelled')->and((float) $first->fresh()->target)->toBe(3.0);
+});
