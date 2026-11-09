@@ -103,7 +103,7 @@ const go = (quarter: number) => router.get(route('quarter-send.index'), { quarte
         <p v-if="!groups.length" class="rounded-md border border-dashed bg-gray-50 py-10 text-center text-sm text-gray-500">Tidak ada kegiatan pada tampilan ini.</p>
         <section v-for="g in groups" :key="g.name" class="mb-4 rounded-lg border bg-white">
             <h2 class="border-b px-4 py-3 text-sm font-semibold">{{ g.name }} <span class="font-normal text-gray-600">{{ formatNumber(g.rows.length) }} kegiatan</span></h2>
-            <PlanItemTable :rows="g.rows" :can-send-to-atasan="canSendToAtasan" :selected="selection.selected.value" empty-text="" @open="detailId = $event.id" @toggle="selection.toggle" @toggle-all="selection.toggleAll" />
+            <PlanItemTable :rows="g.rows" :actions="false" :can-send-to-atasan="canSendToAtasan" :selected="selection.selected.value" empty-text="" @open="detailId = $event.id" @toggle="selection.toggle" @toggle-all="selection.toggleAll" />
         </section>
 
         <PlanItemDetailDialog :item="detail" :can-send-to-atasan="canSendToAtasan" @close="detailId = null" @edit="openWeek" @copy="openWeek" />

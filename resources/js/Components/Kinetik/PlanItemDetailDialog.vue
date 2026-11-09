@@ -23,7 +23,9 @@ const stage = computed(() => (props.item ? planStage(props.item, props.canSendTo
 const percent = computed(() => (props.item ? achievementPercent(props.item.capaian, props.item.target) : null));
 
 // `progres`, not `progress`: useForm already has a `progress` property (upload progress) that would overwrite it.
-const form = useForm({ capaian: '' as string | number, capaian_note: '', evidence_url: '', progres: 0 as string | number });
+const form = useForm({ capaian: '' as string | number, capaian_note: '', kendala: '', evidence_url: '', progres: 0 as string | number, is_capaian_skp: true });
+// kipApp offers "masuk capaian SKP" only while the progress is below 100. At 100 it always counts, so the choice is hidden.
+const skpChoice = computed(() => Number(form.progres) < 100);
 // Progres follows capaian over target until the user types a progress of their own.
 const progressTyped = ref(false);
 function onCapaianInput() {
@@ -38,12 +40,16 @@ watch(() => props.item, (item) => {
     form.capaian = item?.capaian ?? '';
     form.capaian_note = item?.capaian_note ?? '';
     form.evidence_url = item?.evidence_url ?? '';
+    form.kendala = item?.kendala ?? '';
     form.progres = item?.progress ?? 0;
+    form.is_capaian_skp = item?.is_capaian_skp ?? true;
 }, { immediate: true });
 
 const payload = (data: Record<string, any>) => ({
     capaian: data.capaian === '' ? null : data.capaian,
     capaian_note: data.capaian_note || null,
+    kendala: data.kendala || null,
+    is_capaian_skp: Number(data.progres) >= 100 ? true : data.is_capaian_skp,
     evidence_url: data.evidence_url || null,
     progress: data.progres === '' ? null : data.progres,
 });
@@ -144,10 +150,20 @@ const incomplete = computed(() => (stage.value?.action === 'push' ? (props.item?
                     <InputError :message="form.errors.evidence_url" />
                 </div>
                 <div class="space-y-1.5">
-                    <Label for="pr-note">Uraian (teks ke kipApp)</Label>
+                    <Label for="pr-note">Uraian capaian (teks yang tampil di kipApp)</Label>
                     <Textarea id="pr-note" v-model="form.capaian_note" :rows="3" />
+                    <p class="text-xs text-gray-600">kipApp tidak punya angka capaian. Yang tampil di sana hanya uraian ini, progres, dan bukti dukung. Angka capaian di atas dipakai untuk rapat tim di Kinetik.</p>
                     <InputError :message="form.errors.capaian_note" />
                 </div>
+                <div class="space-y-1.5">
+                    <Label for="pr-kendala">Permasalahan (opsional)</Label>
+                    <Textarea id="pr-kendala" v-model="form.kendala" :rows="2" placeholder="Kendala yang perlu dibahas di rapat" />
+                    <InputError :message="form.errors.kendala" />
+                </div>
+                <label v-if="skpChoice" class="flex items-start gap-1.5 text-sm">
+                    <input v-model="form.is_capaian_skp" type="checkbox" class="mt-0.5" />
+                    <span>Masukkan ke capaian SKP<span class="block text-xs text-gray-600">Progres belum 100. Centang bila kegiatan ini tetap dihitung di SKP bulan ini. Kegiatan yang lanjut ke bulan depan sebaiknya tidak dicentang.</span></span>
+                </label>
             </form>
 
             <DialogFooter class="flex-wrap gap-2">

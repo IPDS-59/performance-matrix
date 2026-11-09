@@ -522,6 +522,7 @@ export interface PlanItemRow {
     capaian: number | null;
     /** Uraian capaian: the text sent to kipApp. */
     capaian_note: string | null;
+    kendala?: string | null;
     evidence_url: string | null;
     progress: number;
     status: 'planned' | 'pushed' | 'in_progress' | 'done' | 'cancelled';
