@@ -329,6 +329,7 @@ class PlanItemController extends Controller
         return [
             'capaian' => ['nullable', 'numeric', 'min:0', 'max:9999999999', new CapaianWithinTarget($stored?->target !== null ? (float) $stored->target : null)],
             'capaian_note' => ['nullable', 'string', 'max:1000'],
+            'kendala' => ['nullable', 'string', 'max:1000'],
             'evidence_url' => ['nullable', 'url', 'max:2000'],
             'progress' => ['nullable', 'integer', 'between:0,100'],
         ];
