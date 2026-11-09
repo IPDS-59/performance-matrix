@@ -40,6 +40,9 @@ class SyncKipActivitiesCommand extends Command
         $upserted = $action->execute($source, $employees);
 
         $this->info("Done. {$upserted} activity row(s) upserted.");
+        foreach ($action->failures() as $failure) {
+            $this->warn("Skipped {$failure['name']}: {$failure['message']}");
+        }
 
         return self::SUCCESS;
     }

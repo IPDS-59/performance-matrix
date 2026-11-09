@@ -2,6 +2,8 @@
 
 use App\Kinetik\Auth\ConfigBearerAuthenticator;
 use App\Kinetik\Contracts\KipActivitySource;
+use App\Kinetik\Exceptions\KipApiException;
+use App\Kinetik\Sources\ApiKipActivitySource;
 use App\Kinetik\Sources\MockKipActivitySource;
 use App\Models\Employee;
 use App\Models\EmployeeCareer;
@@ -11,6 +13,7 @@ use App\Models\KipSyncRun;
 use App\Models\PerformancePlan;
 use App\Models\Project;
 use App\Models\Team;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Http;
 
 /**
@@ -254,4 +257,42 @@ it('refuses to start a sync while another one runs', function () {
 
     $this->actingAs(adminUser())->post(route('kip-integration.sync-careers'))->assertSessionHas('error', 'Tunggu Sinkronisasi Struktur selesai.');
     expect(KipSyncRun::where('type', 'careers')->exists())->toBeFalse();
+});
+
+it('keeps syncing the other employees when kipApp fails on one, and names who failed', function () {
+    KipCredential::create(['token' => 'admin-token']);
+    $broken = Employee::factory()->create(['is_active' => true, 'nip_lama' => '340000001', 'name' => 'Pegawai Rusak', 'display_name' => null]);
+    Employee::factory()->create(['is_active' => true, 'nip_lama' => '340000002']);
+    $this->app->bind(KipActivitySource::class, fn () => new class extends MockKipActivitySource
+    {
+        public function fetchActivities(string $nipLama, ?string $pegawaiId = null): Collection
+        {
+            if ($nipLama === '340000001') {
+                throw new KipApiException('fetchActivitiesBySkp SKP 999: kipApp API returned HTTP 500');
+            }
+
+            return parent::fetchActivities($nipLama, $pegawaiId);
+        }
+    });
+
+    $this->actingAs(adminUser())->post(route('kip-integration.sync'))->assertRedirect();
+
+    $run = KipSyncRun::where('type', 'activities')->latest('id')->first();
+    expect($run->status)->toBe('completed')
+        ->and($run->summary['activities'])->toBe(3)
+        ->and($run->summary['failed'])->toBe(['Pegawai Rusak: fetchActivitiesBySkp SKP 999: kipApp API returned HTTP 500']);
+    expect(KipActivity::where('employee_id', $broken->id)->exists())->toBeFalse();
+    expect(KipActivity::count())->toBe(3);
+});
+
+it('names the SKP kipApp failed on', function () {
+    Http::fake([
+        'kipapp.bps.go.id/api/v1/dashboard/rkpegawai*' => Http::response([['rk' => [['skpid' => 1460709]]]], 200),
+        'kipapp.bps.go.id/api/v1/dashboard/kegiatanpegawai/belumkirim*' => Http::response([], 200),
+        'kipapp.bps.go.id/api/v1/kegiatan*' => Http::response('Internal Server Error', 500),
+    ]);
+    config(['kinetik.kip.base_url' => 'https://kipapp.bps.go.id/api', 'kinetik.kip.token' => 't']);
+
+    expect(fn () => app(ApiKipActivitySource::class)->fetchActivities('340054274'))
+        ->toThrow(KipApiException::class, 'SKP 1460709');
 });

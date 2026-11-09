@@ -1,11 +1,13 @@
 <?php
 
 use App\Kinetik\Contracts\KipActivitySource;
+use App\Kinetik\Exceptions\KipApiException;
 use App\Kinetik\Sources\MockKipActivitySource;
 use App\Models\Employee;
 use App\Models\KipActivity;
 use App\Models\KipCredential;
 use App\Models\MemberKipCredential;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\RateLimiter;
 
@@ -94,4 +96,20 @@ it('still syncs when the cache cannot be written', function () {
     $this->actingAs($this->user)->post(route('my-sync'))->assertSessionHas('success');
 
     expect(KipActivity::count())->toBe(3);
+});
+
+it('still tells the member their own sync failed when kipApp errors', function () {
+    $user = staffUser();
+    Employee::factory()->create(['user_id' => $user->id, 'nip_lama' => '340000001']);
+    KipCredential::create(['token' => 'admin-token']);
+    $this->app->bind(KipActivitySource::class, fn () => new class extends MockKipActivitySource
+    {
+        public function fetchActivities(string $nipLama, ?string $pegawaiId = null): Collection
+        {
+            throw new KipApiException('fetchActivitiesBySkp SKP 999: kipApp API returned HTTP 500');
+        }
+    });
+
+    $this->actingAs($user)->post(route('my-sync'))
+        ->assertSessionHas('error', 'Sinkronisasi gagal: fetchActivitiesBySkp SKP 999: kipApp API returned HTTP 500');
 });

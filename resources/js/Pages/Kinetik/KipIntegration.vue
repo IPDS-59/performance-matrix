@@ -54,6 +54,8 @@ function saveToken() {
 
 const structurePct = computed(() => pct(props.structureRun));
 const activityPct = computed(() => pct(props.activityRun));
+/** Members the last activity sync skipped because kipApp failed on them, as "Name: reason". */
+const activitySkipped = computed(() => (Array.isArray(props.activityRun?.summary.failed) ? (props.activityRun.summary.failed as string[]) : []));
 const careerPct = computed(() => pct(props.careerRun));
 
 // One sync at a time: they share the kipApp token and the order matters
@@ -235,6 +237,12 @@ onMounted(() => {
                     <div v-else-if="activityRun?.status === 'completed'" class="mt-4 flex items-start gap-2 text-xs text-green-700">
                         <CheckCircle2 class="mt-0.5 h-3.5 w-3.5 shrink-0" />
                         <span>Selesai: {{ $n(activityRun.summary.activities ?? 0) }} kegiatan diperbarui untuk {{ activityRun.total }} pegawai.</span>
+                    </div>
+                    <div v-if="activityRun?.status === 'completed' && activitySkipped.length" class="mt-2 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-900">
+                        <p class="flex items-center gap-2 font-medium"><AlertTriangle class="h-3.5 w-3.5 shrink-0" />{{ activitySkipped.length }} pegawai dilewati karena kipApp gagal menjawab. Data mereka tidak diubah; coba sinkronkan lagi nanti.</p>
+                        <ul class="mt-1 list-disc space-y-0.5 pl-5">
+                            <li v-for="line in activitySkipped" :key="line">{{ line }}</li>
+                        </ul>
                     </div>
 
                     <dl class="mt-5 grid grid-cols-3 gap-4 text-sm">
