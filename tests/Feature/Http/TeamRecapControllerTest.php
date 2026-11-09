@@ -664,3 +664,27 @@ it('shows the PJ on the beranda who of their team still owes a plan or a realisa
     [$plain] = memberOfTeam();
     $this->actingAs($plain)->get(route('dashboard'))->assertInertia(fn ($page) => $page->missing('teamStatus'));
 });
+
+it('keeps the progress of each week of a kegiatan that runs for several weeks, and shows it in the meeting table and the member page', function () {
+    [$pjUser, $pj, $team] = pjOfTeam();
+    $member = Employee::factory()->create(['user_id' => staffUser()->id]);
+    $team->members()->attach($member->id, ['role' => 'member', 'is_primary' => true]);
+    $rk = PerformancePlan::factory()->create(['team_id' => $team->id, 'project_id' => null]);
+    $item = PlanItem::create(['team_id' => $team->id, 'employee_id' => $member->id, 'performance_plan_id' => $rk->id, 'description' => 'Monitoring tujuh kali sepanjang bulan', 'date_start' => '2026-11-02', 'date_end' => '2026-11-27', 'target' => 7, 'target_unit' => 'kali']);
+
+    // The PJ records 2 for the first week and 5 for the second, in the meeting.
+    $this->actingAs($pjUser)->patch(route('plan-items.result', $item), ['capaian' => 2, 'progress' => 30, 'kendala' => 'Sinyal', 'week' => '2026-11-02'])->assertSessionHasNoErrors();
+    $this->actingAs($pjUser)->patch(route('plan-items.result', $item), ['capaian' => 5, 'progress' => 70, 'week' => '2026-11-09'])->assertSessionHasNoErrors();
+    // Correcting the first week afterwards changes that week only: the kegiatan keeps the latest values.
+    $this->actingAs($pjUser)->patch(route('plan-items.result', $item), ['capaian' => 3, 'progress' => 40, 'week' => '2026-11-02'])->assertSessionHasNoErrors();
+    expect((float) $item->fresh()->capaian)->toBe(5.0)->and($item->fresh()->weekSnapshots()->count())->toBe(2);
+
+    $week = fn (string $monday) => $this->actingAs($pjUser)->get(route('team-recap.weekly', ['team' => $team->id, 'week' => $monday]));
+    $week('2026-11-02')->assertInertia(fn ($page) => $page->where('plans.0.capaian', 3)->where('plans.0.progress', 40)->where('plans.0.multi_week', true));
+    $week('2026-11-09')->assertInertia(fn ($page) => $page->where('plans.0.capaian', 5)->where('plans.0.progress', 70));
+    // A week with nothing recorded shows nothing yet; the last week shows the kegiatan's own latest values.
+    $week('2026-11-16')->assertInertia(fn ($page) => $page->where('plans.0.capaian', null)->where('plans.0.progress', 0));
+    $week('2026-11-23')->assertInertia(fn ($page) => $page->where('plans.0.capaian', 5));
+
+    $this->actingAs($member->user)->get(route('weekly.index', ['week' => '2026-11-02']))->assertInertia(fn ($page) => $page->where('thisWeek.0.capaian', 3)->where('thisWeek.0.week', '2026-11-02'));
+});

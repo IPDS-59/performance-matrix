@@ -18,6 +18,7 @@ use App\Notifications\KinetikNotification;
 use App\Rules\CapaianWithinTarget;
 use App\Services\Kinetik\PlanEvaluator;
 use App\Services\Kinetik\PlanItemAccess;
+use App\Services\Kinetik\WeekSnapshot;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Collection as EloquentCollection;
 use Illuminate\Http\JsonResponse;
@@ -181,7 +182,7 @@ class PlanItemController extends Controller
         $this->authorizeFor($this->actor($request), Team::findOrFail($planItem->team_id), $planItem->employee_id);
         abort_if($planItem->status === 'cancelled', 422, 'Rencana ini sudah dibatalkan.');
 
-        $data = $request->validate($this->resultRules($planItem));
+        $data = $request->validate($this->resultRules($planItem) + ['week' => ['nullable', 'date']]);
         if ($planItem->kip_external_id === null && ! $this->access->hasStarted($planItem)) {
             return back()->with('error', PlanItemAccess::NOT_STARTED);
         }
@@ -197,6 +198,14 @@ class PlanItemController extends Controller
             return back()->with('error', $e->getMessage());
         }
 
+        // The permasalahan and the week's realisasi are kept in Kinetik next to what went to kipApp.
+        if (array_key_exists('kendala', $data)) {
+            $planItem->update(['kendala' => $data['kendala']]);
+        }
+        if (! empty($data['week'])) {
+            WeekSnapshot::record($planItem->fresh('weekSnapshots'), Carbon::parse($data['week']), ['capaian' => $planItem->capaian, 'progress' => 100, 'kendala' => $planItem->kendala]);
+        }
+
         return back()->with('success', 'Rencana ditandai selesai dan dikirim ke kipApp.');
     }
 
@@ -209,7 +218,19 @@ class PlanItemController extends Controller
         $this->authorizeFor($this->actor($request), Team::findOrFail($planItem->team_id), $planItem->employee_id);
         abort_if($planItem->status === 'cancelled', 422, 'Rencana ini sudah dibatalkan.');
 
-        $planItem->update($this->attributes($request->validate($this->resultRules($planItem))));
+        $data = $request->validate($this->resultRules($planItem) + ['week' => ['nullable', 'date']]);
+        $values = $this->attributes(collect($data)->except('week')->all());
+        // A kegiatan that runs for several weeks keeps the realisasi of each week for the weekly meeting; the kegiatan itself holds the
+        // latest. Correcting an earlier week changes that week only.
+        if (! empty($data['week']) && $planItem->spansWeeks()) {
+            $week = Carbon::parse($data['week'])->startOfWeek(Carbon::MONDAY);
+            $latest = $planItem->weekSnapshots()->max('week_start');
+            if ($latest !== null && $week->lt(Carbon::parse($latest))) {
+                $values = collect($values)->except(['capaian', 'progress', 'kendala'])->all();
+            }
+            WeekSnapshot::record($planItem->load('weekSnapshots'), $week, $data);
+        }
+        $planItem->update($values);
 
         return back()->with('success', 'Capaian disimpan.');
     }

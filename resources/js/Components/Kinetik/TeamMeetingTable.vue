@@ -24,6 +24,8 @@ const props = defineProps<{
     plans: TeamWeekPlan[];
     noPlan: Array<{ employee_id: number; name: string }>;
     canEdit: boolean;
+    /** Monday of the week of this table: a kegiatan that runs for several weeks records its realisasi for it. */
+    week: string;
 }>();
 
 const { formatDate } = useDateFormat();
@@ -63,7 +65,7 @@ function edit(p: TeamWeekPlan) {
 }
 function save() {
     if (!editing.value) return;
-    form.transform((d: { capaian: string | number; progress: string | number; kendala: string }) => ({ capaian: d.capaian === '' ? null : d.capaian, progress: d.progress === '' ? null : d.progress, kendala: d.kendala || null }))
+    form.transform((d: { capaian: string | number; progress: string | number; kendala: string }) => ({ capaian: d.capaian === '' ? null : d.capaian, progress: d.progress === '' ? null : d.progress, kendala: d.kendala || null, week: props.week }))
         .patch(route('plan-items.result', editing.value.id), { preserveScroll: true, onSuccess: () => { editing.value = null; router.reload({ only: ['plans', 'lastPlans', 'members'] }); } });
 }
 const pct = (p: TeamWeekPlan) => achievementPercent(p.capaian, p.target);
@@ -143,7 +145,7 @@ const pct = (p: TeamWeekPlan) => achievementPercent(p.capaian, p.target);
                         <Textarea id="tm-kendala" v-model="form.kendala" :rows="3" placeholder="Kendala yang dibahas di rapat" />
                         <InputError :message="form.errors.kendala" />
                     </div>
-                    <p class="text-xs text-gray-600">Disimpan di kegiatan {{ editing.employee_name.split(' ')[0] }}. Ke kipApp hanya terkirim bila kegiatannya sudah lengkap.</p>
+                    <p class="text-xs text-gray-600">Disimpan di kegiatan {{ editing.employee_name.split(' ')[0] }}<template v-if="editing.multi_week">, untuk minggu ini. Kegiatannya berjalan beberapa minggu, jadi tiap minggu punya realisasinya sendiri</template>. Ke kipApp hanya terkirim bila kegiatannya sudah lengkap.</p>
                     <DialogFooter>
                         <Button type="button" variant="outline" @click="editing = null">Batal</Button>
                         <Button type="submit" :disabled="form.processing">Simpan</Button>

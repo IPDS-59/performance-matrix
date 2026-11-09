@@ -134,8 +134,8 @@ const canEdit = computed(() => props.canManage || (panel.value !== null && props
             </template>
 
             <div v-else-if="selectedTeamId" class="mb-6 space-y-4">
-                <TeamMeetingTable title="Realisasi minggu lalu" :range="formatWeekRange(lastWeekStart ?? '', lastWeekEnd ?? '')" :plans="lastPlans ?? []" :no-plan="noPlan?.last ?? []" :can-edit="canManage" />
-                <TeamMeetingTable title="Rencana minggu ini" :range="formatWeekRange(weekStart, weekEnd)" :plans="plans" :no-plan="noPlan?.this ?? []" :can-edit="canManage" />
+                <TeamMeetingTable title="Realisasi minggu lalu" :range="formatWeekRange(lastWeekStart ?? '', lastWeekEnd ?? '')" :plans="lastPlans ?? []" :no-plan="noPlan?.last ?? []" :can-edit="canManage" :week="lastWeekStart ?? weekStart" />
+                <TeamMeetingTable title="Rencana minggu ini" :range="formatWeekRange(weekStart, weekEnd)" :plans="plans" :no-plan="noPlan?.this ?? []" :can-edit="canManage" :week="weekStart" />
                 <MemberCompletenessCard :members="members" />
             </div>
 
