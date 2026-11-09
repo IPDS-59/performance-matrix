@@ -4,6 +4,7 @@ namespace App\Kinetik\Sources;
 
 use App\Kinetik\Contracts\KipActivitySource;
 use App\Kinetik\Contracts\KipAuthenticator;
+use App\Kinetik\Contracts\ReportsCompleteness;
 use App\Kinetik\Data\KipActivityData;
 use App\Kinetik\Data\KipPlanData;
 use App\Kinetik\Data\KipRkData;
@@ -12,8 +13,11 @@ use Illuminate\Http\Client\PendingRequest;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Http;
 
-class ApiKipActivitySource implements KipActivitySource
+class ApiKipActivitySource implements KipActivitySource, ReportsCompleteness
 {
+    /** Whether the last fetchActivities() returned every kegiatan of the period (see ReportsCompleteness). */
+    private bool $complete = false;
+
     public function __construct(
         private readonly KipAuthenticator $authenticator,
     ) {}
@@ -38,6 +42,8 @@ class ApiKipActivitySource implements KipActivitySource
      */
     public function fetchActivities(string $nipLama, ?string $pegawaiId = null): Collection
     {
+        $this->complete = false;
+
         // Source 1: rkpegawai (state-independent)
         $rkResponse = $this->client()
             ->get('v1/dashboard/rkpegawai', ['niplama' => $nipLama]);
@@ -82,6 +88,8 @@ class ApiKipActivitySource implements KipActivitySource
         // belumkirim only unsent activities, so without this, activities already
         // sent in past months are never fetched.
         $periodSkpIds = $pegawaiId !== null ? $this->fetchPeriodSkpIds($pegawaiId) : collect();
+        // Every periodic SKP of the period is read only with the pegawai id; an SKP that answers oddly clears this again.
+        $this->complete = $pegawaiId !== null;
 
         $skpIds = $rkSkpIds
             ->merge($belumKirimSkpIds)
@@ -185,11 +193,19 @@ class ApiKipActivitySource implements KipActivitySource
 
         $rows = $response->json();
 
-        if (! is_array($rows)) {
+        if (! is_array($rows) || ! array_is_list($rows)) {
+            // Not a kegiatan list (a message, a maintenance page): the kegiatan of this SKP are unknown, not gone.
+            $this->complete = false;
+
             return collect();
         }
 
-        return collect($rows)->map(fn (array $row) => KipActivityData::fromApiRow($row));
+        return collect($rows)->filter(fn ($row) => is_array($row))->map(fn (array $row) => KipActivityData::fromApiRow($row))->values();
+    }
+
+    public function lastFetchWasComplete(): bool
+    {
+        return $this->complete;
     }
 
     /**

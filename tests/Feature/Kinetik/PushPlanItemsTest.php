@@ -13,6 +13,7 @@ use App\Models\PlanItem;
 use App\Models\Team;
 use App\Models\User;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 
 beforeEach(function () {
@@ -313,4 +314,46 @@ it('finds the quarters that have no SKP in kipApp yet', function () {
     $missing = app(FindMissingQuarterSkpsAction::class)->execute($plan->employee->user);
 
     expect($missing)->toBe([4]);   // the current quarter (TW 4 on 8 Oct) and the plan's both need it
+});
+
+it('does not push a plan twice while another push of it is still running', function () {
+    $plan = pushSetup();
+    fakeKip();
+    $held = Cache::lock('plan-push:'.$plan->id, 60);
+    $held->get();
+
+    expect(app(PushPlanItemAction::class)->execute($plan))->toBeFalse();
+
+    Http::assertNothingSent();
+    expect($plan->fresh())->status->toBe('planned')->push_error->toBeNull()->push_attempts->toBe(0);
+    $held->release();
+});
+
+it('does not create a second kegiatan when the plan was pushed by another request in the meantime', function () {
+    $plan = pushSetup();
+    $stale = PlanItem::find($plan->id);   // loaded before the other request linked the kegiatan
+    $plan->update(['kip_external_id' => '5550001', 'status' => 'pushed']);
+    fakeKip();
+
+    expect(app(PushPlanItemAction::class)->execute($stale->load(['employee.user', 'performancePlan'])))->toBeTrue();
+
+    Http::assertNothingSent();
+});
+
+it('answers a second Kirim ke kipApp with a message instead of an error page', function () {
+    $plan = pushSetup(['kip_external_id' => '5550001', 'status' => 'pushed']);
+
+    $this->actingAs($plan->employee->user)->post(route('plan-items.push', $plan))
+        ->assertRedirect()->assertSessionHas('success', 'Kegiatan ini sudah ada di kipApp.');
+});
+
+it('tells the member a push is still running instead of a blank error', function () {
+    $plan = pushSetup();
+    fakeKip();
+    $held = Cache::lock('plan-push:'.$plan->id, 60);
+    $held->get();
+
+    $this->actingAs($plan->employee->user)->post(route('plan-items.push', $plan))
+        ->assertSessionHas('error', 'Kegiatan ini sedang dikirim ke kipApp. Muat ulang halaman sebentar lagi.');
+    $held->release();
 });

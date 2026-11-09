@@ -4,12 +4,14 @@ use App\Actions\Kinetik\CompletePlanItemAction;
 use App\Actions\Kinetik\PushPlanItemAction;
 use App\Actions\Kinetik\SendPlanItemAction;
 use App\Models\Employee;
+use App\Models\KipActivity;
 use App\Models\MemberKipCredential;
 use App\Models\MemberSkpStatus;
 use App\Models\PerformancePlan;
 use App\Models\PlanItem;
 use App\Models\Team;
 use App\Models\User;
+use Illuminate\Http\Client\Request;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Http;
 
@@ -453,4 +455,39 @@ it('keeps the RK of a sent kegiatan', function () {
     $this->actingAs($plan->employee->user)->patch(route('plan-items.update', $plan), editPayload($plan, ['performance_plan_id' => $other->id, 'is_capaian_skp' => true]))->assertSessionHas('success');
 
     expect($plan->fresh()->performance_plan_id)->toBe($plan->performance_plan_id);
+});
+
+/** kipApp answers the delete with $deleteAnswer and lists $rows in every SKP. */
+function fakeDeleteOfGone(array $deleteAnswer, array $rows = []): void
+{
+    Http::fake(function (Request $r) use ($deleteAnswer, $rows) {
+        return match (true) {
+            $r->method() === 'DELETE' => Http::response($deleteAnswer),
+            str_contains($r->url(), '/v1/kegiatan') => Http::response($rows),
+            str_contains($r->url(), '/v1/skp') => Http::response([['id' => '1460709', 'periodeid' => 8, 'periodepenilaianid' => 4]]),
+            default => Http::response([], 404),
+        };
+    });
+}
+
+it('cancels the plan when its kegiatan was already deleted in kipApp, instead of refusing forever', function () {
+    config(['kinetik.kip.edit_after_push' => true]);
+    $plan = entryInKip();
+    KipActivity::factory()->create(['employee_id' => $plan->employee_id, 'external_id' => '5550001']);
+    fakeDeleteOfGone(['status' => false, 'message' => 'Catatan kegiatan tidak ditemukan']);
+
+    $this->actingAs($plan->employee->user)->delete(route('plan-items.destroy', $plan))->assertSessionHas('success');
+
+    expect($plan->fresh()->status)->toBe('cancelled');
+    expect(KipActivity::where('external_id', '5550001')->exists())->toBeFalse();
+});
+
+it('keeps the plan when kipApp says not found but the kegiatan is still listed in its SKP', function () {
+    config(['kinetik.kip.edit_after_push' => true]);
+    $plan = entryInKip();
+    fakeDeleteOfGone(['status' => false, 'message' => 'Catatan kegiatan tidak ditemukan'], kipRow());
+
+    $this->actingAs($plan->employee->user)->delete(route('plan-items.destroy', $plan))->assertSessionHas('error');
+
+    expect($plan->fresh()->status)->toBe('pushed');
 });

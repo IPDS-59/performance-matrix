@@ -112,14 +112,23 @@ class PlanItemController extends Controller
     public function push(Request $request, PlanItem $planItem, PushPlanItemAction $push): RedirectResponse
     {
         $this->authorizeFor($this->actor($request), Team::findOrFail($planItem->team_id), $planItem->employee_id);
-        abort_unless($planItem->status === 'planned', 422, 'Rencana ini sudah dikirim ke kipApp.');
+        // A second click, or a page that is out of date, gets a message rather than an error page.
+        if ($planItem->kip_external_id !== null) {
+            return back()->with('success', 'Kegiatan ini sudah ada di kipApp.');
+        }
+        if ($planItem->status !== 'planned') {
+            return back()->with('error', 'Rencana ini sudah dibatalkan.');
+        }
         if (! $this->access->hasStarted($planItem)) {
             return back()->with('error', PlanItemAccess::NOT_STARTED);
         }
 
-        return $push->execute($planItem->load(['employee.user', 'performancePlan']), $request->boolean('force'))
-            ? back()->with('success', 'Rencana dikirim ke kipApp.')
-            : back()->with('error', 'Belum terkirim: '.$planItem->fresh()->push_error);
+        if ($push->execute($planItem->load(['employee.user', 'performancePlan']), $request->boolean('force'))) {
+            return back()->with('success', 'Rencana dikirim ke kipApp.');
+        }
+        $error = $planItem->fresh()->push_error;
+
+        return back()->with('error', $error !== null ? 'Belum terkirim: '.$error : 'Kegiatan ini sedang dikirim ke kipApp. Muat ulang halaman sebentar lagi.');
     }
 
     /** The member (or PJ) marks the plan complete: progres 100 goes to kipApp. */

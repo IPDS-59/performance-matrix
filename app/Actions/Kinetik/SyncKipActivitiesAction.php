@@ -3,11 +3,14 @@
 namespace App\Actions\Kinetik;
 
 use App\Kinetik\Contracts\KipActivitySource;
+use App\Kinetik\Contracts\ReportsCompleteness;
+use App\Kinetik\Data\KipActivityData;
 use App\Kinetik\Data\KipRkData;
 use App\Models\Employee;
 use App\Models\EmployeeRk;
 use App\Models\KipActivity;
 use App\Models\PerformancePlan;
+use App\Models\PlanItem;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Log;
 use Throwable;
@@ -70,6 +73,10 @@ class SyncKipActivitiesAction
                 $count++;
             }
 
+            if ($source instanceof ReportsCompleteness && $source->lastFetchWasComplete()) {
+                $this->removeDeleted($employee, $activities);
+            }
+
             $this->backfillRk->execute($employee);
 
             // Leader RK of each RK, to link RK to their Projek. Two kipApp
@@ -90,6 +97,33 @@ class SyncKipActivitiesAction
         app(ReconcilePlanItemsAction::class)->execute($employees->pluck('id'));
 
         return $count;
+    }
+
+    /**
+     * A kegiatan deleted in kipApp stops being "Ada di kipApp" in Kinetik: its stored row goes, and its plan is cancelled
+     * like one deleted from Kinetik. Only after a fetch that read every kegiatan of the period, and only that period's
+     * kegiatan. A fetch that came back empty is not trusted to mean the member deleted everything.
+     *
+     * @param  Collection<int, KipActivityData>  $activities
+     */
+    private function removeDeleted(Employee $employee, Collection $activities): void
+    {
+        if ($activities->isEmpty()) {
+            return;
+        }
+
+        $gone = KipActivity::where('employee_id', $employee->id)
+            ->whereYear('activity_date_start', (int) config('kinetik.kip.tahun'))
+            ->whereNotIn('external_id', $activities->pluck('externalId')->all())
+            ->get(['id', 'external_id']);
+        if ($gone->isEmpty()) {
+            return;
+        }
+
+        PlanItem::where('employee_id', $employee->id)->whereIn('kip_external_id', $gone->pluck('external_id'))
+            ->where('status', '!=', 'cancelled')->update(['status' => 'cancelled']);
+        KipActivity::whereKey($gone->pluck('id'))->delete();
+        Log::info('Kegiatan deleted in kipApp removed', ['employee_id' => $employee->id, 'external_ids' => $gone->pluck('external_id')->all()]);
     }
 
     /**

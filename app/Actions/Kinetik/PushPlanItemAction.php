@@ -27,13 +27,39 @@ class PushPlanItemAction
 
     public function __construct(private readonly MemberKipToken $tokens) {}
 
-    /** @return bool true when the plan is now in kipApp */
+    /** The cache lock a push of this plan holds, so a double click or the hourly run cannot make a second kegiatan in kipApp. */
+    public static function lockKey(PlanItem $plan): string
+    {
+        return 'plan-push:'.$plan->id;
+    }
+
+    /**
+     * @return bool true when the plan is now in kipApp. False when it failed (push_error says why) or when another push of
+     *              the same plan is still running (push_error untouched).
+     */
     public function execute(PlanItem $plan, bool $force = false): bool
     {
         if ($plan->kip_external_id !== null) {
             return true;
         }
 
+        $lock = Cache::lock(self::lockKey($plan), 120);
+        if (! $lock->get()) {
+            return false;
+        }
+
+        try {
+            // Another request may have linked the kegiatan after this one loaded the plan.
+            $plan->refresh();
+
+            return $plan->kip_external_id !== null || $this->push($plan, $force);
+        } finally {
+            $lock->release();
+        }
+    }
+
+    private function push(PlanItem $plan, bool $force): bool
+    {
         $user = $plan->employee?->user;
 
         try {
