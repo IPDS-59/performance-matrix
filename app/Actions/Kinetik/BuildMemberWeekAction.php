@@ -92,7 +92,9 @@ class BuildMemberWeekAction
                 'can_delete' => $this->access->canDelete($p),
                 'can_send' => $this->access->canSend($p),
                 // A kegiatan only in Kinetik whose date has come can be sent to kipApp (alone or in a batch).
-                'can_push' => $p->kip_external_id === null && $p->status === 'planned' && $this->access->hasStarted($p),
+                'can_push' => $p->kip_external_id === null && $p->status === 'planned' && $this->access->hasStarted($p) && $p->missingForKip() === [],
+                // What a kegiatan that is only in Kinetik still lacks before it may go to kipApp.
+                'missing_for_kip' => $p->kip_external_id === null && $p->status === 'planned' ? $p->missingForKip() : [],
                 'lock_reason' => $this->access->lockReason($p),
             ])
             ->values()

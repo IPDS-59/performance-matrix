@@ -6,7 +6,7 @@ const row = (over: Partial<PlanItemRow> = {}): PlanItemRow => ({
     id: 7, team_id: 1, description: 'Entri data SE2026', performance_plan_id: 3, rk_name: 'RK', project_id: null,
     date_start: '2026-10-05', date_end: '2026-10-05', time_start: null, time_end: null, target: 12, target_unit: 'blok',
     capaian: 4, capaian_note: 'Empat blok', evidence_url: null, progress: 30, status: 'planned', source: 'member', push_error: null,
-    in_kipapp: false, sent: false, sent_at: null, is_capaian_skp: false, startable: true, can_edit: true, can_delete: true, can_send: false, can_push: false, lock_reason: null,
+    in_kipapp: false, sent: false, sent_at: null, is_capaian_skp: false, startable: true, can_edit: true, can_delete: true, can_send: false, can_push: false, missing_for_kip: [], lock_reason: null,
     ...over,
 });
 

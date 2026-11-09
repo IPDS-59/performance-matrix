@@ -60,6 +60,35 @@ class PlanItem extends Model
         ];
     }
 
+    /**
+     * What is still missing before this kegiatan may go to kipApp: only a finished one is sent, with progres 100, the capaian
+     * text (kipApp asks 10 characters), the bukti dukung, and the capaian number when a target was set.
+     *
+     * @return list<string>
+     */
+    public function missingForKip(): array
+    {
+        if (! config('kinetik.kip.push_only_finished')) {
+            return [];
+        }
+
+        $missing = [];
+        if ((int) $this->progress < 100) {
+            $missing[] = 'progres 100';
+        }
+        if ($this->target !== null && $this->capaian === null) {
+            $missing[] = 'capaian (angka)';
+        }
+        if (mb_strlen(trim((string) $this->capaian_note)) < 10) {
+            $missing[] = 'uraian capaian (minimal 10 karakter)';
+        }
+        if (blank($this->evidence_url)) {
+            $missing[] = 'bukti dukung';
+        }
+
+        return $missing;
+    }
+
     public function scopeDuringWeek(Builder $query, string $weekStart, string $weekEnd): Builder
     {
         return $query->where('status', '!=', 'cancelled')

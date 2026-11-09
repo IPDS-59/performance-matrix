@@ -131,6 +131,9 @@ class PlanItemController extends Controller
         if (! $this->access->hasStarted($planItem)) {
             return back()->with('error', PlanItemAccess::NOT_STARTED);
         }
+        if ($missing = $planItem->missingForKip()) {
+            return back()->with('error', 'Belum lengkap, jadi belum dikirim ke kipApp. Isi dulu: '.implode(', ', $missing).'.');
+        }
 
         if ($push->execute($planItem->load(['employee.user', 'performancePlan']), $request->boolean('force'))) {
             return back()->with('success', 'Rencana dikirim ke kipApp.');
@@ -153,8 +156,8 @@ class PlanItemController extends Controller
             if ($plan->kip_external_id !== null) {
                 continue;
             }
-            if ($plan->status !== 'planned' || ! $this->access->hasStarted($plan)) {
-                $problems[] = '"'.Str::limit($plan->description, 40).'": '.($plan->status !== 'planned' ? 'sudah dibatalkan.' : PlanItemAccess::NOT_STARTED);
+            if ($plan->status !== 'planned' || ! $this->access->hasStarted($plan) || $plan->missingForKip() !== []) {
+                $problems[] = '"'.Str::limit($plan->description, 40).'": '.($plan->status !== 'planned' ? 'sudah dibatalkan.' : (! $this->access->hasStarted($plan) ? PlanItemAccess::NOT_STARTED : 'belum lengkap, isi dulu '.implode(', ', $plan->missingForKip()).'.'));
 
                 continue;
             }

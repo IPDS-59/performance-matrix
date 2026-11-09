@@ -43,6 +43,11 @@ class PushPlanItemAction
             return true;
         }
 
+        // Only a finished kegiatan goes to kipApp: progres 100, capaian, bukti dukung. The hourly run and the buttons all stop here.
+        if ($plan->missingForKip() !== []) {
+            return false;
+        }
+
         $lock = Cache::lock(self::lockKey($plan), 120);
         if (! $lock->get()) {
             return false;
@@ -99,7 +104,8 @@ class PushPlanItemAction
                 'kip_external_id' => $activityId,
                 'kip_skp_id' => $skpId,
                 'kip_rk_id' => $rkId,
-                'status' => 'pushed',
+                // A finished kegiatan arrives with progres 100, so it is done; kipApp's own list shows it that way.
+                'status' => (int) $plan->progress >= 100 ? 'done' : 'pushed',
                 'pushed_at' => now(),
                 'push_error' => null,
                 'push_attempts' => $plan->push_attempts + 1,

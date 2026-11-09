@@ -96,6 +96,8 @@ function confirmed() {
 
 // kipApp takes no future date, so a plan waits for its start date.
 const waitsForStart = computed(() => stage.value?.action === 'push' && !props.item?.startable);
+// Only a finished kegiatan goes to kipApp.
+const incomplete = computed(() => (stage.value?.action === 'push' ? (props.item?.missing_for_kip ?? []) : []));
 </script>
 
 <template>
@@ -153,9 +155,10 @@ const waitsForStart = computed(() => stage.value?.action === 'push' && !props.it
                 <Button v-if="item?.status !== 'cancelled'" type="button" variant="outline" @click="item && emit('copy', item)">Salin kegiatan</Button>
                 <Button v-if="item?.can_edit" type="button" variant="outline" @click="item && emit('edit', item)">Ubah</Button>
                 <Button type="submit" form="plan-result" variant="outline" :disabled="form.processing || item?.status === 'cancelled'">Simpan realisasi</Button>
-                <Button v-if="stage?.action" type="button" :disabled="form.processing || acting || waitsForStart" :title="waitsForStart ? 'Kegiatan belum bisa dikirim sebelum tanggal mulainya.' : undefined" @click="run">{{ stage?.actionLabel }}</Button>
+                <Button v-if="stage?.action" type="button" :disabled="form.processing || acting || waitsForStart || incomplete.length > 0" :title="waitsForStart ? 'Kegiatan belum bisa dikirim sebelum tanggal mulainya.' : incomplete.length ? `Isi dulu: ${incomplete.join(', ')}` : undefined" @click="run">{{ stage?.actionLabel }}</Button>
             </DialogFooter>
             <p v-if="item?.sent" class="text-xs text-gray-600">Kegiatan yang sudah dikirim ke atasan tidak bisa dihapus. Batalkan kirim dulu, lalu hapus.</p>
+            <p v-if="incomplete.length" class="text-right text-xs text-amber-800">Belum lengkap, jadi belum dikirim ke kipApp. Isi dulu: {{ incomplete.join(', ') }}. Setelah lengkap, Kinetik mengirimnya sendiri.</p>
             <p v-if="waitsForStart" class="text-right text-xs text-gray-600">Kegiatan belum bisa dikirim sebelum tanggal mulainya. Kinetik mengirimnya otomatis pada hari itu.</p>
 
             <ConfirmDialog

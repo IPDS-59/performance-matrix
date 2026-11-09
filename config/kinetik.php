@@ -46,6 +46,10 @@ return [
         // 2026-10-19 on a throwaway kegiatan: send, cancel and delete all worked.
         'send_to_atasan' => (bool) env('KIP_SEND_TO_ATASAN', false),
 
+        // A kegiatan goes to kipApp only when finished: progres 100, capaian (10+ characters, and the number when a target is set) and
+        // bukti dukung. Applies to the hourly run and every send button. Off: any plan is sent on its start date, as before.
+        'push_only_finished' => (bool) env('KIP_PUSH_ONLY_FINISHED', true),
+
         // Item 2 of docs/plans/2026-10-17-kipapp-entry-flow.md. On: a one-day kegiatan is pushed with
         // tanggalselesai null and a kegiatan without a clock time with jammulai/jamselesai null, like kipApp's
         // own form. Off: tanggalselesai is always sent and the times default to 08:00 and 16:00 (today).

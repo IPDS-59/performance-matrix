@@ -543,6 +543,8 @@ export interface PlanItemRow {
     can_send: boolean;
     /** Only in Kinetik and its date has come: can be sent to kipApp. */
     can_push: boolean;
+    /** What is still missing before it may go to kipApp (progres 100, capaian, bukti dukung); empty when complete or already there. */
+    missing_for_kip: string[];
     /** Short reason when the quarter SKP is locked in kipApp. */
     lock_reason: string | null;
 }
