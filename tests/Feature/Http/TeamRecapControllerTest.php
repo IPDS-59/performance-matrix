@@ -635,3 +635,29 @@ it('gives the meeting last week and this week, lists who did not plan, and lets 
     Employee::factory()->create(['user_id' => $other->id]);
     $this->actingAs($other)->patch(route('plan-items.result', $lastWeek), ['kendala' => 'x'])->assertForbidden();
 });
+
+it('shows the PJ on the beranda who of their team still owes a plan or a realisasi', function () {
+    [$pjUser, $pj, $team] = pjOfTeam();
+    $done = Employee::factory()->create(['name' => 'Anggota Lengkap', 'display_name' => 'Anggota Lengkap']);
+    $owes = Employee::factory()->create(['name' => 'Anggota Berutang', 'display_name' => 'Anggota Berutang']);
+    $team->members()->attach([$done->id => ['role' => 'member', 'is_primary' => true], $owes->id => ['role' => 'member', 'is_primary' => true]]);
+    $rk = PerformancePlan::factory()->create(['team_id' => $team->id, 'project_id' => null]);
+    $monday = now(config('app.schedule_timezone', 'Asia/Makassar'))->startOfWeek();
+    foreach ([[$done, $monday->copy()->subWeek(), 1], [$done, $monday->copy(), null], [$owes, $monday->copy()->subWeek(), null]] as [$who, $day, $capaian]) {
+        PlanItem::create(['team_id' => $team->id, 'employee_id' => $who->id, 'performance_plan_id' => $rk->id, 'description' => 'Kegiatan '.$who->name, 'date_start' => $day->toDateString(), 'date_end' => $day->toDateString(), 'capaian' => $capaian]);
+    }
+
+    $this->actingAs($pjUser)->get(route('dashboard'))->assertInertia(fn ($page) => $page
+        ->has('teamStatus', 1)->where('teamStatus.0.team_id', $team->id)
+        // Whoever owes something comes first, the complete member last.
+        ->where('teamStatus.0.members', function ($members) {
+            $rows = collect($members);
+            $owes = $rows->firstWhere('name', 'Anggota Berutang');
+
+            return $owes['plan_count'] === 0 && $owes['last_filled'] === 0 && $owes['last_total'] === 1 && $rows->last()['name'] === 'Anggota Lengkap';
+        })
+        ->where('teamStatus.0.complete', 1));
+
+    [$plain] = memberOfTeam();
+    $this->actingAs($plain)->get(route('dashboard'))->assertInertia(fn ($page) => $page->missing('teamStatus'));
+});

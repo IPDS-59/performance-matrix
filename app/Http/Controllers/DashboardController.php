@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Actions\Kinetik\BuildHeadHomeAction;
 use App\Actions\Kinetik\BuildMeetingSummaryAction;
 use App\Actions\Kinetik\BuildMemberHomeAction;
+use App\Actions\Kinetik\BuildTeamStatusAction;
 use App\Http\Controllers\Concerns\ResolvesTeams;
 use App\Models\Employee;
 use App\Models\PlanItem;
@@ -24,7 +25,7 @@ class DashboardController extends Controller
 {
     use ResolvesTeams;
 
-    public function index(Request $request, BuildHeadHomeAction $home, BuildMemberHomeAction $member, BuildMeetingSummaryAction $meetings): Response
+    public function index(Request $request, BuildHeadHomeAction $home, BuildMemberHomeAction $member, BuildMeetingSummaryAction $meetings, BuildTeamStatusAction $teamStatus): Response
     {
         $user = $request->user();
         $year = $request->integer('year', now()->year);
@@ -35,6 +36,9 @@ class DashboardController extends Controller
             // A PJ follows the meetings of their teams on the beranda; the head and admins keep the Ringkasan Rapat page.
             if (TeamRecapController::canReview($user)) {
                 $data['meetings'] = $this->meetings($request, $meetings);
+                // Who of the teams they lead still owes a plan or a realisasi.
+                $led = $this->teamsFor($request)->filter(fn (Team $t) => $t->leader_id === $user->employee->id);
+                $data['teamStatus'] = $teamStatus->execute($led, now(config('app.schedule_timezone', 'Asia/Makassar')));
             }
 
             return Inertia::render('MemberHome', $data);
