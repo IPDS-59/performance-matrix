@@ -2,7 +2,7 @@
 import { Link, router, usePage } from '@inertiajs/vue3';
 import { computed, onMounted, onUnmounted, ref, watch, type Component } from 'vue';
 import {
-    Activity, Award, Send, ChevronDown, BadgeCheck, BookOpen, CalendarCheck, CalendarDays, CalendarRange, ClipboardCheck, Eye, FileCheck, FileChartColumn, FileSpreadsheet, FileUp, FolderKanban, Bug, ShieldAlert, Archive,
+    Activity, Award, Send, ChevronDown, BadgeCheck, BookOpen, CalendarCheck, CalendarDays, CalendarRange, ClipboardCheck, Eye, FileCheck, FileChartColumn, FileSpreadsheet, Copy, FileUp, FolderKanban, Bug, ShieldAlert, Archive,
     CircleHelp, House, LayoutGrid, LayoutList, ListChecks, ListTodo, LogOut, Menu, Network, PanelLeftClose, PanelLeftOpen, Target, ToggleRight, UserRound, Users, X, Zap,
 } from 'lucide-vue-next';
 import { useSidebarStore } from '@/stores/sidebar';
@@ -93,6 +93,7 @@ const navSections = computed<NavSection[]>(() => {
                 { label: 'Impor Kegiatan', href: route('admin.import-kegiatan'), active: is('admin.import-kegiatan*'), icon: FileUp, show: isAdmin.value },
                 { label: 'Impor AK', href: route('admin.import-ak'), active: is('admin.import-ak*'), icon: Award, show: can.value.manage_personnel },
                 { label: 'Integritas data', href: route('admin.data-integrity'), active: is('admin.data-integrity'), icon: ShieldAlert, show: isAdmin.value },
+                { label: 'Kegiatan ganda', href: route('admin.duplicate-kegiatan'), active: is('admin.duplicate-kegiatan*'), icon: Copy, show: isAdmin.value },
                 { label: 'Laporan masalah', href: route('admin.bug-reports'), active: is('admin.bug-reports*'), icon: Bug, show: isAdmin.value },
             ],
         },
