@@ -262,3 +262,17 @@ it('offers and saves an RK that belongs to the person alone, such as one of a Pu
 
     expect(PlanItem::where('performance_plan_id', $pusat->id)->first()->team_id)->toBe($member->teams()->first()->id);
 });
+
+it('holds a kegiatan typed in Kinetik back from kipApp only when a near-identical one is already there', function () {
+    [, , $plan, $member] = importSetup();
+    PlanItem::create(['team_id' => $plan->team_id, 'employee_id' => $member->id, 'performance_plan_id' => $plan->id, 'description' => 'Mengkoordinasikan penyusunan monitoring mingguan', 'date_start' => '2026-10-15', 'date_end' => '2026-10-15', 'source' => 'kipapp', 'status' => 'done', 'kip_external_id' => '8800001']);
+    $same = PlanItem::create(['team_id' => $plan->team_id, 'employee_id' => $member->id, 'performance_plan_id' => $plan->id, 'description' => 'Mengkoordinasikan penyusunan monitoring mingguan', 'date_start' => '2026-10-15', 'date_end' => '2026-10-15', 'source' => 'member']);
+    $other = PlanItem::create(['team_id' => $plan->team_id, 'employee_id' => $member->id, 'performance_plan_id' => $plan->id, 'description' => 'Mengkoordinasikan penyusunan laporan bulanan', 'date_start' => '2026-10-15', 'date_end' => '2026-10-15', 'source' => 'member']);
+
+    expect(app(PushPlanItemAction::class)->execute($same->load('employee')))->toBeFalse()
+        ->and($same->fresh()->push_error)->toStartWith(PushPlanItemAction::SIMILAR_PREFIX);
+
+    // A different piece of work on the same day is not held for similarity (it fails later only for lack of kipApp setup in this test).
+    app(PushPlanItemAction::class)->execute($other->load('employee'));
+    expect((string) $other->fresh()->push_error)->not->toStartWith(PushPlanItemAction::SIMILAR_PREFIX);
+});

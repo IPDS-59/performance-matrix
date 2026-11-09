@@ -51,6 +51,15 @@ class PlanItemController extends Controller
             throw ValidationException::withMessages(['parent_id' => 'Kegiatan asal salinan tidak ditemukan.']);
         }
 
+        // A double submit (two clicks, Enter twice, a retry after a slow answer) must not make a second kegiatan, which then
+        // goes to kipApp as a second row. The same work, RK and dates saved a moment ago is the same save.
+        $same = PlanItem::where('employee_id', $employeeId)->where('performance_plan_id', $data['performance_plan_id'])
+            ->where('description', $data['description'])->whereDate('date_start', $data['date_start'])->whereDate('date_end', $data['date_end'])
+            ->where('status', '!=', 'cancelled')->where('created_at', '>=', now()->subMinutes(2))->exists();
+        if ($same) {
+            return back()->with('success', 'Rencana sudah tersimpan.');
+        }
+
         $item = PlanItem::create([
             ...$this->attributes($data, ['employee_id', 'team_id']),
             'team_id' => $team->id,

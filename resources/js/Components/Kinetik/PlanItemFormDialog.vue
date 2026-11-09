@@ -155,6 +155,8 @@ function applyPresensi(row: PresensiRow) {
 }
 
 function save() {
+    // Enter pressed twice, or a click right after Enter, must not save the kegiatan twice.
+    if (form.processing) return;
     form.transform((data: EntryFormState) => (sentOnly.value ? { is_capaian_skp: data.is_capaian_skp } : entryPayload(data)));
     const options = { preserveScroll: true, onSuccess: () => emit('update:open', false) };
     if (props.item) form.patch(route('plan-items.update', props.item.id), options);

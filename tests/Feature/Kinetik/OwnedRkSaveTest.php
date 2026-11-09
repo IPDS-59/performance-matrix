@@ -1,5 +1,6 @@
 <?php
 
+use App\Actions\Kinetik\BuildDataIntegrityAction;
 use App\Models\Employee;
 use App\Models\PerformancePlan;
 use App\Models\PlanItem;
@@ -28,4 +29,21 @@ it('saves a kegiatan under an RK of a Pusat team that only the member owns', fun
     ])->assertSessionHasNoErrors();
 
     expect(PlanItem::where('performance_plan_id', $pusat->id)->count())->toBe(1);
+});
+
+it('saves a kegiatan once when the same save arrives twice, and shows the pair in the integrity check when two exist', function () {
+    $user = User::factory()->create();
+    $me = Employee::factory()->create(['user_id' => $user->id]);
+    $team = Team::factory()->create();
+    $me->teams()->attach($team->id, ['role' => 'member', 'is_primary' => true]);
+    $rk = PerformancePlan::factory()->create(['team_id' => $team->id, 'project_id' => null, 'description' => 'RK Inovasi']);
+    $body = ['performance_plan_id' => $rk->id, 'team_id' => $team->id, 'description' => 'Memperbaiki aplikasi kinetik', 'date_start' => '2026-10-08', 'date_end' => '2026-10-08', 'target' => 1, 'target_unit' => 'web'];
+
+    $this->actingAs($user)->post(route('plan-items.store'), $body)->assertSessionHasNoErrors();
+    $this->actingAs($user)->post(route('plan-items.store'), $body)->assertSessionHasNoErrors();
+    expect(PlanItem::where('employee_id', $me->id)->count())->toBe(1);
+
+    PlanItem::create(['team_id' => $team->id, 'employee_id' => $me->id, 'performance_plan_id' => $rk->id, 'description' => 'Memperbaiki aplikasi Kinetik', 'date_start' => '2026-10-08', 'date_end' => '2026-10-08']);
+    $check = collect(app(BuildDataIntegrityAction::class)->execute())->firstWhere('key', 'duplicate_kegiatan');
+    expect($check['count'])->toBe(1);
 });

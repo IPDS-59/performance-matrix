@@ -63,10 +63,12 @@ class PushPlanItemAction
         $user = $plan->employee?->user;
 
         try {
-            // A kegiatan imported from a spreadsheet can be the same work as one the member already filed in kipApp.
-            // Sending it would make a second one there, so it waits until someone says it is different ("Kirim tetap").
-            if (! $force && $plan->source === 'import') {
-                $same = (new KegiatanDuplicateFinder)->find((int) $plan->employee_id, (string) $plan->description, Carbon::parse($plan->date_start)->toDateString(), Carbon::parse($plan->date_end)->toDateString(), $plan->id, onlyInKipapp: true);
+            // A kegiatan can be the same work as one the member already filed in kipApp: imported from a spreadsheet, or typed
+            // again in Kinetik. Sending it would make a second one there, so it waits until someone says it is different
+            // ("Kirim tetap"). A spreadsheet row is judged on a loose match, a kegiatan typed here only on a near-identical one.
+            // A copy made on purpose with "Salin kegiatan" (parent_id) is meant to repeat the text and is never held.
+            if (! $force && $plan->parent_id === null) {
+                $same = (new KegiatanDuplicateFinder)->find((int) $plan->employee_id, (string) $plan->description, Carbon::parse($plan->date_start)->toDateString(), Carbon::parse($plan->date_end)->toDateString(), $plan->id, onlyInKipapp: true, minScore: $plan->source === 'import' ? KegiatanDuplicateFinder::SIMILAR : KegiatanDuplicateFinder::SAME);
                 if ($same !== null) {
                     $plan->update(['push_error' => self::SIMILAR_PREFIX.' ('.$same['date'].'): "'.mb_strimwidth($same['description'], 0, 80, '…').'". Hapus kegiatan ini bila sama, atau tekan "Kirim tetap" bila berbeda.']);
 
