@@ -45,7 +45,10 @@ class BuildMemberWeekAction
     /** @return list<array<string, mixed>> */
     private function rows(Employee $employee, Carbon $monday): array
     {
-        return $this->rowsBetween($employee, $monday->toDateString(), $monday->copy()->endOfWeek(Carbon::SUNDAY)->toDateString());
+        return array_map(
+            fn (array $row) => $row + ['continued' => $row['date_start'] < $monday->toDateString()],
+            $this->rowsBetween($employee, $monday->toDateString(), $monday->copy()->endOfWeek(Carbon::SUNDAY)->toDateString()),
+        );
     }
 
     /**

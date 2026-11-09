@@ -547,6 +547,8 @@ export interface PlanItemRow {
     missing_for_kip: string[];
     /** Short reason when the quarter SKP is locked in kipApp. */
     lock_reason: string | null;
+    /** Started in an earlier week and runs into this one; counted in the week it started. */
+    continued?: boolean;
 }
 
 /** One row of the kipApp presensi list ("List Aktivitas"). */
