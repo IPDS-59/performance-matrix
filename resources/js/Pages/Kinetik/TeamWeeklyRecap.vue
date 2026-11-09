@@ -7,7 +7,7 @@ import RkRecapPanel from '@/Components/Kinetik/RkRecapPanel.vue';
 import { Head, router } from '@inertiajs/vue3';
 import { computed, ref } from 'vue';
 import type { MemberCompleteness, PeriodRow, RkPanel, TeamOption, TeamRecapEvidence, TeamWeekPlan } from '@/types';
-import TeamWeekPlans from '@/Components/Kinetik/TeamWeekPlans.vue';
+import TeamMeetingTable from '@/Components/Kinetik/TeamMeetingTable.vue';
 import RecapPeriodTable from '@/Components/Kinetik/RecapPeriodTable.vue';
 import { ChevronLeft, ChevronRight } from 'lucide-vue-next';
 import { Button } from '@/Components/ui/button';
@@ -37,6 +37,10 @@ const props = defineProps<{
     currentEmployeeId: number | null;
     members: MemberCompleteness[];
     plans: TeamWeekPlan[];
+    lastPlans?: TeamWeekPlan[];
+    lastWeekStart?: string;
+    lastWeekEnd?: string;
+    noPlan?: { last: Array<{ employee_id: number; name: string }>; this: Array<{ employee_id: number; name: string }> };
 }>();
 
 const { formatWeekRange } = useDateFormat();
@@ -55,6 +59,9 @@ const openWeek = (w: number | string) => go({ week: w });
 const toMonths = () => go({ year: props.year });
 const toWeeks = () => go({ year: props.year, month: props.month ?? undefined });
 const shiftYear = (delta: number) => go({ year: props.year + delta });
+
+// The parafrase is what the meeting is for, so it opens first. The Excel-like table of every member is one click away.
+const tab = ref<'parafrase' | 'tabel'>(typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('tab') === 'tabel' ? 'tabel' : 'parafrase');
 
 const selected = ref<number | null>(props.panels[0]?.performance_plan_id ?? null);
 const panel = computed(() => props.panels.find(p => p.performance_plan_id === selected.value) ?? props.panels[0] ?? null);
@@ -110,17 +117,24 @@ const canEdit = computed(() => props.canManage || (panel.value !== null && props
                 @export="download({ period_type: 'week', week: weekStart }, `Rapat Mingguan ${weekStart}.xlsx`)"
             />
 
-            <TeamWeekPlans v-if="selectedTeamId" :plans="plans" />
+            <div v-if="selectedTeamId" class="mb-4 inline-flex rounded-lg border bg-white p-1" role="tablist" aria-label="Isi rapat">
+                <button type="button" role="tab" :aria-selected="tab === 'parafrase'" :class="['rounded-md px-3 py-1.5 text-sm font-medium transition-colors duration-150', tab === 'parafrase' ? 'bg-primary text-primary-foreground' : 'text-gray-700 hover:bg-gray-100']" @click="tab = 'parafrase'">Parafrase RK</button>
+                <button type="button" role="tab" :aria-selected="tab === 'tabel'" :class="['rounded-md px-3 py-1.5 text-sm font-medium transition-colors duration-150', tab === 'tabel' ? 'bg-primary text-primary-foreground' : 'text-gray-700 hover:bg-gray-100']" @click="tab = 'tabel'">Tabel rapat (target dan realisasi)</button>
+            </div>
 
-            <MemberCompletenessCard v-if="selectedTeamId" :members="members" />
-
-            <template v-if="selectedTeamId">
+            <template v-if="selectedTeamId && tab === 'parafrase'">
                 <p v-if="!panels.length" class="mb-6 rounded-md border border-dashed border-gray-200 bg-gray-50 py-10 text-center text-sm text-gray-600">Tim ini belum punya RK.</p>
                 <template v-else-if="panel">
                     <RkPicker v-model="selected" :panels="panels" />
                     <RkRecapPanel class="mb-6" :panel="panel" :team-id="selectedTeamId" period-type="week" :period-start="weekStart" :can-edit="canEdit" />
                 </template>
             </template>
+
+            <div v-else-if="selectedTeamId" class="mb-6 space-y-4">
+                <TeamMeetingTable title="Realisasi minggu lalu" :range="formatWeekRange(lastWeekStart ?? '', lastWeekEnd ?? '')" :plans="lastPlans ?? []" :no-plan="noPlan?.last ?? []" :can-edit="canManage" />
+                <TeamMeetingTable title="Rencana minggu ini" :range="formatWeekRange(weekStart, weekEnd)" :plans="plans" :no-plan="noPlan?.this ?? []" :can-edit="canManage" />
+                <MemberCompletenessCard :members="members" />
+            </div>
 
             <!-- Bukti Dukung Rapat -->
             <div v-if="selectedTeamId" id="bukti-rapat" class="scroll-mt-4">

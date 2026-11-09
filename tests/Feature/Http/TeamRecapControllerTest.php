@@ -606,3 +606,32 @@ it('keeps Review Bersama monthly for the head, while the PJ and admins still cho
     $this->actingAs($pj)->get(route('team-recap.overview', ['period_type' => 'week']))
         ->assertInertia(fn ($page) => $page->where('periodType', 'week')->where('monthlyOnly', false));
 });
+
+// ── Meeting table: last week and this week, who did not plan, the PJ fills the permasalahan ──
+
+it('gives the meeting last week and this week, lists who did not plan, and lets the PJ write the permasalahan', function () {
+    [$pjUser, $pj, $team] = pjOfTeam();
+    $member = Employee::factory()->create(['name' => 'Anggota Rajin']);
+    $idle = Employee::factory()->create(['name' => 'Anggota Belum Rencana']);
+    $team->members()->attach($member->id, ['role' => 'member', 'is_primary' => true]);
+    $team->members()->attach($idle->id, ['role' => 'member', 'is_primary' => true]);
+    $rk = PerformancePlan::factory()->create(['team_id' => $team->id, 'project_id' => null]);
+
+    $lastWeek = PlanItem::create(['team_id' => $team->id, 'employee_id' => $member->id, 'performance_plan_id' => $rk->id, 'description' => 'Monitoring persiapan lapangan', 'date_start' => '2026-10-27', 'date_end' => '2026-10-28', 'target' => 4, 'target_unit' => 'kali', 'capaian' => 3, 'progress' => 75]);
+    // A kegiatan of the whole month: listed in every week it runs, marked as continued after the first.
+    PlanItem::create(['team_id' => $team->id, 'employee_id' => $member->id, 'performance_plan_id' => $rk->id, 'description' => 'Pengembangan aplikasi sepanjang bulan', 'date_start' => '2026-10-01', 'date_end' => '2026-11-30']);
+
+    $this->actingAs($pjUser)->get(route('team-recap.weekly', ['team' => $team->id, 'week' => '2026-11-02']))->assertInertia(fn ($page) => $page
+        ->has('lastPlans', 2)->where('lastPlans.0.continued', true)
+        ->has('plans', 1)->where('plans.0.continued', true)
+        ->where('noPlan.last.0.name', fn ($name) => in_array($name, ['Anggota Belum Rencana', $idle->display_name ?? $idle->name], true))
+        ->has('noPlan.this', 2));
+
+    $this->actingAs($pjUser)->patch(route('plan-items.result', $lastWeek), ['capaian' => 4, 'progress' => 100, 'kendala' => 'Sinyal buruk di dua kecamatan'])->assertSessionHasNoErrors();
+    expect($lastWeek->fresh()->kendala)->toBe('Sinyal buruk di dua kecamatan')->and((float) $lastWeek->fresh()->capaian)->toBe(4.0);
+
+    // Another member, who is not the PJ, cannot write on someone else's kegiatan.
+    $other = staffUser();
+    Employee::factory()->create(['user_id' => $other->id]);
+    $this->actingAs($other)->patch(route('plan-items.result', $lastWeek), ['kendala' => 'x'])->assertForbidden();
+});

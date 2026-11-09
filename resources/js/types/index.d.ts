@@ -757,6 +757,10 @@ export interface TeamWeekPlan {
     target_unit: string | null;
     capaian: number | null;
     capaian_note: string | null;
+    kendala: string | null;
+    progress: number;
+    /** Started in an earlier week and runs into this one. */
+    continued: boolean;
     evidence_url: string | null;
     status: 'planned' | 'pushed' | 'in_progress' | 'done' | 'cancelled';
     in_kipapp: boolean;

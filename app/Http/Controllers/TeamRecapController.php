@@ -101,7 +101,26 @@ class TeamRecapController extends Controller
             'currentEmployeeId' => $employee?->id,
             'members' => $team ? $this->aggregator->memberCompleteness($team, $weekStart) : [],
             'plans' => $team ? $this->weekPlans($team, $monday) : [],
+            'lastPlans' => $team ? $this->weekPlans($team, $monday->copy()->subWeek()) : [],
+            'lastWeekStart' => $monday->copy()->subWeek()->toDateString(),
+            'lastWeekEnd' => $monday->copy()->subWeek()->endOfWeek(Carbon::SUNDAY)->toDateString(),
+            // Members without any kegiatan in the week, so the meeting sees who did not plan.
+            'noPlan' => $team ? [
+                'last' => $this->membersWithoutPlan($team, $monday->copy()->subWeek()),
+                'this' => $this->membersWithoutPlan($team, $monday),
+            ] : ['last' => [], 'this' => []],
         ]);
+    }
+
+    /** @return list<array{employee_id: int, name: string}> active members with no kegiatan overlapping the week */
+    private function membersWithoutPlan(Team $team, Carbon $monday): array
+    {
+        $planned = PlanItem::where('team_id', $team->id)
+            ->duringWeek($monday->toDateString(), $monday->copy()->endOfWeek(Carbon::SUNDAY)->toDateString())
+            ->pluck('employee_id')->unique();
+
+        return $team->members()->where('employees.is_active', true)->whereNotIn('employees.id', $planned)->orderBy('employees.name')->get()
+            ->map(fn (Employee $m) => ['employee_id' => $m->id, 'name' => $m->display_name ?? $m->name])->values()->all();
     }
 
     /**
@@ -129,6 +148,9 @@ class TeamRecapController extends Controller
                 'target_unit' => $p->target_unit,
                 'capaian' => $p->capaian !== null ? (float) $p->capaian : null,
                 'capaian_note' => $p->capaian_note,
+                'kendala' => $p->kendala,
+                'progress' => (int) $p->progress,
+                'continued' => Carbon::parse($p->date_start)->lt($monday),
                 'evidence_url' => $p->evidence_url,
                 'status' => $p->status,
                 'in_kipapp' => $p->kip_external_id !== null,
