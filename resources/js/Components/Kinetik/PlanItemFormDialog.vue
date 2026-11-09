@@ -186,6 +186,7 @@ function save() {
                 </div>
                 <SearchableSelect :model-value="form.performance_plan_id" :options="rkChoices" :placeholder="form.project_id !== null ? 'Pilih RK projek ini' : 'Pilih RK'" search-placeholder="Cari RK…" :disabled="!rkEditable" @update:model-value="pickRk" />
                 <InputError :message="form.errors.performance_plan_id" />
+                <InputError :message="form.errors.team_id" />
                 <template v-if="!item">
                     <button v-if="!addingRk" type="button" class="text-xs text-primary underline" @click="addingRk = true">Pekerjaan di luar RK tim? Tambah RK tambahan</button>
                     <div v-else class="space-y-1.5 rounded-md border border-dashed p-2">
