@@ -23,7 +23,11 @@ const range = (a?: string, b?: string) => (a && b ? `${formatDate(a, { day: 'num
 
 const query = ref('');
 const matches = (row: PlanItemRow) => planRowMatches(row, query.value, d => formatDate(d, { day: 'numeric', month: 'long', year: 'numeric' }));
-const lastRows = computed(() => (props.lastWeek ?? []).filter(matches));
+// Coming from the Beranda card "Isi realisasi": only the kegiatan of last week that still lack their capaian.
+const onlyRealisasi = ref(typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('perlu') === 'realisasi');
+const needsRealisasi = (row: PlanItemRow) => row.capaian === null || row.capaian === undefined;
+const lastRows = computed(() => (props.lastWeek ?? []).filter(matches).filter(r => !onlyRealisasi.value || needsRealisasi(r)));
+const lackCount = computed(() => (props.lastWeek ?? []).filter(needsRealisasi).length);
 const thisRows = computed(() => (props.thisWeek ?? []).filter(matches));
 
 const detailId = ref<number | null>(null);
@@ -101,12 +105,17 @@ const shiftYear = (delta: number) => to({ year: props.year + delta });
             </p>
             <p v-if="focus" class="mb-4 rounded-md border bg-white px-4 py-2 text-sm"><span class="font-semibold">Fokus dari PJ:</span> {{ focus }}</p>
 
+            <p v-if="onlyRealisasi" class="mb-4 flex flex-wrap items-center gap-3 rounded-md border border-amber-200 bg-amber-50 px-4 py-2 text-sm text-amber-900">
+                <span>Menampilkan {{ lackCount }} kegiatan minggu lalu yang belum diisi realisasinya. Buka kegiatannya, lalu isi capaian, uraian, dan bukti dukung.</span>
+                <Button variant="outline" size="sm" @click="onlyRealisasi = false">Tampilkan semua</Button>
+            </p>
+
             <section class="mb-6 rounded-lg border bg-white" aria-labelledby="h-last">
                 <h2 id="h-last" class="border-b px-4 py-3 text-sm font-semibold">Capaian minggu lalu <span class="font-normal text-gray-600">{{ range(lastWeekStart, lastWeekEnd) }}</span></h2>
-                <PlanItemTable :rows="lastRows" :can-send-to-atasan="canSendToAtasan" :selected="selection.selected.value" empty-text="Tidak ada kegiatan minggu lalu." @open="detailId = $event.id" @toggle="selection.toggle" @toggle-all="selection.toggleAll" />
+                <PlanItemTable :rows="lastRows" :can-send-to-atasan="canSendToAtasan" :selected="selection.selected.value" :empty-text="onlyRealisasi ? 'Semua kegiatan minggu lalu sudah terisi realisasinya.' : 'Tidak ada kegiatan minggu lalu.'" @open="detailId = $event.id" @toggle="selection.toggle" @toggle-all="selection.toggleAll" />
             </section>
 
-            <section class="rounded-lg border bg-white" aria-labelledby="h-now">
+            <section v-if="!onlyRealisasi" class="rounded-lg border bg-white" aria-labelledby="h-now">
                 <h2 id="h-now" class="border-b px-4 py-3 text-sm font-semibold">Rencana minggu ini <span class="font-normal text-gray-600">{{ range(weekStart, weekEnd) }}</span></h2>
                 <PlanItemTable :rows="thisRows" :can-send-to-atasan="canSendToAtasan" :selected="selection.selected.value" empty-text="Belum ada rencana. Tekan “Tambah”." @open="detailId = $event.id" @toggle="selection.toggle" @toggle-all="selection.toggleAll" />
             </section>

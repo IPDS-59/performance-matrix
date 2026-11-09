@@ -19,6 +19,9 @@ const props = defineProps<{
 
 const { formatDate } = useDateFormat();
 
+// The cards open this week, not the month list; the realisasi card lists only what still lacks its capaian.
+const weekHref = computed(() => route('weekly.index', { week: props.week.start }));
+const realisasiHref = computed(() => route('weekly.index', { week: props.week.start, perlu: 'realisasi' }));
 const noPlan = computed(() => (props.plan.count === 0 ? ['Belum ada rencana minggu ini. Batas membuat rencana: Senin pukul 09.00.'] : []));
 const open = computed(() => [noPlan.value, props.last_week.missing, props.sent.pending, props.skp.open].filter((l) => l.length).length);
 </script>
@@ -43,17 +46,17 @@ const open = computed(() => [noPlan.value, props.last_week.missing, props.sent.p
             <HeadHomeCard
                 :icon="ClipboardCheck" title="Rencana minggu ini" caption="Kegiatan yang Anda rencanakan"
                 :value="plan.count" :items="noPlan" items-label="Perlu dilakukan"
-                ok-text="Rencana minggu ini sudah ada." :href="route('weekly.index')" href-label="Buka Rekap Mingguan"
+                ok-text="Rencana minggu ini sudah ada." :href="weekHref" href-label="Buka minggu ini"
             />
             <HeadHomeCard
                 :icon="CalendarCheck" title="Capaian minggu lalu" caption="Kegiatan yang capaiannya sudah diisi"
                 :value="last_week.filled" :total="last_week.total" :items="last_week.missing" items-label="Capaian belum diisi"
-                :ok-text="last_week.total ? 'Capaian minggu lalu sudah lengkap.' : 'Tidak ada kegiatan minggu lalu.'" :href="route('weekly.index')" href-label="Isi realisasi"
+                :ok-text="last_week.total ? 'Capaian minggu lalu sudah lengkap.' : 'Tidak ada kegiatan minggu lalu.'" :href="realisasiHref" href-label="Isi realisasi"
             />
             <HeadHomeCard
                 :icon="Send" title="Kegiatan ke atasan" caption="Kegiatan bulan ini yang sudah dikirim"
                 :value="sent.sent" :total="sent.total" :items="sent.pending" items-label="Belum dikirim"
-                ok-text="Semua kegiatan sudah dikirim." :href="route('weekly.index')" href-label="Buka Rekap Mingguan"
+                ok-text="Semua kegiatan sudah dikirim." :href="weekHref" href-label="Buka minggu ini"
             />
             <HeadHomeCard
                 :icon="FileCheck" title="SKP saya" caption="SKP tahun ini yang belum selesai dinilai"
