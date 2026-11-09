@@ -330,6 +330,7 @@ class PlanItemController extends Controller
             'capaian' => ['nullable', 'numeric', 'min:0', 'max:9999999999', new CapaianWithinTarget($stored?->target !== null ? (float) $stored->target : null)],
             'capaian_note' => ['nullable', 'string', 'max:1000'],
             'kendala' => ['nullable', 'string', 'max:1000'],
+            'is_capaian_skp' => ['nullable', 'boolean'],
             'evidence_url' => ['nullable', 'url', 'max:2000'],
             'progress' => ['nullable', 'integer', 'between:0,100'],
         ];
@@ -364,7 +365,6 @@ class PlanItemController extends Controller
             'time_end' => ['nullable', 'date_format:H:i', 'required_with:time_start', 'after:time_start'],
             'target' => ['nullable', 'numeric', 'gt:0'],
             'target_unit' => ['nullable', 'string', 'max:100'],
-            'is_capaian_skp' => ['nullable', 'boolean'],
             'parent_id' => ['nullable', 'integer', 'exists:plan_items,id'],
         ];
     }

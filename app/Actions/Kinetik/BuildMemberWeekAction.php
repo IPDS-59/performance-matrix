@@ -80,6 +80,7 @@ class BuildMemberWeekAction
                 'target_unit' => $p->target_unit,
                 'capaian' => $p->capaian !== null ? (float) $p->capaian : null,
                 'capaian_note' => $p->capaian_note,
+                'kendala' => $p->kendala,
                 'evidence_url' => $p->evidence_url,
                 'progress' => (int) $p->progress,
                 'status' => $p->status,

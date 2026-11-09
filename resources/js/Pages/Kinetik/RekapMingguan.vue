@@ -2,7 +2,8 @@
 import AppLayout from '@/Layouts/AppLayout.vue';
 import { Head, router } from '@inertiajs/vue3';
 import { computed, ref } from 'vue';
-import { ChevronLeft, ChevronRight, Plus, Search } from 'lucide-vue-next';
+import { ChevronDown, ChevronLeft, ChevronRight, Plus, RefreshCw, Search } from 'lucide-vue-next';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/Components/ui/dropdown-menu';
 import type { MemberWeekProps, PlanItemRow } from '@/types';
 import RecapPeriodTable from '@/Components/Kinetik/RecapPeriodTable.vue';
 import ConfirmDialog from '@/Components/ConfirmDialog.vue';
@@ -29,6 +30,16 @@ const needsRealisasi = (row: PlanItemRow) => row.capaian === null || row.capaian
 const lastRows = computed(() => (props.lastWeek ?? []).filter(matches).filter(r => !onlyRealisasi.value || needsRealisasi(r)));
 const lackCount = computed(() => (props.lastWeek ?? []).filter(needsRealisasi).length);
 const thisRows = computed(() => (props.thisWeek ?? []).filter(matches));
+
+// One page, two steps: plan this week, then fill the realisasi of last week, without leaving the page. The Beranda card "Isi realisasi"
+// opens the second step directly.
+const step = ref<'rencana' | 'realisasi'>(onlyRealisasi.value ? 'realisasi' : 'rencana');
+const removing = ref<PlanItemRow | null>(null);
+function removeConfirmed() {
+    if (!removing.value) return;
+    router.delete(route('plan-items.destroy', removing.value.id), { preserveScroll: true, onFinish: () => (removing.value = null) });
+}
+const refresh = () => router.reload({ preserveScroll: true });
 
 const detailId = ref<number | null>(null);
 // The detail follows the fresh props, so a saved capaian shows at once.
@@ -86,17 +97,34 @@ const shiftYear = (delta: number) => to({ year: props.year + delta });
                 <Button variant="ghost" size="sm" class="-ml-2" @click="toWeeks"><ChevronLeft class="mr-1 h-4 w-4" aria-hidden="true" /> Minggu di {{ monthName }}</Button>
                 <h2 class="text-lg font-semibold tabular-nums">{{ range(weekStart, weekEnd) }}</h2>
             </div>
+            <!-- Like kipApp's Pelaksanaan: a toolbar (Refresh, search, bulk action, Tambah) over one table. -->
+            <div class="mb-4 inline-flex rounded-lg border bg-white p-1" role="tablist" aria-label="Langkah mingguan">
+                <button type="button" role="tab" :aria-selected="step === 'rencana'" :class="['rounded-md px-3 py-1.5 text-sm font-medium transition-colors duration-150', step === 'rencana' ? 'bg-primary text-primary-foreground' : 'text-gray-700 hover:bg-gray-100']" @click="step = 'rencana'">1. Rencana minggu ini</button>
+                <button type="button" role="tab" :aria-selected="step === 'realisasi'" :class="['rounded-md px-3 py-1.5 text-sm font-medium transition-colors duration-150', step === 'realisasi' ? 'bg-primary text-primary-foreground' : 'text-gray-700 hover:bg-gray-100']" @click="step = 'realisasi'">
+                    2. Isi realisasi minggu lalu
+                    <span v-if="lackCount" class="ml-1 rounded-full bg-amber-400 px-1.5 text-xs font-semibold tabular-nums text-gray-900">{{ lackCount }}</span>
+                </button>
+            </div>
+
             <div class="mb-4 flex flex-wrap items-center gap-3">
+                <Button variant="outline" @click="refresh"><RefreshCw class="mr-1.5 h-4 w-4" aria-hidden="true" /> Refresh</Button>
                 <div class="relative w-full max-w-xs">
                     <Search class="pointer-events-none absolute left-3 top-2.5 h-4 w-4 text-gray-500" aria-hidden="true" />
-                    <Input v-model="query" class="pl-9" placeholder="Cari kegiatan atau RK" aria-label="Cari kegiatan" />
+                    <Input v-model="query" class="pl-9" placeholder="Pencarian" aria-label="Cari kegiatan" />
                 </div>
                 <span data-tour="sync-me" class="inline-flex"><SyncMyActivitiesButton /></span>
-                <Button v-if="selection.toPush.value.length" variant="outline" @click="bulk.ask('push')">Kirim ke kipApp ({{ selection.toPush.value.length }})</Button>
-                <template v-if="canSendToAtasan">
-                    <Button variant="outline" :disabled="!selection.toSend.value.length" @click="bulk.ask('send')">Kirim ke atasan ({{ selection.toSend.value.length }})</Button>
-                    <Button variant="outline" :disabled="!selection.toCancel.value.length" @click="bulk.ask('cancel')">Batalkan kirim ({{ selection.toCancel.value.length }})</Button>
-                </template>
+                <DropdownMenu>
+                    <DropdownMenuTrigger as-child>
+                        <Button variant="outline" :disabled="!selection.selected.value.length">Aksi kegiatan terpilih ({{ selection.selected.value.length }}) <ChevronDown class="ml-1.5 h-4 w-4" aria-hidden="true" /></Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="start">
+                        <DropdownMenuItem :disabled="!selection.toPush.value.length" @select="bulk.ask('push')">Kirim ke kipApp ({{ selection.toPush.value.length }})</DropdownMenuItem>
+                        <template v-if="canSendToAtasan">
+                            <DropdownMenuItem :disabled="!selection.toSend.value.length" @select="bulk.ask('send')">Kirim ke atasan ({{ selection.toSend.value.length }})</DropdownMenuItem>
+                            <DropdownMenuItem :disabled="!selection.toCancel.value.length" @select="bulk.ask('cancel')">Batalkan kirim ({{ selection.toCancel.value.length }})</DropdownMenuItem>
+                        </template>
+                    </DropdownMenuContent>
+                </DropdownMenu>
                 <Button class="ml-auto" data-tour="add-item" @click="add"><Plus class="mr-1 h-4 w-4" aria-hidden="true" /> Tambah</Button>
             </div>
 
@@ -105,23 +133,40 @@ const shiftYear = (delta: number) => to({ year: props.year + delta });
             </p>
             <p v-if="focus" class="mb-4 rounded-md border bg-white px-4 py-2 text-sm"><span class="font-semibold">Fokus dari PJ:</span> {{ focus }}</p>
 
-            <p v-if="onlyRealisasi" class="mb-4 flex flex-wrap items-center gap-3 rounded-md border border-amber-200 bg-amber-50 px-4 py-2 text-sm text-amber-900">
-                <span>Menampilkan {{ lackCount }} kegiatan minggu lalu yang belum diisi realisasinya. Buka kegiatannya, lalu isi capaian, uraian, dan bukti dukung.</span>
-                <Button variant="outline" size="sm" @click="onlyRealisasi = false">Tampilkan semua</Button>
-            </p>
-
-            <section class="mb-6 rounded-lg border bg-white" aria-labelledby="h-last">
-                <h2 id="h-last" class="border-b px-4 py-3 text-sm font-semibold">Capaian minggu lalu <span class="font-normal text-gray-600">{{ range(lastWeekStart, lastWeekEnd) }}</span></h2>
-                <PlanItemTable :rows="lastRows" :can-send-to-atasan="canSendToAtasan" :selected="selection.selected.value" :empty-text="onlyRealisasi ? 'Semua kegiatan minggu lalu sudah terisi realisasinya.' : 'Tidak ada kegiatan minggu lalu.'" @open="detailId = $event.id" @toggle="selection.toggle" @toggle-all="selection.toggleAll" />
+            <section v-if="step === 'rencana'" class="rounded-lg border bg-white" aria-labelledby="h-now">
+                <h2 id="h-now" class="border-b px-4 py-3 text-sm font-semibold">Rencana minggu ini <span class="font-normal text-gray-600">{{ range(weekStart, weekEnd) }}</span></h2>
+                <PlanItemTable :rows="thisRows" :can-send-to-atasan="canSendToAtasan" :selected="selection.selected.value" empty-text="Belum ada rencana. Tekan “Tambah”." @open="detailId = $event.id" @edit="edit" @copy="copy" @remove="removing = $event" @toggle="selection.toggle" @toggle-all="selection.toggleAll" />
+                <div class="flex flex-wrap items-center justify-between gap-2 border-t bg-gray-50/60 px-4 py-3 text-sm">
+                    <span class="text-gray-700"><template v-if="lackCount">{{ lackCount }} kegiatan minggu lalu belum diisi realisasinya.</template><template v-else>Realisasi minggu lalu sudah terisi semua.</template></span>
+                    <Button v-if="lackCount" variant="outline" size="sm" @click="step = 'realisasi'">Isi realisasi minggu lalu</Button>
+                </div>
             </section>
 
-            <section v-if="!onlyRealisasi" class="rounded-lg border bg-white" aria-labelledby="h-now">
-                <h2 id="h-now" class="border-b px-4 py-3 text-sm font-semibold">Rencana minggu ini <span class="font-normal text-gray-600">{{ range(weekStart, weekEnd) }}</span></h2>
-                <PlanItemTable :rows="thisRows" :can-send-to-atasan="canSendToAtasan" :selected="selection.selected.value" empty-text="Belum ada rencana. Tekan “Tambah”." @open="detailId = $event.id" @toggle="selection.toggle" @toggle-all="selection.toggleAll" />
+            <section v-else class="rounded-lg border bg-white" aria-labelledby="h-last">
+                <h2 id="h-last" class="border-b px-4 py-3 text-sm font-semibold">Isi realisasi <span class="font-normal text-gray-600">minggu lalu, {{ range(lastWeekStart, lastWeekEnd) }}</span></h2>
+                <p v-if="lackCount && !onlyRealisasi" class="border-b bg-amber-50 px-4 py-2 text-sm text-amber-900">
+                    {{ lackCount }} kegiatan belum diisi realisasinya.
+                    <button type="button" class="ml-1 underline" @click="onlyRealisasi = true">Tampilkan hanya yang belum diisi</button>
+                </p>
+                <p v-if="onlyRealisasi" class="flex flex-wrap items-center gap-3 border-b bg-amber-50 px-4 py-2 text-sm text-amber-900">
+                    <span>Menampilkan {{ lackCount }} kegiatan yang belum diisi. Klik barisnya, lalu isi capaian, uraian, dan bukti dukung.</span>
+                    <Button variant="outline" size="sm" @click="onlyRealisasi = false">Tampilkan semua</Button>
+                </p>
+                <PlanItemTable :rows="lastRows" :can-send-to-atasan="canSendToAtasan" :selected="selection.selected.value" :empty-text="onlyRealisasi ? 'Semua kegiatan minggu lalu sudah terisi realisasinya.' : 'Tidak ada kegiatan minggu lalu.'" @open="detailId = $event.id" @edit="edit" @copy="copy" @remove="removing = $event" @toggle="selection.toggle" @toggle-all="selection.toggleAll" />
             </section>
 
             <PlanItemFormDialog v-model:open="formOpen" :item="editing" :copy-of="copying" :skp-year="skpYear" :rk-options="rkOptions ?? []" :project-options="projectOptions ?? []" :default-date="weekStart ?? ''" />
             <PlanItemDetailDialog :item="detail" :can-send-to-atasan="canSendToAtasan" @close="detailId = null" @edit="edit" @copy="copy" />
+            <ConfirmDialog
+                :open="removing !== null"
+                :title="removing?.in_kipapp ? 'Hapus kegiatan' : 'Batalkan kegiatan'"
+                :description="removing?.in_kipapp ? 'Apakah akan menghapus kegiatan ini? Kegiatan di kipApp ikut terhapus.' : 'Batalkan kegiatan ini?'"
+                confirm-label="Ya"
+                cancel-label="Tidak"
+                variant="warning"
+                @update:open="(v: boolean) => { if (!v) removing = null; }"
+                @confirm="removeConfirmed"
+            />
             <ConfirmDialog
                 :open="bulk.pending.value !== null"
                 :title="bulk.pending.value ? bulkCopy[bulk.pending.value].title : ''"

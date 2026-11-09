@@ -266,7 +266,7 @@ function save() {
             <p class="text-xs text-gray-600">Progres, capaian, bukti dukung, dan uraian diisi nanti di form Realisasi pada detail kegiatan.</p>
         </fieldset>
 
-        <label class="flex items-center gap-1.5 text-sm"><input v-model="form.is_capaian_skp" type="checkbox" /> Masukan ke capaian SKP</label>
+        <label v-if="sentOnly" class="flex items-center gap-1.5 text-sm"><input v-model="form.is_capaian_skp" type="checkbox" /> Masukan ke capaian SKP</label>
         <InputError :message="form.errors.is_capaian_skp || form.errors.parent_id" />
 
         <PresensiPickerDialog v-model:open="presensiOpen" :date="form.date_start" @pick="applyPresensi" />
