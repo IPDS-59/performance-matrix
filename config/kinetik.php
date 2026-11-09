@@ -49,6 +49,8 @@ return [
         // A kegiatan goes to kipApp only when finished: progres 100, capaian (10+ characters, and the number when a target is set) and
         // bukti dukung. Applies to the hourly run and every send button. Off: any plan is sent on its start date, as before.
         'push_only_finished' => (bool) env('KIP_PUSH_ONLY_FINISHED', true),
+        // Finished kegiatan of one person, one RK and the same words within a month go to kipApp as one kegiatan.
+        'merge_repeated' => (bool) env('KIP_MERGE_REPEATED', false),
 
         // Item 2 of docs/plans/2026-10-17-kipapp-entry-flow.md. On: a one-day kegiatan is pushed with
         // tanggalselesai null and a kegiatan without a clock time with jammulai/jamselesai null, like kipApp's

@@ -118,6 +118,40 @@ class PlanItemController extends Controller
         return back()->with('success', 'Rencana diperbarui.');
     }
 
+    /**
+     * "Perpanjang ke minggu depan": the kegiatan runs one more week instead of being copied to the next week, so it stays one
+     * kegiatan (the spv's wish: edit the end date, do not copy). The end moves to the Sunday of the next week, inside the quarter.
+     */
+    public function extend(Request $request, PlanItem $planItem, UpdatePlanItemAction $kipUpdate): RedirectResponse
+    {
+        $actor = $this->actor($request);
+        $this->authorizeFor($actor, Team::findOrFail($planItem->team_id), $planItem->employee_id);
+        abort_if($planItem->status === 'cancelled', 422, 'Rencana ini sudah dibatalkan.');
+        abort_unless($this->access->canEdit($planItem) && $planItem->kip_sent_at === null, 422, $this->access->lockReason($planItem) ?? 'Kegiatan yang sudah dikirim ke atasan tidak dapat diubah.');
+
+        $end = Carbon::parse($planItem->date_end);
+        $next = $end->copy()->addWeek()->endOfWeek(Carbon::SUNDAY);
+        $quarterEnd = Carbon::parse($planItem->date_start)->endOfQuarter()->startOfDay();
+        $next = $next->gt($quarterEnd) ? $quarterEnd : $next->startOfDay();
+        if ($next->lte($end->copy()->startOfDay())) {
+            return back()->with('error', 'Kegiatan ini sudah sampai akhir triwulan.');
+        }
+
+        if ($planItem->kip_external_id === null) {
+            $planItem->update(['date_end' => $next->toDateString()]);
+        } else {
+            $planItem->loadMissing('employee.user');
+            try {
+                $kipUpdate->execute($planItem, ['date_end' => $next->toDateString()]);
+            } catch (\RuntimeException $e) {
+                return back()->with('error', $e->getMessage());
+            }
+        }
+        $this->notifyOwner($request, $actor, $planItem, 'diperpanjang');
+
+        return back()->with('success', 'Kegiatan diperpanjang sampai '.$next->translatedFormat('j F Y').'.');
+    }
+
     /** Send the plan to kipApp now instead of waiting for its start date. */
     public function push(Request $request, PlanItem $planItem, PushPlanItemAction $push): RedirectResponse
     {

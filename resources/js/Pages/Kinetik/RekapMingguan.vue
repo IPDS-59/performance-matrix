@@ -36,6 +36,8 @@ function removeConfirmed() {
     if (!removing.value) return;
     router.delete(route('plan-items.destroy', removing.value.id), { preserveScroll: true, onFinish: () => (removing.value = null) });
 }
+// The kegiatan runs one week more, instead of a copy for next week: it stays one kegiatan in the recaps and in kipApp.
+const extend = (row: PlanItemRow) => router.patch(route('plan-items.extend', row.id), {}, { preserveScroll: true });
 const refresh = () => router.reload({ preserveScroll: true });
 
 const detailId = ref<number | null>(null);
@@ -139,12 +141,12 @@ const shiftYear = (delta: number) => to({ year: props.year + delta });
                     Klik kegiatan yang belum diisi, lalu isi capaian, uraian, dan bukti dukung.
                     <button type="button" class="ml-1 underline" @click="onlyRealisasi = true">Tampilkan hanya yang belum diisi</button>
                 </p>
-                <PlanItemTable :rows="lastRows" :can-send-to-atasan="canSendToAtasan" :selected="selection.selected.value" :empty-text="onlyRealisasi ? 'Semua kegiatan minggu lalu sudah terisi realisasinya.' : 'Tidak ada kegiatan minggu lalu.'" @open="openIn(lastWeekStart)($event)" @edit="edit" @copy="copy" @remove="removing = $event" @toggle="selection.toggle" @toggle-all="selection.toggleAll" />
+                <PlanItemTable :rows="lastRows" :can-send-to-atasan="canSendToAtasan" :selected="selection.selected.value" :empty-text="onlyRealisasi ? 'Semua kegiatan minggu lalu sudah terisi realisasinya.' : 'Tidak ada kegiatan minggu lalu.'" @open="openIn(lastWeekStart)($event)" @edit="edit" @copy="copy" @extend="extend" @remove="removing = $event" @toggle="selection.toggle" @toggle-all="selection.toggleAll" />
             </section>
 
             <section v-if="!onlyRealisasi" class="rounded-lg border bg-white" aria-labelledby="h-now">
                 <h2 id="h-now" class="border-b px-4 py-3 text-sm font-semibold">Rencana minggu ini <span class="font-normal text-gray-600">{{ range(weekStart, weekEnd) }}</span></h2>
-                <PlanItemTable :rows="thisRows" :can-send-to-atasan="canSendToAtasan" :selected="selection.selected.value" empty-text="Belum ada rencana. Tekan “Tambah”." @open="openIn(weekStart)($event)" @edit="edit" @copy="copy" @remove="removing = $event" @toggle="selection.toggle" @toggle-all="selection.toggleAll" />
+                <PlanItemTable :rows="thisRows" :can-send-to-atasan="canSendToAtasan" :selected="selection.selected.value" empty-text="Belum ada rencana. Tekan “Tambah”." @open="openIn(weekStart)($event)" @edit="edit" @copy="copy" @extend="extend" @remove="removing = $event" @toggle="selection.toggle" @toggle-all="selection.toggleAll" />
             </section>
 
             <PlanItemFormDialog v-model:open="formOpen" :item="editing" :copy-of="copying" :skp-year="skpYear" :rk-options="rkOptions ?? []" :project-options="projectOptions ?? []" :default-date="weekStart ?? ''" />

@@ -145,6 +145,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('/rk-tambahan', [AdditionalRkController::class, 'store'])->name('rk-additional.store');
     Route::post('/rencana-minggu/item', [PlanItemController::class, 'store'])->name('plan-items.store');
     Route::patch('/rencana-minggu/item/{planItem}', [PlanItemController::class, 'update'])->name('plan-items.update');
+    Route::patch('/rencana-minggu/item/{planItem}/perpanjang', [PlanItemController::class, 'extend'])->name('plan-items.extend');
     Route::post('/rencana-minggu/item/{planItem}/kirim', [PlanItemController::class, 'push'])->name('plan-items.push');
     Route::post('/rencana-minggu/item/{planItem}/kirim-atasan', [PlanItemController::class, 'send'])->name('plan-items.send');
     Route::post('/rencana-minggu/item/{planItem}/batal-kirim', [PlanItemController::class, 'unsend'])->name('plan-items.unsend');

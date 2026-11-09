@@ -12,6 +12,7 @@ use App\Notifications\KinetikNotification;
 use App\Services\Kinetik\KegiatanDuplicateFinder;
 use App\Services\Kinetik\MemberKipToken;
 use Carbon\Carbon;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Cache;
 use RuntimeException;
 
@@ -87,6 +88,10 @@ class PushPlanItemAction
 
             $this->requireProject($plan);
 
+            // Repeated finished kegiatan of the month become one: the range grows and target and capaian add up. Nothing is saved
+            // before kipApp accepted the kegiatan.
+            $folded = config('kinetik.kip.merge_repeated') ? $this->foldRepeated($plan) : collect();
+
             $writer = new ApiKipWriter($this->tokens->for($user));
             [$skpId, $rk] = $this->skpAndRk($writer, $plan);
 
@@ -109,7 +114,9 @@ class PushPlanItemAction
                 'pushed_at' => now(),
                 'push_error' => null,
                 'push_attempts' => $plan->push_attempts + 1,
+                ...($folded->isEmpty() ? [] : $plan->only(['date_start', 'date_end', 'target', 'capaian'])),
             ]);
+            $folded->each(fn (PlanItem $other) => $other->update(['status' => 'cancelled', 'merged_into_id' => $plan->id]));
 
             return true;
         } catch (RuntimeException|KipApiException $e) {
@@ -117,6 +124,37 @@ class PushPlanItemAction
 
             return false;
         }
+    }
+
+    /**
+     * The other finished, unsent kegiatan of the same person and RK with the same words in the same month. The plan takes their dates
+     * (in memory only), and their target and capaian are added to it. Returns the kegiatan that fold into it.
+     *
+     * @return Collection<int, PlanItem>
+     */
+    private function foldRepeated(PlanItem $plan): Collection
+    {
+        $start = Carbon::parse($plan->date_start);
+        $finder = new KegiatanDuplicateFinder;
+        $same = PlanItem::where('employee_id', $plan->employee_id)->where('performance_plan_id', $plan->performance_plan_id)
+            ->where('status', '!=', 'cancelled')->whereNull('kip_external_id')->where('id', '!=', $plan->id)
+            ->whereDate('date_start', '>=', $start->copy()->startOfMonth()->toDateString())->whereDate('date_start', '<=', $start->copy()->endOfMonth()->toDateString())
+            ->get()
+            ->filter(fn (PlanItem $o) => $o->missingForKip() === [] && $finder->similarity((string) $o->description, (string) $plan->description) >= KegiatanDuplicateFinder::SAME)
+            ->values();
+        if ($same->isEmpty()) {
+            return $same;
+        }
+
+        $all = $same->push($plan);
+        $plan->date_start = $all->min(fn (PlanItem $o) => Carbon::parse($o->date_start)->toDateString());
+        $plan->date_end = $all->max(fn (PlanItem $o) => Carbon::parse($o->date_end)->toDateString());
+        if ($all->contains(fn (PlanItem $o) => $o->target !== null)) {
+            $plan->target = (float) $all->sum(fn (PlanItem $o) => (float) $o->target);
+        }
+        $plan->capaian = (float) $all->sum(fn (PlanItem $o) => (float) $o->capaian);
+
+        return $same->reject(fn (PlanItem $o) => $o->is($plan))->values();
     }
 
     /** Same rule as the entry form: an RK that belongs to a projek must not go to kipApp without one. */

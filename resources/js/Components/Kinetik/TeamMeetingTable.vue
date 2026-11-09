@@ -8,6 +8,7 @@ import { Input } from '@/Components/ui/input';
 import { Label } from '@/Components/ui/label';
 import { Textarea } from '@/Components/ui/textarea';
 import InputError from '@/Components/InputError.vue';
+import CollapsibleSection from '@/Components/Kinetik/CollapsibleSection.vue';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/Components/ui/dialog';
 import { achievementPercent, withUnit } from '@/composables/useAchievement';
 import { formatNumber } from '@/composables/useNumber';
@@ -72,12 +73,9 @@ const pct = (p: TeamWeekPlan) => achievementPercent(p.capaian, p.target);
 </script>
 
 <template>
-    <section class="rounded-lg border bg-white" :aria-label="title">
+    <CollapsibleSection :id="`tabel-${week}`" :title="title" :summary="`${range} · ${formatNumber(rowCount)} kegiatan${without ? `, ${formatNumber(without)} anggota belum membuat rencana` : ''}`" default-open>
         <div class="flex flex-wrap items-center gap-3 border-b px-4 py-3">
-            <h2 class="text-sm font-semibold">
-                {{ title }}
-                <span class="font-normal text-gray-600">{{ range }} · {{ formatNumber(rowCount) }} kegiatan<template v-if="without">, {{ formatNumber(without) }} anggota belum membuat rencana</template></span>
-            </h2>
+            <p class="text-xs text-gray-600">Seperti Excel lama: satu baris per kegiatan. {{ canEdit ? 'Tekan baris untuk mengisi realisasi dan permasalahan.' : '' }}</p>
             <div class="relative ml-auto">
                 <Search class="pointer-events-none absolute left-3 top-2.5 h-4 w-4 text-gray-500" aria-hidden="true" />
                 <Input v-model="query" class="h-9 w-56 pl-9" placeholder="Cari anggota atau kegiatan" :aria-label="`Cari di ${title}`" />
@@ -153,5 +151,5 @@ const pct = (p: TeamWeekPlan) => achievementPercent(p.capaian, p.target);
                 </form>
             </DialogContent>
         </Dialog>
-    </section>
+    </CollapsibleSection>
 </template>

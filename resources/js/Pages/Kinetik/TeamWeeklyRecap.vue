@@ -61,9 +61,6 @@ const toMonths = () => go({ year: props.year });
 const toWeeks = () => go({ year: props.year, month: props.month ?? undefined });
 const shiftYear = (delta: number) => go({ year: props.year + delta });
 
-// The parafrase is what the meeting is for, so it opens first. The Excel-like table of every member is one click away.
-const tab = ref<'parafrase' | 'tabel'>(typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('tab') === 'tabel' ? 'tabel' : 'parafrase');
-
 const selected = ref<number | null>(props.panels[0]?.performance_plan_id ?? null);
 const panel = computed(() => props.panels.find(p => p.performance_plan_id === selected.value) ?? props.panels[0] ?? null);
 // The PJ, or the RK's PIC, writes for the RK.
@@ -120,24 +117,20 @@ const canEdit = computed(() => props.canManage || (panel.value !== null && props
                 @export="download({ period_type: 'week', week: weekStart }, `Rapat Mingguan ${weekStart}.xlsx`)"
             />
 
-            <div v-if="selectedTeamId" class="mb-4 inline-flex rounded-lg border bg-white p-1" role="tablist" aria-label="Isi rapat">
-                <button type="button" role="tab" :aria-selected="tab === 'parafrase'" :class="['rounded-md px-3 py-1.5 text-sm font-medium transition-colors duration-150', tab === 'parafrase' ? 'bg-primary text-primary-foreground' : 'text-gray-700 hover:bg-gray-100']" @click="tab = 'parafrase'">Parafrase RK</button>
-                <button type="button" role="tab" :aria-selected="tab === 'tabel'" :class="['rounded-md px-3 py-1.5 text-sm font-medium transition-colors duration-150', tab === 'tabel' ? 'bg-primary text-primary-foreground' : 'text-gray-700 hover:bg-gray-100']" @click="tab = 'tabel'">Tabel rapat (target dan realisasi)</button>
-            </div>
-
-            <template v-if="selectedTeamId && tab === 'parafrase'">
+            <!-- The meeting in one page: the parafrase first (it is what the meeting is for), then the two tables of the week, each one can be folded. -->
+            <template v-if="selectedTeamId">
                 <p v-if="!panels.length" class="mb-6 rounded-md border border-dashed border-gray-200 bg-gray-50 py-10 text-center text-sm text-gray-600">Tim ini belum punya RK.</p>
                 <template v-else-if="panel">
                     <RkPicker v-model="selected" :panels="panels" />
-                    <RkRecapPanel class="mb-6" :panel="panel" :team-id="selectedTeamId" period-type="week" :period-start="weekStart" :can-edit="canEdit" />
+                    <RkRecapPanel class="mb-4" :panel="panel" :team-id="selectedTeamId" period-type="week" :period-start="weekStart" :can-edit="canEdit" />
                 </template>
-            </template>
 
-            <div v-else-if="selectedTeamId" class="mb-6 space-y-4">
-                <TeamMeetingTable title="Realisasi minggu lalu" :range="formatWeekRange(lastWeekStart ?? '', lastWeekEnd ?? '')" :plans="lastPlans ?? []" :no-plan="noPlan?.last ?? []" :can-edit="canManage" :week="lastWeekStart ?? weekStart" />
-                <TeamMeetingTable title="Rencana minggu ini" :range="formatWeekRange(weekStart, weekEnd)" :plans="plans" :no-plan="noPlan?.this ?? []" :can-edit="canManage" :week="weekStart" />
-                <MemberCompletenessCard :members="members" />
-            </div>
+                <div class="mb-6 space-y-3">
+                    <TeamMeetingTable title="Realisasi minggu lalu" :range="formatWeekRange(lastWeekStart ?? '', lastWeekEnd ?? '')" :plans="lastPlans ?? []" :no-plan="noPlan?.last ?? []" :can-edit="canManage" :week="lastWeekStart ?? weekStart" />
+                    <TeamMeetingTable title="Rencana minggu ini" :range="formatWeekRange(weekStart, weekEnd)" :plans="plans" :no-plan="noPlan?.this ?? []" :can-edit="canManage" :week="weekStart" />
+                    <MemberCompletenessCard :members="members" />
+                </div>
+            </template>
 
             <!-- Bukti Dukung Rapat -->
             <div v-if="selectedTeamId" id="bukti-rapat" class="scroll-mt-4">
