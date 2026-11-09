@@ -3,13 +3,16 @@
 namespace App\Http\Controllers;
 
 use App\Actions\Kinetik\BuildHeadHomeAction;
+use App\Actions\Kinetik\BuildMeetingSummaryAction;
 use App\Actions\Kinetik\BuildMemberHomeAction;
+use App\Http\Controllers\Concerns\ResolvesTeams;
 use App\Models\Employee;
 use App\Models\PlanItem;
 use App\Models\Project;
 use App\Models\Team;
 use App\Models\User;
 use Carbon\Carbon;
+use Carbon\CarbonImmutable;
 use Illuminate\Database\Query\Builder;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
@@ -19,14 +22,22 @@ use Inertia\Response;
 
 class DashboardController extends Controller
 {
-    public function index(Request $request, BuildHeadHomeAction $home, BuildMemberHomeAction $member): Response
+    use ResolvesTeams;
+
+    public function index(Request $request, BuildHeadHomeAction $home, BuildMemberHomeAction $member, BuildMeetingSummaryAction $meetings): Response
     {
         $user = $request->user();
         $year = $request->integer('year', now()->year);
         $month = $request->integer('month', now()->month);
 
         if ($user->hasRole('staff') && $user->employee !== null) {
-            return Inertia::render('MemberHome', $member->execute($user->employee, now(config('app.schedule_timezone', 'Asia/Makassar'))));
+            $data = $member->execute($user->employee, now(config('app.schedule_timezone', 'Asia/Makassar')));
+            // A PJ follows the meetings of their teams on the beranda; the head and admins keep the Ringkasan Rapat page.
+            if (TeamRecapController::canReview($user)) {
+                $data['meetings'] = $this->meetings($request, $meetings);
+            }
+
+            return Inertia::render('MemberHome', $data);
         }
 
         if ($user->hasRole('staff')) {
@@ -38,6 +49,25 @@ class DashboardController extends Controller
         }
 
         return $this->adminDashboard($year, $month);
+    }
+
+    /**
+     * The Ringkasan Rapat of one month for the teams of a PJ, as on the Ringkasan Rapat page.
+     *
+     * @return array<string, mixed>
+     */
+    private function meetings(Request $request, BuildMeetingSummaryAction $summary): array
+    {
+        $v = $request->validate(['year' => ['nullable', 'integer', 'between:2020,2100'], 'month' => ['nullable', 'integer', 'between:1,12']]);
+        $today = CarbonImmutable::now(config('app.schedule_timezone', 'Asia/Makassar'));
+        $year = (int) ($v['year'] ?? $today->year);
+        $month = (int) ($v['month'] ?? $today->month);
+
+        return [
+            'year' => $year,
+            'month' => $month,
+            ...$summary->execute($this->teamsFor($request)->load('leader:id,name,display_name'), $year, $month, $today),
+        ];
     }
 
     /** The full dashboard (team ranking, employee rankings) for the head and admins. */
