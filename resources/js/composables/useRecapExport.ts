@@ -11,6 +11,7 @@ export interface RecapSheet {
 
 const BASE_HEADER = ['No', 'Tim PJK', 'Projek', 'Rencana Kinerja', 'Uraian', 'Target', 'Realisasi', 'Capaian Kinerja (%)'];
 const FRA_TEXT_HEADER = ['Permasalahan', 'Solusi', 'Rencana Tindak Lanjut'];
+const KENDALA_HEADER = 'Permasalahan';
 const WEEK_HEADER = ['Notula', 'Dokumentasi', 'Daftar Hadir'];
 const FRA_HEADER = ['Link Bukti Tindak Lanjut', 'PIC', 'Batas Waktu'];
 
@@ -26,9 +27,11 @@ export function buildRecapSheet(data: RecapExport): RecapSheet {
     const type = data.period_type;
     const header = [
         ...BASE_HEADER,
-        ...(type === 'quarter' ? [...FRA_TEXT_HEADER, ...FRA_HEADER] : []),
+        // The meeting sheets (week, month) carry the Permasalahan the old Excel had; the quarter has its own text columns.
+        ...(type === 'quarter' ? [...FRA_TEXT_HEADER, ...FRA_HEADER] : [KENDALA_HEADER]),
         ...(type === 'week' ? WEEK_HEADER : []),
     ];
+    const evidenceAt = BASE_HEADER.length + 1;
     const rows: Cell[][] = [header];
     const merges: XLSX.Range[] = [];
     const mergeDown = (col: number, from: number, to: number) => {
@@ -44,7 +47,7 @@ export function buildRecapSheet(data: RecapExport): RecapSheet {
         const segments = team.segments.filter((seg) => seg.rows.length);
         if (!segments.length) {
             rows.push([index + 1, team.team_name, null, null, 'Tidak ada kegiatan', ...Array(header.length - 5).fill(null)]);
-            evidence.forEach((value, i) => { rows[teamStart][BASE_HEADER.length + i] = value; });
+            evidence.forEach((value, i) => { rows[teamStart][evidenceAt + i] = value; });
             return;
         }
 
@@ -52,7 +55,8 @@ export function buildRecapSheet(data: RecapExport): RecapSheet {
             const projectStart = rows.length;
             seg.rows.forEach((row) => {
                 const line: Cell[] = [null, null, null, row.rk_description, uraianOf(row), row.target, row.realization, row.achievement];
-                if (type === 'quarter') line.push(row.obstacle, row.solution, row.follow_up_plan, row.follow_up_evidence_url ?? null, row.follow_up_pic ?? null, row.follow_up_deadline ?? null);
+                if (type === 'quarter') line.push(row.obstacle || row.kendala_aggregated || null, row.solution, row.follow_up_plan, row.follow_up_evidence_url ?? null, row.follow_up_pic ?? null, row.follow_up_deadline ?? null);
+                else line.push(row.kendala_aggregated ?? null);
                 if (type === 'week') line.push(null, null, null);
                 rows.push(line);
             });
@@ -62,9 +66,9 @@ export function buildRecapSheet(data: RecapExport): RecapSheet {
 
         rows[teamStart][0] = index + 1;
         rows[teamStart][1] = team.team_name;
-        evidence.forEach((value, i) => { rows[teamStart][BASE_HEADER.length + i] = value; });
+        evidence.forEach((value, i) => { rows[teamStart][evidenceAt + i] = value; });
         const teamEnd = rows.length - 1;
-        [0, 1, ...evidence.map((_, i) => BASE_HEADER.length + i)].forEach((col) => mergeDown(col, teamStart, teamEnd));
+        [0, 1, ...evidence.map((_, i) => evidenceAt + i)].forEach((col) => mergeDown(col, teamStart, teamEnd));
     });
 
     return { rows, merges };

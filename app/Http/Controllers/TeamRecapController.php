@@ -405,7 +405,8 @@ class TeamRecapController extends Controller
             $year = (int) Carbon::parse($weekStart)->year;
         }
 
-        $teams = $this->teamsFor($request)->map(function (Team $team) use ($type, $year, $month, $quarter, $weekStart) {
+        // Every PJ reads every team here (read only), as the head does: the weekly meeting compares the teams.
+        $teams = $this->reviewTeams()->map(function (Team $team) use ($type, $year, $month, $quarter, $weekStart) {
             $segments = match ($type) {
                 'week' => $this->aggregator->weekly($team, $weekStart),
                 'month' => $this->aggregator->monthly($team, $year, $month),
@@ -442,6 +443,12 @@ class TeamRecapController extends Controller
             'teams' => $teams,
             'attention' => app(BuildAttentionItemsAction::class)->execute($this->teamsFor($request)),
         ]);
+    }
+
+    /** @return Collection<int, Team> every team, for Review Bersama (the caller has passed canReview) */
+    private function reviewTeams(): Collection
+    {
+        return Team::orderBy('name')->get();
     }
 
     /**
@@ -498,6 +505,7 @@ class TeamRecapController extends Controller
             'year' => ['nullable', 'integer', 'required_unless:period_type,week'],
             'month' => ['nullable', 'integer', 'between:1,12', 'required_if:period_type,month'],
             'quarter' => ['nullable', 'integer', 'between:1,4', 'required_if:period_type,quarter'],
+            'scope' => ['nullable', 'in:all'],
         ]);
 
         $type = $validated['period_type'];
@@ -505,7 +513,9 @@ class TeamRecapController extends Controller
             ? Carbon::parse($validated['week'])->startOfWeek(Carbon::MONDAY)->toDateString()
             : null;
 
-        $teams = $this->teamsFor($request)->map(function (Team $team) use ($type, $validated, $weekStart) {
+        // "Unduh Excel semua tim" (Review Bersama) carries every team for anyone allowed to review; the team pages keep their own teams.
+        $source = ($validated['scope'] ?? null) === 'all' && self::canReview($request->user()) ? $this->reviewTeams() : $this->teamsFor($request);
+        $teams = $source->map(function (Team $team) use ($type, $validated, $weekStart) {
             $segments = match ($type) {
                 'week' => $this->aggregator->weekly($team, $weekStart),
                 'month' => $this->aggregator->monthly($team, (int) $validated['year'], (int) $validated['month']),

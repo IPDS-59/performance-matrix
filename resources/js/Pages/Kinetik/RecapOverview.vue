@@ -72,7 +72,7 @@ function teamHref(team: OverviewTeam): string {
 
 function exportPeriod() {
     const file = { week: `Rapat Mingguan ${props.weekStart}`, month: `Rapat Bulanan ${periodLabel.value}`, quarter: `FRA ${periodLabel.value}` }[props.periodType];
-    download({ ...periodParams(props.periodType), period_type: props.periodType }, `${file}.xlsx`);
+    download({ ...periodParams(props.periodType), period_type: props.periodType, scope: 'all' }, `${file}.xlsx`);
 }
 
 // ── Summary ────────────────────────────────────────────────────────────────

@@ -351,6 +351,8 @@ class RecapAggregator
             'achievement' => $hasNumbers && $target > 0 ? round($realization / $target * 100, 2) : null,
             'target_unit' => $unit,
             'uraian_aggregated' => self::joinLines($items->map(fn (PlanItem $i) => $i->capaian_note ?: $i->description)),
+            // The permasalahan the members and the PJ wrote on the kegiatan, one line per person, for the meeting sheet.
+            'kendala_aggregated' => self::joinLines($items->filter(fn (PlanItem $i) => filled($i->kendala))->map(fn (PlanItem $i) => ($i->employee?->display_name ?? $i->employee?->name).': '.trim((string) $i->kendala))),
             'pj_uraian' => $paraphrase,
             'is_overridden' => filled($paraphrase),
             'is_confirmed' => $locked,
