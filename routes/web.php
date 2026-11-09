@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\AdditionalRkController;
 use App\Http\Controllers\Admin\DataIntegrityController;
+use App\Http\Controllers\Admin\DuplicateKegiatanController;
 use App\Http\Controllers\Admin\ImpersonationController;
 use App\Http\Controllers\AkRekapanImportController;
 use App\Http\Controllers\ArchiveController;
@@ -221,6 +222,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::post('/admin/impor-kegiatan/pratinjau', [KegiatanImportController::class, 'preview'])->name('admin.import-kegiatan.preview');
         Route::post('/admin/impor-kegiatan/simpan', [KegiatanImportController::class, 'store'])->name('admin.import-kegiatan.store');
         Route::get('/admin/integritas-data', [DataIntegrityController::class, 'index'])->name('admin.data-integrity');
+        Route::get('/admin/kegiatan-ganda', [DuplicateKegiatanController::class, 'index'])->name('admin.duplicate-kegiatan');
+        Route::post('/admin/kegiatan-ganda/minta', [DuplicateKegiatanController::class, 'ask'])->name('admin.duplicate-kegiatan.ask');
         Route::get('/admin/laporan-masalah', [BugReportController::class, 'index'])->name('admin.bug-reports');
         Route::put('/admin/laporan-masalah/{report}', [BugReportController::class, 'update'])->name('admin.bug-reports.update');
     });

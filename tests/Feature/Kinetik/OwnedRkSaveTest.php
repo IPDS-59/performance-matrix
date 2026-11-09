@@ -74,3 +74,25 @@ it('sends the checked kegiatan that are only in Kinetik to kipApp in one go, and
         ->assertSessionHas('error', fn ($m) => str_contains($m, '1 kegiatan terkirim') && str_contains($m, 'belum bisa dikirim sebelum tanggal mulainya'));
     expect($past->fresh()->kip_external_id)->toBe('9990001')->and($future->fresh()->kip_external_id)->toBeNull();
 });
+
+it('lets an admin review double kegiatan and ask each person once per request, remembering who asked', function () {
+    $user = User::factory()->create();
+    $me = Employee::factory()->create(['user_id' => $user->id, 'name' => 'Pegawai Uji']);
+    $team = Team::factory()->create();
+    $rk = PerformancePlan::factory()->create(['team_id' => $team->id, 'project_id' => null, 'description' => 'RK Inovasi']);
+    $a = PlanItem::create(['team_id' => $team->id, 'employee_id' => $me->id, 'performance_plan_id' => $rk->id, 'description' => 'Memperbaiki aplikasi kinetik', 'date_start' => '2026-10-08', 'date_end' => '2026-10-08', 'kip_external_id' => '5001', 'status' => 'pushed']);
+    $b = PlanItem::create(['team_id' => $team->id, 'employee_id' => $me->id, 'performance_plan_id' => $rk->id, 'description' => 'Memperbaiki aplikasi Kinetik', 'date_start' => '2026-10-08', 'date_end' => '2026-10-08']);
+
+    $this->actingAs($user)->get(route('admin.duplicate-kegiatan'))->assertForbidden();
+
+    $admin = adminUser();
+    $this->actingAs($admin)->get(route('admin.duplicate-kegiatan'))->assertOk()->assertInertia(fn ($p) => $p->component('Admin/DuplicateKegiatan')
+        ->has('pairs', 1)->where('pairs.0.keep.id', $a->id)->where('pairs.0.drop.id', $b->id)->where('pairs.0.asked', null));
+
+    $key = $a->id.'-'.$b->id;
+    $this->actingAs($admin)->post(route('admin.duplicate-kegiatan.ask'), ['keys' => [$key]])->assertSessionHas('success');
+    expect($user->notifications()->count())->toBe(1)->and($user->notifications()->first()->data['pairs'])->toBe([$key]);
+
+    $this->actingAs($admin)->get(route('admin.duplicate-kegiatan'))->assertInertia(fn ($p) => $p->where('pairs.0.asked.by', $admin->name));
+    $this->actingAs($user)->post(route('admin.duplicate-kegiatan.ask'), ['keys' => [$key]])->assertForbidden();
+});

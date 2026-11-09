@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import AppLayout from '@/Layouts/AppLayout.vue';
-import { Head } from '@inertiajs/vue3';
+import { Head, Link } from '@inertiajs/vue3';
 import { CircleAlert, CircleCheck } from 'lucide-vue-next';
 import { Badge } from '@/Components/ui/badge';
 
@@ -26,6 +26,7 @@ defineProps<{ checks: Check[] }>();
                 </header>
                 <p class="mt-1 text-sm text-gray-700">{{ c.why }}</p>
                 <p v-if="c.count" class="text-sm text-gray-700"><b>Cara memperbaiki:</b> {{ c.fix }}</p>
+                <Link v-if="c.key === 'duplicate_kegiatan' && c.count" :href="route('admin.duplicate-kegiatan')" class="mt-1 inline-block text-sm font-medium text-primary hover:underline">Tinjau pasangan dan minta tindakan</Link>
                 <div v-if="c.rows.length" class="mt-3 overflow-x-auto">
                     <table class="w-full text-left text-xs">
                         <thead><tr class="border-b text-gray-600"><th v-for="(_, h) in c.rows[0]" :key="h" class="py-1 pr-3 font-medium">{{ h }}</th></tr></thead>
