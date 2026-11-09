@@ -3,6 +3,7 @@
 use App\Models\Employee;
 use App\Models\PerformancePlan;
 use App\Models\PlanItem;
+use App\Models\RkRecap;
 use App\Models\Team;
 
 it('redirects guests to login', function () {
@@ -183,4 +184,34 @@ it('shows a member what to do this week on the beranda', function () {
         ->where('sent.sent', 1)
         ->where('sent.total', 3)
         ->has('sent.pending', 2));
+});
+
+it('shows the PJ the ringkasan rapat of their teams on the beranda, and a member none', function () {
+    $this->travelTo('2026-10-14 09:00:00');
+    $user = staffUser();
+    $pj = Employee::factory()->create(['user_id' => $user->id]);
+    $team = Team::factory()->create(['leader_id' => $pj->id, 'name' => 'Tim PJ']);
+    $pj->teams()->attach($team->id, ['role' => 'leader', 'is_primary' => true]);
+    Team::factory()->create(['name' => 'Tim Lain']);
+    $plan = PerformancePlan::factory()->create(['project_id' => null, 'team_id' => $team->id]);
+    PlanItem::create(['team_id' => $team->id, 'employee_id' => $pj->id, 'performance_plan_id' => $plan->id, 'description' => 'k', 'date_start' => '2026-10-05', 'date_end' => '2026-10-05']);
+    RkRecap::create(['team_id' => $team->id, 'performance_plan_id' => $plan->id, 'period_type' => 'week', 'period_start' => '2026-10-05', 'paraphrase' => 'Selesai']);
+
+    $this->actingAs($user)->get(route('dashboard'))->assertInertia(fn ($page) => $page
+        ->component('MemberHome')
+        ->where('meetings.year', 2026)
+        ->where('meetings.month', 10)
+        ->has('meetings.teams', 1)
+        ->where('meetings.teams.0.name', 'Tim PJ')
+        ->where('meetings.teams.0.weeks.1.status', 'done'));
+
+    $this->actingAs($user)->get(route('dashboard', ['year' => 2026, 'month' => 9]))
+        ->assertInertia(fn ($page) => $page->where('meetings.month', 9));
+
+    $member = staffUser();
+    $employee = Employee::factory()->create(['user_id' => $member->id]);
+    $employee->teams()->attach($team->id, ['role' => 'member', 'is_primary' => true]);
+    $this->actingAs($member)->get(route('dashboard'))->assertInertia(fn ($page) => $page
+        ->component('MemberHome')
+        ->missing('meetings'));
 });

@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import AppLayout from '@/Layouts/AppLayout.vue';
 import HeadHomeCard from '@/Components/Kinetik/HeadHomeCard.vue';
+import MeetingSummaryTable, { type MeetingSummaryData } from '@/Components/Kinetik/MeetingSummaryTable.vue';
 import { Head } from '@inertiajs/vue3';
 import { computed } from 'vue';
 import { CalendarCheck, CircleCheck, ClipboardCheck, FileCheck, Send, TriangleAlert } from 'lucide-vue-next';
@@ -12,6 +13,8 @@ const props = defineProps<{
     last_week: { total: number; filled: number; missing: string[] };
     sent: { total: number; sent: number; pending: string[] };
     skp: { total: number; open: string[] };
+    /** Only for a PJ: the meetings of their teams this month. */
+    meetings?: MeetingSummaryData;
 }>();
 
 const { formatDate } = useDateFormat();
@@ -58,5 +61,10 @@ const open = computed(() => [noPlan.value, props.last_week.missing, props.sent.p
                 ok-text="Tidak ada SKP yang menunggu tindakan." :href="route('skp.index')" href-label="Buka SKP Saya"
             />
         </div>
+
+        <section v-if="meetings" class="mt-8" aria-labelledby="ringkasan-rapat">
+            <h2 id="ringkasan-rapat" class="mb-3 text-base font-semibold text-gray-900">Ringkasan Rapat</h2>
+            <MeetingSummaryTable v-bind="meetings" route-name="dashboard" :only="['meetings']" />
+        </section>
     </AppLayout>
 </template>

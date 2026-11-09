@@ -662,7 +662,7 @@ export const GUIDE_FLOWS: GuideFlow[] = [
                 route: 'team-recap.overview',
                 body: [
                     'PJ juga punya Review Bersama, dengan tampilan yang sama seperti pimpinan, tetapi hanya untuk tim yang Anda ikuti. Pilih Mingguan, Bulanan, atau Triwulanan, lalu baca capaian, dan baris yang sudah ditulis parafrasenya.',
-                    'Klik judul kolom Capaian untuk mengurutkan. Ringkasan Rapat di menu yang sama menunjukkan rekap mingguan dan bulanan tim Anda sudah lengkap, sebagian, atau belum, dan berapa bukti rapat yang sudah dilampirkan.',
+                    'Klik judul kolom Capaian untuk mengurutkan. Ringkasan Rapat di Beranda Anda menunjukkan rekap mingguan dan bulanan tim Anda sudah lengkap, sebagian, atau belum, dan berapa bukti rapat yang sudah dilampirkan.',
                     'Kepatuhan Rencana menampilkan ringkasan dulu (siapa yang belum membuat rencana minggu ini), lalu tabel lengkap bila Anda membukanya.',
                 ],
                 shot: SHOTS.pimpinanReviewBersama,
@@ -1076,7 +1076,7 @@ export const GUIDE_STATUS: GuideStatusFlow[] = [
     {
         id: 'ringkasan',
         title: 'Ringkasan Rapat',
-        where: 'Pimpinan dan PJ · Rekap Tim → Ringkasan Rapat',
+        where: 'Pimpinan · Rekap Tim → Ringkasan Rapat. PJ · Beranda',
         intro: 'Satu tabel per bulan: tiap tim, tiap minggu, dan rapat bulanan. Isinya status rekap dan jumlah bukti rapat.',
         scale: true,
         stages: [
