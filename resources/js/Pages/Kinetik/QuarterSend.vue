@@ -54,7 +54,7 @@ const groups = computed(() => {
 });
 
 const selection = useRowSelection(() => props.rows);
-const bulk = useBulkSend(() => ({ send: selection.toSend.value.map((r) => r.id), cancel: selection.toCancel.value.map((r) => r.id) }), selection.clear);
+const bulk = useBulkSend(() => ({ send: selection.toSend.value.map((r) => r.id), cancel: selection.toCancel.value.map((r) => r.id), push: selection.toPush.value.map((r) => r.id) }), selection.clear);
 const detail = computed(() => props.rows.find((r) => r.id === detailId.value) ?? null);
 
 const selectAllUnsent = () => selection.toggleAll(props.rows.filter(isUnsent), true);
@@ -94,6 +94,7 @@ const go = (quarter: number) => router.get(route('quarter-send.index'), { quarte
             </div>
             <template v-if="canSendToAtasan">
                 <Button variant="outline" :disabled="!counts.unsent" @click="selectAllUnsent">Pilih semua yang belum dikirim ({{ formatNumber(counts.unsent) }})</Button>
+                <Button v-if="selection.toPush.value.length" variant="outline" @click="bulk.ask('push')">Kirim ke kipApp ({{ formatNumber(selection.toPush.value.length) }})</Button>
                 <Button :disabled="!selection.toSend.value.length" @click="bulk.ask('send')">Kirim ke atasan ({{ formatNumber(selection.toSend.value.length) }})</Button>
                 <Button variant="outline" :disabled="!selection.toCancel.value.length" @click="bulk.ask('cancel')">Batalkan kirim ({{ formatNumber(selection.toCancel.value.length) }})</Button>
             </template>

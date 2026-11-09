@@ -140,6 +140,38 @@ class PlanItemController extends Controller
         return back()->with('error', $error !== null ? 'Belum terkirim: '.$error : 'Kegiatan ini sedang dikirim ke kipApp. Muat ulang halaman sebentar lagi.');
     }
 
+    /** Bulk "Kirim ke kipApp (n)": every checked kegiatan that is only in Kinetik goes to kipApp, one by one, and the answer says how many and why not. */
+    public function pushMany(Request $request, PushPlanItemAction $push): RedirectResponse
+    {
+        $actor = $this->actor($request);
+        $plans = $this->selected($request);
+        $plans->each(fn (PlanItem $p) => $this->authorizeFor($actor, Team::findOrFail($p->team_id), $p->employee_id));
+
+        $sent = 0;
+        $problems = [];
+        foreach ($plans as $plan) {
+            if ($plan->kip_external_id !== null) {
+                continue;
+            }
+            if ($plan->status !== 'planned' || ! $this->access->hasStarted($plan)) {
+                $problems[] = '"'.Str::limit($plan->description, 40).'": '.($plan->status !== 'planned' ? 'sudah dibatalkan.' : PlanItemAccess::NOT_STARTED);
+
+                continue;
+            }
+            if ($push->execute($plan->load(['employee.user', 'performancePlan']))) {
+                $sent++;
+            } else {
+                $problems[] = '"'.Str::limit($plan->description, 40).'": '.($plan->fresh()->push_error ?? 'sedang dikirim, muat ulang sebentar lagi.');
+            }
+        }
+
+        if ($problems === []) {
+            return back()->with('success', $sent.' kegiatan dikirim ke kipApp.');
+        }
+
+        return back()->with('error', ($sent > 0 ? $sent.' kegiatan terkirim. ' : '').count($problems).' belum terkirim. '.implode(' ', $problems));
+    }
+
     /** The member (or PJ) marks the plan complete: progres 100 goes to kipApp. */
     public function complete(Request $request, PlanItem $planItem, CompletePlanItemAction $complete): RedirectResponse
     {
