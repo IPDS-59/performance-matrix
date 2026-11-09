@@ -2,6 +2,7 @@
 
 namespace App\Http\Middleware;
 
+use App\Actions\Kinetik\BuildDuplicateKegiatanAction;
 use App\Http\Controllers\Admin\ImpersonationController;
 use App\Http\Controllers\CreditController;
 use App\Http\Controllers\PlanComplianceController;
@@ -70,6 +71,7 @@ class HandleInertiaRequests extends Middleware
                 'view_my_credit' => $request->user()?->employee ? rescue(fn () => ($career = $request->user()->employee->career) === null || FunctionalLevel::fromJabatan($career->jabatan) !== null, true) : false,
                 'view_team_credits' => $request->user() ? rescue(fn () => CreditController::visibleTeams($request)->isNotEmpty(), false) : false,
             ],
+            'duplicate_pending' => fn () => $request->user()?->can('manage-kip-integration') ? rescue(fn () => app(BuildDuplicateKegiatanAction::class)->pendingCount(), 0, false) : 0,
             'tours_done' => fn () => $request->user() ? rescue(fn () => TourCompletion::where('user_id', $request->user()->id)->pluck('tour_key')->all(), [], false) : [],
             'flash' => [
                 'success' => $request->session()->get('success'),

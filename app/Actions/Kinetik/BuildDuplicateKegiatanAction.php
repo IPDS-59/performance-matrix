@@ -7,6 +7,7 @@ use App\Notifications\KinetikNotification;
 use App\Services\Kinetik\KegiatanDuplicateFinder;
 use Carbon\Carbon;
 use Illuminate\Notifications\DatabaseNotification;
+use Illuminate\Support\Facades\Cache;
 
 /**
  * Pairs of kegiatan of one person that start on the same day and say almost the same thing, over the last 60 days, each with
@@ -16,6 +17,14 @@ use Illuminate\Notifications\DatabaseNotification;
 class BuildDuplicateKegiatanAction
 {
     public const TYPE = 'duplicate_kegiatan';
+
+    private const COUNT_CACHE = 'kinetik.duplicate_pending';
+
+    /** Pairs no admin has asked about yet, for the sidebar badge. Cached for 10 minutes; asking clears it. */
+    public function pendingCount(): int
+    {
+        return Cache::remember(self::COUNT_CACHE, 600, fn () => collect($this->execute())->whereNull('asked')->count());
+    }
 
     /** @return list<array<string, mixed>> */
     public function execute(): array
@@ -79,6 +88,7 @@ class BuildDuplicateKegiatanAction
             $user->notify(new KinetikNotification(self::TYPE, $message, route('weekly.index', ['week' => Carbon::parse($first['date'])->startOfWeek()->toDateString()]), ['pairs' => $rows->pluck('key')->all(), 'by' => $adminName]));
             $notified++;
         }
+        Cache::forget(self::COUNT_CACHE);
 
         return $notified;
     }

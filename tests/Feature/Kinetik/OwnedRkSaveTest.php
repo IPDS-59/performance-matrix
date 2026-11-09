@@ -90,9 +90,11 @@ it('lets an admin review double kegiatan and ask each person once per request, r
         ->has('pairs', 1)->where('pairs.0.keep.id', $a->id)->where('pairs.0.drop.id', $b->id)->where('pairs.0.asked', null));
 
     $key = $a->id.'-'.$b->id;
+    $this->actingAs($admin)->get(route('dashboard'))->assertInertia(fn ($p) => $p->where('duplicate_pending', 1));
     $this->actingAs($admin)->post(route('admin.duplicate-kegiatan.ask'), ['keys' => [$key]])->assertSessionHas('success');
     expect($user->notifications()->count())->toBe(1)->and($user->notifications()->first()->data['pairs'])->toBe([$key]);
 
-    $this->actingAs($admin)->get(route('admin.duplicate-kegiatan'))->assertInertia(fn ($p) => $p->where('pairs.0.asked.by', $admin->name));
+    $this->actingAs($admin)->get(route('admin.duplicate-kegiatan'))->assertInertia(fn ($p) => $p->where('pairs.0.asked.by', $admin->name)->where('duplicate_pending', 0));
+    $this->actingAs($user)->get(route('dashboard'))->assertInertia(fn ($p) => $p->where('duplicate_pending', 0));
     $this->actingAs($user)->post(route('admin.duplicate-kegiatan.ask'), ['keys' => [$key]])->assertForbidden();
 });
