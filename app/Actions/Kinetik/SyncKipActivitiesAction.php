@@ -6,17 +6,22 @@ use App\Kinetik\Contracts\KipActivitySource;
 use App\Kinetik\Contracts\ReportsCompleteness;
 use App\Kinetik\Data\KipActivityData;
 use App\Kinetik\Data\KipRkData;
+use App\Kinetik\Exceptions\KipApiException;
 use App\Models\Employee;
 use App\Models\EmployeeRk;
 use App\Models\KipActivity;
 use App\Models\PerformancePlan;
 use App\Models\PlanItem;
+use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Log;
 use Throwable;
 
 class SyncKipActivitiesAction
 {
+    /** @var list<array{employee_id: int, name: string, message: string}> the members the last execute() skipped */
+    private array $failures = [];
+
     public function __construct(
         private readonly BackfillRkAction $backfillRk,
         private readonly LinkPlansToProjectsAction $links,
@@ -38,13 +43,23 @@ class SyncKipActivitiesAction
     public function execute(KipActivitySource $source, Collection $employees): int
     {
         $count = 0;
+        $this->failures = [];
 
         foreach ($employees as $employee) {
             if (empty($employee->nip_lama)) {
                 continue;
             }
 
-            $activities = $source->fetchActivities($employee->nip_lama, $employee->kip_pegawai_id);
+            // kipApp failing on one member (an HTTP 500 on one of their SKP) skips that member only: the rest of the
+            // office still syncs, and nothing of the skipped member is changed, deleted kegiatan included.
+            try {
+                $activities = $source->fetchActivities($employee->nip_lama, $employee->kip_pegawai_id);
+            } catch (KipApiException|ConnectionException $e) {
+                $this->failures[] = ['employee_id' => $employee->id, 'name' => $employee->display_name ?: $employee->name, 'message' => $e->getMessage()];
+                Log::warning('kipApp activity sync skipped an employee', ['employee_id' => $employee->id, 'error' => $e->getMessage()]);
+
+                continue;
+            }
 
             foreach ($activities as $dto) {
                 KipActivity::updateOrCreate(
@@ -97,6 +112,12 @@ class SyncKipActivitiesAction
         app(ReconcilePlanItemsAction::class)->execute($employees->pluck('id'));
 
         return $count;
+    }
+
+    /** @return list<array{employee_id: int, name: string, message: string}> the members the last execute() skipped, and why */
+    public function failures(): array
+    {
+        return $this->failures;
     }
 
     /**

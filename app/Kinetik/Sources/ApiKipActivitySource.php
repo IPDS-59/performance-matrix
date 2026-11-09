@@ -188,7 +188,7 @@ class ApiKipActivitySource implements KipActivitySource, ReportsCompleteness
             ->get('v1/kegiatan', ['skpid' => $skpId]);
 
         if (! $response->successful()) {
-            throw KipApiException::fromResponse($response, 'fetchActivitiesBySkp');
+            throw KipApiException::fromResponse($response, "fetchActivitiesBySkp SKP {$skpId}");
         }
 
         $rows = $response->json();

@@ -4,6 +4,7 @@ namespace App\Actions\Kinetik;
 
 use App\Kinetik\Auth\StaticBearerAuthenticator;
 use App\Kinetik\Contracts\KipActivitySource;
+use App\Kinetik\Exceptions\KipApiException;
 use App\Kinetik\Sources\ApiKipActivitySource;
 use App\Models\KipCredential;
 use App\Models\User;
@@ -48,6 +49,12 @@ class SyncMemberActivitiesAction
             $source = new ApiKipActivitySource(new StaticBearerAuthenticator($token));
         }
 
-        return $this->sync->execute($source, collect([$employee]));
+        $count = $this->sync->execute($source, collect([$employee]));
+        // The office-wide sync skips a member kipApp fails on; a member syncing only themselves is told.
+        if ($failure = $this->sync->failures()[0] ?? null) {
+            throw new KipApiException($failure['message']);
+        }
+
+        return $count;
     }
 }

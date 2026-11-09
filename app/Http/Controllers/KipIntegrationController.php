@@ -137,6 +137,10 @@ class KipIntegrationController extends Controller
 
                 $summary = $run->summary ?? [];
                 $summary['activities'] = ($summary['activities'] ?? 0) + $upserted;
+                // Members kipApp failed on were skipped; the admin sees who and why when the run ends.
+                foreach ($action->failures() as $failure) {
+                    $summary['failed'][] = $failure['name'].': '.$failure['message'];
+                }
 
                 $run->pending = $pending;
                 $run->processed = $run->processed + count($batch);
