@@ -438,3 +438,42 @@ it('skips the period SKP list when the kipApp employee id is unknown', function 
     expect($source->fetchActivities('340060924'))->toBeEmpty();
     Http::assertNotSent(fn ($request) => str_contains($request->url(), 'v1/skp?'));
 });
+
+// ---------------------------------------------------------------------------
+// Completeness: whether every kegiatan of the period came back
+// ---------------------------------------------------------------------------
+
+function fakeFullPeriod(mixed $secondSkpKegiatan = []): void
+{
+    Http::fake([
+        'kipapp.bps.go.id/api/v1/dashboard/rkpegawai*' => Http::response([], 200),
+        'kipapp.bps.go.id/api/v1/dashboard/kegiatanpegawai/belumkirim*' => Http::response([], 200),
+        'kipapp.bps.go.id/api/v1/skp*' => Http::response([['id' => 11], ['id' => 12]], 200),
+        'kipapp.bps.go.id/api/v1/kegiatan?skpid=11' => Http::response([['kegiatanperhariid' => 1, 'kegiatan' => 'A', 'tanggal' => '2026-10-01']], 200),
+        'kipapp.bps.go.id/api/v1/kegiatan?skpid=12' => Http::response($secondSkpKegiatan, 200),
+    ]);
+}
+
+it('reports a complete fetch when every periodic SKP of the period answered with its kegiatan list', function () {
+    fakeFullPeriod();
+    $source = app(ApiKipActivitySource::class);
+
+    expect($source->fetchActivities('340054274', '777'))->toHaveCount(1);
+    expect($source->lastFetchWasComplete())->toBeTrue();
+});
+
+it('does not report a complete fetch without the kipApp pegawai id, since past SKP are then not read', function () {
+    fakeFullPeriod();
+    $source = app(ApiKipActivitySource::class);
+
+    $source->fetchActivities('340054274');
+    expect($source->lastFetchWasComplete())->toBeFalse();
+});
+
+it('does not report a complete fetch when one SKP answered with something other than a list', function () {
+    fakeFullPeriod(['message' => 'sedang pemeliharaan']);
+    $source = app(ApiKipActivitySource::class);
+
+    $source->fetchActivities('340054274', '777');
+    expect($source->lastFetchWasComplete())->toBeFalse();
+});

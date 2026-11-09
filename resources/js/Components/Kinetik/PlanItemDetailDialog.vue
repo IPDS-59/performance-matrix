@@ -56,9 +56,13 @@ function submit(method: 'patch' | 'post', name: string, transform = true) {
     else form.post(route(name, props.item.id), options);
 }
 
+// Sending to kipApp takes a few seconds; a second click while it runs must not send the kegiatan again.
+const acting = ref(false);
+
 function act(name: string, data: Record<string, unknown> = {}) {
-    if (!props.item) return;
-    router.post(route(name, props.item.id), data, { preserveScroll: true, onSuccess: () => emit('close') });
+    if (!props.item || acting.value) return;
+    acting.value = true;
+    router.post(route(name, props.item.id), data, { preserveScroll: true, onSuccess: () => emit('close'), onFinish: () => (acting.value = false) });
 }
 
 /** A kegiatan imported from a spreadsheet waits when it looks like one already in kipApp; "Kirim tetap" says it is a different one. */
@@ -115,7 +119,7 @@ const waitsForStart = computed(() => stage.value?.action === 'push' && !props.it
             </dl>
             <p v-if="item.lock_reason" class="rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900">{{ item.lock_reason }}</p>
             <p v-if="item.push_error" class="rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900">Belum terkirim ke kipApp: {{ item.push_error }}</p>
-            <Button v-if="waitsOnDuplicate" type="button" variant="outline" size="sm" @click="act('plan-items.push', { force: true })">Kirim tetap</Button>
+            <Button v-if="waitsOnDuplicate" type="button" variant="outline" size="sm" :disabled="acting" @click="act('plan-items.push', { force: true })">Kirim tetap</Button>
 
             <form id="plan-result" class="space-y-3 border-t pt-3" @submit.prevent="submit('patch', 'plan-items.result')">
                 <h3 class="text-sm font-semibold text-gray-900">Realisasi</h3>
@@ -149,7 +153,7 @@ const waitsForStart = computed(() => stage.value?.action === 'push' && !props.it
                 <Button v-if="item?.status !== 'cancelled'" type="button" variant="outline" @click="item && emit('copy', item)">Salin kegiatan</Button>
                 <Button v-if="item?.can_edit" type="button" variant="outline" @click="item && emit('edit', item)">Ubah</Button>
                 <Button type="submit" form="plan-result" variant="outline" :disabled="form.processing || item?.status === 'cancelled'">Simpan realisasi</Button>
-                <Button v-if="stage?.action" type="button" :disabled="form.processing || waitsForStart" :title="waitsForStart ? 'Kegiatan belum bisa dikirim sebelum tanggal mulainya.' : undefined" @click="run">{{ stage?.actionLabel }}</Button>
+                <Button v-if="stage?.action" type="button" :disabled="form.processing || acting || waitsForStart" :title="waitsForStart ? 'Kegiatan belum bisa dikirim sebelum tanggal mulainya.' : undefined" @click="run">{{ stage?.actionLabel }}</Button>
             </DialogFooter>
             <p v-if="item?.sent" class="text-xs text-gray-600">Kegiatan yang sudah dikirim ke atasan tidak bisa dihapus. Batalkan kirim dulu, lalu hapus.</p>
             <p v-if="waitsForStart" class="text-right text-xs text-gray-600">Kegiatan belum bisa dikirim sebelum tanggal mulainya. Kinetik mengirimnya otomatis pada hari itu.</p>
