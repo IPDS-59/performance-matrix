@@ -110,17 +110,19 @@ const canEdit = computed(() => props.canManage || (panel.value !== null && props
                 @export="download({ period_type: 'week', week: weekStart }, `Rapat Mingguan ${weekStart}.xlsx`)"
             />
 
-            <TeamWeekPlans v-if="selectedTeamId" :plans="plans" />
-
-            <MemberCompletenessCard v-if="selectedTeamId" :members="members" />
-
             <template v-if="selectedTeamId">
                 <p v-if="!panels.length" class="mb-6 rounded-md border border-dashed border-gray-200 bg-gray-50 py-10 text-center text-sm text-gray-600">Tim ini belum punya RK.</p>
                 <template v-else-if="panel">
                     <RkPicker v-model="selected" :panels="panels" />
-                    <RkRecapPanel class="mb-6" :panel="panel" :team-id="selectedTeamId" period-type="week" :period-start="weekStart" :can-edit="canEdit" />
+                    <RkRecapPanel class="mb-4" :panel="panel" :team-id="selectedTeamId" period-type="week" :period-start="weekStart" :can-edit="canEdit" />
                 </template>
             </template>
+
+            <!-- Supporting detail, one line each until opened: the parafrase above is what the meeting is for. -->
+            <div v-if="selectedTeamId" class="mb-6 space-y-2">
+                <MemberCompletenessCard :members="members" />
+                <TeamWeekPlans :plans="plans" />
+            </div>
 
             <!-- Bukti Dukung Rapat -->
             <div v-if="selectedTeamId" id="bukti-rapat" class="scroll-mt-4">

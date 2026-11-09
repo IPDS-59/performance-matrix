@@ -2,6 +2,7 @@
 import { computed, ref } from 'vue';
 import { Search } from 'lucide-vue-next';
 import type { TeamWeekPlan } from '@/types';
+import CollapsibleSection from '@/Components/Kinetik/CollapsibleSection.vue';
 import { Button } from '@/Components/ui/button';
 import { Input } from '@/Components/ui/input';
 import { Label } from '@/Components/ui/label';
@@ -10,6 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/Components/ui/table';
 import { planStage, toneClass } from '@/composables/usePlanStage';
 import { achievementPercent, withUnit } from '@/composables/useAchievement';
+import { formatNumber } from '@/composables/useNumber';
 import { useDateFormat } from '@/composables/useDateFormat';
 
 /** What the members plan this week, read only. Search, filter by person, click a row for every field. */
@@ -35,22 +37,19 @@ const range = (p: TeamWeekPlan) => (p.date_end !== p.date_start ? `${formatDate(
 </script>
 
 <template>
-    <section class="mb-6 rounded-lg border bg-white" aria-labelledby="week-plans">
-        <div class="flex flex-wrap items-center gap-3 border-b px-4 py-3">
-            <h2 id="week-plans" class="text-sm font-semibold">Rencana minggu ini <span class="font-normal text-gray-600">({{ plans.length }} kegiatan dari anggota)</span></h2>
-            <div class="ml-auto flex flex-wrap items-center gap-2">
-                <div class="relative">
-                    <Search class="pointer-events-none absolute left-3 top-2.5 h-4 w-4 text-gray-500" aria-hidden="true" />
-                    <Input v-model="query" class="h-9 w-56 pl-9" placeholder="Cari anggota atau kegiatan" aria-label="Cari rencana" />
-                </div>
-                <Select v-if="people.length > 1" v-model="person">
-                    <SelectTrigger class="h-9 w-48" aria-label="Pilih anggota"><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                        <SelectItem value="all">Semua anggota</SelectItem>
-                        <SelectItem v-for="[id, name] in people" :key="id" :value="String(id)">{{ name }}</SelectItem>
-                    </SelectContent>
-                </Select>
+    <CollapsibleSection id="rencana-minggu-ini" title="Rencana minggu ini" :summary="`${formatNumber(plans.length)} kegiatan dari anggota`">
+        <div class="flex flex-wrap items-center gap-2 border-b px-4 py-3">
+            <div class="relative">
+                <Search class="pointer-events-none absolute left-3 top-2.5 h-4 w-4 text-gray-500" aria-hidden="true" />
+                <Input v-model="query" class="h-9 w-56 pl-9" placeholder="Cari anggota atau kegiatan" aria-label="Cari rencana" />
             </div>
+            <Select v-if="people.length > 1" v-model="person">
+                <SelectTrigger class="h-9 w-48" aria-label="Pilih anggota"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                    <SelectItem value="all">Semua anggota</SelectItem>
+                    <SelectItem v-for="[id, name] in people" :key="id" :value="String(id)">{{ name }}</SelectItem>
+                </SelectContent>
+            </Select>
         </div>
         <div v-if="shown.length" :class="scrolls ? 'max-h-[28rem] overflow-y-auto' : ''">
         <Table>
@@ -90,5 +89,5 @@ const range = (p: TeamWeekPlan) => (p.date_end !== p.date_start ? `${formatDate(
                 <DialogFooter><Button variant="outline" @click="open = null">Tutup</Button></DialogFooter>
             </DialogContent>
         </Dialog>
-    </section>
+    </CollapsibleSection>
 </template>
