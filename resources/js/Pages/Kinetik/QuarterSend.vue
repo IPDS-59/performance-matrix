@@ -57,6 +57,12 @@ const selection = useRowSelection(() => props.rows);
 const bulk = useBulkSend(() => ({ send: selection.toSend.value.map((r) => r.id), cancel: selection.toCancel.value.map((r) => r.id), push: selection.toPush.value.map((r) => r.id) }), selection.clear);
 const detail = computed(() => props.rows.find((r) => r.id === detailId.value) ?? null);
 
+// A check before sending, as the spv asked: what is still missing on the kegiatan that are about to go to the atasan. A sent kegiatan
+// cannot be changed, and people forget they sent it. Sending stays possible; this only says what is lacking.
+const lacking = computed(() => selection.toSend.value
+    .map((r) => ({ row: r, missing: [r.capaian === null || r.capaian === undefined ? 'capaian' : null, !r.evidence_url ? 'bukti dukung' : null, !(r.capaian_note ?? '').trim() ? 'uraian capaian' : null, r.progress < 100 ? 'progres belum 100' : null].filter((m): m is string => m !== null) }))
+    .filter((x) => x.missing.length));
+
 const selectAllUnsent = () => selection.toggleAll(props.rows.filter(isUnsent), true);
 const openWeek = (item: PlanItemRow) => router.get(route('weekly.index', { week: item.date_start }));
 const go = (quarter: number) => router.get(route('quarter-send.index'), { quarter }, { preserveScroll: true });
@@ -98,6 +104,15 @@ const go = (quarter: number) => router.get(route('quarter-send.index'), { quarte
                 <Button :disabled="!selection.toSend.value.length" @click="bulk.ask('send')">Kirim ke atasan ({{ formatNumber(selection.toSend.value.length) }})</Button>
                 <Button variant="outline" :disabled="!selection.toCancel.value.length" @click="bulk.ask('cancel')">Batalkan kirim ({{ formatNumber(selection.toCancel.value.length) }})</Button>
             </template>
+        </div>
+
+        <div v-if="lacking.length" class="mb-4 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900" role="alert">
+            <p class="font-medium">{{ formatNumber(lacking.length) }} dari {{ formatNumber(selection.toSend.value.length) }} kegiatan yang dipilih belum lengkap:</p>
+            <ul class="mt-1 list-disc pl-5">
+                <li v-for="x in lacking.slice(0, 5)" :key="x.row.id">{{ x.row.description }} <span class="text-amber-800">(belum ada {{ x.missing.join(', ') }})</span></li>
+            </ul>
+            <p v-if="lacking.length > 5" class="mt-1 text-xs">Dan {{ formatNumber(lacking.length - 5) }} lainnya. Kegiatan yang sudah dikirim tidak bisa diubah, jadi lengkapi dulu atau batalkan pilihannya.</p>
+            <p v-else class="mt-1 text-xs">Kegiatan yang sudah dikirim tidak bisa diubah, jadi lengkapi dulu atau batalkan pilihannya.</p>
         </div>
 
         <p v-if="!groups.length" class="rounded-md border border-dashed bg-gray-50 py-10 text-center text-sm text-gray-500">Tidak ada kegiatan pada tampilan ini.</p>
