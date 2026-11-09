@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import AppLayout from '@/Layouts/AppLayout.vue';
+import RecapPeriodSwitch from '@/Components/Kinetik/RecapPeriodSwitch.vue';
 import RecapToolbar from '@/Components/Kinetik/RecapToolbar.vue';
 import MemberCompletenessCard from '@/Components/Kinetik/MemberCompletenessCard.vue';
 import RkPicker from '@/Components/Kinetik/RkPicker.vue';
@@ -73,6 +74,8 @@ const canEdit = computed(() => props.canManage || (panel.value !== null && props
     <Head title="Rekap Tim" />
     <AppLayout>
         <template #title>Rekap Tim (Mingguan)</template>
+
+        <RecapPeriodSwitch current="weekly" :team-id="selectedTeamId" />
 
         <div v-if="!teams.length" class="rounded-md border border-yellow-200 bg-yellow-50 p-6 text-center text-sm text-yellow-800">
             Anda belum tergabung dalam tim mana pun.

@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { said } from '@/composables/useRecapSummary';
 import AppLayout from '@/Layouts/AppLayout.vue';
+import RecapPeriodSwitch from '@/Components/Kinetik/RecapPeriodSwitch.vue';
 import RecapLockBar from '@/Components/Kinetik/RecapLockBar.vue';
 import RecapToolbar from '@/Components/Kinetik/RecapToolbar.vue';
 import RecapPeriodSections from '@/Components/Kinetik/RecapPeriodSections.vue';
@@ -227,6 +228,8 @@ function saveParaphrase(row: RecapRow) {
     <Head title="Rekap Triwulanan" />
     <AppLayout>
         <template #title>Rekap Tim (Triwulanan)</template>
+
+        <RecapPeriodSwitch current="quarterly" :team-id="selectedTeamId" />
 
         <div v-if="!teams.length" class="rounded-md border border-yellow-200 bg-yellow-50 p-6 text-center text-sm text-yellow-800">
             Anda belum tergabung dalam tim mana pun.

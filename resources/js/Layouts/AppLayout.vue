@@ -71,9 +71,7 @@ const navSections = computed<NavSection[]>(() => {
             items: [
                 { label: 'Review Bersama', href: route('team-recap.overview'), active: is('team-recap.overview'), icon: LayoutList, show: canReview.value },
                 { label: 'Ringkasan Rapat', href: route('team-recap.meetings'), active: is('team-recap.meetings'), icon: CalendarCheck, show: canReview.value && (isHead.value || isAdmin.value) },
-                { label: 'Mingguan', href: route('team-recap.weekly'), active: is('team-recap.weekly'), icon: CalendarDays, show: hasEmployee.value || isHead.value || isAdmin.value },
-                { label: 'Bulanan', href: route('team-recap.monthly'), active: is('team-recap.monthly'), icon: CalendarRange, show: hasEmployee.value || isHead.value || isAdmin.value },
-                { label: 'Triwulanan (FRA)', href: route('team-recap.quarterly'), active: is('team-recap.quarterly'), icon: FileChartColumn, show: hasEmployee.value || isHead.value || isAdmin.value },
+                { label: 'Rekap Tim', href: route('team-recap.weekly'), active: is('team-recap.weekly') || is('team-recap.monthly') || is('team-recap.quarterly'), icon: CalendarDays, show: hasEmployee.value || isHead.value || isAdmin.value },
                 { label: 'Kertas Kerja FRA', href: route('fra.index'), active: is('fra.*'), icon: FileSpreadsheet, show: canViewPlanCompliance.value },
                 { label: 'Progres per IKU', href: route('iku-progress.index'), active: is('iku-progress.*'), icon: Target, show: canViewPlanCompliance.value },
                 { label: 'Persetujuan SKP', href: route('skp.approvals'), active: is('skp.approvals'), icon: BadgeCheck, show: canApproveSkp.value },
