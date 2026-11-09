@@ -7,6 +7,7 @@ use App\Models\PerformancePlan;
 use App\Models\PlanItem;
 use App\Models\Project;
 use App\Models\Team;
+use App\Services\Kinetik\KegiatanDuplicateFinder;
 
 /**
  * Data that is missing a relationship Kinetik (and kipApp) rely on. Each check says why it matters, how many rows break
@@ -29,7 +30,11 @@ class BuildDataIntegrityAction
             ->whereHas('performancePlan', fn ($q) => $q->whereNull('project_id'))->get()
             ->filter(fn (PlanItem $i) => ! $this->links->projectOptionalFor($i->performancePlan, $i->employee));
 
+        $duplicates = $this->duplicateKegiatan();
+
         return [
+            $this->check('duplicate_kegiatan', 'Kegiatan ganda', 'Dua kegiatan satu pegawai pada hari yang sama dengan kata-kata hampir sama, biasanya karena tersimpan atau terkirim dua kali. Keduanya terhitung di capaian dan di kipApp.', 'Hapus salah satunya dari detail kegiatan (kegiatan yang sudah di kipApp ikut terhapus di sana), kecuali memang dua pekerjaan yang berbeda.', 'high',
+                count($duplicates), array_slice($duplicates, 0, self::SAMPLE)),
             $this->check('rk_no_project', 'RK tanpa projek', 'Kegiatan pada RK ini tidak bisa dikirim ke kipApp sebelum projeknya jelas, dan rekap per projek tidak lengkap.', 'Jalankan Sinkronisasi Struktur (membaca RK tiap projek dari kipApp), atau pilih projek pada kegiatannya.', 'high',
                 $rkNoProject->count(), $rkNoProject->take(self::SAMPLE)->map(fn (PerformancePlan $p) => ['RK' => $p->description, 'Tim' => $p->team?->name])->values()->all()),
             $this->check('items_no_project', 'Kegiatan belum terkirim dan tanpa projek', 'Pengiriman ke kipApp ditahan untuk kegiatan ini sampai projeknya dipilih.', 'Buka kegiatannya dan pilih projek, atau sinkronkan struktur supaya RK-nya terhubung.', 'high',
@@ -53,6 +58,32 @@ class BuildDataIntegrityAction
                 PlanItem::whereNotNull('push_error')->whereNull('kip_external_id')->count(),
                 PlanItem::with('employee:id,name')->whereNotNull('push_error')->whereNull('kip_external_id')->latest('updated_at')->limit(self::SAMPLE)->get()->map(fn (PlanItem $i) => ['Kegiatan' => $i->description, 'Pegawai' => $i->employee?->name, 'Pesan' => $i->push_error])->all()),
         ];
+    }
+
+    /**
+     * Pairs of kegiatan of one person that start on the same day and say almost the same thing, over the last 60 days.
+     *
+     * @return list<array<string, mixed>>
+     */
+    private function duplicateKegiatan(): array
+    {
+        $finder = new KegiatanDuplicateFinder;
+        $pairs = [];
+        PlanItem::with('employee:id,name')->where('status', '!=', 'cancelled')->where('date_start', '>=', now()->subDays(60)->toDateString())
+            ->get(['id', 'employee_id', 'description', 'date_start', 'kip_external_id'])
+            ->groupBy(fn (PlanItem $i) => $i->employee_id.'|'.substr((string) $i->date_start, 0, 10))
+            ->each(function ($group) use ($finder, &$pairs) {
+                $items = $group->values();
+                for ($a = 0; $a < $items->count(); $a++) {
+                    for ($b = $a + 1; $b < $items->count(); $b++) {
+                        if ($finder->similarity($items[$a]->description, $items[$b]->description) >= KegiatanDuplicateFinder::SAME) {
+                            $pairs[] = ['Pegawai' => $items[$a]->employee?->name, 'Tanggal' => substr((string) $items[$a]->date_start, 0, 10), 'Kegiatan' => $items[$a]->description, 'Nomor' => "#{$items[$a]->id} dan #{$items[$b]->id}"];
+                        }
+                    }
+                }
+            });
+
+        return $pairs;
     }
 
     /** @param  list<array<string, mixed>>  $rows */

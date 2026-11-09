@@ -24,7 +24,7 @@ class KegiatanDuplicateFinder
      * @param  int|null  $exceptPlanItemId  a plan item to leave out (the one being checked)
      * @return array{id: int|null, source: string, description: string, date: string, score: float, in_kipapp: bool}|null the closest match
      */
-    public function find(int $employeeId, string $description, string $dateStart, ?string $dateEnd = null, ?int $exceptPlanItemId = null, bool $onlyInKipapp = false): ?array
+    public function find(int $employeeId, string $description, string $dateStart, ?string $dateEnd = null, ?int $exceptPlanItemId = null, bool $onlyInKipapp = false, float $minScore = self::SIMILAR): ?array
     {
         $start = Carbon::parse($dateStart)->startOfDay();
         $end = Carbon::parse($dateEnd ?? $dateStart)->startOfDay();
@@ -48,7 +48,7 @@ class KegiatanDuplicateFinder
 
         return $candidates->concat($unmatched)
             ->map(fn (array $c) => $c + ['score' => $this->similarity($description, $c['description'])])
-            ->filter(fn (array $c) => $c['score'] >= self::SIMILAR)
+            ->filter(fn (array $c) => $c['score'] >= $minScore)
             ->sortByDesc('score')->first();
     }
 
