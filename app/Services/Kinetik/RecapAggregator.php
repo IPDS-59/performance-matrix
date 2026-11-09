@@ -169,9 +169,9 @@ class RecapAggregator
     }
 
     /**
-     * The team's plan items of a period. A week counts every item that overlaps
-     * it, like the member's page; a month or quarter counts an item once, by its
-     * start date, so sums never count a long item twice.
+     * The team's plan items of a period, each counted once, in the period its start date falls in. A kegiatan that runs for a month is
+     * one kegiatan of the first week and of the month, not one per week, so target and capaian are never summed twice. The member's own
+     * Rekap Mingguan page still lists it in every week it runs, marked "Lanjutan".
      *
      * @return Collection<int, PlanItem>
      */
@@ -180,11 +180,7 @@ class RecapAggregator
         return PlanItem::query()
             ->where('team_id', $team->id)
             ->where('status', '!=', 'cancelled')
-            ->when(
-                $type === 'week',
-                fn (Builder $q) => $q->whereDate('date_start', '<=', $to->toDateString())->whereDate('date_end', '>=', $from->toDateString()),
-                fn (Builder $q) => $q->whereDate('date_start', '>=', $from->toDateString())->whereDate('date_start', '<=', $to->toDateString()),
-            )
+            ->whereDate('date_start', '>=', $from->toDateString())->whereDate('date_start', '<=', $to->toDateString())
             ->with(['employee:id,name,display_name', 'performancePlan.project', 'performancePlan.team', 'project'])
             ->orderBy('date_start')
             ->orderBy('id')

@@ -33,7 +33,10 @@ const stageOf = (row: PlanItemRow) => planStage(row, props.canSendToAtasan);
                 <TableCell v-if="canSendToAtasan" class="w-8" @click.stop>
                     <Checkbox :model-value="selected.includes(row.id)" :disabled="!(row.can_send || row.can_push)" :aria-label="`Pilih ${row.description}`" @update:model-value="(v: boolean | 'indeterminate') => emit('toggle', row.id, v === true)" />
                 </TableCell>
-                <TableCell class="max-w-xs truncate font-medium">{{ row.description }}</TableCell>
+                <TableCell class="max-w-xs truncate font-medium">
+                    {{ row.description }}
+                    <span v-if="row.continued" class="ml-1 rounded bg-gray-100 px-1.5 py-0.5 text-xs font-normal text-gray-700" title="Dihitung di minggu kegiatan ini dimulai">Lanjutan</span>
+                </TableCell>
                 <TableCell class="max-w-[14rem] truncate text-gray-600">{{ row.rk_name }}</TableCell>
                 <TableCell class="whitespace-nowrap tabular-nums">{{ periodText(row, short) }}</TableCell>
                 <TableCell class="whitespace-nowrap tabular-nums">{{ withUnit(row.target, row.target_unit) }}</TableCell>

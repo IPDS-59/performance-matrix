@@ -9,6 +9,8 @@ use App\Models\Project;
 use App\Models\Team;
 use App\Models\User;
 use App\Services\Kinetik\KegiatanDuplicateFinder;
+use App\Services\Kinetik\RecapAggregator;
+use Carbon\Carbon;
 
 function importSetup(): array
 {
@@ -149,7 +151,7 @@ it('never pushes imported kegiatan to kipApp by itself', function () {
     expect($spy->seen)->toBe([$normal->description]);
 });
 
-it('splits a kegiatan that crosses a quarter, and a month-long one shows in every week', function () {
+it('splits a kegiatan that crosses a quarter, and a month-long one is listed in every week but counted once', function () {
     [, , $plan, $member] = importSetup();
     $admin = adminUser();
 
@@ -173,6 +175,12 @@ it('splits a kegiatan that crosses a quarter, and a month-long one shows in ever
     foreach (['2026-10-05', '2026-10-12', '2026-10-19', '2026-10-26'] as $week) {
         $this->actingAs($user)->get(route('weekly.index', ['week' => $week]))->assertInertia(fn ($page) => $page->has('thisWeek', 1));
     }
+    // The member's list marks it "Lanjutan" after its first week, and the team recap counts it only in the week it started.
+    $this->actingAs($user)->get(route('weekly.index', ['week' => '2026-10-12']))->assertInertia(fn ($page) => $page->where('thisWeek.0.continued', true));
+    $this->actingAs($user)->get(route('weekly.index', ['week' => '2026-09-28']))->assertInertia(fn ($page) => $page->where('thisWeek.0.continued', false));
+    $agg = app(RecapAggregator::class);
+    $counts = collect(['2026-09-28', '2026-10-05', '2026-10-12', '2026-10-19', '2026-10-26'])->map(fn ($w) => collect($agg->panels($plan->team, 'week', Carbon::parse($w)))->sum('entry_count'));
+    expect($counts->sum())->toBe(1);
 });
 
 it('shows an RK once even when kipApp holds it under several projek, and matches a projek by shared words', function () {
