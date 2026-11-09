@@ -6,6 +6,7 @@ import {
     CircleHelp, House, LayoutGrid, LayoutList, ListChecks, ListTodo, LogOut, Menu, Network, PanelLeftClose, PanelLeftOpen, Target, ToggleRight, UserRound, Users, X, Zap,
 } from 'lucide-vue-next';
 import { useSidebarStore } from '@/stores/sidebar';
+import { formatNumber } from '@/composables/useNumber';
 import { usePageTour } from '@/composables/usePageTour';
 import ReportBugDialog from '@/Components/Kinetik/ReportBugDialog.vue';
 import { Notivue, Notification, push } from 'notivue';
@@ -33,10 +34,11 @@ const canApproveSkp = computed(() => (page.props.can as Record<string, boolean>)
 const canViewPlanCompliance = computed(() => (page.props.can as Record<string, boolean>)?.view_plan_compliance ?? false);
 const canViewMyCredit = computed(() => (page.props.can as Record<string, boolean>)?.view_my_credit ?? false);
 const canViewTeamCredits = computed(() => (page.props.can as Record<string, boolean>)?.view_team_credits ?? false);
+const duplicatePending = computed(() => Number(page.props.duplicate_pending ?? 0));
 const hasEmployee = computed(() => !!(page.props.auth as { has_employee?: boolean })?.has_employee);
 
 // ── Navigation model (grouped by who uses it) ─────────────────────────────
-interface NavItem { label: string; href: string; active: boolean; icon: Component; show: boolean }
+interface NavItem { label: string; href: string; active: boolean; icon: Component; show: boolean; badge?: number }
 interface NavSection { title?: string; items: NavItem[] }
 
 const navSections = computed<NavSection[]>(() => {
@@ -93,7 +95,7 @@ const navSections = computed<NavSection[]>(() => {
                 { label: 'Impor Kegiatan', href: route('admin.import-kegiatan'), active: is('admin.import-kegiatan*'), icon: FileUp, show: isAdmin.value },
                 { label: 'Impor AK', href: route('admin.import-ak'), active: is('admin.import-ak*'), icon: Award, show: can.value.manage_personnel },
                 { label: 'Integritas data', href: route('admin.data-integrity'), active: is('admin.data-integrity'), icon: ShieldAlert, show: isAdmin.value },
-                { label: 'Kegiatan ganda', href: route('admin.duplicate-kegiatan'), active: is('admin.duplicate-kegiatan*'), icon: Copy, show: isAdmin.value },
+                { label: 'Kegiatan ganda', href: route('admin.duplicate-kegiatan'), active: is('admin.duplicate-kegiatan*'), icon: Copy, show: isAdmin.value, badge: duplicatePending.value },
                 { label: 'Laporan masalah', href: route('admin.bug-reports'), active: is('admin.bug-reports*'), icon: Bug, show: isAdmin.value },
             ],
         },
@@ -309,6 +311,7 @@ onUnmounted(() => {
                             <component :is="item.icon" class="h-[18px] w-[18px] shrink-0" aria-hidden="true" />
                             <span v-if="showLabels" class="truncate">{{ item.label }}</span>
                             <span v-else class="sr-only">{{ item.label }}</span>
+                            <span v-if="item.badge" class="ml-auto rounded-full bg-amber-400 px-1.5 text-xs font-semibold tabular-nums text-gray-900" :title="`${item.badge} pasangan belum diminta tindakan`">{{ formatNumber(item.badge) }}</span>
                         </Link>
                     </div>
                 </div>
