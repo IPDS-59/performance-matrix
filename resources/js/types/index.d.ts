@@ -525,6 +525,9 @@ export interface PlanItemRow {
     /** Uraian capaian: the text sent to kipApp. */
     capaian_note: string | null;
     kendala?: string | null;
+    /** The Monday of the week this row is shown in, and whether the kegiatan runs for several weeks (its realisasi is then kept per week). */
+    week?: string | null;
+    multi_week?: boolean;
     evidence_url: string | null;
     progress: number;
     status: 'planned' | 'pushed' | 'in_progress' | 'done' | 'cancelled';
@@ -762,6 +765,7 @@ export interface TeamWeekPlan {
     capaian_note: string | null;
     kendala: string | null;
     progress: number;
+    multi_week?: boolean;
     /** Started in an earlier week and runs into this one. */
     continued: boolean;
     evidence_url: string | null;

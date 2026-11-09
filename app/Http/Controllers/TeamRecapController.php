@@ -19,6 +19,7 @@ use App\Models\TeamRecapEvidence;
 use App\Models\User;
 use App\Rules\CapaianWithinTarget;
 use App\Services\Kinetik\RecapAggregator;
+use App\Services\Kinetik\WeekSnapshot;
 use Carbon\Carbon;
 use Carbon\CarbonImmutable;
 use Illuminate\Http\Exceptions\HttpResponseException;
@@ -132,30 +133,36 @@ class TeamRecapController extends Controller
     {
         return PlanItem::where('team_id', $team->id)
             ->duringWeek($monday->toDateString(), $monday->copy()->endOfWeek(Carbon::SUNDAY)->toDateString())
-            ->with(['employee:id,name,display_name', 'performancePlan:id,description'])
+            ->with(['employee:id,name,display_name', 'performancePlan:id,description', 'weekSnapshots'])
             ->orderBy('date_start')
             ->get()
             ->sortBy(fn (PlanItem $p) => $p->employee?->display_name ?? $p->employee?->name)
-            ->map(fn (PlanItem $p) => [
-                'id' => $p->id,
-                'employee_id' => $p->employee_id,
-                'employee_name' => $p->employee?->display_name ?? $p->employee?->name ?? '-',
-                'description' => $p->description,
-                'rk_name' => $p->performancePlan?->description,
-                'date_start' => Carbon::parse($p->date_start)->toDateString(),
-                'date_end' => Carbon::parse($p->date_end)->toDateString(),
-                'target' => $p->target !== null ? (float) $p->target : null,
-                'target_unit' => $p->target_unit,
-                'capaian' => $p->capaian !== null ? (float) $p->capaian : null,
-                'capaian_note' => $p->capaian_note,
-                'kendala' => $p->kendala,
-                'progress' => (int) $p->progress,
-                'continued' => Carbon::parse($p->date_start)->lt($monday),
-                'evidence_url' => $p->evidence_url,
-                'status' => $p->status,
-                'in_kipapp' => $p->kip_external_id !== null,
-                'sent' => $p->kip_sent_at !== null,
-            ])->values()->all();
+            ->map(function (PlanItem $p) use ($monday) {
+                // A kegiatan that runs for several weeks shows what was recorded for this week.
+                $view = WeekSnapshot::of($p, $monday);
+
+                return [
+                    'id' => $p->id,
+                    'employee_id' => $p->employee_id,
+                    'employee_name' => $p->employee?->display_name ?? $p->employee?->name ?? '-',
+                    'description' => $p->description,
+                    'rk_name' => $p->performancePlan?->description,
+                    'date_start' => Carbon::parse($p->date_start)->toDateString(),
+                    'date_end' => Carbon::parse($p->date_end)->toDateString(),
+                    'target' => $p->target !== null ? (float) $p->target : null,
+                    'target_unit' => $p->target_unit,
+                    'capaian' => $view['capaian'],
+                    'capaian_note' => $p->capaian_note,
+                    'kendala' => $view['kendala'],
+                    'progress' => $view['progress'],
+                    'multi_week' => $p->spansWeeks(),
+                    'continued' => Carbon::parse($p->date_start)->lt($monday),
+                    'evidence_url' => $p->evidence_url,
+                    'status' => $p->status,
+                    'in_kipapp' => $p->kip_external_id !== null,
+                    'sent' => $p->kip_sent_at !== null,
+                ];
+            })->values()->all();
     }
 
     // ── Team monthly recap ───────────────────────────────────────────────────

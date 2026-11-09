@@ -10,6 +10,7 @@ use App\Models\Project;
 use App\Models\Team;
 use App\Models\WeeklyFocus;
 use App\Services\Kinetik\PlanItemAccess;
+use App\Services\Kinetik\WeekSnapshot;
 use Carbon\Carbon;
 
 /**
@@ -47,7 +48,7 @@ class BuildMemberWeekAction
     {
         return array_map(
             fn (array $row) => $row + ['continued' => $row['date_start'] < $monday->toDateString()],
-            $this->rowsBetween($employee, $monday->toDateString(), $monday->copy()->endOfWeek(Carbon::SUNDAY)->toDateString()),
+            $this->rowsBetween($employee, $monday->toDateString(), $monday->copy()->endOfWeek(Carbon::SUNDAY)->toDateString(), $monday),
         );
     }
 
@@ -57,50 +58,57 @@ class BuildMemberWeekAction
      *
      * @return list<array<string, mixed>>
      */
-    public function rowsBetween(Employee $employee, string $from, string $to): array
+    public function rowsBetween(Employee $employee, string $from, string $to, ?Carbon $weekOf = null): array
     {
         return PlanItem::where('employee_id', $employee->id)
             ->duringWeek($from, $to)
-            ->with('performancePlan:id,description')
+            ->with(['performancePlan:id,description', 'weekSnapshots'])
             ->orderBy('date_start')
             ->orderBy('id')
             ->get()
-            ->map(fn (PlanItem $p) => [
-                'id' => $p->id,
-                'team_id' => $p->team_id,
-                'description' => $p->description,
-                'performance_plan_id' => $p->performance_plan_id,
-                'rk_name' => $p->performancePlan?->description,
-                'project_id' => $p->project_id,
-                'date_start' => Carbon::parse($p->date_start)->toDateString(),
-                'date_end' => Carbon::parse($p->date_end)->toDateString(),
-                'time_start' => $p->time_start ? substr((string) $p->time_start, 0, 5) : null,
-                'time_end' => $p->time_end ? substr((string) $p->time_end, 0, 5) : null,
-                'target' => $p->target !== null ? (float) $p->target : null,
-                'target_unit' => $p->target_unit,
-                'capaian' => $p->capaian !== null ? (float) $p->capaian : null,
-                'capaian_note' => $p->capaian_note,
-                'kendala' => $p->kendala,
-                'evidence_url' => $p->evidence_url,
-                'progress' => (int) $p->progress,
-                'status' => $p->status,
-                'source' => $p->source,
-                'push_error' => $p->status === 'planned' ? $p->push_error : null,
-                'in_kipapp' => $p->kip_external_id !== null,
-                'sent' => $p->kip_sent_at !== null,
-                'sent_at' => $p->kip_sent_at?->toDateString(),
-                'is_capaian_skp' => (bool) $p->is_capaian_skp,
-                // What the member may still do, from the settings and the SKP status (PlanItemAccess).
-                'startable' => $this->access->hasStarted($p),
-                'can_edit' => $this->access->canEdit($p),
-                'can_delete' => $this->access->canDelete($p),
-                'can_send' => $this->access->canSend($p),
-                // A kegiatan only in Kinetik whose date has come can be sent to kipApp (alone or in a batch).
-                'can_push' => $p->kip_external_id === null && $p->status === 'planned' && $this->access->hasStarted($p) && $p->missingForKip() === [],
-                // What a kegiatan that is only in Kinetik still lacks before it may go to kipApp.
-                'missing_for_kip' => $p->kip_external_id === null && $p->status === 'planned' ? $p->missingForKip() : [],
-                'lock_reason' => $this->access->lockReason($p),
-            ])
+            ->map(function (PlanItem $p) use ($weekOf) {
+                // In a week page a kegiatan that runs for several weeks shows what was recorded for that week.
+                $view = $weekOf ? WeekSnapshot::of($p, $weekOf) : ['capaian' => $p->capaian !== null ? (float) $p->capaian : null, 'progress' => (int) $p->progress, 'kendala' => $p->kendala];
+
+                return [
+                    'week' => $weekOf?->toDateString(),
+                    'multi_week' => $p->spansWeeks(),
+                    'id' => $p->id,
+                    'team_id' => $p->team_id,
+                    'description' => $p->description,
+                    'performance_plan_id' => $p->performance_plan_id,
+                    'rk_name' => $p->performancePlan?->description,
+                    'project_id' => $p->project_id,
+                    'date_start' => Carbon::parse($p->date_start)->toDateString(),
+                    'date_end' => Carbon::parse($p->date_end)->toDateString(),
+                    'time_start' => $p->time_start ? substr((string) $p->time_start, 0, 5) : null,
+                    'time_end' => $p->time_end ? substr((string) $p->time_end, 0, 5) : null,
+                    'target' => $p->target !== null ? (float) $p->target : null,
+                    'target_unit' => $p->target_unit,
+                    'capaian' => $view['capaian'],
+                    'capaian_note' => $p->capaian_note,
+                    'kendala' => $view['kendala'],
+                    'evidence_url' => $p->evidence_url,
+                    'progress' => $view['progress'],
+                    'status' => $p->status,
+                    'source' => $p->source,
+                    'push_error' => $p->status === 'planned' ? $p->push_error : null,
+                    'in_kipapp' => $p->kip_external_id !== null,
+                    'sent' => $p->kip_sent_at !== null,
+                    'sent_at' => $p->kip_sent_at?->toDateString(),
+                    'is_capaian_skp' => (bool) $p->is_capaian_skp,
+                    // What the member may still do, from the settings and the SKP status (PlanItemAccess).
+                    'startable' => $this->access->hasStarted($p),
+                    'can_edit' => $this->access->canEdit($p),
+                    'can_delete' => $this->access->canDelete($p),
+                    'can_send' => $this->access->canSend($p),
+                    // A kegiatan only in Kinetik whose date has come can be sent to kipApp (alone or in a batch).
+                    'can_push' => $p->kip_external_id === null && $p->status === 'planned' && $this->access->hasStarted($p) && $p->missingForKip() === [],
+                    // What a kegiatan that is only in Kinetik still lacks before it may go to kipApp.
+                    'missing_for_kip' => $p->kip_external_id === null && $p->status === 'planned' ? $p->missingForKip() : [],
+                    'lock_reason' => $this->access->lockReason($p),
+                ];
+            })
             ->values()
             ->all();
     }

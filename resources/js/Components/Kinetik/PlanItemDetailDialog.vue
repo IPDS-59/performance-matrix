@@ -15,7 +15,7 @@ import { achievementPercent, periodText, withUnit } from '@/composables/useAchie
 import { useDateFormat } from '@/composables/useDateFormat';
 
 /** Every field of one kegiatan, the result form, and the next action. */
-const props = defineProps<{ item: PlanItemRow | null; canSendToAtasan: boolean }>();
+const props = defineProps<{ item: PlanItemRow | null; canSendToAtasan: boolean; weekOf?: string | null }>();
 const emit = defineEmits<{ close: []; edit: [item: PlanItemRow]; copy: [item: PlanItemRow] }>();
 
 const { formatDate } = useDateFormat();
@@ -50,6 +50,8 @@ const payload = (data: Record<string, any>) => ({
     capaian_note: data.capaian_note || null,
     kendala: data.kendala || null,
     is_capaian_skp: Number(data.progres) >= 100 ? true : data.is_capaian_skp,
+    // The week this realisasi belongs to, kept for a kegiatan that runs for several weeks.
+    week: props.weekOf ?? undefined,
     evidence_url: data.evidence_url || null,
     progress: data.progres === '' ? null : data.progres,
 });

@@ -6,6 +6,7 @@ use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 /** One planned task of a member: an RK, a date range and a description. */
 class PlanItem extends Model
@@ -87,6 +88,18 @@ class PlanItem extends Model
         }
 
         return $missing;
+    }
+
+    /** @return HasMany<PlanItemWeek, $this> */
+    public function weekSnapshots(): HasMany
+    {
+        return $this->hasMany(PlanItemWeek::class);
+    }
+
+    /** Whether the dates reach into more than one Monday-to-Sunday week. */
+    public function spansWeeks(): bool
+    {
+        return Carbon::parse($this->date_start)->startOfWeek(Carbon::MONDAY)->ne(Carbon::parse($this->date_end)->startOfWeek(Carbon::MONDAY));
     }
 
     public function scopeDuringWeek(Builder $query, string $weekStart, string $weekEnd): Builder
