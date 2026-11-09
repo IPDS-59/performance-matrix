@@ -350,7 +350,7 @@ export const GUIDE_FLOWS: GuideFlow[] = [
                 where: 'Menu Beranda',
                 route: 'dashboard',
                 body: [
-                    'Beranda menjawab empat hal untuk minggu ini: apakah rencana sudah ada, apakah capaian minggu lalu sudah diisi, apakah kegiatan sudah dikirim ke atasan, dan di mana posisi SKP Anda. Judul kotak memuat tombol langsung ke halaman yang perlu Anda buka.',
+                    'Beranda menjawab empat hal untuk minggu ini: apakah rencana sudah ada, apakah capaian minggu lalu sudah diisi, apakah kegiatan sudah dikirim ke atasan, dan di mana posisi SKP Anda. Tombol di tiap kotak membuka minggu ini langsung, bukan daftar bulan. Tombol "Isi realisasi" pada kotak capaian minggu lalu hanya menampilkan kegiatan yang capaiannya belum diisi; tekan "Tampilkan semua" untuk melihat semuanya.',
                     'Capaian tim dan peringkat ada di menu Monitoring. Menu "Pantau Kegiatan" hanya untuk melihat kegiatan kipApp Anda, bukan untuk mengisi.',
                 ],
                 shot: SHOTS.anggotaBeranda,
