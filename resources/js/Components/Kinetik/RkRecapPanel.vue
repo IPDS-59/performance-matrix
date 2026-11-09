@@ -52,6 +52,16 @@ const query = ref('');
 const onlyUnread = ref(false);
 const person = ref<number | null>(null);
 
+// The members table of a big team stays short: the first rows, a search, and "Tampilkan semua" for the rest in a scrolling box.
+const PREVIEW = 5;
+const tableQuery = ref('');
+const tableExpanded = ref(false);
+const tableMatches = computed(() => {
+    const q = tableQuery.value.trim().toLowerCase();
+    return q ? props.panel.entries.filter(e => `${e.name} ${e.lines.join(' ')}`.toLowerCase().includes(q)) : props.panel.entries;
+});
+const tableRows = computed(() => (tableExpanded.value || tableQuery.value.trim() ? tableMatches.value : tableMatches.value.slice(0, PREVIEW)));
+
 const shown = computed(() => filterEntries(props.panel.entries, { query: query.value, onlyUnread: onlyUnread.value, person: person.value, read }));
 const readCount = computed(() => props.panel.entries.filter(e => read.has(e.employee_id)).length);
 
@@ -106,10 +116,15 @@ const percent = computed(() => achievementPercent(form.capaian === '' ? null : N
         </div>
 
         <!-- Members: short table, click for the full lines -->
+        <div v-if="panel.entries.length > PREVIEW" class="relative border-b px-4 py-2">
+            <Search class="pointer-events-none absolute left-7 top-4 h-4 w-4 text-gray-500" aria-hidden="true" />
+            <Input v-model="tableQuery" class="h-9 max-w-xs pl-9" placeholder="Cari anggota" :aria-label="`Cari anggota di ${panel.rk_description}`" />
+        </div>
+        <div :class="tableExpanded || tableQuery.trim() ? 'max-h-96 overflow-y-auto' : ''">
         <Table>
             <TableHeader><TableRow><TableHead>Anggota</TableHead><TableHead>Kegiatan</TableHead><TableHead>Target</TableHead><TableHead>Capaian</TableHead></TableRow></TableHeader>
             <TableBody>
-                <TableRow v-for="e in panel.entries" :key="e.employee_id" class="cursor-pointer" tabindex="0" @click="dialogOpen = true; person = e.employee_id" @keydown.enter="dialogOpen = true; person = e.employee_id">
+                <TableRow v-for="e in tableRows" :key="e.employee_id" class="cursor-pointer" tabindex="0" @click="dialogOpen = true; person = e.employee_id" @keydown.enter="dialogOpen = true; person = e.employee_id">
                     <TableCell class="whitespace-nowrap font-medium">{{ e.name }}</TableCell>
                     <TableCell class="max-w-sm truncate text-gray-600">{{ e.lines[0] }}</TableCell>
                     <TableCell class="tabular-nums">{{ withUnit(e.target, e.unit) }}</TableCell>
@@ -117,6 +132,13 @@ const percent = computed(() => achievementPercent(form.capaian === '' ? null : N
                 </TableRow>
             </TableBody>
         </Table>
+        </div>
+        <p v-if="panel.entries.length && !tableRows.length" class="px-4 py-4 text-center text-sm text-gray-600">Tidak ada anggota yang cocok.</p>
+        <div v-if="panel.entries.length > PREVIEW && !tableQuery.trim()" class="border-t px-4 py-2 text-center">
+            <Button variant="ghost" size="sm" :aria-expanded="tableExpanded" @click="tableExpanded = !tableExpanded">
+                {{ tableExpanded ? 'Ciutkan' : `Tampilkan semua ${panel.entries.length} anggota` }}
+            </Button>
+        </div>
         <p v-if="!panel.entries.length" class="px-4 py-6 text-center text-sm text-gray-600">Belum ada kegiatan anggota untuk RK ini.</p>
 
         <Dialog :open="dialogOpen" @update:open="(v: boolean) => { dialogOpen = v; if (!v) person = null; }">

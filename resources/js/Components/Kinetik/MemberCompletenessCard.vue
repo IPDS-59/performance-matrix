@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue';
 import type { MemberCompleteness } from '@/types';
-import { ChevronDown } from 'lucide-vue-next';
+import { ChevronDown, Search } from 'lucide-vue-next';
+import { Input } from '@/Components/ui/input';
 
 const props = defineProps<{ members: MemberCompleteness[] }>();
 
@@ -20,6 +21,11 @@ const owing = computed(() => withActivity.value.length - completeCount.value);
 
 // Big teams (ZI has 100+ members): collapsed by default when everyone is done.
 const open = ref(owing.value > 0);
+const query = ref('');
+const shown = computed(() => {
+    const q = query.value.trim().toLowerCase();
+    return q ? sorted.value.filter(m => m.name.toLowerCase().includes(q)) : sorted.value;
+});
 </script>
 
 <template>
@@ -39,8 +45,12 @@ const open = ref(owing.value > 0);
             </span>
             <ChevronDown :class="['h-4 w-4 shrink-0 text-gray-400 transition-transform', open ? 'rotate-180' : '']" aria-hidden="true" />
         </button>
-        <ul v-if="open" class="grid gap-x-6 border-t px-4 py-2 sm:grid-cols-2 lg:grid-cols-3">
-            <li v-for="m in sorted" :key="m.employee_id" class="flex items-center justify-between gap-3 border-b border-gray-100 py-2 last:border-b-0">
+        <div v-if="open && members.length > 9" class="relative border-t px-4 py-2">
+            <Search class="pointer-events-none absolute left-7 top-4 h-4 w-4 text-gray-500" aria-hidden="true" />
+            <Input v-model="query" class="h-9 max-w-xs pl-9" placeholder="Cari anggota" aria-label="Cari anggota" />
+        </div>
+        <ul v-if="open" class="grid max-h-72 gap-x-6 overflow-y-auto border-t px-4 py-2 sm:grid-cols-2 lg:grid-cols-3">
+            <li v-for="m in shown" :key="m.employee_id" class="flex items-center justify-between gap-3 border-b border-gray-100 py-2 last:border-b-0">
                 <span class="min-w-0 truncate text-sm text-gray-800" :title="m.name">{{ m.name }}</span>
                 <span class="flex shrink-0 items-center gap-2">
                     <span v-if="m.status !== 'no_activity'" class="text-xs text-gray-500 tabular-nums">{{ m.saved }}/{{ m.total }}</span>
@@ -48,6 +58,7 @@ const open = ref(owing.value > 0);
                 </span>
             </li>
             <li v-if="!members.length" class="py-3 text-sm text-gray-500">Tim ini belum punya anggota.</li>
+            <li v-else-if="!shown.length" class="py-3 text-sm text-gray-500">Tidak ada anggota yang cocok.</li>
         </ul>
     </section>
 </template>

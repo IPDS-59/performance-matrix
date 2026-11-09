@@ -25,6 +25,12 @@ const shown = computed(() => props.plans.filter(p =>
     (person.value === 'all' || String(p.employee_id) === person.value)
     && (!query.value || `${p.employee_name} ${p.description} ${p.rk_name ?? ''}`.toLowerCase().includes(query.value.toLowerCase())),
 ));
+// A big team lists many rows: show the first few, and the rest on "Tampilkan semua" in a box that scrolls.
+const PREVIEW = 8;
+const expanded = ref(false);
+const filtering = computed(() => person.value !== 'all' || query.value.trim() !== '');
+const rows = computed(() => (expanded.value || filtering.value ? shown.value : shown.value.slice(0, PREVIEW)));
+const scrolls = computed(() => (expanded.value || filtering.value) && shown.value.length > PREVIEW);
 const range = (p: TeamWeekPlan) => (p.date_end !== p.date_start ? `${formatDate(p.date_start)} – ${formatDate(p.date_end)}` : formatDate(p.date_start));
 </script>
 
@@ -46,10 +52,11 @@ const range = (p: TeamWeekPlan) => (p.date_end !== p.date_start ? `${formatDate(
                 </Select>
             </div>
         </div>
-        <Table v-if="shown.length">
+        <div v-if="shown.length" :class="scrolls ? 'max-h-[28rem] overflow-y-auto' : ''">
+        <Table>
             <TableHeader><TableRow><TableHead>Anggota</TableHead><TableHead>Kegiatan</TableHead><TableHead>RK</TableHead><TableHead>Target</TableHead><TableHead>Status</TableHead></TableRow></TableHeader>
             <TableBody>
-                <TableRow v-for="p in shown" :key="p.id" class="cursor-pointer" tabindex="0" :aria-label="`Lihat rencana ${p.employee_name}: ${p.description}`" @click="open = p" @keydown.enter="open = p">
+                <TableRow v-for="p in rows" :key="p.id" class="cursor-pointer" tabindex="0" :aria-label="`Lihat rencana ${p.employee_name}: ${p.description}`" @click="open = p" @keydown.enter="open = p">
                     <TableCell class="whitespace-nowrap font-medium">{{ p.employee_name }}</TableCell>
                     <TableCell class="max-w-xs truncate">{{ p.description }}</TableCell>
                     <TableCell class="max-w-[14rem] truncate text-gray-600">{{ p.rk_name ?? '–' }}</TableCell>
@@ -58,7 +65,13 @@ const range = (p: TeamWeekPlan) => (p.date_end !== p.date_start ? `${formatDate(
                 </TableRow>
             </TableBody>
         </Table>
-        <p v-else class="px-4 py-8 text-center text-sm text-gray-600">{{ plans.length ? 'Tidak ada rencana yang cocok.' : 'Belum ada rencana anggota untuk minggu ini.' }}</p>
+        </div>
+        <div v-if="!filtering && shown.length > PREVIEW" class="border-t px-4 py-2 text-center">
+            <Button variant="ghost" size="sm" :aria-expanded="expanded" @click="expanded = !expanded">
+                {{ expanded ? 'Ciutkan' : `Tampilkan semua ${shown.length} kegiatan` }}
+            </Button>
+        </div>
+        <p v-if="!shown.length" class="px-4 py-8 text-center text-sm text-gray-600">{{ plans.length ? 'Tidak ada rencana yang cocok.' : 'Belum ada rencana anggota untuk minggu ini.' }}</p>
 
         <Dialog :open="open !== null" @update:open="(v: boolean) => { if (!v) open = null; }">
             <DialogContent v-if="open" class="max-w-lg">
