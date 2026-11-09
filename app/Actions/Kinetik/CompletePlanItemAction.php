@@ -22,8 +22,18 @@ class CompletePlanItemAction
      */
     public function execute(PlanItem $plan, ?string $note, ?string $evidenceUrl, ?float $capaian = null): void
     {
-        if ($plan->kip_external_id === null && ! $this->push->execute($plan)) {
-            throw new RuntimeException($plan->fresh()->push_error ?? 'Kegiatan belum bisa dikirim ke kipApp.');
+        if ($plan->kip_external_id === null) {
+            // What the member just typed completes the kegiatan, so it goes to kipApp already finished.
+            $plan->progress = 100;
+            $plan->capaian_note = $note ?? $plan->capaian_note;
+            $plan->evidence_url = $evidenceUrl ?? $plan->evidence_url;
+            $plan->capaian = $capaian ?? $plan->capaian;
+            if ($missing = $plan->missingForKip()) {
+                throw new RuntimeException('Lengkapi dulu sebelum dikirim ke kipApp: '.implode(', ', $missing).'.');
+            }
+            if (! $this->push->execute($plan)) {
+                throw new RuntimeException($plan->fresh()->push_error ?? 'Kegiatan belum bisa dikirim ke kipApp.');
+            }
         }
 
         $note ??= $plan->capaian_note;

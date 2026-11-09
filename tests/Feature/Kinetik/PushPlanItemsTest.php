@@ -357,3 +357,38 @@ it('tells the member a push is still running instead of a blank error', function
         ->assertSessionHas('error', 'Kegiatan ini sedang dikirim ke kipApp. Muat ulang halaman sebentar lagi.');
     $held->release();
 });
+
+// Only a finished kegiatan goes to kipApp
+
+it('lists what a kegiatan still lacks before it may go to kipApp', function () {
+    config(['kinetik.kip.push_only_finished' => true]);
+    $plan = pushSetup(['target' => 1, 'progress' => 40]);
+
+    expect($plan->missingForKip())->toBe(['progres 100', 'capaian (angka)', 'uraian capaian (minimal 10 karakter)', 'bukti dukung']);
+
+    $plan->forceFill(['progress' => 100, 'capaian' => 1, 'capaian_note' => 'Seluruh blok selesai', 'evidence_url' => 'https://bukti.test/a']);
+    expect($plan->missingForKip())->toBe([]);
+});
+
+it('does not send an unfinished plan on its start date, and sends a finished one even after its dates passed', function () {
+    config(['kinetik.kip.push_only_finished' => true]);
+    fakeKip();
+    $unfinished = pushSetup(['date_start' => '2026-10-08', 'date_end' => '2026-10-09']);
+    $finishedLate = pushSetup(['date_start' => '2026-10-01', 'date_end' => '2026-10-03', 'progress' => 100, 'capaian_note' => 'Seluruh blok selesai', 'evidence_url' => 'https://bukti.test/a']);
+
+    app(PushDuePlansAction::class)->execute();
+
+    expect($unfinished->fresh()->kip_external_id)->toBeNull()->and($unfinished->fresh()->push_error)->toBeNull()
+        ->and($finishedLate->fresh()->kip_external_id)->not->toBeNull()
+        ->and($finishedLate->fresh()->status)->toBe('done');
+});
+
+it('tells the member what to fill when pressing Kirim ke kipApp on an unfinished plan', function () {
+    config(['kinetik.kip.push_only_finished' => true]);
+    Http::fake();
+    $plan = pushSetup(['progress' => 100]);
+
+    $this->actingAs($plan->employee->user)->post(route('plan-items.push', $plan))
+        ->assertSessionHas('error', fn ($m) => str_contains($m, 'Belum lengkap') && str_contains($m, 'uraian capaian') && str_contains($m, 'bukti dukung'));
+    Http::assertNothingSent();
+});

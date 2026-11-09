@@ -27,6 +27,11 @@ final class FeatureFlags
                 'description' => 'Kegiatan yang sudah ada di kipApp boleh diubah atau dihapus selama belum dikirim ke atasan. Perubahan ikut ke kipApp.',
                 'tested' => true,
             ],
+            'push_only_finished' => [
+                'label' => 'Kirim ke kipApp hanya bila lengkap',
+                'description' => 'Kegiatan baru dikirim ke kipApp setelah progres 100, capaian, dan bukti dukung terisi. Mematikannya mengembalikan pengiriman otomatis pada tanggal mulai walau belum lengkap.',
+                'tested' => true,
+            ],
             'atasan_rating' => [
                 'label' => 'Nilai SKP oleh atasan di Kinetik',
                 'description' => 'Halaman Nilai SKP: nilai dan umpan balik tiap RK dan perilaku, lalu Selesai menilai. Mematikannya mengembalikan tombol Nilai ke kipApp.',

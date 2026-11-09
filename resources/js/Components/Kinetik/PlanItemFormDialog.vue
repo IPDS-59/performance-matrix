@@ -168,7 +168,7 @@ function save() {
     <FormDialog
         :open="open"
         :title="item ? 'Ubah kegiatan' : copyOf ? 'Salin kegiatan' : 'Tambah kegiatan'"
-        :description="sentOnly ? 'Kegiatan ini sudah dikirim ke atasan. Hanya “Masukan ke capaian SKP” yang bisa diubah.' : 'Kegiatan dikirim ke kipApp pada tanggal mulainya, atau saat Anda menekan Kirim ke kipApp.'"
+        :description="sentOnly ? 'Kegiatan ini sudah dikirim ke atasan. Hanya “Masukan ke capaian SKP” yang bisa diubah.' : 'Kegiatan dikirim ke kipApp setelah lengkap: progres 100, capaian, dan bukti dukung terisi.'"
         :processing="form.processing"
         @update:open="(v: boolean) => emit('update:open', v)"
         @submit="save"
