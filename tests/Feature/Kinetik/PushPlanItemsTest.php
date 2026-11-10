@@ -452,3 +452,23 @@ it('keeps the plan status in step with the kipApp progres and treats cancelled a
         ->and(PlanStatus::Done->canBecome(PlanStatus::Planned))->toBeFalse()
         ->and(PlanStatus::Planned->canBecome(PlanStatus::Done))->toBeTrue();
 });
+
+it('sends a kegiatan to kipApp at once when a save makes it complete, and gives stuck kegiatan their tries back on a new login', function () {
+    config(['kinetik.kip.push_only_finished' => true]);
+    $plan = pushSetup(['target' => 2, 'target_unit' => 'dok']);
+    fakeKip();
+    $user = $plan->employee->user;
+
+    // Not complete yet: stays in Kinetik.
+    $this->actingAs($user)->patch(route('plan-items.result', $plan), ['capaian' => 2, 'progress' => 100])->assertSessionHas('success');
+    expect($plan->fresh()->kip_external_id)->toBeNull();
+
+    // Uraian and bukti dukung complete it: it goes to kipApp in the same save.
+    $this->actingAs($user)->patch(route('plan-items.result', $plan), ['capaian' => 2, 'progress' => 100, 'capaian_note' => 'Entri selesai seluruhnya', 'evidence_url' => 'https://example.com/b'])
+        ->assertSessionHas('success', 'Realisasi lengkap. Kegiatan langsung dikirim ke kipApp.');
+    expect($plan->fresh())->kip_external_id->toBe('5550001')->status->toBe('done');
+
+    $stuck = PlanItem::create(['team_id' => $plan->team_id, 'employee_id' => $plan->employee_id, 'performance_plan_id' => $plan->performance_plan_id, 'description' => 'Kegiatan yang gagal dikirim', 'date_start' => '2026-10-07', 'date_end' => '2026-10-07', 'push_attempts' => 5, 'push_error' => 'Token kipApp Anda kedaluwarsa']);
+    MemberKipCredential::remember($user, 'sso-pass', 'new-token', now()->addHours(5));
+    expect($stuck->fresh())->push_attempts->toBe(0)->push_error->toBeNull();
+});

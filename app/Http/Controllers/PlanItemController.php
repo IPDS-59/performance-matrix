@@ -269,7 +269,8 @@ class PlanItemController extends Controller
 
         return match ($result['outcome']) {
             SaveRealisasiAction::SYNCED => back()->with('success', 'Realisasi disimpan, kipApp ikut diperbarui.'),
-            SaveRealisasiAction::FAILED => back()->with('warning', 'Realisasi tersimpan di Kinetik, tetapi kipApp belum diperbarui: '.$result['reason']),
+            SaveRealisasiAction::SENT => back()->with('success', 'Realisasi lengkap. Kegiatan langsung dikirim ke kipApp.'),
+            SaveRealisasiAction::FAILED => back()->with('warning', 'Realisasi tersimpan di Kinetik, tetapi belum sampai ke kipApp: '.$result['reason']),
             SaveRealisasiAction::LOCKED => back()->with('success', 'Realisasi disimpan di Kinetik saja. '.$result['reason']),
             default => back()->with('success', 'Realisasi disimpan. Kinetik mengirimnya ke kipApp setelah lengkap.'),
         };

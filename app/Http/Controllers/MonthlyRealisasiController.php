@@ -103,10 +103,12 @@ class MonthlyRealisasiController extends Controller
                 // A kegiatan already in kipApp gets the changed uraian, bukti or progres there too, so the two never drift.
                 $result = $save->execute($item, $fields, always: false);
                 $saved++;
-                if ($result['outcome'] === SaveRealisasiAction::SYNCED) {
+                if ($result['outcome'] === SaveRealisasiAction::SENT) {
+                    $sent++;
+                } elseif ($result['outcome'] === SaveRealisasiAction::SYNCED) {
                     $synced++;
                 } elseif ($result['outcome'] === SaveRealisasiAction::FAILED) {
-                    $problems[] = "{$label}: kipApp belum diperbarui ({$result['reason']})";
+                    $problems[] = "{$label}: belum sampai ke kipApp ({$result['reason']})";
                 }
 
                 continue;
@@ -135,7 +137,7 @@ class MonthlyRealisasiController extends Controller
             }
         }
 
-        $message = "{$saved} kegiatan disimpan di Kinetik".($sent ? ", {$sent} ditandai selesai di kipApp" : '').($synced ? ", {$synced} diperbarui di kipApp" : '').'.';
+        $message = "{$saved} kegiatan disimpan di Kinetik".($sent ? ", {$sent} dikirim atau ditandai selesai di kipApp" : '').($synced ? ", {$synced} diperbarui di kipApp" : '').'.';
 
         return back()->with($problems === [] ? 'success' : 'warning', $problems === [] ? $message : $message.' Belum berhasil: '.implode(' ', array_slice($problems, 0, 5)).(count($problems) > 5 ? ' (dan '.(count($problems) - 5).' lainnya)' : ''));
     }

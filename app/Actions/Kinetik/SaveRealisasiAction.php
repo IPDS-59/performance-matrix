@@ -18,6 +18,9 @@ class SaveRealisasiAction
     /** Not in kipApp yet: it goes there once complete (PushDuePlansAction). */
     public const LOCAL = 'local';
 
+    /** Was only in Kinetik, became complete with this save, and went to kipApp at once. */
+    public const SENT = 'sent';
+
     /** Kinetik and kipApp both hold the new values. */
     public const SYNCED = 'synced';
 
@@ -30,7 +33,7 @@ class SaveRealisasiAction
     /** The fields kipApp also stores. */
     private const KIP_FIELDS = ['progress', 'capaian_note', 'evidence_url', 'is_capaian_skp'];
 
-    public function __construct(private readonly UpdatePlanItemAction $kip, private readonly PlanItemAccess $access) {}
+    public function __construct(private readonly UpdatePlanItemAction $kip, private readonly PlanItemAccess $access, private readonly PushPlanItemAction $push) {}
 
     /**
      * @param  array<string, mixed>  $values  model attributes to save
@@ -43,7 +46,7 @@ class SaveRealisasiAction
         $plan->update($values);
 
         if ($plan->kip_external_id === null) {
-            return ['outcome' => self::LOCAL, 'reason' => null];
+            return $this->sendIfComplete($plan);
         }
         if ($plan->kip_sent_at !== null) {
             return ['outcome' => self::LOCKED, 'reason' => 'Kegiatan sudah dikirim ke atasan. Batalkan kirim dulu bila kipApp perlu diubah.'];
@@ -67,5 +70,24 @@ class SaveRealisasiAction
         }
 
         return ['outcome' => self::SYNCED, 'reason' => null];
+    }
+
+    /**
+     * A kegiatan that this save made complete goes to kipApp now, not at the next hourly run. Same limits as the hourly run:
+     * the finished-only rule is on, the start date has come, and it is not a spreadsheet import (those are sent by hand).
+     *
+     * @return array{outcome: string, reason: ?string}
+     */
+    private function sendIfComplete(PlanItem $plan): array
+    {
+        if (! config('kinetik.kip.push_only_finished') || $plan->status !== 'planned' || $plan->source === 'import'
+            || $plan->missingForKip() !== [] || ! $this->access->hasStarted($plan)) {
+            return ['outcome' => self::LOCAL, 'reason' => null];
+        }
+        if ($this->push->execute($plan->loadMissing(['employee.user', 'performancePlan']))) {
+            return ['outcome' => self::SENT, 'reason' => null];
+        }
+
+        return ['outcome' => self::FAILED, 'reason' => $plan->fresh()->push_error ?? 'Kegiatan sedang dikirim. Muat ulang sebentar lagi.'];
     }
 }

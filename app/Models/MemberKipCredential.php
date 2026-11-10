@@ -37,6 +37,12 @@ class MemberKipCredential extends Model
     public static function remember(User $user, string $password, string $token, \DateTimeInterface $expiresAt): self
     {
         $crypt = self::crypt();
+        // A new login gives the kegiatan that could not be sent (expired token, OTP account) their tries back: the hourly run
+        // stops after 5 failures, and without this they would wait for ever after the member signed in again.
+        if ($user->employee !== null) {
+            PlanItem::where('employee_id', $user->employee->id)->whereNull('kip_external_id')->where('status', 'planned')
+                ->where('push_attempts', '>', 0)->update(['push_attempts' => 0, 'push_error' => null]);
+        }
 
         return self::updateOrCreate(['user_id' => $user->id], [
             'password' => $crypt->encryptString($password),
