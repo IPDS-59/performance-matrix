@@ -46,6 +46,7 @@ const canChange = (row: PlanItemRow) => row.can_edit && !row.sent;
                     <th class="border-b px-3 py-3">Rencana Kinerja</th>
                     <th class="border-b px-3 py-3">Kegiatan</th>
                     <th class="border-b px-3 py-3">Progress</th>
+                    <th class="border-b px-3 py-3">Target</th>
                     <th class="border-b px-3 py-3">Capaian</th>
                     <th class="border-b px-3 py-3">Bukti Dukung</th>
                     <th class="border-b px-3 py-3 text-center">Capaian SKP</th>
@@ -69,14 +70,10 @@ const canChange = (row: PlanItemRow) => row.can_edit && !row.sent;
                         <span v-if="row.continued" class="ml-1 rounded bg-gray-100 px-1.5 py-0.5 text-xs font-normal text-gray-700" title="Dimulai di minggu sebelumnya dan masih berjalan">Lanjutan</span>
                         <span :class="['mt-1 block w-fit rounded-full px-2 py-0.5 text-xs font-medium', toneClass[stageOf(row).tone]]">{{ stageOf(row).label }}</span>
                     </td>
-                    <td class="w-36 px-3 py-3">
-                        <div class="flex items-center gap-2">
-                            <div class="h-2 w-24 overflow-hidden rounded-full bg-gray-200" role="progressbar" :aria-valuenow="row.progress" aria-valuemin="0" aria-valuemax="100" :aria-label="`Progress ${row.progress}%`">
-                                <div class="h-full rounded-full bg-emerald-500 transition-[width] duration-300 ease-out motion-reduce:transition-none" :style="{ width: `${row.progress}%` }" />
-                            </div>
-                            <CheckCircle2 v-if="row.progress >= 100" class="h-4 w-4 shrink-0 text-emerald-600" aria-hidden="true" />
-                            <span v-else class="text-xs tabular-nums text-gray-600">{{ row.progress }}%</span>
-                        </div>
+                    <td class="whitespace-nowrap px-3 py-3 tabular-nums">{{ row.progress }}%</td>
+                    <td class="whitespace-nowrap px-3 py-3 tabular-nums">
+                        <span v-if="row.target">{{ withUnit(row.target, row.target_unit) }}</span>
+                        <span v-else class="text-gray-500">–</span>
                     </td>
                     <td class="max-w-xs px-3 py-3">
                         <span v-if="row.capaian !== null && row.capaian !== undefined" class="tabular-nums">
@@ -84,7 +81,6 @@ const canChange = (row: PlanItemRow) => row.can_edit && !row.sent;
                             <span v-if="achievementPercent(row.capaian, row.target) !== null" class="text-gray-600">({{ achievementPercent(row.capaian, row.target) }}%)</span>
                         </span>
                         <span v-else class="text-gray-500">–</span>
-                        <span v-if="row.target" class="block text-xs text-gray-600">Target {{ withUnit(row.target, row.target_unit) }}</span>
                         <span v-if="row.capaian_note" class="mt-0.5 line-clamp-2 block text-xs text-gray-700">{{ row.capaian_note }}</span>
                     </td>
                     <td class="px-3 py-3" @click.stop>
