@@ -2,11 +2,14 @@
 
 namespace App\Models;
 
+use App\Kinetik\PlanStage;
+use App\Kinetik\PlanStatus;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Facades\Log;
 
 /** One planned task of a member: an RK, a date range and a description. */
 class PlanItem extends Model
@@ -94,6 +97,30 @@ class PlanItem extends Model
     public function weekSnapshots(): HasMany
     {
         return $this->hasMany(PlanItemWeek::class);
+    }
+
+    /** The lifecycle stage a person sees (status + kip_external_id + kip_sent_at). */
+    public function stage(): PlanStage
+    {
+        return PlanStage::of($this);
+    }
+
+    /**
+     * A status change that the lifecycle does not know (out of "cancelled", or back to "planned") is written to the log, not
+     * blocked: the log shows the caller to fix, and no one's save fails over it.
+     */
+    protected static function booted(): void
+    {
+        static::updating(function (self $plan) {
+            if (! $plan->isDirty('status')) {
+                return;
+            }
+            $from = PlanStatus::tryFrom((string) $plan->getOriginal('status'));
+            $to = PlanStatus::tryFrom((string) $plan->status);
+            if ($from === null || $to === null || ! $from->canBecome($to)) {
+                Log::warning('plan item: unexpected status change', ['id' => $plan->id, 'from' => $plan->getOriginal('status'), 'to' => $plan->status]);
+            }
+        });
     }
 
     /** Whether the dates reach into more than one Monday-to-Sunday week. */

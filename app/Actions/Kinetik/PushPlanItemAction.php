@@ -3,6 +3,7 @@
 namespace App\Actions\Kinetik;
 
 use App\Kinetik\Exceptions\KipApiException;
+use App\Kinetik\PlanStatus;
 use App\Kinetik\Sources\ApiKipWriter;
 use App\Models\MemberSkpStatus;
 use App\Models\PerformancePlan;
@@ -110,7 +111,7 @@ class PushPlanItemAction
                 'kip_skp_id' => $skpId,
                 'kip_rk_id' => $rkId,
                 // A finished kegiatan arrives with progres 100, so it is done; kipApp's own list shows it that way.
-                'status' => (int) $plan->progress >= 100 ? 'done' : 'pushed',
+                'status' => PlanStatus::fromKipProgress((int) $plan->progress)->value,
                 'pushed_at' => now(),
                 'push_error' => null,
                 'push_attempts' => $plan->push_attempts + 1,

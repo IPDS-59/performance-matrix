@@ -3,6 +3,7 @@
 namespace App\Actions\Kinetik;
 
 use App\Kinetik\Exceptions\KipApiException;
+use App\Kinetik\PlanStatus;
 use App\Kinetik\Sources\ApiKipWriter;
 use App\Models\PerformancePlan;
 use App\Models\PlanItem;
@@ -59,7 +60,7 @@ class UpdatePlanItemAction
             throw new RuntimeException('kipApp menolak perubahan: '.$e->getMessage());
         }
 
-        $next->status = $next->progress >= 100 ? 'done' : ($next->progress > 0 ? 'in_progress' : 'pushed');
+        $next->status = PlanStatus::fromKipProgress((int) $next->progress)->value;
         $next->kip_synced_at = now();
         $next->save();
     }

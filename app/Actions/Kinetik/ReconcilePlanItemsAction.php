@@ -2,12 +2,13 @@
 
 namespace App\Actions\Kinetik;
 
+use App\Kinetik\PlanStatus;
 use App\Models\KipActivity;
 use App\Models\PlanItem;
 
 /**
- * After a kipApp sync, plan items follow the kipApp progres of their kegiatan.
- * kipApp wins when it changed after Kinetik wrote (Q9a).
+ * After a kipApp sync, plan items follow the kipApp progres of their kegiatan (kipApp wins, Q9a), and an empty uraian
+ * or bukti dukung in Kinetik takes what the member typed in kipApp.
  */
 class ReconcilePlanItemsAction
 {
@@ -29,14 +30,15 @@ class ReconcilePlanItemsAction
                     return;
                 }
 
-                $progress = (float) $activity->progress;
-                $status = match (true) {
-                    $progress >= 100 => 'done',
-                    $progress > 0 => 'in_progress',
-                    default => 'pushed',
-                };
-
-                $plan->update(['kip_activity_id' => $activity->id, 'status' => $status, 'kip_sent_at' => $activity->sent_at, 'kip_synced_at' => now()]);
+                $plan->update([
+                    'kip_activity_id' => $activity->id,
+                    'status' => PlanStatus::fromKipProgress((float) $activity->progress)->value,
+                    'kip_sent_at' => $activity->sent_at,
+                    'kip_synced_at' => now(),
+                    // What the member typed in kipApp itself comes back when Kinetik has nothing; Kinetik's own text is never replaced.
+                    'evidence_url' => filled($plan->evidence_url) ? $plan->evidence_url : $activity->evidence_url,
+                    'capaian_note' => filled($plan->capaian_note) ? $plan->capaian_note : $activity->achievement_note,
+                ]);
                 $updated++;
             });
 

@@ -7,6 +7,7 @@ use App\Actions\Kinetik\DeletePlanItemAction;
 use App\Actions\Kinetik\LinkPlansToProjectsAction;
 use App\Actions\Kinetik\ListPresensiAction;
 use App\Actions\Kinetik\PushPlanItemAction;
+use App\Actions\Kinetik\SaveRealisasiAction;
 use App\Actions\Kinetik\SendPlanItemAction;
 use App\Actions\Kinetik\UpdatePlanItemAction;
 use App\Http\Controllers\Concerns\ResolvesTeams;
@@ -244,10 +245,10 @@ class PlanItemController extends Controller
     }
 
     /**
-     * Saves the result of a plan in Kinetik only (capaian, uraian, bukti, progres).
-     * Nothing is written to kipApp here; "Tandai selesai" sends it.
+     * Saves the result of a plan (capaian, uraian, bukti, progres). A kegiatan already in kipApp and not sent to the atasan
+     * is updated there too (SaveRealisasiAction); one that is not in kipApp yet goes there once complete.
      */
-    public function result(Request $request, PlanItem $planItem): RedirectResponse
+    public function result(Request $request, PlanItem $planItem, SaveRealisasiAction $save): RedirectResponse
     {
         $this->authorizeFor($this->actor($request), Team::findOrFail($planItem->team_id), $planItem->employee_id);
         abort_if($planItem->status === 'cancelled', 422, 'Rencana ini sudah dibatalkan.');
@@ -264,9 +265,14 @@ class PlanItemController extends Controller
             }
             WeekSnapshot::record($planItem->load('weekSnapshots'), $week, $data);
         }
-        $planItem->update($values);
+        $result = $save->execute($planItem, $values);
 
-        return back()->with('success', 'Capaian disimpan.');
+        return match ($result['outcome']) {
+            SaveRealisasiAction::SYNCED => back()->with('success', 'Realisasi disimpan, kipApp ikut diperbarui.'),
+            SaveRealisasiAction::FAILED => back()->with('warning', 'Realisasi tersimpan di Kinetik, tetapi kipApp belum diperbarui: '.$result['reason']),
+            SaveRealisasiAction::LOCKED => back()->with('success', 'Realisasi disimpan di Kinetik saja. '.$result['reason']),
+            default => back()->with('success', 'Realisasi disimpan. Kinetik mengirimnya ke kipApp setelah lengkap.'),
+        };
     }
 
     /** "Kirim ke atasan": the kegiatan in kipApp is sent for the atasan to rate. */
