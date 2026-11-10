@@ -36,7 +36,9 @@ Rules:
 Realisasi and kipApp (changed 2026-11-11):
 - `SaveRealisasiAction` is the one way to save capaian, progres, uraian, bukti dukung and permasalahan.
 - It writes Kinetik first. Then it updates kipApp when the kegiatan is there and not sent to the atasan.
-- It returns one of four outcomes: `local`, `synced`, `locked`, `failed`. The page shows a message for each.
+- A kegiatan that the save made complete goes to kipApp at once (`sent`). The hourly run stays as a safety net.
+- It returns one of five outcomes: `local`, `sent`, `synced`, `locked`, `failed`. The page shows a message for each.
+- The hourly run stops after 5 failed tries. A new kipApp login of the owner gives the tries back (`MemberKipCredential::remember`).
 - `kinetik:push-realisasi` lists kegiatan where Kinetik is ahead of kipApp. With `--apply` it sends them.
 
 ## 2. SKP triwulan (owned by kipApp)
