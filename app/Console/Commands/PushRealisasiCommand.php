@@ -21,7 +21,7 @@ class PushRealisasiCommand extends Command
 
     public function handle(SaveRealisasiAction $save): int
     {
-        $behind = PlanItem::with('employee:id,name')
+        $behind = PlanItem::with(['employee.user', 'performancePlan'])
             ->whereNotNull('kip_external_id')->whereNull('kip_sent_at')->where('status', '!=', 'cancelled')
             ->when($this->option('employee'), fn ($q, $id) => $q->where('employee_id', (int) $id))
             ->get()
