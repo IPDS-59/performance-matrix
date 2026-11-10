@@ -88,7 +88,7 @@ const canChange = (row: PlanItemRow) => row.can_edit && !row.sent;
                         <span v-if="row.capaian_note" class="mt-0.5 line-clamp-2 block text-xs text-gray-700">{{ row.capaian_note }}</span>
                     </td>
                     <td class="px-3 py-3" @click.stop>
-                        <Button v-if="row.evidence_url" as="a" :href="row.evidence_url" target="_blank" rel="noopener noreferrer" size="sm" class="h-8 gap-1 bg-emerald-600 text-white hover:bg-emerald-700"><Eye class="h-3.5 w-3.5" aria-hidden="true" /> Lihat</Button>
+                        <Button v-if="row.evidence_url" as="a" :href="row.evidence_url" target="_blank" rel="noopener noreferrer" size="sm" class="h-8 gap-1"><Eye class="h-3.5 w-3.5" aria-hidden="true" /> Lihat</Button>
                         <span v-else class="text-xs italic text-gray-600">Belum ada</span>
                     </td>
                     <td class="px-3 py-3 text-center">
@@ -98,7 +98,7 @@ const canChange = (row: PlanItemRow) => row.can_edit && !row.sent;
                     <td v-if="actions" class="px-3 py-3" @click.stop>
                         <DropdownMenu>
                             <DropdownMenuTrigger as-child>
-                                <Button size="sm" class="h-8 gap-1 bg-emerald-600 text-white hover:bg-emerald-700" :aria-label="`Aksi untuk ${row.description}`">Aksi <ChevronDown class="h-3.5 w-3.5" aria-hidden="true" /></Button>
+                                <Button size="sm" class="h-8 gap-1" :aria-label="`Aksi untuk ${row.description}`">Aksi <ChevronDown class="h-3.5 w-3.5" aria-hidden="true" /></Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end" class="w-48">
                                 <DropdownMenuItem @select="emit('open', row)">Isi realisasi</DropdownMenuItem>
