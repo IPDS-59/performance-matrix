@@ -75,7 +75,7 @@ const pct = (p: TeamWeekPlan) => achievementPercent(p.capaian, p.target);
 <template>
     <CollapsibleSection :id="`tabel-${week}`" :title="title" :summary="`${range} · ${formatNumber(rowCount)} kegiatan${without ? `, ${formatNumber(without)} anggota belum membuat rencana` : ''}`" default-open>
         <div class="flex flex-wrap items-center gap-3 border-b px-4 py-3">
-            <p class="text-xs text-gray-600">Seperti Excel lama: satu baris per kegiatan. {{ canEdit ? 'Tekan baris untuk mengisi realisasi dan permasalahan.' : '' }}</p>
+            <p v-if="canEdit" class="text-xs text-gray-600">Tekan baris untuk mengisi realisasi dan permasalahan.</p>
             <div class="relative ml-auto">
                 <Search class="pointer-events-none absolute left-3 top-2.5 h-4 w-4 text-gray-500" aria-hidden="true" />
                 <Input v-model="query" class="h-9 w-56 pl-9" placeholder="Cari anggota atau kegiatan" :aria-label="`Cari di ${title}`" />
