@@ -5,6 +5,7 @@ use App\Actions\Kinetik\FindMissingQuarterSkpsAction;
 use App\Actions\Kinetik\PushDuePlansAction;
 use App\Actions\Kinetik\PushPlanItemAction;
 use App\Actions\Kinetik\ReconcilePlanItemsAction;
+use App\Kinetik\PlanStatus;
 use App\Models\Employee;
 use App\Models\KipActivity;
 use App\Models\MemberKipCredential;
@@ -424,4 +425,30 @@ it('does not merge anything while the saklar is off', function () {
     app(PushPlanItemAction::class)->execute($first);
 
     expect($second->fresh())->status->not->toBe('cancelled')->and((float) $first->fresh()->target)->toBe(3.0);
+});
+
+it('updates kipApp too when the realisasi of a kegiatan already there is saved, and keeps Kinetik when kipApp refuses', function () {
+    $plan = pushSetup(['kip_external_id' => '5550001', 'kip_skp_id' => '1460709', 'status' => 'pushed']);
+    $row = ['kegiatanperhariid' => 5550001, 'kegiatan' => 'Entri SE2026', 'rkid' => '14656590', 'rencanakinerja' => 'RK Inovasi', 'tanggal' => '2026-10-08', 'tanggalselesai' => '2026-10-09', 'progres' => 0, 'capaian' => '', 'datadukung' => ''];
+    Http::fake(['*/v1/kegiatan*' => Http::sequence([Http::response([$row]), Http::response(['status' => true, 'message' => 'ok']), Http::response([$row]), Http::response(['status' => false, 'message' => 'Data dukung tidak valid'], 422)])]);
+    $user = $plan->employee->user;
+
+    $this->actingAs($user)->patch(route('plan-items.result', $plan), ['capaian' => 2, 'progress' => 100, 'capaian_note' => 'Entri selesai seluruhnya', 'evidence_url' => 'https://example.com/bukti'])
+        ->assertSessionHas('success', 'Realisasi disimpan, kipApp ikut diperbarui.');
+    Http::assertSent(fn ($r) => $r->method() === 'PUT' && str_ends_with($r->url(), '/v1/kegiatan') && $r['datadukung'] === 'https://example.com/bukti' && $r['progres'] === 100 && $r['capaian'] === 'Entri selesai seluruhnya');
+    expect($plan->fresh())->status->toBe('done')->evidence_url->toBe('https://example.com/bukti');
+    expect($plan->fresh()->stage()->value)->toBe('done');
+
+    // kipApp refuses the next save: Kinetik still has it, and the member is told kipApp is behind.
+    $this->actingAs($user)->patch(route('plan-items.result', $plan), ['evidence_url' => 'https://example.com/lain'])->assertSessionHas('warning');
+    expect($plan->fresh()->evidence_url)->toBe('https://example.com/lain');
+});
+
+it('keeps the plan status in step with the kipApp progres and treats cancelled as final', function () {
+    expect(PlanStatus::fromKipProgress(0)->value)->toBe('pushed')
+        ->and(PlanStatus::fromKipProgress(40)->value)->toBe('in_progress')
+        ->and(PlanStatus::fromKipProgress(100)->value)->toBe('done')
+        ->and(PlanStatus::Cancelled->canBecome(PlanStatus::Done))->toBeFalse()
+        ->and(PlanStatus::Done->canBecome(PlanStatus::Planned))->toBeFalse()
+        ->and(PlanStatus::Planned->canBecome(PlanStatus::Done))->toBeTrue();
 });

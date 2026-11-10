@@ -508,6 +508,8 @@ export interface RecapSection {
 
 /** One kegiatan of the signed-in member on "Rekap Mingguan". Target and capaian are numbers. */
 export interface PlanItemRow {
+    /** Lifecycle stage from the server (App\Kinetik\PlanStage). */
+    stage?: 'planned' | 'in_kipapp' | 'in_progress' | 'done' | 'sent' | 'cancelled';
     id: number;
     team_id: number;
     description: string;
@@ -752,6 +754,7 @@ export interface PeriodRow {
 
 /** A member's plan item for one week, as the PJ sees it (read only). */
 export interface TeamWeekPlan {
+    stage?: 'planned' | 'in_kipapp' | 'in_progress' | 'done' | 'sent' | 'cancelled';
     id: number;
     employee_id: number;
     employee_name: string;

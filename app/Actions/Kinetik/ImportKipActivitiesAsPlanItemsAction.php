@@ -2,6 +2,7 @@
 
 namespace App\Actions\Kinetik;
 
+use App\Kinetik\PlanStatus;
 use App\Models\KipActivity;
 use App\Models\PerformancePlan;
 use App\Models\PlanItem;
@@ -66,11 +67,7 @@ class ImportKipActivitiesAsPlanItemsAction
                         'evidence_url' => $activity->evidence_url,
                         'progress' => $progress,
                         'source' => 'kipapp',
-                        'status' => match (true) {
-                            $progress >= 100 => 'done',
-                            $progress > 0 => 'in_progress',
-                            default => 'pushed',
-                        },
+                        'status' => PlanStatus::fromKipProgress($progress)->value,
                         'kip_external_id' => $activity->external_id,
                         'kip_activity_id' => $activity->id,
                         'kip_sent_at' => $activity->sent_at,
@@ -142,11 +139,7 @@ class ImportKipActivitiesAsPlanItemsAction
             'kip_activity_id' => $activity->id,
             'kip_sent_at' => $activity->sent_at,
             'kip_synced_at' => now(),
-            'status' => match (true) {
-                $progress >= 100 => 'done',
-                $progress > 0 => 'in_progress',
-                default => 'pushed',
-            },
+            'status' => PlanStatus::fromKipProgress($progress)->value,
             'progress' => max($progress, (int) $match->progress),
             'evidence_url' => $match->evidence_url ?: $activity->evidence_url,
             'capaian_note' => $match->capaian_note ?: $activity->achievement_note,

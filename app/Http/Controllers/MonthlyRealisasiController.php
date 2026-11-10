@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Actions\Kinetik\CompletePlanItemAction;
+use App\Actions\Kinetik\SaveRealisasiAction;
 use App\Models\PlanItem;
 use App\Rules\CapaianWithinTarget;
 use App\Services\Kinetik\PlanItemAccess;
@@ -54,7 +55,7 @@ class MonthlyRealisasiController extends Controller
         ]);
     }
 
-    public function store(Request $request, CompletePlanItemAction $complete): RedirectResponse
+    public function store(Request $request, CompletePlanItemAction $complete, SaveRealisasiAction $save): RedirectResponse
     {
         $employee = $request->user()->employee;
         abort_if($employee === null, 403, 'Akun tidak terhubung ke data pegawai.');
@@ -80,6 +81,7 @@ class MonthlyRealisasiController extends Controller
         }
         $saved = 0;
         $sent = 0;
+        $synced = 0;
         $problems = [];
 
         foreach ($data['rows'] as $row) {
@@ -94,10 +96,19 @@ class MonthlyRealisasiController extends Controller
             }
 
             // Kinetik first: the numbers are never lost when kipApp refuses.
-            $item->update($fields);
-            $saved++;
+            if ($row['to_kip'] ?? false) {
+                $item->update($fields);
+                $saved++;
+            } else {
+                // A kegiatan already in kipApp gets the changed uraian, bukti or progres there too, so the two never drift.
+                $result = $save->execute($item, $fields, always: false);
+                $saved++;
+                if ($result['outcome'] === SaveRealisasiAction::SYNCED) {
+                    $synced++;
+                } elseif ($result['outcome'] === SaveRealisasiAction::FAILED) {
+                    $problems[] = "{$label}: kipApp belum diperbarui ({$result['reason']})";
+                }
 
-            if (! ($row['to_kip'] ?? false)) {
                 continue;
             }
             $note = trim((string) ($row['capaian_note'] ?? $item->capaian_note));
@@ -124,7 +135,7 @@ class MonthlyRealisasiController extends Controller
             }
         }
 
-        $message = "{$saved} kegiatan disimpan di Kinetik".($sent ? ", {$sent} ditandai selesai di kipApp" : '').'.';
+        $message = "{$saved} kegiatan disimpan di Kinetik".($sent ? ", {$sent} ditandai selesai di kipApp" : '').($synced ? ", {$synced} diperbarui di kipApp" : '').'.';
 
         return back()->with($problems === [] ? 'success' : 'warning', $problems === [] ? $message : $message.' Belum berhasil: '.implode(' ', array_slice($problems, 0, 5)).(count($problems) > 5 ? ' (dan '.(count($problems) - 5).' lainnya)' : ''));
     }

@@ -116,7 +116,7 @@ class KipIntegrationController extends Controller
 
                 $run = KipSyncRun::create([
                     'type' => 'activities',
-                    'status' => empty($employeeIds) ? 'completed' : 'running',
+                    'status' => empty($employeeIds) ? KipSyncRun::COMPLETED : KipSyncRun::RUNNING,
                     'total' => count($employeeIds),
                     'processed' => 0,
                     'pending' => $employeeIds,
@@ -128,7 +128,7 @@ class KipIntegrationController extends Controller
 
             $pending = $run->pending ?? [];
 
-            if ($run->status === 'running' && ! empty($pending)) {
+            if ($run->status === KipSyncRun::RUNNING && ! empty($pending)) {
                 $chunk = max(1, (int) config('kinetik.kip.activity_chunk', 5));
                 $batch = array_splice($pending, 0, $chunk);
 
@@ -147,14 +147,14 @@ class KipIntegrationController extends Controller
                 $run->summary = $summary;
 
                 if (empty($pending)) {
-                    $run->status = 'completed';
+                    $run->status = KipSyncRun::COMPLETED;
                     $run->finished_at = now();
                 }
 
                 $run->save();
             }
         } catch (Throwable $e) {
-            $run?->update(['status' => 'failed', 'message' => $e->getMessage(), 'finished_at' => now()]);
+            $run?->update(['status' => KipSyncRun::FAILED, 'message' => $e->getMessage(), 'finished_at' => now()]);
 
             return back()->with('error', 'Sinkronisasi gagal: '.$e->getMessage());
         }
@@ -189,7 +189,7 @@ class KipIntegrationController extends Controller
 
                 $run = KipSyncRun::create([
                     'type' => 'structure',
-                    'status' => empty($teamIds) ? 'completed' : 'running',
+                    'status' => empty($teamIds) ? KipSyncRun::COMPLETED : KipSyncRun::RUNNING,
                     'total' => count($teamIds),
                     'processed' => 0,
                     'pending' => $teamIds,
@@ -201,7 +201,7 @@ class KipIntegrationController extends Controller
 
             $pending = $run->pending ?? [];
 
-            if ($run->status === 'running' && ! empty($pending)) {
+            if ($run->status === KipSyncRun::RUNNING && ! empty($pending)) {
                 $teamId = (string) array_shift($pending);
                 $counts = $action->syncTeam($source, $teamId);
 
@@ -215,14 +215,14 @@ class KipIntegrationController extends Controller
                 $run->summary = $summary;
 
                 if (empty($pending)) {
-                    $run->status = 'completed';
+                    $run->status = KipSyncRun::COMPLETED;
                     $run->finished_at = now();
                 }
 
                 $run->save();
             }
         } catch (Throwable $e) {
-            $run?->update(['status' => 'failed', 'message' => $e->getMessage(), 'finished_at' => now()]);
+            $run?->update(['status' => KipSyncRun::FAILED, 'message' => $e->getMessage(), 'finished_at' => now()]);
 
             return back()->with('error', 'Sinkronisasi struktur gagal: '.$e->getMessage());
         }
@@ -248,7 +248,7 @@ class KipIntegrationController extends Controller
 
         $run = KipSyncRun::active('careers') ?? $this->startRun($request, 'careers', ['employees' => 0, 'ratings' => 0, 'failed' => 0]);
 
-        if ($run->status !== 'running' || empty($run->pending)) {
+        if ($run->status !== KipSyncRun::RUNNING || empty($run->pending)) {
             return back();
         }
 
@@ -270,7 +270,7 @@ class KipIntegrationController extends Controller
         }
 
         if ($failedInBatch === count($batch)) {
-            $run->update(['status' => 'failed', 'message' => $error, 'summary' => $summary, 'finished_at' => now()]);
+            $run->update(['status' => KipSyncRun::FAILED, 'message' => $error, 'summary' => $summary, 'finished_at' => now()]);
 
             return back()->with('error', 'Sinkronisasi Angka Kredit gagal: '.$error);
         }
@@ -279,7 +279,7 @@ class KipIntegrationController extends Controller
             'pending' => $pending,
             'processed' => $run->processed + count($batch),
             'summary' => $summary,
-            'status' => empty($pending) ? 'completed' : 'running',
+            'status' => empty($pending) ? KipSyncRun::COMPLETED : KipSyncRun::RUNNING,
             'finished_at' => empty($pending) ? now() : null,
         ]);
 
@@ -297,7 +297,7 @@ class KipIntegrationController extends Controller
 
         return KipSyncRun::create([
             'type' => $type,
-            'status' => empty($employeeIds) ? 'completed' : 'running',
+            'status' => empty($employeeIds) ? KipSyncRun::COMPLETED : KipSyncRun::RUNNING,
             'total' => count($employeeIds),
             'processed' => 0,
             'pending' => $employeeIds,

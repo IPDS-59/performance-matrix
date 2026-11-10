@@ -91,6 +91,7 @@ class BuildMemberWeekAction
                     'evidence_url' => $p->evidence_url,
                     'progress' => $view['progress'],
                     'status' => $p->status,
+                    'stage' => $p->stage()->value,
                     'source' => $p->source,
                     'push_error' => $p->status === 'planned' ? $p->push_error : null,
                     'in_kipapp' => $p->kip_external_id !== null,

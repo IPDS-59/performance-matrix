@@ -110,16 +110,17 @@ it('validates the date order and the clock time of a jam kegiatan', function () 
     expect(PlanItem::where('date_end', '2026-10-06')->first())->time_start->toStartWith('09:00');
 });
 
-it('saves the result of a kegiatan locally, for the owner or the PJ only', function () {
+it('saves the result of a kegiatan for the owner or the PJ only, and says so when kipApp could not be updated', function () {
     [$pjUser, $team, $member, $memberUser, $rk] = planSetup();
     $item = PlanItem::create(['team_id' => $team->id, 'employee_id' => $member->id, 'performance_plan_id' => $rk->id, 'description' => 'Awal', 'date_start' => '2026-10-05', 'date_end' => '2026-10-05', 'status' => 'done', 'kip_external_id' => '55']);
     Http::fake();
 
-    $this->actingAs($memberUser)->patch(route('plan-items.result', $item), ['capaian' => 4, 'capaian_note' => 'Empat blok', 'evidence_url' => 'https://x.example/a'])->assertSessionHas('success');
+    // The kegiatan is in kipApp, and the member has no kipApp login stored: Kinetik keeps the values and warns that kipApp is behind.
+    $this->actingAs($memberUser)->patch(route('plan-items.result', $item), ['capaian' => 4, 'capaian_note' => 'Empat blok', 'evidence_url' => 'https://x.example/a'])->assertSessionHas('warning');
     expect($item->fresh())->capaian->toBe('4.00')->capaian_note->toBe('Empat blok')->status->toBe('done');
-    Http::assertNothingSent();
 
     $this->actingAs($memberUser)->patch(route('plan-items.result', $item), ['capaian' => 'x'])->assertSessionHasErrors('capaian');
     $this->actingAs(User::factory()->create())->patch(route('plan-items.result', $item), ['capaian' => 1])->assertStatus(403);
-    $this->actingAs($pjUser)->patch(route('plan-items.result', $item), ['capaian' => 5])->assertSessionHas('success');
+    $this->actingAs($pjUser)->patch(route('plan-items.result', $item), ['capaian' => 5])->assertSessionHas('warning');
+    expect($item->fresh()->capaian)->toBe('5.00');
 });

@@ -159,6 +159,7 @@ class TeamRecapController extends Controller
                     'continued' => Carbon::parse($p->date_start)->lt($monday),
                     'evidence_url' => $p->evidence_url,
                     'status' => $p->status,
+                    'stage' => $p->stage()->value,
                     'in_kipapp' => $p->kip_external_id !== null,
                     'sent' => $p->kip_sent_at !== null,
                 ];

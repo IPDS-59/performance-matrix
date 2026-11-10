@@ -156,6 +156,18 @@ return [
     ],
 
     'attributes' => [
+        'evidence_url' => 'bukti dukung',
+        'capaian' => 'capaian',
+        'capaian_note' => 'uraian capaian',
+        'kendala' => 'permasalahan',
+        'progress' => 'progres',
+        'target_unit' => 'satuan',
+        'description' => 'kegiatan',
+        'date_start' => 'tanggal mulai',
+        'date_end' => 'tanggal selesai',
+        'project_id' => 'projek',
+        'time_start' => 'jam mulai',
+        'time_end' => 'jam selesai',
         'name' => 'nama',
         'email' => 'email',
         'password' => 'kata sandi',

@@ -175,7 +175,8 @@ const incomplete = computed(() => (stage.value?.action === 'push' ? (props.item?
                 <Button type="submit" form="plan-result" variant="outline" :disabled="form.processing || item?.status === 'cancelled'">Simpan realisasi</Button>
                 <Button v-if="stage?.action" type="button" :disabled="form.processing || acting || waitsForStart || incomplete.length > 0" :title="waitsForStart ? 'Kegiatan belum bisa dikirim sebelum tanggal mulainya.' : incomplete.length ? `Isi dulu: ${incomplete.join(', ')}` : undefined" @click="run">{{ stage?.actionLabel }}</Button>
             </DialogFooter>
-            <p v-if="item?.sent" class="text-xs text-gray-600">Kegiatan yang sudah dikirim ke atasan tidak bisa dihapus. Batalkan kirim dulu, lalu hapus.</p>
+            <p v-if="item?.in_kipapp && !item.sent && item.status !== 'cancelled'" class="text-right text-xs text-gray-600">Kegiatan ini sudah ada di kipApp. "Simpan realisasi" memperbarui kipApp juga.</p>
+            <p v-if="item?.sent" class="text-xs text-gray-600">Kegiatan yang sudah dikirim ke atasan tidak bisa dihapus, dan "Simpan realisasi" hanya menyimpan di Kinetik. Batalkan kirim dulu bila kipApp perlu diubah.</p>
             <p v-if="incomplete.length" class="text-right text-xs text-amber-800">Belum lengkap, jadi belum dikirim ke kipApp. Isi dulu: {{ incomplete.join(', ') }}. Setelah lengkap, Kinetik mengirimnya sendiri.</p>
             <p v-if="waitsForStart" class="text-right text-xs text-gray-600">Kegiatan belum bisa dikirim sebelum tanggal mulainya. Kinetik mengirimnya otomatis pada hari itu.</p>
 

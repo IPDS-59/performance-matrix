@@ -7,6 +7,13 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class KipSyncRun extends Model
 {
+    /** The run lifecycle: running, then completed or failed. The browser drives a run chunk by chunk (KipIntegrationController). */
+    public const RUNNING = 'running';
+
+    public const COMPLETED = 'completed';
+
+    public const FAILED = 'failed';
+
     protected $fillable = [
         'type',
         'status',
@@ -33,7 +40,7 @@ class KipSyncRun extends Model
     public static function active(string $type): ?self
     {
         return static::where('type', $type)
-            ->where('status', 'running')
+            ->where('status', self::RUNNING)
             ->latest('id')
             ->first();
     }
