@@ -11,7 +11,7 @@
     },
     "devDependencies": {
         "@inertiajs/vue3": "^3.11.0",
-        "@tailwindcss/vite": "^4.3.3",
+        "@tailwindcss/vite": "^4.3.5",
         "@vitejs/plugin-vue": "^6.0.10",
         "@vitest/coverage-v8": "^4.1.12",
         "@vue/test-utils": "^2.5.1",
