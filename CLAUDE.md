@@ -15,7 +15,7 @@ Laravel 12, Inertia, Vue 3, shadcn-vue, Tailwind. Production is PostgreSQL. Loca
 - Each feature updates `resources/js/data/guide.ts` and both Slidev decks.
 
 ## Checks
-`vendor/bin/pest tests/Feature`, `npx vitest run`, `npx vue-tsc --noEmit`, `vendor/bin/pint app tests`.
+`vendor/bin/pest tests/Feature`, `pnpm exec vitest run`, `pnpm exec vue-tsc --noEmit`, `vendor/bin/pint app tests`.
 
 ## Deploy
 1. Merge the PR into `develop` (approval from the other account).
