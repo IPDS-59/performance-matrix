@@ -83,6 +83,7 @@ const props = defineProps<{
 
 const monthNames = ['', 'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
     'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
+const monthName = (month: number): string => monthNames[month] ?? '';
 
 // ── Employee: per-report form state ────────────────────────────────────────
 
@@ -420,7 +421,7 @@ function pct(realization: number, target: number): number {
                 >
                     <!-- Report header -->
                     <div class="flex flex-wrap items-center gap-2 border-b border-gray-100 px-4 py-3">
-                        <span class="font-medium text-gray-700">{{ monthNames[report.period_month] }} {{ report.period_year }}</span>
+                        <span class="font-medium text-gray-700">{{ monthName(report.period_month) }} {{ report.period_year }}</span>
                         <span class="text-gray-300">·</span>
                         <span class="text-sm text-gray-600">
                             {{ Number(report.realization).toLocaleString('id') }} {{ work_item.target_unit }}
@@ -611,7 +612,7 @@ function pct(realization: number, target: number): number {
                                 <SelectValue />
                             </SelectTrigger>
                             <SelectContent>
-                                <SelectItem v-for="m in availableMonths" :key="m" :value="String(m)">{{ monthNames[m] }}</SelectItem>
+                                <SelectItem v-for="m in availableMonths" :key="m" :value="String(m)">{{ monthName(m) }}</SelectItem>
                             </SelectContent>
                         </Select>
                     </div>
@@ -764,7 +765,7 @@ function pct(realization: number, target: number): number {
                         >
                             <!-- Report header -->
                             <div class="flex flex-wrap items-center gap-2 border-b border-gray-100 px-4 py-3">
-                                <span class="font-medium text-gray-700">{{ monthNames[report.period_month] }} {{ report.period_year }}</span>
+                                <span class="font-medium text-gray-700">{{ monthName(report.period_month) }} {{ report.period_year }}</span>
                                 <span class="text-gray-300">·</span>
                                 <span class="text-sm text-gray-600">
                                     {{ Number(report.realization).toLocaleString('id') }} {{ work_item.target_unit }}
