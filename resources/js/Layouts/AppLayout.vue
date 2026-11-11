@@ -48,7 +48,7 @@ const navSections = computed<NavSection[]>(() => {
         {
             items: [
                 { label: 'Beranda', href: route('dashboard'), active: is('dashboard'), icon: House, show: true },
-                { label: 'Monitoring', href: route('monitoring'), active: is('monitoring'), icon: Activity, show: true },
+                { label: 'Monitoring', href: route('monitoring'), active: is('monitoring'), icon: Activity, show: !isStaff.value || canReview.value }, // a plain team member does not see it; a PJ does
                 { label: 'Matriks', href: route('matrix'), active: is('matrix'), icon: LayoutGrid, show: true },
                 { label: 'Struktur Organisasi', href: route('organization.index'), active: is('organization.*'), icon: Network, show: true },
             ],
