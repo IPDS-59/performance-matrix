@@ -78,6 +78,38 @@ class KegiatanDuplicateFinder
     }
 
     /**
+     * Whether two texts of the same day are one kegiatan entered twice, for the admin's list of double kegiatan. Stricter than
+     * similarity(): every word one text has and the other lacks must be a typo of a word the other has (2 letters off, 5 letters
+     * or longer, never a number) or a filler word. "Kabupaten Tolitoli" and "Kabupaten Sigi", "Surat Keluar" and "Surat Masuk",
+     * "SPP" and "SPM" are two kegiatan, though similarity() scores them above SAME (seen on production 2026-11-11).
+     */
+    public function isSameKegiatan(string $a, string $b): bool
+    {
+        $words = fn (string $t) => array_values(array_unique(array_filter(explode(' ', self::normalize($t)), fn ($w) => $w !== '')));
+        [$wa, $wb] = [$words($a), $words($b)];
+        if ($wa === [] || $wb === []) {
+            return false;
+        }
+        $onlyA = array_values(array_diff($wa, $wb));
+        $onlyB = array_values(array_diff($wb, $wa));
+        $typoOf = fn (string $w, array $others) => ! ctype_digit($w) && mb_strlen($w) >= 5
+            && collect($others)->contains(fn (string $o) => ! ctype_digit($o) && levenshtein($w, $o) <= 2);
+
+        foreach ([[$onlyA, $onlyB], [$onlyB, $onlyA]] as [$mine, $theirs]) {
+            foreach ($mine as $w) {
+                if (! in_array($w, self::FILLER, true) && ! $typoOf($w, $theirs)) {
+                    return false;
+                }
+            }
+        }
+
+        return true;
+    }
+
+    /** Words that do not tell two kegiatan apart. */
+    private const FILLER = ['dan', 'yang', 'di', 'ke', 'dari', 'untuk', 'dalam', 'rangka', 'pada', 'kegiatan', 'dengan', 'serta', 'atau'];
+
+    /**
      * How much of a kegiatan's wording an RK (or projek) text covers, 0 to 1: the share of the kegiatan's significant words that the
      * other text also has. Used to rank RK for a spreadsheet row that only names a projek; it is no duplicate test.
      */
