@@ -447,7 +447,8 @@ export const GUIDE_FLOWS: GuideFlow[] = [
                 route: 'kip-activities.index',
                 body: [
                     'Pantau Kegiatan hanya untuk memantau: halaman ini menampilkan semua kegiatan kipApp Anda dan tidak dipakai untuk mengisi. Saring per Minggu, Bulan atau Triwulan, lalu pindah periode dengan ‹ dan ›.',
-                    'Rekap Tim menampilkan rekap tim Anda. Anda bisa membaca, tetapi hanya PJ yang mengubah ringkasan.',
+                    'Ringkasan Rapat di Beranda menunjukkan rapat mingguan dan bulanan tim Anda: Lengkap, Sebagian, atau Belum. Klik satu status untuk membaca hasil rapatnya: tabel satu baris per RK berisi parafrase PJ, target, capaian dan persen, ditambah bukti rapat.',
+                    'Di Rekap Tim, anggota hanya melihat hasil rapat itu. Kegiatan dan isian anggota lain tidak ditampilkan. Hanya PJ yang menulis parafrase.',
                 ],
             },
             {
@@ -567,9 +568,9 @@ export const GUIDE_FLOWS: GuideFlow[] = [
                 body: [
                     'Masih di popup yang sama, isi satu Target (angka), satu Satuan dan satu Capaian (angka) untuk seluruh RK. Persentase capaian dihitung otomatis.',
                     '"Simpan" menyimpan dan menutup popup; hasilnya langsung tampil di kartu RK. Tidak ada kunci: parafrase, target dan capaian boleh diubah lagi kapan saja.',
-                    'PJ dan PIC RK bisa menulis. Anggota lain hanya membaca.',
+                    'Hanya PJ yang bisa menulis. PIC RK dan anggota lain hanya membaca.',
                 ],
-                tip: 'Parafrase hanya terlihat oleh PJ, PIC RK, dan admin. Anggota dan pimpinan hanya melihat angka dan statusnya.',
+                tip: 'Parafrase dibaca semua anggota tim dan pimpinan sebagai hasil rapat. Anggota melihatnya dalam bentuk tabel, tanpa kegiatan anggota lain.',
             },
             {
                 title: 'Tambah bukti rapat',
@@ -585,7 +586,7 @@ export const GUIDE_FLOWS: GuideFlow[] = [
                     'Buka panel sebuah baris untuk menulis uraian, permasalahan, solusi dan RTL. Isi juga link bukti tindak lanjut, PIC dan batas waktu.',
                     'Konfirmasi setiap baris. "Konfirmasi semua capaian 100%" mengonfirmasi semua baris yang sudah 100% sekaligus. Kunci triwulan setelah rapat selesai; tombolnya ada di bagian atas halaman.',
                 ],
-                tip: 'PIC sebuah RK boleh menulis parafrase untuk RK-nya. Konfirmasi, bukti dan kunci triwulan tetap oleh PJ.',
+                tip: 'Parafrase, konfirmasi, bukti dan kunci triwulan hanya oleh PJ.',
             },
             {
                 title: 'Unduh Excel untuk rapat',

@@ -159,9 +159,9 @@ function toggleConfirm(row: RecapRow) {
 
 // ── Per-row paraphrase permission ──────────────────────────────────────────
 
-function rowCanParaphrase(row: RecapRow): boolean {
+function rowCanParaphrase(_row: RecapRow): boolean {
     if (props.lock) return false;
-    return props.canManage || (props.currentEmployeeId !== null && row.pic_employee_id === props.currentEmployeeId);
+    return props.canManage; // only the PJ writes
 }
 
 // ── Paraphrase + FRA follow-up forms (per planId) ─────────────────────────

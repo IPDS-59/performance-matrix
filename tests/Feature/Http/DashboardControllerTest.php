@@ -186,7 +186,7 @@ it('shows a member what to do this week on the beranda', function () {
         ->has('sent.pending', 2));
 });
 
-it('shows the PJ the ringkasan rapat of their teams on the beranda, and a member none', function () {
+it('shows the PJ the ringkasan rapat of their teams on the beranda, and a member that of their own teams', function () {
     $this->travelTo('2026-10-14 09:00:00');
     $user = staffUser();
     $pj = Employee::factory()->create(['user_id' => $user->id]);
@@ -213,5 +213,8 @@ it('shows the PJ the ringkasan rapat of their teams on the beranda, and a member
     $employee->teams()->attach($team->id, ['role' => 'member', 'is_primary' => true]);
     $this->actingAs($member)->get(route('dashboard'))->assertInertia(fn ($page) => $page
         ->component('MemberHome')
-        ->missing('meetings'));
+        ->has('meetings.teams', 1)
+        ->where('meetings.teams.0.name', 'Tim PJ')
+        ->where('meetings.teams.0.weeks.1.status', 'done')
+        ->missing('teamStatus'));
 });

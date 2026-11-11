@@ -10,7 +10,7 @@ interface Cell { status: Status; written: number; rks: number; evidence: number 
 export interface MeetingTeamRow { id: number; name: string; leader: string | null; weeks: Array<Cell & { start: string }>; month: Cell }
 export interface MeetingSummaryData { year: number; month: number; weeks: Array<{ start: string; label: string }>; teams: MeetingTeamRow[] }
 
-/** The Ringkasan Rapat of one month: on its own page for the head and admins, on the beranda for a PJ. */
+/** The Ringkasan Rapat of one month: on its own page for the head and admins, on the beranda for a PJ and every member. */
 const props = defineProps<MeetingSummaryData & {
     /** The page the month buttons reload. */
     routeName: string;

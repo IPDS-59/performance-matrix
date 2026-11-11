@@ -7,8 +7,9 @@ import RkPicker from '@/Components/Kinetik/RkPicker.vue';
 import RkRecapPanel from '@/Components/Kinetik/RkRecapPanel.vue';
 import { Head, router } from '@inertiajs/vue3';
 import { computed, ref } from 'vue';
-import type { MemberCompleteness, PeriodRow, RkPanel, TeamOption, TeamRecapEvidence, TeamWeekPlan } from '@/types';
+import type { MemberCompleteness, PeriodRow, RecapSegment, RkPanel, TeamOption, TeamRecapEvidence, TeamWeekPlan } from '@/types';
 import TeamMeetingTable from '@/Components/Kinetik/TeamMeetingTable.vue';
+import MeetingResultTable from '@/Components/Kinetik/MeetingResultTable.vue';
 import RecapPeriodTable from '@/Components/Kinetik/RecapPeriodTable.vue';
 import { ChevronLeft, ChevronRight } from 'lucide-vue-next';
 import { Button } from '@/Components/ui/button';
@@ -42,6 +43,9 @@ const props = defineProps<{
     lastWeekStart?: string;
     lastWeekEnd?: string;
     noPlan?: { last: Array<{ employee_id: number; name: string }>; this: Array<{ employee_id: number; name: string }> };
+    /** A plain member of the team: the results of the meeting only. */
+    memberView?: boolean;
+    results?: RecapSegment[];
 }>();
 
 const { formatWeekRange } = useDateFormat();
@@ -63,8 +67,8 @@ const shiftYear = (delta: number) => go({ year: props.year + delta });
 
 const selected = ref<number | null>(props.panels[0]?.performance_plan_id ?? null);
 const panel = computed(() => props.panels.find(p => p.performance_plan_id === selected.value) ?? props.panels[0] ?? null);
-// The PJ, or the RK's PIC, writes for the RK.
-const canEdit = computed(() => props.canManage || (panel.value !== null && props.currentEmployeeId !== null && panel.value.pic_employee_id === props.currentEmployeeId));
+// Only the PJ writes for the RK.
+const canEdit = computed(() => props.canManage);
 </script>
 
 <template>
@@ -118,7 +122,9 @@ const canEdit = computed(() => props.canManage || (panel.value !== null && props
             />
 
             <!-- The meeting in one page: the parafrase first (it is what the meeting is for), then the two tables of the week, each one can be folded. -->
-            <template v-if="selectedTeamId">
+            <MeetingResultTable v-if="selectedTeamId && memberView" title="Hasil rapat mingguan" :segments="results ?? []" />
+
+            <template v-else-if="selectedTeamId">
                 <p v-if="!panels.length" class="mb-6 rounded-md border border-dashed border-gray-200 bg-gray-50 py-10 text-center text-sm text-gray-600">Tim ini belum punya RK.</p>
                 <template v-else-if="panel">
                     <RkPicker v-model="selected" :panels="panels" />
