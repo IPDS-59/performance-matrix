@@ -349,7 +349,7 @@ export const GUIDE_FLOWS: GuideFlow[] = [
                 route: 'dashboard',
                 body: [
                     'Beranda menjawab dua hal untuk minggu ini: apakah rencana sudah ada, dan apakah realisasi minggu lalu sudah diisi. Tombol di tiap kotak membuka minggunya. Bila Anda PJ, di bawahnya ada "Status anggota tim": satu baris per anggota, siapa yang belum punya rencana atau belum mengisi realisasi, dengan tombol "Buka tabel rapat". Kegiatan ke atasan dan SKP diurus di kipApp.',
-                    'Capaian tim dan peringkat ada di menu Monitoring. Menu "Pantau Kegiatan" hanya untuk melihat kegiatan kipApp Anda, bukan untuk mengisi.',
+                    'Menu Monitoring (capaian tim dan peringkat) hanya tampil untuk PJ, pimpinan, dan admin. Menu "Pantau Kegiatan" hanya untuk melihat kegiatan kipApp Anda, bukan untuk mengisi.',
                 ],
                 shot: SHOTS.anggotaBeranda,
             },
