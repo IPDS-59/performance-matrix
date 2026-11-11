@@ -225,6 +225,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::get('/admin/integritas-data', [DataIntegrityController::class, 'index'])->name('admin.data-integrity');
         Route::get('/admin/kegiatan-ganda', [DuplicateKegiatanController::class, 'index'])->name('admin.duplicate-kegiatan');
         Route::post('/admin/kegiatan-ganda/minta', [DuplicateKegiatanController::class, 'ask'])->name('admin.duplicate-kegiatan.ask');
+        Route::post('/admin/kegiatan-ganda/bukan-ganda', [DuplicateKegiatanController::class, 'dismiss'])->name('admin.duplicate-kegiatan.dismiss');
         Route::get('/admin/laporan-masalah', [BugReportController::class, 'index'])->name('admin.bug-reports');
         Route::put('/admin/laporan-masalah/{report}', [BugReportController::class, 'update'])->name('admin.bug-reports.update');
     });

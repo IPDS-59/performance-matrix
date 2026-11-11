@@ -6,6 +6,7 @@ import { Button } from '@/Components/ui/button';
 import { Checkbox } from '@/Components/ui/checkbox';
 import SearchableSelect from '@/Components/SearchableSelect.vue';
 import { Badge } from '@/Components/ui/badge';
+import ConfirmDialog from '@/Components/ConfirmDialog.vue';
 import { useDateFormat } from '@/composables/useDateFormat';
 
 interface Side { id: number; where: string; source: string; progress: number; has_capaian: boolean; has_bukti: boolean }
@@ -32,6 +33,14 @@ function ask(keys: string[]) {
     busy.value = true;
     router.post(route('admin.duplicate-kegiatan.ask'), { keys }, { preserveScroll: true, onSuccess: () => { picked.value = picked.value.filter(k => !keys.includes(k)); }, onFinish: () => { busy.value = false; } });
 }
+// "Bukan ganda" asks first: the pair leaves the list for good.
+const dismissing = ref<string[]>([]);
+function dismiss() {
+    const keys = dismissing.value;
+    if (!keys.length || busy.value) return;
+    busy.value = true;
+    router.post(route('admin.duplicate-kegiatan.dismiss'), { keys }, { preserveScroll: true, onSuccess: () => { picked.value = picked.value.filter(k => !keys.includes(k)); dismissing.value = []; }, onFinish: () => { busy.value = false; } });
+}
 const side = (s: Side) => `#${s.id} · ${s.where}${s.has_capaian ? ' · ada capaian' : ''}${s.has_bukti ? ' · ada bukti' : ''}`;
 </script>
 
@@ -40,7 +49,7 @@ const side = (s: Side) => `#${s.id} · ${s.where}${s.has_capaian ? ' · ada capa
     <AppLayout>
         <template #title>Kegiatan ganda</template>
         <p class="mb-3 text-sm text-gray-700">
-            Dua kegiatan satu pegawai pada hari yang sama dengan kata-kata hampir sama, 60 hari terakhir. Tinjau dulu: bisa jadi memang dua pekerjaan yang mirip. Tombol minta tindakan hanya mengirim pemberitahuan lewat lonceng ke pegawainya; admin tidak menghapus apa pun di sini.
+            Dua kegiatan satu pegawai pada hari yang sama dengan kata-kata yang sama, paling-paling beda salah ketik, 60 hari terakhir. Tinjau dulu: bisa jadi memang dua pekerjaan yang mirip. Tandai "Bukan ganda" bila berbeda, supaya tidak muncul lagi. Tombol minta tindakan hanya mengirim pemberitahuan lewat lonceng ke pegawainya; admin tidak menghapus apa pun di sini.
             <Link :href="route('admin.data-integrity')" class="font-medium text-primary hover:underline">Kembali ke Integritas data</Link>
         </p>
 
@@ -52,6 +61,7 @@ const side = (s: Side) => `#${s.id} · ${s.where}${s.has_capaian ? ' · ada capa
                 <div class="w-64"><SearchableSelect :model-value="filter" :options="personChoices" placeholder="Semua pegawai" search-placeholder="Cari pegawai…" :empty-label="`Semua (${$n(pairs.length)})`" @update:model-value="(v: number | null) => (filter = v)" /></div>
                 <Button variant="outline" size="sm" :disabled="busy || !picked.length" @click="ask(picked)">Minta tindakan ({{ $n(picked.length) }})</Button>
                 <Button variant="outline" size="sm" :disabled="busy || !notAsked.length" @click="ask(notAsked)">Minta semua yang belum diminta ({{ $n(notAsked.length) }})</Button>
+                <Button variant="ghost" size="sm" :disabled="busy || !picked.length" @click="dismissing = [...picked]">Bukan ganda ({{ $n(picked.length) }})</Button>
             </div>
 
             <div class="overflow-x-auto rounded-lg border bg-white">
@@ -80,11 +90,27 @@ const side = (s: Side) => `#${s.id} · ${s.where}${s.has_capaian ? ' · ada capa
                                 <span v-if="p.asked" class="text-green-700">Diminta {{ formatDate(p.asked.at, { day: 'numeric', month: 'short' }) }}<span v-if="p.asked.by"> oleh {{ p.asked.by }}</span></span>
                                 <span v-else class="text-gray-500">Belum diminta</span>
                             </td>
-                            <td class="px-2 py-2"><Button variant="outline" size="sm" :disabled="busy" @click="ask([p.key])">{{ p.asked ? 'Minta lagi' : 'Minta tindakan' }}</Button></td>
+                            <td class="px-2 py-2">
+                                <div class="flex gap-1">
+                                    <Button variant="outline" size="sm" :disabled="busy" @click="ask([p.key])">{{ p.asked ? 'Minta lagi' : 'Minta tindakan' }}</Button>
+                                    <Button variant="ghost" size="sm" :disabled="busy" @click="dismissing = [p.key]">Bukan ganda</Button>
+                                </div>
+                            </td>
                         </tr>
                     </tbody>
                 </table>
             </div>
         </template>
+
+        <ConfirmDialog
+            :open="dismissing.length > 0"
+            title="Bukan kegiatan ganda"
+            :description="`Tandai ${dismissing.length} pasangan sebagai dua pekerjaan yang berbeda? Pasangan ini tidak akan muncul lagi di daftar.`"
+            confirm-label="Ya, bukan ganda"
+            cancel-label="Batal"
+            variant="warning"
+            @update:open="(v: boolean) => { if (!v) dismissing = []; }"
+            @confirm="dismiss"
+        />
     </AppLayout>
 </template>

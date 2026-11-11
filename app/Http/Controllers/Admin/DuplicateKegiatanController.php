@@ -24,4 +24,13 @@ class DuplicateKegiatanController extends Controller
 
         return back()->with($people > 0 ? 'success' : 'error', $people > 0 ? "Permintaan dikirim ke {$people} orang lewat lonceng." : 'Tidak ada pegawai dengan akun yang bisa dikirimi permintaan.');
     }
+
+    /** "Bukan ganda": the admin checked the pairs and they are two different pieces of work. */
+    public function dismiss(Request $request, BuildDuplicateKegiatanAction $pairs): RedirectResponse
+    {
+        $keys = $request->validate(['keys' => ['required', 'array', 'min:1'], 'keys.*' => ['string', 'max:30']], ['keys.required' => 'Pilih dulu pasangan yang bukan ganda.'])['keys'];
+        $marked = $pairs->dismiss($keys, $request->user()->id);
+
+        return back()->with('success', "{$marked} pasangan ditandai bukan ganda.");
+    }
 }

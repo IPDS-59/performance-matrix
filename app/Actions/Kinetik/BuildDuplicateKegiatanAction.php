@@ -2,6 +2,7 @@
 
 namespace App\Actions\Kinetik;
 
+use App\Models\DuplicateKegiatanDismissal;
 use App\Models\PlanItem;
 use App\Notifications\KinetikNotification;
 use App\Services\Kinetik\KegiatanDuplicateFinder;
@@ -10,7 +11,8 @@ use Illuminate\Notifications\DatabaseNotification;
 use Illuminate\Support\Facades\Cache;
 
 /**
- * Pairs of kegiatan of one person that start on the same day and say almost the same thing, over the last 60 days, each with
+ * Pairs of kegiatan of one person that start on the same day and say the same thing up to typos and filler words
+ * (KegiatanDuplicateFinder::isSameKegiatan), over the last 60 days, leaving out pairs an admin marked as not double, each with
  * the one to keep (the one with more finished data or already sent), the one to delete, how, and whether an admin already
  * asked the person to act. The admin reviews them before asking; nothing here deletes anything.
  */
@@ -31,21 +33,22 @@ class BuildDuplicateKegiatanAction
     {
         $finder = new KegiatanDuplicateFinder;
         $asked = $this->asked();
+        $dismissed = DuplicateKegiatanDismissal::pluck('pair_key')->flip();
         $pairs = [];
 
         PlanItem::with('employee:id,name')->where('status', '!=', 'cancelled')->where('date_start', '>=', now()->subDays(60)->toDateString())
             ->get()
             ->groupBy(fn (PlanItem $i) => $i->employee_id.'|'.substr((string) $i->date_start, 0, 10))
-            ->each(function ($group) use ($finder, $asked, &$pairs) {
+            ->each(function ($group) use ($finder, $asked, $dismissed, &$pairs) {
                 $items = $group->values();
                 for ($a = 0; $a < $items->count(); $a++) {
                     for ($b = $a + 1; $b < $items->count(); $b++) {
-                        if ($finder->similarity($items[$a]->description, $items[$b]->description) < KegiatanDuplicateFinder::SAME) {
+                        [$x, $y] = [$items[$a], $items[$b]];
+                        $key = min($x->id, $y->id).'-'.max($x->id, $y->id);
+                        if ($dismissed->has($key) || ! $finder->isSameKegiatan((string) $x->description, (string) $y->description)) {
                             continue;
                         }
-                        [$x, $y] = [$items[$a], $items[$b]];
                         [$keep, $drop] = ($this->weight($x) > $this->weight($y) || ($this->weight($x) === $this->weight($y) && $x->id < $y->id)) ? [$x, $y] : [$y, $x];
-                        $key = min($x->id, $y->id).'-'.max($x->id, $y->id);
                         $pairs[] = [
                             'key' => $key,
                             'employee_id' => $x->employee_id,
@@ -91,6 +94,21 @@ class BuildDuplicateKegiatanAction
         Cache::forget(self::COUNT_CACHE);
 
         return $notified;
+    }
+
+    /**
+     * The admin checked these pairs and they are two different pieces of work: they leave the list and the badge for good.
+     *
+     * @param  list<string>  $keys  pair keys from execute()
+     * @return int pairs marked
+     */
+    public function dismiss(array $keys, ?int $userId): int
+    {
+        $valid = collect($this->execute())->pluck('key')->intersect($keys);
+        $valid->each(fn (string $key) => DuplicateKegiatanDismissal::firstOrCreate(['pair_key' => $key], ['user_id' => $userId]));
+        Cache::forget(self::COUNT_CACHE);
+
+        return $valid->count();
     }
 
     /** @return array<string, array{at: string, by: string|null}> the latest request per pair key */
