@@ -85,6 +85,10 @@ class TeamRecapController extends Controller
                 ->get()
             : collect();
 
+        // A plain member reads the results of the meeting only, so nothing per member is built for them.
+        $memberView = $this->memberView($request, $team);
+        $full = $team !== null && ! $memberView;
+
         return Inertia::render('Kinetik/TeamWeeklyRecap', [
             'teams' => $this->teamOptions($teams),
             'selectedTeamId' => $team?->id,
@@ -92,7 +96,9 @@ class TeamRecapController extends Controller
             'periods' => [],
             'year' => $monday->year,
             'month' => $monday->month,
-            'panels' => $team ? $this->visiblePanels($this->aggregator->panels($team, 'week', $monday), $employee, $team, $request) : [],
+            'memberView' => $memberView,
+            'results' => $memberView ? $this->meetingResults($this->aggregator->weekly($team, $weekStart)) : [],
+            'panels' => $full ? $this->aggregator->panels($team, 'week', $monday) : [],
             'evidences' => $evidences,
             'weekStart' => $weekStart,
             'weekEnd' => $monday->copy()->endOfWeek(Carbon::SUNDAY)->toDateString(),
@@ -100,13 +106,13 @@ class TeamRecapController extends Controller
             'nextWeek' => $monday->copy()->addWeek()->toDateString(),
             'canManage' => $team !== null && $employee !== null && $this->isPj($employee, $team->id),
             'currentEmployeeId' => $employee?->id,
-            'members' => $team ? $this->aggregator->memberCompleteness($team, $weekStart) : [],
-            'plans' => $team ? $this->weekPlans($team, $monday) : [],
-            'lastPlans' => $team ? $this->weekPlans($team, $monday->copy()->subWeek()) : [],
+            'members' => $full ? $this->aggregator->memberCompleteness($team, $weekStart) : [],
+            'plans' => $full ? $this->weekPlans($team, $monday) : [],
+            'lastPlans' => $full ? $this->weekPlans($team, $monday->copy()->subWeek()) : [],
             'lastWeekStart' => $monday->copy()->subWeek()->toDateString(),
             'lastWeekEnd' => $monday->copy()->subWeek()->endOfWeek(Carbon::SUNDAY)->toDateString(),
             // Members without any kegiatan in the week, so the meeting sees who did not plan.
-            'noPlan' => $team ? [
+            'noPlan' => $full ? [
                 'last' => $this->membersWithoutPlan($team, $monday->copy()->subWeek()),
                 'this' => $this->membersWithoutPlan($team, $monday),
             ] : ['last' => [], 'this' => []],
@@ -194,13 +200,18 @@ class TeamRecapController extends Controller
         }
 
         $month = (int) $request->query('month');
+        $memberView = $this->memberView($request, $team);
 
         return Inertia::render('Kinetik/MonthlyRecap', [
             'view' => 'detail',
             'months' => [],
             'teams' => $this->teamOptions($teams),
             'selectedTeamId' => $team?->id,
-            'panels' => $team ? $this->visiblePanels($this->aggregator->panels($team, 'month', Carbon::create($year, $month, 1)), $employee, $team, $request) : [],
+            'memberView' => $memberView,
+            'results' => $memberView ? $this->meetingResults($this->aggregator->monthly($team, $year, $month)) : [],
+            'evidences' => $team ? TeamRecapEvidence::where('team_id', $team->id)->where('period_type', 'month')
+                ->where('period_year', $year)->where('period_month', $month)->latest()->get() : [],
+            'panels' => $team !== null && ! $memberView ? $this->aggregator->panels($team, 'month', Carbon::create($year, $month, 1)) : [],
             'year' => $year,
             'month' => $month,
             'canManage' => $team !== null && $employee !== null && $this->isPj($employee, $team->id),
@@ -340,6 +351,12 @@ class TeamRecapController extends Controller
         $quarter = (int) $request->query('quarter');
 
         $segments = $team ? $this->aggregator->quarterly($team, $year, $quarter) : [];
+        $memberView = $this->memberView($request, $team);
+        $sections = $team ? $this->monthSections($team, $year, $quarter) : [];
+        if ($memberView) {
+            $segments = $this->meetingResults($segments);
+            $sections = array_map(fn (array $s) => [...$s, 'segments' => $this->meetingResults($s['segments'])], $sections);
+        }
 
         return Inertia::render('Kinetik/QuarterlyRecap', [
             'teams' => $this->teamOptions($teams),
@@ -347,11 +364,11 @@ class TeamRecapController extends Controller
             'view' => 'detail',
             'periods' => [],
             'segments' => $segments,
-            'sections' => $team ? $this->monthSections($team, $year, $quarter) : [],
+            'sections' => $sections,
             'summaries' => $team ? $this->summaries($team, 'quarter', $year, quarter: $quarter) : (object) [],
             'year' => $year,
             'quarter' => $quarter,
-            'pics' => $team ? $this->teamMemberOptions($team) : [],
+            'pics' => $team && ! $memberView ? $this->teamMemberOptions($team) : [],
             ...$this->lockProps($employee, $team, 'quarter', $year, quarter: $quarter),
             'currentEmployeeId' => $employee?->id,
         ]);
@@ -522,13 +539,18 @@ class TeamRecapController extends Controller
             : null;
 
         // "Unduh Excel semua tim" (Review Bersama) carries every team for anyone allowed to review; the team pages keep their own teams.
-        $source = ($validated['scope'] ?? null) === 'all' && self::canReview($request->user()) ? $this->reviewTeams() : $this->teamsFor($request);
-        $teams = $source->map(function (Team $team) use ($type, $validated, $weekStart) {
+        $reviewAll = ($validated['scope'] ?? null) === 'all' && self::canReview($request->user());
+        $source = $reviewAll ? $this->reviewTeams() : $this->teamsFor($request);
+        $teams = $source->map(function (Team $team) use ($type, $validated, $weekStart, $request, $reviewAll) {
             $segments = match ($type) {
                 'week' => $this->aggregator->weekly($team, $weekStart),
                 'month' => $this->aggregator->monthly($team, (int) $validated['year'], (int) $validated['month']),
                 'quarter' => $this->aggregator->quarterly($team, (int) $validated['year'], (int) $validated['quarter']),
             };
+            // "scope=all" is for reviewers only, so a plain member downloads the results of their own teams.
+            if (! $reviewAll && $this->memberView($request, $team)) {
+                $segments = $this->meetingResults($segments);
+            }
 
             $evidences = $type === 'week'
                 ? TeamRecapEvidence::where('team_id', $team->id)
@@ -968,47 +990,37 @@ class TeamRecapController extends Controller
         );
     }
 
-    /**
-     * For paraphrase drafting: the PJ OR the RK's assigned PIC may draft.
-     */
-    private function canParaphrasePlan(Employee $employee, int $teamId, PerformancePlan $plan): bool
-    {
-        return $this->isPj($employee, $teamId) || $plan->pic_employee_id === $employee->id;
-    }
-
+    /** Only the PJ writes the paraphrase of an RK (the owner asked on 11 Nov 2026); every member of the team reads it. */
     private function authorizeParaphrase(Employee $employee, int $teamId, PerformancePlan $plan): void
     {
-        abort_unless(
-            $this->canParaphrasePlan($employee, $teamId, $plan),
-            403,
-            'Hanya PJ atau PIC RK yang dapat membuat parafrase rekap.',
-        );
+        abort_unless($this->isPj($employee, $teamId), 403, 'Hanya PJ yang dapat mengisi parafrase rekap.');
     }
 
     /**
-     * The paraphrase is the PJ's working text. Only the PJ, the RK's PIC and admins get it; for everyone else the text
-     * (and the weekly texts under a month) never leaves the server, so hiding it in the page is not the only guard.
-     *
-     * @param  list<array<string, mixed>>  $panels
-     * @return list<array<string, mixed>>
+     * A plain member of the team (not its PJ, not the head, not an admin) reads the meeting results only: the PJ's
+     * paraphrase and numbers per RK and the bukti rapat. The kegiatan, notes and names of the others never leave the server.
      */
-    private function visiblePanels(array $panels, ?Employee $employee, Team $team, Request $request): array
+    private function memberView(Request $request, ?Team $team): bool
     {
-        if ($request->user()->hasRole('admin')) {
-            return $panels;
+        if ($team === null || $request->user()->hasAnyRole(['admin', 'head'])) {
+            return false;
         }
-        $isPj = $employee !== null && $this->isPj($employee, $team->id);
+        $employee = $request->user()->employee;
 
-        return array_map(function (array $panel) use ($employee, $isPj) {
-            if ($isPj || ($employee !== null && $panel['pic_employee_id'] === $employee->id)) {
-                return $panel;
-            }
-            if ($panel['recap'] !== null) {
-                $panel['recap']['paraphrase'] = null;
-            }
-            $panel['weeks'] = [];
+        return $employee === null || ! $this->isPj($employee, $team->id);
+    }
 
-            return $panel;
-        }, $panels);
+    /**
+     * Recap segments as a plain member may read them: the RK rows without the text and names of the members.
+     *
+     * @param  array<int, array<string, mixed>>  $segments
+     * @return array<int, array<string, mixed>>
+     */
+    private function meetingResults(array $segments): array
+    {
+        return array_map(fn (array $segment) => [
+            ...$segment,
+            'rows' => array_map(fn (array $row) => [...$row, 'uraian_aggregated' => null, 'kendala_aggregated' => null, 'contributors' => []], $segment['rows']),
+        ], $segments);
     }
 }

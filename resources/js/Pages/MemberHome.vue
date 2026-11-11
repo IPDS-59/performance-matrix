@@ -14,7 +14,7 @@ const props = defineProps<{
     last_week: { total: number; filled: number; missing: string[] };
     sent: { total: number; sent: number; pending: string[] };
     skp: { total: number; open: string[] };
-    /** Only for a PJ: the meetings of their teams this month. */
+    /** The meetings of the member's own teams this month; a plain member opens only the results. */
     meetings?: MeetingSummaryData;
     /** Only for a PJ: per team they lead, who still owes a plan or a realisasi. */
     teamStatus?: TeamStatus[];
@@ -64,7 +64,8 @@ const open = computed(() => [noPlan.value, props.last_week.missing].filter((l) =
         </section>
 
         <section v-if="meetings" class="mt-8" aria-labelledby="ringkasan-rapat">
-            <h2 id="ringkasan-rapat" class="mb-3 text-base font-semibold text-gray-900">Ringkasan Rapat</h2>
+            <h2 id="ringkasan-rapat" class="mb-1 text-base font-semibold text-gray-900">Ringkasan Rapat</h2>
+            <p class="mb-3 text-xs text-gray-600">Klik status minggu atau rapat bulanan untuk membaca hasil rapatnya.</p>
             <MeetingSummaryTable v-bind="meetings" route-name="dashboard" :only="['meetings']" />
         </section>
     </AppLayout>

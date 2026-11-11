@@ -33,9 +33,10 @@ class DashboardController extends Controller
 
         if ($user->hasRole('staff') && $user->employee !== null) {
             $data = $member->execute($user->employee, now(config('app.schedule_timezone', 'Asia/Makassar')));
-            // A PJ follows the meetings of their teams on the beranda; the head and admins keep the Ringkasan Rapat page.
+            // Every member follows the meetings of their own teams on the beranda (a plain member opens only the results);
+            // the head and admins keep the Ringkasan Rapat page.
+            $data['meetings'] = $this->meetings($request, $meetings);
             if (TeamRecapController::canReview($user)) {
-                $data['meetings'] = $this->meetings($request, $meetings);
                 // Who of the teams they lead still owes a plan or a realisasi.
                 $led = $this->teamsFor($request)->filter(fn (Team $t) => $t->leader_id === $user->employee->id);
                 $data['teamStatus'] = $teamStatus->execute($led, now(config('app.schedule_timezone', 'Asia/Makassar')));
@@ -56,7 +57,7 @@ class DashboardController extends Controller
     }
 
     /**
-     * The Ringkasan Rapat of one month for the teams of a PJ, as on the Ringkasan Rapat page.
+     * The Ringkasan Rapat of one month for the teams of a member or a PJ, as on the Ringkasan Rapat page.
      *
      * @return array<string, mixed>
      */

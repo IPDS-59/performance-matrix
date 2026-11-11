@@ -6,11 +6,12 @@ import RkPicker from '@/Components/Kinetik/RkPicker.vue';
 import RkRecapPanel from '@/Components/Kinetik/RkRecapPanel.vue';
 import { Head, router } from '@inertiajs/vue3';
 import { computed, ref } from 'vue';
-import type { PeriodRow, RkPanel, TeamOption } from '@/types';
+import type { PeriodRow, RecapSegment, RkPanel, TeamOption, TeamRecapEvidence } from '@/types';
 import { ChevronLeft, ChevronRight } from 'lucide-vue-next';
 import { Button } from '@/Components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/Components/ui/select';
 import RecapPeriodTable from '@/Components/Kinetik/RecapPeriodTable.vue';
+import MeetingResultTable from '@/Components/Kinetik/MeetingResultTable.vue';
 import { useRecapExport } from '@/composables/useRecapExport';
 
 const props = defineProps<{
@@ -23,6 +24,10 @@ const props = defineProps<{
     month: number | null;
     canManage: boolean;
     currentEmployeeId: number | null;
+    /** A plain member of the team: the results of the meeting only. */
+    memberView?: boolean;
+    results?: RecapSegment[];
+    evidences?: TeamRecapEvidence[];
 }>();
 
 const MONTHS = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
@@ -42,7 +47,8 @@ const shiftYear = (delta: number) => router.get(route('team-recap.monthly'), { t
 
 const selected = ref<number | null>(props.panels[0]?.performance_plan_id ?? null);
 const panel = computed(() => props.panels.find(p => p.performance_plan_id === selected.value) ?? props.panels[0] ?? null);
-const canEdit = computed(() => props.canManage || (panel.value !== null && props.currentEmployeeId !== null && panel.value.pic_employee_id === props.currentEmployeeId));
+// Only the PJ writes for the RK.
+const canEdit = computed(() => props.canManage);
 </script>
 
 <template>
@@ -88,7 +94,9 @@ const canEdit = computed(() => props.canManage || (panel.value !== null && props
                 @export="download({ period_type: 'month', year, month: month ?? 1 }, `Rapat Bulanan ${monthLabel}.xlsx`)"
             />
 
-            <template v-if="selectedTeamId">
+            <MeetingResultTable v-if="selectedTeamId && memberView" title="Hasil rapat bulanan" :segments="results ?? []" :evidences="evidences ?? []" />
+
+            <template v-else-if="selectedTeamId">
                 <p v-if="!panels.length" class="rounded-md border border-dashed border-gray-200 bg-gray-50 py-10 text-center text-sm text-gray-600">Tim ini belum punya RK.</p>
                 <template v-else-if="panel">
                     <RkPicker v-model="selected" :panels="panels" />

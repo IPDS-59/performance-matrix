@@ -334,14 +334,15 @@ it('saves an RK paraphrase, lets the PJ edit it again, and ignores an old lock',
     expect(RkRecap::sole()->paraphrase)->toBe('Setelah kunci lama');
 });
 
-it('lets the RK PIC write but not a plain member or a stranger', function () {
+it('lets only the PJ write the paraphrase, not the RK PIC, a plain member or a stranger', function () {
     [$memberUser, $member, $team] = memberOfTeam();
     $plan = PerformancePlan::factory()->create(['project_id' => null, 'team_id' => $team->id]);
 
     $this->actingAs($memberUser)->post(route('team-recap.rk.store'), rkPayload($team, $plan, ['paraphrase' => 'x']))->assertForbidden();
 
     $plan->update(['pic_employee_id' => $member->id]);
-    $this->actingAs($memberUser)->post(route('team-recap.rk.store'), rkPayload($team, $plan, ['paraphrase' => 'x']))->assertSessionHas('success');
+    $this->actingAs($memberUser)->post(route('team-recap.rk.store'), rkPayload($team, $plan, ['paraphrase' => 'x']))->assertForbidden();
+    expect(RkRecap::count())->toBe(0);
 
     $otherPlan = PerformancePlan::factory()->create(['project_id' => null, 'team_id' => Team::factory()->create()->id]);
     $this->actingAs($memberUser)->post(route('team-recap.rk.store'), rkPayload($team, $otherPlan))->assertStatus(422);
@@ -582,23 +583,65 @@ it('summarises the meetings of a month per team: complete, partial, bukti rapat,
     Carbon\Carbon::setTestNow();
 });
 
-it('keeps the paraphrase text from everyone but the PJ, the RK PIC and admins', function () {
-    [$memberUser, $member, $team] = memberOfTeam();
-    $pj = Employee::factory()->create();
+it('lets every member of the team, the head and admins read the PJ paraphrase (the owner asked on 11 Nov 2026)', function () {
+    [$memberUser, , $team] = memberOfTeam();
+    $pjUser = staffUser();
+    $pj = Employee::factory()->create(['user_id' => $pjUser->id]);
     $team->update(['leader_id' => $pj->id]);
     $pj->teams()->attach($team->id, ['role' => 'leader', 'is_primary' => true]);
     $plan = PerformancePlan::factory()->create(['project_id' => null, 'team_id' => $team->id, 'pic_employee_id' => null]);
-    RkRecap::create(['team_id' => $team->id, 'performance_plan_id' => $plan->id, 'period_type' => 'week', 'period_start' => '2026-10-12', 'paraphrase' => 'Teks rahasia PJ', 'target' => 5]);
+    RkRecap::create(['team_id' => $team->id, 'performance_plan_id' => $plan->id, 'period_type' => 'week', 'period_start' => '2026-10-12', 'paraphrase' => 'Hasil rapat PJ', 'target' => 5]);
     $url = route('team-recap.weekly', ['team' => $team->id, 'week' => '2026-10-12']);
-    $text = fn ($page) => json_encode($page->toArray()['props']['panels']);
+    $text = fn ($page) => json_encode($page->toArray()['props']);
 
-    $this->actingAs($memberUser)->get($url)->assertInertia(fn ($page) => expect($text($page))->not->toContain('Teks rahasia PJ')->toContain('"target":5'));
-    $this->actingAs(headUser())->get($url)->assertInertia(fn ($page) => expect($text($page))->not->toContain('Teks rahasia PJ'));
-    $this->actingAs($pj->user ?? User::factory()->create(['id' => 9999]))->get($url);   // the PJ below
+    foreach ([$memberUser, headUser(), $pjUser, adminUser()] as $viewer) {
+        $this->actingAs($viewer)->get($url)->assertInertia(fn ($page) => expect($text($page))->toContain('Hasil rapat PJ'));
+    }
+});
+
+it('shows a plain member the meeting results of a week and of a month, but not the kegiatan or names of the others', function () {
+    [$memberUser, $me, $team] = memberOfTeam();
+    $other = Employee::factory()->create(['name' => 'Rekan Lain', 'display_name' => 'Rekan Lain']);
+    $other->teams()->attach($team->id, ['role' => 'member', 'is_primary' => true]);
+    $plan = PerformancePlan::factory()->create(['project_id' => null, 'team_id' => $team->id, 'description' => 'RK Pengolahan']);
+    recapItem($team, $other, $plan, ['description' => 'Kegiatan rahasia rekan', 'capaian_note' => 'Catatan rekan', 'kendala' => 'Kendala rekan']);
+    recapItem($team, $me, $plan, ['description' => 'Kegiatan saya']);
+    RkRecap::create(['team_id' => $team->id, 'performance_plan_id' => $plan->id, 'period_type' => 'week', 'period_start' => '2026-10-12', 'paraphrase' => 'Hasil minggu', 'target' => 10, 'capaian' => 8, 'target_unit' => 'dok']);
+    RkRecap::create(['team_id' => $team->id, 'performance_plan_id' => $plan->id, 'period_type' => 'month', 'period_start' => '2026-10-01', 'paraphrase' => 'Hasil bulan']);
+    TeamRecapEvidence::create(['team_id' => $team->id, 'period_type' => 'month', 'period_year' => 2026, 'period_month' => 10, 'type' => 'notula', 'title' => 'Notulen Oktober', 'url' => 'https://contoh.id/notulen']);
+
+    $week = route('team-recap.weekly', ['team' => $team->id, 'week' => '2026-10-12']);
+    $this->actingAs($memberUser)->get($week)->assertInertia(fn ($page) => $page
+        ->where('memberView', true)
+        ->where('results.0.rows.0.rk_description', 'RK Pengolahan')
+        ->where('results.0.rows.0.pj_uraian', 'Hasil minggu')
+        ->where('results.0.rows.0.achievement', 80)
+        ->where('panels', [])->where('plans', [])->where('lastPlans', [])->where('members', [])
+        ->where('noPlan', ['last' => [], 'this' => []])
+        ->tap(fn ($p) => expect(json_encode($p->toArray()['props']))->not->toContain('rahasia rekan')->not->toContain('Rekan Lain')->not->toContain('Catatan rekan')->not->toContain('Kendala rekan')));
+
+    $month = route('team-recap.monthly', ['team' => $team->id, 'year' => 2026, 'month' => 10]);
+    $this->actingAs($memberUser)->get($month)->assertInertia(fn ($page) => $page
+        ->where('memberView', true)
+        ->where('results.0.rows.0.pj_uraian', 'Hasil bulan')
+        ->where('evidences.0.title', 'Notulen Oktober')
+        ->where('panels', [])
+        ->tap(fn ($p) => expect(json_encode($p->toArray()['props']))->not->toContain('rahasia rekan')->not->toContain('Rekan Lain')));
+
+    // The download of the team pages carries the same results, without the others' text.
+    $this->actingAs($memberUser)->getJson(route('team-recap.export', ['period_type' => 'week', 'week' => '2026-10-12']))
+        ->assertOk()->assertJsonPath('teams.0.segments.0.rows.0.pj_uraian', 'Hasil minggu')
+        ->tap(fn ($r) => expect($r->getContent())->not->toContain('rahasia rekan')->not->toContain('Rekan Lain')->not->toContain('Kendala rekan'));
+    // The quarter page as well.
+    $this->actingAs($memberUser)->get(route('team-recap.quarterly', ['team' => $team->id, 'year' => 2026, 'quarter' => 4]))
+        ->assertInertia(fn ($page) => expect(json_encode($page->toArray()['props']))->not->toContain('rahasia rekan')->not->toContain('Rekan Lain')->not->toContain('Kendala rekan'));
+
+    // The PJ keeps the whole meeting.
     $pjUser = staffUser();
-    $pj->update(['user_id' => $pjUser->id]);
-    $this->actingAs($pjUser)->get($url)->assertInertia(fn ($page) => expect($text($page))->toContain('Teks rahasia PJ'));
-    $this->actingAs(adminUser())->get($url)->assertInertia(fn ($page) => expect($text($page))->toContain('Teks rahasia PJ'));
+    $pj = Employee::factory()->create(['user_id' => $pjUser->id]);
+    $team->update(['leader_id' => $pj->id]);
+    $pj->teams()->attach($team->id, ['role' => 'leader', 'is_primary' => true]);
+    $this->actingAs($pjUser)->get($week)->assertInertia(fn ($page) => $page->where('memberView', false)->has('plans', 2));
 });
 
 it('keeps Review Bersama monthly for the head, while the PJ and admins still choose the period', function () {
