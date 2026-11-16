@@ -461,7 +461,9 @@ onUnmounted(() => {
                 <span>Anda bertindak sebagai <strong>{{ impersonating.name }}</strong>. Yang Anda simpan tercatat atas nama Anda dan berlaku untuk akun ini.</span>
                 <button type="button" class="ml-auto rounded-md border border-amber-400 bg-white px-3 py-1 font-medium hover:bg-amber-50" @click="router.post(route('admin.impersonate.stop'))">Kembali ke admin</button>
             </div>
-            <main class="flex-1 overflow-auto p-4 sm:p-6 print:overflow-visible print:p-0">
+            <!-- relative: absolute children (sr-only labels in long tables) stay inside this scroll area; without it they
+                 sit below the screen, the body scrolls, and a white band shows under the layout. -->
+            <main class="relative flex-1 overflow-auto p-4 sm:p-6 print:static print:overflow-visible print:p-0">
                 <slot />
                 <ReportBugDialog v-model:open="reportOpen" />
             </main>
