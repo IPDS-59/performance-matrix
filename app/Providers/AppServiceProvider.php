@@ -19,6 +19,7 @@ use App\Policies\PerformancePlanPolicy;
 use App\Policies\PerformancePolicy;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Facades\URL;
 use Illuminate\Support\Facades\Vite;
 use Illuminate\Support\ServiceProvider;
 
@@ -28,6 +29,7 @@ class AppServiceProvider extends ServiceProvider
 
     public function boot(): void
     {
+        self::forceHttpsFromAppUrl();
         Vite::prefetch(concurrency: 3);
 
         Gate::policy(PerformanceReport::class, PerformancePolicy::class);
@@ -41,5 +43,16 @@ class AppServiceProvider extends ServiceProvider
         Event::listen(PerformanceBatchSubmitted::class, NotifyTeamLeadOnReportSubmitted::class);
         Event::listen(ProjectMembersUpdated::class, SyncProjectLeaderRole::class);
         Event::listen(EmployeeLinkedToUser::class, AssignStaffRole::class);
+    }
+
+    /**
+     * The BPS webhosting ends HTTPS at its load balancer and hands PHP plain HTTP, so Laravel would write http:// links
+     * that the browser blocks. An https APP_URL means every link is https.
+     */
+    public static function forceHttpsFromAppUrl(): void
+    {
+        if (str_starts_with((string) config('app.url'), 'https://')) {
+            URL::forceScheme('https');
+        }
     }
 }

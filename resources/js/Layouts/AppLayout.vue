@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { csrfToken } from '@/composables/useCsrf';
 import { Link, router, usePage } from '@inertiajs/vue3';
 import { computed, onMounted, onUnmounted, ref, watch, type Component } from 'vue';
 import {
@@ -143,7 +144,7 @@ async function fetchNotifications() {
 }
 
 async function markAllRead() {
-    await fetch(route('notifications.read-all'), { method: 'PATCH', headers: { 'X-CSRF-TOKEN': (document.querySelector('meta[name=csrf-token]') as HTMLMetaElement)?.content ?? '' } });
+    await fetch(route('notifications.read-all'), { method: 'PATCH', headers: { 'X-CSRF-TOKEN': csrfToken() } });
     unreadCount.value = 0;
     notifications.value = notifications.value.map(n => ({ ...n, read_at: new Date().toISOString() }));
 }
@@ -153,9 +154,6 @@ function toggleDropdown() {
     if (showDropdown.value) fetchNotifications();
 }
 
-function csrfToken(): string {
-    return (document.querySelector('meta[name=csrf-token]') as HTMLMetaElement)?.content ?? '';
-}
 
 async function handleNotificationClick(n: { id: string; data: Record<string, unknown>; read_at: string | null }) {
     if (!n.read_at) {

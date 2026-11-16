@@ -42,6 +42,8 @@ class HandleInertiaRequests extends Middleware
     {
         return [
             ...parent::share($request),
+            // Scripts send this as X-CSRF-TOKEN: the BPS webhosting load balancer makes the XSRF-TOKEN cookie HttpOnly.
+            'csrf_token' => fn () => $request->hasSession() ? $request->session()->token() : null,
             'auth' => [
                 'user' => $request->user() ? [
                     'id' => $request->user()->id,
