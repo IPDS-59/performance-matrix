@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { csrfToken } from '@/composables/useCsrf';
 import AppLayout from '@/Layouts/AppLayout.vue';
 import { Head, router } from '@inertiajs/vue3';
 import { ref } from 'vue';
@@ -32,9 +33,6 @@ const props = defineProps<{
 
 const items = ref<NotificationItem[]>(props.notifications.data);
 
-function csrfToken(): string {
-    return (document.querySelector('meta[name=csrf-token]') as HTMLMetaElement)?.content ?? '';
-}
 
 function formatDate(iso: string): string {
     return new Date(iso).toLocaleString('id-ID', {
