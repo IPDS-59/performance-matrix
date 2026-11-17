@@ -27,7 +27,7 @@
         "vue": "^3.5.45",
         "vue-tsc": "^3.3.14",
         "xlsx": "https://cdn.sheetjs.com/xlsx-0.20.3/xlsx-0.20.3.tgz",
-        "ziggy-js": "^2.6.5"
+        "ziggy-js": "^2.7.0"
     },
     "dependencies": {
         "@tanstack/vue-table": "^9.3.1",
