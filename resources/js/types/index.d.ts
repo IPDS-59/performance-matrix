@@ -533,7 +533,7 @@ export interface PlanItemRow {
     evidence_url: string | null;
     progress: number;
     status: 'planned' | 'pushed' | 'in_progress' | 'done' | 'cancelled';
-    source: 'member' | 'pj' | 'rtl';
+    source: 'member' | 'pj' | 'rtl' | 'import';
     /** Why the last push to kipApp failed; only while the plan is still unsent. */
     push_error: string | null;
     in_kipapp: boolean;

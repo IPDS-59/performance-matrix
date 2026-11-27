@@ -10,7 +10,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import InputError from '@/Components/InputError.vue';
 import ConfirmDialog from '@/Components/ConfirmDialog.vue';
 import { bulkCopy } from '@/composables/usePlanBulk';
-import { toneClass, planStage } from '@/composables/usePlanStage';
+import { SIMILAR_PREFIX, needsManualPush, planStage, toneClass } from '@/composables/usePlanStage';
 import { achievementPercent, periodText, withUnit } from '@/composables/useAchievement';
 import { useDateFormat } from '@/composables/useDateFormat';
 
@@ -74,7 +74,7 @@ function act(name: string, data: Record<string, unknown> = {}) {
 }
 
 /** A kegiatan imported from a spreadsheet waits when it looks like one already in kipApp; "Kirim tetap" says it is a different one. */
-const waitsOnDuplicate = computed(() => !!props.item?.push_error?.startsWith('Mirip dengan kegiatan yang sudah ada di kipApp'));
+const waitsOnDuplicate = computed(() => !!props.item?.push_error?.startsWith(SIMILAR_PREFIX));
 
 // Sending, taking back and deleting ask first, with kipApp's own texts.
 const confirming = ref<'send' | 'unsend' | 'cancel' | null>(null);
@@ -106,6 +106,9 @@ function confirmed() {
 const waitsForStart = computed(() => stage.value?.action === 'push' && !props.item?.startable);
 // Only a finished kegiatan goes to kipApp.
 const incomplete = computed(() => (stage.value?.action === 'push' ? (props.item?.missing_for_kip ?? []) : []));
+// A planned kegiatan goes to kipApp on its own once complete, so "Kirim ke kipApp" shows only where someone must press it.
+const manualPush = computed(() => stage.value?.action === 'push' && !!props.item && needsManualPush(props.item));
+const showAction = computed(() => !!stage.value?.action && (stage.value.action !== 'push' || manualPush.value));
 </script>
 
 <template>
@@ -173,12 +176,12 @@ const incomplete = computed(() => (stage.value?.action === 'push' ? (props.item?
                 <Button v-if="item?.status !== 'cancelled'" type="button" variant="outline" @click="item && emit('copy', item)">Salin kegiatan</Button>
                 <Button v-if="item?.can_edit" type="button" variant="outline" @click="item && emit('edit', item)">Ubah</Button>
                 <Button type="submit" form="plan-result" variant="outline" :disabled="form.processing || item?.status === 'cancelled'">Simpan realisasi</Button>
-                <Button v-if="stage?.action" type="button" :disabled="form.processing || acting || waitsForStart || incomplete.length > 0" :title="waitsForStart ? 'Kegiatan belum bisa dikirim sebelum tanggal mulainya.' : incomplete.length ? `Isi dulu: ${incomplete.join(', ')}` : undefined" @click="run">{{ stage?.actionLabel }}</Button>
+                <Button v-if="showAction" type="button" :disabled="form.processing || acting || waitsForStart || incomplete.length > 0" :title="waitsForStart ? 'Kegiatan belum bisa dikirim sebelum tanggal mulainya.' : incomplete.length ? `Isi dulu: ${incomplete.join(', ')}` : undefined" @click="run">{{ stage?.actionLabel }}</Button>
             </DialogFooter>
             <p v-if="item?.in_kipapp && !item.sent && item.status !== 'cancelled'" class="text-right text-xs text-gray-600">Kegiatan ini sudah ada di kipApp. "Simpan realisasi" memperbarui kipApp juga.</p>
             <p v-if="item?.sent" class="text-xs text-gray-600">Kegiatan yang sudah dikirim ke atasan tidak bisa dihapus, dan "Simpan realisasi" hanya menyimpan di Kinetik. Batalkan kirim dulu bila kipApp perlu diubah.</p>
-            <p v-if="incomplete.length" class="text-right text-xs text-amber-800">Belum lengkap, jadi belum dikirim ke kipApp. Isi dulu: {{ incomplete.join(', ') }}. Setelah lengkap, Kinetik mengirimnya sendiri.</p>
-            <p v-if="waitsForStart" class="text-right text-xs text-gray-600">Kegiatan belum bisa dikirim sebelum tanggal mulainya. Kinetik mengirimnya otomatis pada hari itu.</p>
+            <p v-if="incomplete.length" class="text-right text-xs text-amber-800">Belum lengkap, jadi belum dikirim ke kipApp. Isi dulu: {{ incomplete.join(', ') }}. {{ manualPush ? 'Setelah lengkap, tekan "Kirim ke kipApp".' : 'Setelah lengkap, Kinetik mengirimnya sendiri.' }}</p>
+            <p v-if="waitsForStart" class="text-right text-xs text-gray-600">Kegiatan belum bisa dikirim sebelum tanggal mulainya. {{ manualPush ? 'Tekan "Kirim ke kipApp" pada hari itu.' : 'Kinetik mengirimnya otomatis pada hari itu.' }}</p>
 
             <ConfirmDialog
                 :open="confirming !== null"
