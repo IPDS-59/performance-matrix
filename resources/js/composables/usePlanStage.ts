@@ -40,6 +40,20 @@ const STAGES: Record<PlanStageKey, PlanStage> = {
     cancelled: { key: 'cancelled', label: 'Dibatalkan', tone: 'neutral', action: null, actionLabel: null, step: 0 },
 };
 
+/** kipApp's answer when an imported kegiatan looks like one it already has; "Kirim tetap" handles that case. */
+export const SIMILAR_PREFIX = 'Mirip dengan kegiatan yang sudah ada di kipApp';
+
+/**
+ * Whether a planned kegiatan still needs the "Kirim ke kipApp" button. Most do not: once complete, "Simpan realisasi" and
+ * the hourly run send it on their own, so the button only confused people (asked 2026-11-25). It stays for an imported
+ * kegiatan, which is never sent on its own, and for one kipApp refused, to try again. A look-alike import has "Kirim tetap".
+ */
+export function needsManualPush(plan: { source: string; push_error: string | null }): boolean {
+    if (plan.push_error?.startsWith(SIMILAR_PREFIX)) return false;
+
+    return plan.source === 'import' || plan.push_error !== null;
+}
+
 /** The stage the server sent, or the same rule worked out here for rows that carry none. */
 function stageOf(plan: StageInput): PlanStage {
     if (plan.stage) return STAGES[plan.stage];
